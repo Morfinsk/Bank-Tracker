@@ -630,6 +630,9 @@ let limitsHistory = JSON.parse(localStorage.getItem('limits_history') || '{}');
 let allTransactions = [];
 let activeCategory = 'všetky';
 let activeBank = 'všetky';
+let autoSyncTimer = null;
+let isSyncing = false;
+const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minút
 
 function isGoogleSheetsConnected() {
   return !!String(SHEETS_URL || '').trim();
@@ -1008,7 +1011,8 @@ function parseSheetData(raw) {
 }
 
 async function syncData() {
-  if (!SHEETS_URL) return;
+  if (!SHEETS_URL || isSyncing) return;
+  isSyncing = true;
   const btn = document.getElementById('sync-btn');
   if (btn) btn.classList.add('spinning');
   try {
@@ -1024,6 +1028,7 @@ async function syncData() {
     if (cached) allTransactions = sortTransactionsNewestFirst(JSON.parse(cached));
   }
   if (btn) btn.classList.remove('spinning');
+  isSyncing = false;
   renderAll();
 }
 
@@ -1507,6 +1512,27 @@ function prepareUiAfterDataLoad() {
   renderAll();
 }
 
+function startAutoSync() {
+  if (autoSyncTimer) {
+    clearInterval(autoSyncTimer);
+    autoSyncTimer = null;
+  }
+
+  if (!SHEETS_URL) return;
+
+  autoSyncTimer = setInterval(() => {
+    syncData();
+  }, AUTO_SYNC_INTERVAL_MS);
+}
+
+// Keď sa vrátiš do appky po uzamknutí mobilu / prepnutí tabu,
+// appka sa hneď pokúsi natiahnuť aktuálne dáta.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && SHEETS_URL) {
+    syncData();
+  }
+});
+
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   // Najprv zobrazíme cache/demo dáta, aby appka nebola prázdna.
@@ -1518,6 +1544,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (SHEETS_URL) {
     await syncData();
     prepareUiAfterDataLoad();
+    startAutoSync();
   }
 });
 </script>
