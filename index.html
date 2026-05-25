@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Card Tracker">
 <title>Bank Card Tracker</title>
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="./manifest.json?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -527,6 +527,14 @@
     </div>
   </div>
 
+  <div class="config-banner" style="background: rgba(119, 224, 243, 0.06); border-color: rgba(119, 224, 243, 0.35);">
+    <h3 style="color: var(--accent);">Push notifikácie</h3>
+    <p style="color: var(--muted);">Zapni si notifikácie pre pripomienky k mesačným platbám. Token sa zatiaľ uloží lokálne v mobile; ďalší krok bude Apps Script, ktorý bude notifikácie posielať.</p>
+    <button class="config-save" onclick="enableNotifications()" style="margin-top:12px;">Zapnúť push notifikácie 🔔</button>
+    <button class="sim-submit" onclick="copyNotificationToken()" style="margin-top:8px; border-color: var(--border); color: var(--text);">Kopírovať FCM token</button>
+    <div id="push-status" class="edit-mode-notice" style="margin-top:10px;">Push notifikácie zatiaľ nie sú zapnuté.</div>
+  </div>
+
   <div class="config-banner" style="background: rgba(255,255,255,0.02); border-color: var(--border);">
     <h3 style="color: var(--text);">Simulátor transakcií (Vývojár)</h3>
     <p style="color: var(--muted);">Nasimuluj platbu do ľubovoľného mesiaca pre otestovanie archívu a histórie limitov.</p>
@@ -814,6 +822,7 @@ function saveSimulatorMonthlyLimits() {
 
   alert(`Limity pre ${formatMonthString(monthStr)} boli uložené.`);
   renderAll();
+  updatePushStatus();
 }
 
 function applySimulatorLimitsForMonth(monthStr) {
@@ -1465,6 +1474,7 @@ function showPage(pageId) {
     document.getElementById('csob-limit').value = CSOB_LIMIT;
     resetSimFields();
     updateEditModeUI();
+    updatePushStatus();
   }
 }
 
@@ -1548,5 +1558,123 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 });
 </script>
+
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZtbXCeF1MTmsfnobMrj9KlOQTqYVmOOw",
+  authDomain: "bank-card-tracker.firebaseapp.com",
+  projectId: "bank-card-tracker",
+  storageBucket: "bank-card-tracker.firebasestorage.app",
+  messagingSenderId: "768194565850",
+  appId: "1:768194565850:web:cc22f9f9357f7f22ac37e3"
+};
+
+const VAPID_KEY = "BOuZLAPr4rKvSZ1HgwaCe15DtuCehgP9pHbvAwafyh2jtQONBkeqAxVNv7Y9wS8y32Pac-ieF0p8u-DQP2qvDaw";
+
+const firebaseApp = initializeApp(firebaseConfig);
+const messaging = getMessaging(firebaseApp);
+
+async function getServiceWorkerRegistration() {
+  if (!("serviceWorker" in navigator)) {
+    throw new Error("Service Worker nie je v tomto prehliadači podporovaný.");
+  }
+  return await navigator.serviceWorker.register("./firebase-messaging-sw.js", { scope: "./" });
+}
+
+window.updatePushStatus = function () {
+  const status = document.getElementById("push-status");
+  if (!status) return;
+
+  const token = localStorage.getItem("fcm_token");
+  const permission = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
+
+  if (permission === "granted" && token) {
+    status.className = "edit-mode-notice offline";
+    status.innerHTML = "Push notifikácie sú zapnuté ✅<br><span style='color:var(--muted);'>FCM token je uložený lokálne v tomto zariadení.</span>";
+  } else if (permission === "denied") {
+    status.className = "edit-mode-notice online";
+    status.textContent = "Notifikácie sú v prehliadači zablokované. Povoľ ich v nastaveniach stránky/appky.";
+  } else {
+    status.className = "edit-mode-notice";
+    status.textContent = "Push notifikácie zatiaľ nie sú zapnuté.";
+  }
+};
+
+window.enableNotifications = async function () {
+  try {
+    if (!("Notification" in window)) {
+      alert("Tento prehliadač nepodporuje notifikácie.");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      updatePushStatus();
+      alert("Notifikácie neboli povolené.");
+      return;
+    }
+
+    const swRegistration = await getServiceWorkerRegistration();
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: swRegistration
+    });
+
+    if (!token) {
+      alert("Token sa nepodarilo vytvoriť. Skús refresh appky a znova zapnúť notifikácie.");
+      return;
+    }
+
+    localStorage.setItem("fcm_token", token);
+    console.log("FCM TOKEN:", token);
+    updatePushStatus();
+    alert("Push notifikácie boli úspešne zapnuté 🔔");
+  } catch (err) {
+    console.error("Push notification setup error:", err);
+    alert("Chyba pri aktivácii notifikácií. Skontroluj, či je firebase-messaging-sw.js nahraný vedľa index.html.");
+  }
+};
+
+window.copyNotificationToken = async function () {
+  const token = localStorage.getItem("fcm_token");
+  if (!token) {
+    alert("FCM token ešte neexistuje. Najprv klikni na Zapnúť push notifikácie.");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(token);
+    alert("FCM token bol skopírovaný.");
+  } catch (err) {
+    console.log("FCM TOKEN:", token);
+    alert("Token sa nepodarilo skopírovať automaticky. Nájdeš ho v konzole ako FCM TOKEN.");
+  }
+};
+
+onMessage(messaging, (payload) => {
+  const title = payload.notification?.title || payload.data?.title || "Bank Card Tracker";
+  const body = payload.notification?.body || payload.data?.body || "Máš novú notifikáciu.";
+
+  if (Notification.permission === "granted") {
+    navigator.serviceWorker.getRegistration("./").then((registration) => {
+      if (registration) {
+        registration.showNotification(title, {
+          body,
+          tag: "bank-card-tracker-foreground"
+        });
+      }
+    });
+  }
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  updatePushStatus();
+});
+</script>
+
 </body>
 </html>
