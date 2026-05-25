@@ -13,9 +13,28 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  self.registration.showNotification(payload.notification.title, {
-    body: payload.notification.body,
-    icon: "./icon-192.png",
-    badge: "./icon-192.png"
+  const title = payload.notification?.title || payload.data?.title || "Bank Card Tracker";
+  const body = payload.notification?.body || payload.data?.body || "Máš novú notifikáciu.";
+
+  self.registration.showNotification(title, {
+    body,
+    tag: "bank-card-tracker",
+    renotify: true
   });
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes("bank-card-tracker") && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow("./");
+      }
+    })
+  );
 });
