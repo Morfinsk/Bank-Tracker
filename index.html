@@ -1581,8 +1581,7 @@ const messaging = getMessaging(firebaseApp);
 function getPushDebugMessage(err) {
   const code = err?.code ? `Kód: ${err.code}` : "";
   const message = err?.message ? `Detail: ${err.message}` : "";
-  return [code, message].filter(Boolean).join("
-");
+  return [code, message].filter(Boolean).join("\n");
 }
 
 async function verifyServiceWorkerFile() {
@@ -1673,9 +1672,7 @@ window.enableNotifications = async function () {
   } catch (err) {
     console.error("Push notification setup error:", err);
     const detail = getPushDebugMessage(err);
-    alert("Chyba pri aktivácii notifikácií.
-
-" + (detail || "Skontroluj console log a firebase-messaging-sw.js."));
+    alert("Chyba pri aktivácii notifikácií.\n\n" + (detail || "Skontroluj console log a firebase-messaging-sw.js."));
   }
 };
 
