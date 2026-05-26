@@ -1,9 +1,9 @@
 {
-  "name": "Bank Card Tracker",
+  "name": "Bank Tracker",
   "short_name": "BankTracker",
   "description": "Sleduj použitie platobných kariet",
-  "start_url": "/bank-card-tracker/",
-  "scope": "/bank-card-tracker/",
+  "start_url": "/bank-tracker/",
+  "scope": "/bank-tracker/",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
