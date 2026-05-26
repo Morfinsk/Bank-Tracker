@@ -884,10 +884,29 @@ const BANKS = {
 const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','moneta'];
 
 const BANK_LOGOS = {
-  rb_cz: { src: './bank-logos/RB.png', alt: 'RB CZ', className: 'rb-logo' },
-  csob_sk: { src: './bank-logos/CSOB-SK.jpg', alt: 'ČSOB SK', className: 'csob-sk-logo' },
-  csob_cz: { src: './bank-logos/CSOB-CZ.jpg', alt: 'ČSOB CZ', className: 'csob-cz-logo' },
-  moneta: { src: './bank-logos/Moneta-CZ%20.png', alt: 'Moneta CZ', className: 'moneta-logo' }
+  rb_cz: {
+    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/RB.png',
+    alt: 'RB CZ',
+    className: 'rb-logo'
+  },
+
+  csob_sk: {
+    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/CSOB-SK.png',
+    alt: 'ČSOB SK',
+    className: 'csob-sk-logo'
+  },
+
+  csob_cz: {
+    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/CSOB-CZ.jpg',
+    alt: 'ČSOB CZ',
+    className: 'csob-cz-logo'
+  },
+
+  moneta: {
+    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Moneta-CZ.png',
+    alt: 'Moneta CZ',
+    className: 'moneta-logo'
+  }
 };
 
 function bankLogoHTML(bankKey) {
