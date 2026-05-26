@@ -1,7 +1,7 @@
 {
   "name": "Bank Tracker",
   "short_name": "BankTracker",
-  "description": "Sleduj použitie platobných kariet",
+  "description": "Sleduj použitie bankovych transakcii",
   "start_url": "/bank-tracker/",
   "scope": "/bank-tracker/",
   "display": "standalone",
