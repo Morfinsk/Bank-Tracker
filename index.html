@@ -13,6 +13,23 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
+  .moneta-gradient {
+  background: linear-gradient(
+    90deg,
+    #4559F4 0%,
+    #4559F4 33%,
+    #923EB8 33%,
+    #923EB8 66%,
+    #D13FA9 66%,
+    #D13FA9 100%
+  );
+
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  font-weight: 700;
+}
   :root {
     --bg: #0a0a0a;
     --surface: #141414;
@@ -30,6 +47,7 @@
     
     --rb-color: #dada36; 
     --csob-color: #3b9eff; 
+    --moneta-color: #fd82b1; 
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -459,6 +477,33 @@
   .budget-progress-fill { height:100%; background: var(--accent); border-radius:4px; transition: width .3s; }
   .bank-card-holder { display: grid; grid-template-columns: 1fr; gap: 14px; }
 
+
+  .bank-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    vertical-align: middle;
+  }
+  .bank-logo-img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    border-radius: 5px;
+    background: transparent;
+    padding: 0;
+    flex: 0 0 18px;
+  }
+  .card-name .bank-logo-img,
+  .tx-col-title .bank-logo-img,
+  .archive-bank-title .bank-logo-img {
+    width: 16px;
+    height: 16px;
+  }
+  .cat-chip .bank-logo-img {
+    width: 15px;
+    height: 15px;
+  }
+
 </style>
 </head>
 <body>
@@ -514,10 +559,10 @@
   <div class="filter-group-title">Banka</div>
   <div class="cat-grid" id="bank-filters">
     <div class="cat-chip active" id="filter-bank-all" onclick="filterBank('všetky')">Všetky</div>
-    <div class="cat-chip" id="filter-bank-rb" onclick="filterBank('rb_cz')">RB CZ</div>
-    <div class="cat-chip" id="filter-bank-csob-sk" onclick="filterBank('csob_sk')">ČSOB SK</div>
-    <div class="cat-chip" id="filter-bank-csob-cz" onclick="filterBank('csob_cz')">ČSOB CZ</div>
-    <div class="cat-chip" id="filter-bank-moneta" onclick="filterBank('moneta')">Moneta</div>
+    <div class="cat-chip" id="filter-bank-rb" onclick="filterBank('rb_cz')"><span class="bank-label"><img class="bank-logo-img rb-logo" src="./bank-logos/RB.png" alt="RB CZ" loading="lazy"><span>RB CZ</span></span></div>
+    <div class="cat-chip" id="filter-bank-csob-sk" onclick="filterBank('csob_sk')"><span class="bank-label"><img class="bank-logo-img csob-sk-logo" src="./bank-logos/CSOB-SK.jpg" alt="ČSOB SK" loading="lazy"><span>ČSOB SK</span></span></div>
+    <div class="cat-chip" id="filter-bank-csob-cz" onclick="filterBank('csob_cz')"><span class="bank-label"><img class="bank-logo-img csob-cz-logo" src="./bank-logos/CSOB-CZ.jpg" alt="ČSOB CZ" loading="lazy"><span>ČSOB CZ</span></span></div>
+    <div class="cat-chip" id="filter-bank-moneta" onclick="filterBank('moneta')"><span class="bank-label"><img class="bank-logo-img moneta-logo" src="./bank-logos/Moneta-CZ%20.png" alt="Moneta CZ" loading="lazy"><span class="moneta-gradient">Moneta CZ</span></span></div>
   </div>
 
   <div class="filter-group-title">Kategória</div>
@@ -547,19 +592,19 @@
 
       <div class="sim-limit-grid">
         <div>
-          <label style="font-size: 11px; color: var(--rb-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit RB CZ</label>
+          <label style="font-size: 11px; color: var(--rb-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit <span class="bank-label"><img class="bank-logo-img rb-logo" src="./bank-logos/RB.png" alt="RB CZ" loading="lazy"><span>RB CZ</span></span></label>
           <input class="config-input" id="rb-limit" placeholder="Predvolené: 10" type="number" min="0" />
         </div>
         <div>
-          <label style="font-size: 11px; color: var(--csob-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit ČSOB SK</label>
+          <label style="font-size: 11px; color: var(--csob-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit <span class="bank-label"><img class="bank-logo-img csob-sk-logo" src="./bank-logos/CSOB-SK.jpg" alt="ČSOB SK" loading="lazy"><span>ČSOB SK</span></span></label>
           <input class="config-input" id="csob-limit" placeholder="Predvolené: 5" type="number" min="0" />
         </div>
         <div>
-          <label style="font-size: 11px; color: #8fbfff; display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit ČSOB CZ</label>
+          <label style="font-size: 11px; color: #8fbfff; display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit <span class="bank-label"><img class="bank-logo-img csob-cz-logo" src="./bank-logos/CSOB-CZ.jpg" alt="ČSOB CZ" loading="lazy"><span>ČSOB CZ</span></span></label>
           <input class="config-input" id="csob-cz-limit" placeholder="Predvolené: 5" type="number" min="0" />
         </div>
         <div>
-          <label style="font-size: 11px; color: #ff7ab6; display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit Moneta</label>
+          <label style="font-size: 11px; color: var(--moneta-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit <span class="moneta-gradient">Moneta CZ</span></label>
           <input class="config-input" id="moneta-limit" placeholder="Predvolené: 0" type="number" min="0" />
         </div>
       </div>
@@ -570,21 +615,44 @@
   </div>
 
 
-  <div class="config-banner" style="background: rgba(119, 224, 243, 0.06); border-color: rgba(119, 224, 243, 0.25);">
-    <h3 style="color: var(--accent);">Mesačný budget</h3>
-    <p style="color: var(--muted);">Nastav si CZK budget na aktuálny mesiac. Appka ťa vie upozorniť pri prekročení aj pri priblížení k limitu.</p>
-    <div class="sim-limit-grid">
-      <div>
-        <label style="font-size: 11px; color: var(--accent); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný budget CZK</label>
-        <input class="config-input" id="monthly-budget-czk" placeholder="napr. 10000" type="number" min="0" />
-      </div>
-      <div>
-        <label style="font-size: 11px; color: var(--warn); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Upozorni pri zostávajúcich CZK</label>
-        <input class="config-input" id="budget-warning-czk" placeholder="napr. 1000" type="number" min="0" />
+  <div class="config-banner" style="background: rgba(167, 139, 250, 0.08); border-color: rgba(167, 139, 250, 0.35);">
+    <h3 style="color: var(--moneta-color);">Mesačný budget podľa banky</h3>
+    <p style="color: var(--muted);">Nastav si CZK budget pre každú banku zvlášť. Appka ťa lokálne upozorní, keď sa priblížiš k limitu alebo ho prekročíš.</p>
+
+    <div class="sim-box" style="border-color: rgba(218,218,54,0.25);">
+      <div class="sim-title-inline" style="color: var(--rb-color);"><span>💳</span> <span class="bank-label"><img class="bank-logo-img rb-logo" src="./bank-logos/RB.png" alt="RB CZ" loading="lazy"><span>RB CZ</span></span></div>
+      <div class="sim-limit-grid">
+        <div><label style="font-size: 11px; color: var(--rb-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Budget CZK</label><input class="config-input" id="budget-rb-cz" placeholder="napr. 10000" type="number" min="0" /></div>
+        <div><label style="font-size: 11px; color: var(--warn); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Upozorni keď zostáva</label><input class="config-input" id="budget-warn-rb-cz" placeholder="napr. 1000" type="number" min="0" /></div>
       </div>
     </div>
-    <button class="config-save" onclick="saveBudgetSettings()">Uložiť budget</button>
-    <div class="edit-mode-notice">Príklad: budget 10000 CZK + upozornenie 1000 CZK = appka upozorní, keď máš minuté aspoň 9000 CZK.</div>
+
+    <div class="sim-box" style="border-color: rgba(59,158,255,0.25);">
+      <div class="sim-title-inline" style="color: var(--csob-color);"><span>💳</span> <span class="bank-label"><img class="bank-logo-img csob-sk-logo" src="./bank-logos/CSOB-SK.jpg" alt="ČSOB SK" loading="lazy"><span>ČSOB SK</span></span></div>
+      <div class="sim-limit-grid">
+        <div><label style="font-size: 11px; color: var(--csob-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Budget CZK</label><input class="config-input" id="budget-csob-sk" placeholder="napr. 5000" type="number" min="0" /></div>
+        <div><label style="font-size: 11px; color: var(--warn); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Upozorni keď zostáva</label><input class="config-input" id="budget-warn-csob-sk" placeholder="napr. 500" type="number" min="0" /></div>
+      </div>
+    </div>
+
+    <div class="sim-box" style="border-color: rgba(143,191,255,0.25);">
+      <div class="sim-title-inline" style="color: #8fbfff;"><span>💳</span> <span class="bank-label"><img class="bank-logo-img csob-cz-logo" src="./bank-logos/CSOB-CZ.jpg" alt="ČSOB CZ" loading="lazy"><span>ČSOB CZ</span></span></div>
+      <div class="sim-limit-grid">
+        <div><label style="font-size: 11px; color: #8fbfff; display:block; margin-bottom: 4px; font-family: var(--font-mono);">Budget CZK</label><input class="config-input" id="budget-csob-cz" placeholder="napr. 5000" type="number" min="0" /></div>
+        <div><label style="font-size: 11px; color: var(--warn); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Upozorni keď zostáva</label><input class="config-input" id="budget-warn-csob-cz" placeholder="napr. 500" type="number" min="0" /></div>
+      </div>
+    </div>
+
+    <div class="sim-box" style="border-color: rgba(167,139,250,0.28);">
+      <div class="sim-title-inline" style="color: var(--moneta-color);"><span>🏦</span> <span class="bank-label"><img class="bank-logo-img moneta-logo" src="./bank-logos/Moneta-CZ%20.png" alt="Moneta CZ" loading="lazy"><span class="moneta-gradient">Moneta CZ</span></span></div>
+      <div class="sim-limit-grid">
+        <div><label style="font-size: 11px; color: var(--moneta-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Budget CZK</label><input class="config-input" id="budget-moneta" placeholder="napr. 15000" type="number" min="0" /></div>
+        <div><label style="font-size: 11px; color: var(--warn); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Upozorni keď zostáva</label><input class="config-input" id="budget-warn-moneta" placeholder="napr. 1000" type="number" min="0" /></div>
+      </div>
+    </div>
+
+    <button class="config-save" onclick="saveBudgetSettings()" style="background: var(--moneta-color);">Uložiť budgety</button>
+    <div class="edit-mode-notice">Príklad: <span class="moneta-gradient">Moneta CZ</span> budget 10000 CZK + upozornenie 1000 CZK = appka upozorní, keď máš minuté aspoň 9000 CZK v <span class="moneta-gradient">Moneta CZ</span>.</div>
   </div>
 
   <div class="config-banner" style="background: rgba(255,255,255,0.02); border-color: var(--border);">
@@ -612,7 +680,7 @@
           <input class="config-input" id="sim-limit-csob-cz" placeholder="napr. 5" type="number" min="0" />
         </div>
         <div>
-          <label style="font-size: 11px; color: #ff7ab6; display:block; margin-bottom: 4px; font-family: var(--font-mono);">Limit Moneta</label>
+          <label style="font-size: 11px; color: var(--moneta-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Limit <span class="moneta-gradient">Moneta CZ</span></label>
           <input class="config-input" id="sim-limit-moneta" placeholder="napr. 0" type="number" min="0" />
         </div>
       </div>
@@ -620,7 +688,7 @@
     </div>
 
     <div class="sim-box">
-      <div class="sim-title-inline" style="color: var(--rb-color);"><span>⚡</span> RB CZ</div>
+      <div class="sim-title-inline" style="color: var(--rb-color);"><span>⚡</span> <span class="bank-label"><img class="bank-logo-img rb-logo" src="./bank-logos/RB.png" alt="RB CZ" loading="lazy"><span>RB CZ</span></span></div>
       <input class="config-input" id="sim-date-rb" placeholder="Dátum (napr. 12.02.2026 14:30)" type="text" />
       <input class="config-input" id="sim-merchant-rb" placeholder="Obchodník (napr. Billa SK)" type="text" value="Billa SK" />
       <div class="sim-limit-grid">
@@ -641,7 +709,7 @@
     </div>
 
     <div class="sim-box" style="margin-top:16px;">
-      <div class="sim-title-inline" style="color: var(--csob-color);"><span>⚡</span> ČSOB SK</div>
+      <div class="sim-title-inline" style="color: var(--csob-color);"><span>⚡</span> <span class="bank-label"><img class="bank-logo-img csob-sk-logo" src="./bank-logos/CSOB-SK.jpg" alt="ČSOB SK" loading="lazy"><span>ČSOB SK</span></span></div>
       <input class="config-input" id="sim-date-csob" placeholder="Dátum (napr. 15.02.2026 10:15)" type="text" />
       <input class="config-input" id="sim-merchant-csob" placeholder="Obchodník (napr. Tesco SK)" type="text" value="Tesco SK" />
       <div class="sim-limit-grid">
@@ -662,7 +730,7 @@
     </div>
 
     <div class="sim-box" style="margin-top:16px;">
-      <div class="sim-title-inline" style="color: #8fbfff;"><span>⚡</span> CSOB CZ</div>
+      <div class="sim-title-inline" style="color: #8fbfff;"><span>⚡</span> <span class="bank-label"><img class="bank-logo-img csob-cz-logo" src="./bank-logos/CSOB-CZ.jpg" alt="ČSOB CZ" loading="lazy"><span>ČSOB CZ</span></span></div>
       <input class="config-input" id="sim-date-csob-cz" placeholder="Dátum (napr. 15.02.2026 10:15)" type="text" />
       <input class="config-input" id="sim-merchant-csob-cz" placeholder="Obchodník" type="text" value="Test ČSOB CZ" />
       <div class="sim-limit-grid">
@@ -673,14 +741,14 @@
     </div>
 
     <div class="sim-box" style="margin-top:16px;">
-      <div class="sim-title-inline" style="color: #ff7ab6;"><span>🏦</span> Moneta</div>
+      <div class="sim-title-inline" style="color: var(--moneta-color);"><span>🏦</span> <span class="bank-label"><img class="bank-logo-img moneta-logo" src="./bank-logos/Moneta-CZ%20.png" alt="Moneta CZ" loading="lazy"><span class="moneta-gradient">Moneta CZ</span></span></div>
       <input class="config-input" id="sim-date-moneta" placeholder="Dátum (napr. 15.02.2026 10:15)" type="text" />
       <input class="config-input" id="sim-merchant-moneta" placeholder="Popis pohybu" type="text" value="Pohyb na účte" />
       <div class="sim-limit-grid">
         <div><label style="font-size: 11px; color: var(--muted); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Suma</label><input class="config-input" id="sim-amt-moneta" type="number" value="100" step="0.01" /></div>
         <div><label style="font-size: 11px; color: var(--muted); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mena</label><select class="config-input" id="sim-currency-moneta"><option value="CZK" selected>CZK</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select></div>
       </div>
-      <button class="sim-submit" data-local-edit-only="true" data-default-title="Pridať pohyb Moneta" onclick="submitSimTx('moneta')" style="border-color: #ff7ab6; color: #ff7ab6;">+ Pridať pohyb Moneta</button>
+      <button class="sim-submit" data-local-edit-only="true" data-default-title="Pridať pohyb Moneta CZ" onclick="submitSimTx('moneta')" style="border-color: var(--moneta-color); color: var(--moneta-color);">+ Pridať pohyb <span class="moneta-gradient">Moneta CZ</span></button>
     </div>
   </div>
 
@@ -697,7 +765,7 @@
     <div class="section-title">o appke</div>
     <div style="font-size:13px; color:var(--muted); line-height:1.8;">
       Bank Tracker<br>
-      Verzia 3.0.1 · Oprava rozloženia tabov, banky, budget & push ⚙️🔥<br>
+      Verzia 3.0.2 · <span class="moneta-gradient">Moneta CZ</span>, budget podľa banky & push ⚙️🔥<br>
       Auto-sync každých 5 min + manual refresh
     </div>
   </div>
@@ -811,9 +879,32 @@ const BANKS = {
   rb_cz: { label: 'RB CZ', short: 'RB', color: 'var(--rb-color)', limitKey: 'rbCz', defaultLimit: 10, primaryCurrency: 'CZK', aliases: ['rb cz','raiffeisen','raiffeisen cz','3684'] },
   csob_sk: { label: 'ČSOB SK', short: 'ČSOB SK', color: 'var(--csob-color)', limitKey: 'csobSk', defaultLimit: 5, primaryCurrency: 'EUR', aliases: ['csob sk','čsob sk','csob slov','čsob slov','5612'] },
   csob_cz: { label: 'ČSOB CZ', short: 'ČSOB CZ', color: '#8fbfff', limitKey: 'csobCz', defaultLimit: 5, primaryCurrency: 'CZK', aliases: ['csob cz','čsob cz','csob česk','čsob česk'] },
-  moneta: { label: 'Moneta', short: 'Moneta', color: '#ff7ab6', limitKey: 'moneta', defaultLimit: 0, primaryCurrency: 'CZK', aliases: ['moneta','moneta money','moneta bank'] }
+  moneta: { label: '<span class="moneta-gradient">Moneta CZ</span>', short: '<span class="moneta-gradient">Moneta CZ</span>', color: 'var(--moneta-color)', limitKey: 'moneta', defaultLimit: 0, primaryCurrency: 'CZK', aliases: ['moneta','moneta money','moneta bank'] }
 };
 const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','moneta'];
+
+const BANK_LOGOS = {
+  rb_cz: { src: './bank-logos/RB.png', alt: 'RB CZ', className: 'rb-logo' },
+  csob_sk: { src: './bank-logos/CSOB-SK.jpg', alt: 'ČSOB SK', className: 'csob-sk-logo' },
+  csob_cz: { src: './bank-logos/CSOB-CZ.jpg', alt: 'ČSOB CZ', className: 'csob-cz-logo' },
+  moneta: { src: './bank-logos/Moneta-CZ%20.png', alt: 'Moneta CZ', className: 'moneta-logo' }
+};
+
+function bankLogoHTML(bankKey) {
+  const logo = BANK_LOGOS[bankKey];
+  if (!logo) return '';
+  return `<img class="bank-logo-img ${logo.className}" src="${logo.src}" alt="${logo.alt}" loading="lazy">`;
+}
+
+function bankLabelHTML(bankKey) {
+  const bank = getBankInfo(bankKey);
+  return `<span class="bank-label">${bankLogoHTML(bankKey)}<span>${bank.label}</span></span>`;
+}
+
+function bankShortLabelHTML(bankKey) {
+  const bank = getBankInfo(bankKey);
+  return `<span class="bank-label">${bankLogoHTML(bankKey)}<span>${bank.short}</span></span>`;
+}
 
 function getLimitsForMonth(monthStr) {
   const saved = limitsHistory[monthStr] || {};
@@ -1265,7 +1356,7 @@ function submitSimTx(bank) {
     rb: { card: '**** 3684', bank: 'RB CZ', category: 'Ostatné', type: 'Platba kartou' },
     csob: { card: '***** 5612*', bank: 'CSOB SK', category: 'Ostatné', type: 'Platba kartou' },
     csob_cz: { card: 'CSOB CZ', bank: 'CSOB CZ', category: 'Ostatné', type: 'Platba kartou' },
-    moneta: { card: 'Moneta účet', bank: 'Moneta', category: 'Ostatné', type: 'Pohyb na účte' }
+    moneta: { card: '****4571', bank: '<span class="moneta-gradient">Moneta CZ</span>', category: 'Účet', type: 'Pohyb na účte' }
   };
   const meta = bankMap[bank] || bankMap.rb;
 
@@ -1355,62 +1446,104 @@ function getTransactionsByBank(monthOnly = true) {
   }, {});
 }
 
-function getCurrentMonthCzkSpent() {
+function getCurrentMonthCzkSpent(bankKey = null) {
   const month = getCurrentMonth();
   return allTransactions
     .filter(t => t.month === month && t.amount < 0 && String(t.currency || '').toUpperCase() === 'CZK')
+    .filter(t => !bankKey || getBankKey(t) === bankKey)
     .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
 }
 
+function getBudgetStorageKey(bankKey, type) {
+  return `budget_${type}_${bankKey}`;
+}
+
+function getBudgetSettingsForBank(bankKey) {
+  return {
+    budget: parseFloat(localStorage.getItem(getBudgetStorageKey(bankKey, 'limit')) || '0') || 0,
+    warning: parseFloat(localStorage.getItem(getBudgetStorageKey(bankKey, 'warn')) || '0') || 0
+  };
+}
+
 function saveBudgetSettings() {
-  const budget = parseFloat(document.getElementById('monthly-budget-czk')?.value) || 0;
-  const warning = parseFloat(document.getElementById('budget-warning-czk')?.value) || 0;
-  localStorage.setItem('monthly_budget_czk', String(budget));
-  localStorage.setItem('budget_warning_czk', String(warning));
-  alert('Budget bol uložený.');
+  const inputMap = {
+    rb_cz: ['budget-rb-cz', 'budget-warn-rb-cz'],
+    csob_sk: ['budget-csob-sk', 'budget-warn-csob-sk'],
+    csob_cz: ['budget-csob-cz', 'budget-warn-csob-cz'],
+    moneta: ['budget-moneta', 'budget-warn-moneta']
+  };
+
+  Object.entries(inputMap).forEach(([bankKey, ids]) => {
+    const budget = parseFloat(document.getElementById(ids[0])?.value) || 0;
+    const warning = parseFloat(document.getElementById(ids[1])?.value) || 0;
+    localStorage.setItem(getBudgetStorageKey(bankKey, 'limit'), String(budget));
+    localStorage.setItem(getBudgetStorageKey(bankKey, 'warn'), String(warning));
+  });
+
+  alert('Budgety podľa bánk boli uložené.');
   renderAll();
 }
 
 function renderBudgetStatus() {
   const wrap = document.getElementById('budget-status');
   if (!wrap) return;
-  const budget = parseFloat(localStorage.getItem('monthly_budget_czk') || '0') || 0;
-  const warning = parseFloat(localStorage.getItem('budget_warning_czk') || '0') || 0;
-  const spent = getCurrentMonthCzkSpent();
-  if (!budget) {
-    wrap.innerHTML = `<div class="budget-status-title">Budget</div><div class="budget-status-note">Budget zatiaľ nie je nastavený. Nájdeš ho v Nastavenia → Mesačný budget.</div>`;
-    return;
-  }
-  const remaining = Math.max(budget - spent, 0);
-  const pct = Math.min(spent / budget, 1) * 100;
-  const status = remaining <= 0 ? 'prekročený' : (warning && remaining <= warning ? 'blízko limitu' : 'v norme');
-  const statusColor = remaining <= 0 ? 'var(--danger)' : (warning && remaining <= warning ? 'var(--warn)' : 'var(--ok)');
+
+  const rows = BANK_ORDER.map(bankKey => {
+    const bank = BANKS[bankKey];
+    const { budget, warning } = getBudgetSettingsForBank(bankKey);
+    const spent = getCurrentMonthCzkSpent(bankKey);
+
+    if (!budget) {
+      return `
+        <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <div class="budget-status-main">
+            <div>
+              <div class="budget-status-value" style="color:${bank.color};font-size:15px;">${bankLabelHTML(bankKey)}</div>
+              <div class="budget-status-note">Budget zatiaľ nie je nastavený.</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    const remaining = Math.max(budget - spent, 0);
+    const pct = Math.min(spent / budget, 1) * 100;
+    const status = remaining <= 0 ? 'prekročený' : (warning && remaining <= warning ? 'blízko limitu' : 'v norme');
+    const statusColor = remaining <= 0 ? 'var(--danger)' : (warning && remaining <= warning ? 'var(--warn)' : 'var(--ok)');
+
+    maybeSendBudgetLocalNotification(bankKey, bank.label, spent, budget, remaining, warning);
+
+    return `
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+        <div class="budget-status-main">
+          <div>
+            <div class="budget-status-value" style="color:${bank.color};font-size:15px;">${bankLabelHTML(bankKey)}</div>
+            <div class="budget-status-note">${formatMoney(spent, 'CZK')} / ${formatMoney(budget, 'CZK')} CZK · zostáva ${formatMoney(remaining, 'CZK')} CZK · <span style="color:${statusColor};font-weight:700;">${status}</span></div>
+          </div>
+        </div>
+        <div class="budget-progress"><div class="budget-progress-fill" style="width:${pct}%;background:${statusColor};"></div></div>
+      </div>`;
+  }).join('');
+
   wrap.innerHTML = `
-    <div class="budget-status-title">Mesačný budget CZK</div>
-    <div class="budget-status-main">
-      <div>
-        <div class="budget-status-value">${formatMoney(spent, 'CZK')} / ${formatMoney(budget, 'CZK')} CZK</div>
-        <div class="budget-status-note">Zostáva ${formatMoney(remaining, 'CZK')} CZK · <span style="color:${statusColor};font-weight:700;">${status}</span></div>
-      </div>
-    </div>
-    <div class="budget-progress"><div class="budget-progress-fill" style="width:${pct}%;background:${statusColor};"></div></div>`;
-  maybeSendBudgetLocalNotification(spent, budget, remaining, warning);
+    <div class="budget-status-title">Budget podľa banky</div>
+    ${rows}
+  `;
 }
 
-function maybeSendBudgetLocalNotification(spent, budget, remaining, warning) {
+function maybeSendBudgetLocalNotification(bankKey, bankLabel, spent, budget, remaining, warning) {
   if (!budget || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
   const month = getCurrentMonth();
   if (warning && remaining > 0 && remaining <= warning) {
-    const key = `budget_warn_${month}_${budget}_${warning}`;
+    const key = `budget_warn_${bankKey}_${month}_${budget}_${warning}`;
     if (localStorage.getItem(key) !== 'sent') {
-      new Notification('Bank Tracker', { body: `Minuté ${formatMoney(spent, 'CZK')} CZK. Ostáva ${formatMoney(remaining, 'CZK')} CZK do konca mesačného budgetu.` });
+      new Notification('Bank Tracker', { body: `${bankLabel}: minuté ${formatMoney(spent, 'CZK')} CZK. Ostáva ${formatMoney(remaining, 'CZK')} CZK do konca mesačného budgetu.` });
       localStorage.setItem(key, 'sent');
     }
   }
   if (remaining <= 0) {
-    const key = `budget_over_${month}_${budget}`;
+    const key = `budget_over_${bankKey}_${month}_${budget}`;
     if (localStorage.getItem(key) !== 'sent') {
-      new Notification('Bank Tracker', { body: `Mesačný budget ${formatMoney(budget, 'CZK')} CZK bol prekročený.` });
+      new Notification('Bank Tracker', { body: `${bankLabel}: mesačný budget ${formatMoney(budget, 'CZK')} CZK bol prekročený.` });
       localStorage.setItem(key, 'sent');
     }
   }
@@ -1473,7 +1606,7 @@ function renderBankCard(bankKey, txns) {
   return `
   <div class="card-widget" style="margin-top:${bankKey === 'rb_cz' ? '0' : '14px'};">
     <div class="card-header" style="background: linear-gradient(135deg, #1a1a1a, #111);">
-      <div><div class="card-name" style="color:${bank.color}; font-weight: 700;">${bank.label}</div><div class="card-number">${cardNum}</div></div>
+      <div><div class="card-name" style="color:${bank.color}; font-weight: 700;">${bankLabelHTML(bankKey)}</div><div class="card-number">${cardNum}</div></div>
       <div class="card-count"><div class="card-count-big" style="color:${barColor};">${used}<span style="font-size:16px;opacity:.5;color:var(--muted);">/${limit}</span></div><div class="card-count-sub">použití tento mesiac</div></div>
     </div>
     <div class="card-body">
@@ -1492,7 +1625,7 @@ function renderRecentBankColumns(byBank) {
     const txns = sortTransactionsNewestFirst([...(byBank[bankKey] || [])]).slice(0, 5);
     const items = txns.length === 0 ? '<div class="tx-meta-compact">Žiadne pohyby</div>' : txns.map(t => `
       <div class="tx-item-compact"><div class="tx-row-top"><div class="tx-merchant-compact">${t.merchant}</div><div class="tx-amt-compact" style="color:${bank.color}; text-align:right;">-${formatMoney(t.amount, t.currency)} ${t.currency}</div></div><div class="tx-meta-compact">${t.date.split(' ')[0]}</div><button class="tx-delete-inline" data-local-edit-only="true" onclick="deleteSingleTransaction('${t.id}')">✕</button></div>`).join('');
-    return `<div><div class="tx-col-title" style="color:${bank.color};">${bank.label}</div>${items}</div>`;
+    return `<div><div class="tx-col-title" style="color:${bank.color};">${bankLabelHTML(bankKey)}</div>${items}</div>`;
   }).join('');
 }
 
@@ -1515,7 +1648,7 @@ function updateTxnPage(monthTxns) {
   listDiv.innerHTML = filtered.map(t => {
     const bankKey = getBankKey(t);
     const bank = getBankInfo(bankKey);
-    return `<div class="tx-item"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${t.merchant}</div><div class="tx-meta">${t.date} · <span style="color:${bank.color}; font-weight:500;">${bank.label}</span></div></div></div><div class="tx-right-side"><div class="tx-amount" style="color:${bank.color};">-${formatMoney(t.amount, t.currency)} ${t.currency}</div><button class="tx-delete-main" data-local-edit-only="true" data-default-title="Zmazať" onclick="deleteSingleTransaction('${t.id}')" title="Zmazať">✕</button></div></div>`;
+    return `<div class="tx-item"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${t.merchant}</div><div class="tx-meta">${t.date} · <span style="color:${bank.color}; font-weight:500;">${bankLabelHTML(bankKey)}</span></div></div></div><div class="tx-right-side"><div class="tx-amount" style="color:${bank.color};">-${formatMoney(t.amount, t.currency)} ${t.currency}</div><button class="tx-delete-main" data-local-edit-only="true" data-default-title="Zmazať" onclick="deleteSingleTransaction('${t.id}')" title="Zmazať">✕</button></div></div>`;
   }).join('');
 }
 
@@ -1556,7 +1689,7 @@ function renderArchive() {
       const bank = getBankInfo(bankKey);
       const count = txns.filter(t => getBankKey(t) === bankKey).length;
       const limit = hist[bank.limitKey] ?? bank.defaultLimit;
-      return `<div class="archive-bank-col"><span class="archive-bank-title" style="color:${bank.color};">${bank.short}: ${count}/${limit}</span>${limit > 0 ? getBankStatusText(count, limit) : '<span class="archive-bank-status" style="color:var(--muted);">bez limitu</span>'}</div>`;
+      return `<div class="archive-bank-col"><span class="archive-bank-title" style="color:${bank.color};">${bankShortLabelHTML(bankKey)}: ${count}/${limit}</span>${limit > 0 ? getBankStatusText(count, limit) : '<span class="archive-bank-status" style="color:var(--muted);">bez limitu</span>'}</div>`;
     }).join('');
     return `<div class="archive-item"><div class="archive-month-left"><button class="archive-delete-btn" data-local-edit-only="true" data-default-title="Zmazať mesiac z archívu" onclick="deleteArchiveMonth('${mStr}')" title="Zmazať mesiac z archívu">✕</button><div class="archive-month-name">${formatMonthString(mStr)}</div></div><div class="archive-stats-grid" style="grid-template-columns: repeat(4, auto); gap: 10px;">${cols}</div></div>`;
   }).join('');
@@ -1577,10 +1710,18 @@ function showPage(pageId) {
     if (limitsUrlInput) limitsUrlInput.value = LIMITS_WEBAPP_URL;
     populateSettingsLimitMonthDropdown(getCurrentMonth());
     fillSettingsLimitInputs(getSettingsLimitMonth());
-    const budgetInput = document.getElementById('monthly-budget-czk');
-    const warningInput = document.getElementById('budget-warning-czk');
-    if (budgetInput) budgetInput.value = localStorage.getItem('monthly_budget_czk') || '';
-    if (warningInput) warningInput.value = localStorage.getItem('budget_warning_czk') || '';
+    const budgetInputMap = {
+      rb_cz: ['budget-rb-cz', 'budget-warn-rb-cz'],
+      csob_sk: ['budget-csob-sk', 'budget-warn-csob-sk'],
+      csob_cz: ['budget-csob-cz', 'budget-warn-csob-cz'],
+      moneta: ['budget-moneta', 'budget-warn-moneta']
+    };
+    Object.entries(budgetInputMap).forEach(([bankKey, ids]) => {
+      const budgetInput = document.getElementById(ids[0]);
+      const warningInput = document.getElementById(ids[1]);
+      if (budgetInput) budgetInput.value = localStorage.getItem(getBudgetStorageKey(bankKey, 'limit')) || '';
+      if (warningInput) warningInput.value = localStorage.getItem(getBudgetStorageKey(bankKey, 'warn')) || '';
+    });
     resetSimFields();
     updateEditModeUI();
     updatePushStatus();
