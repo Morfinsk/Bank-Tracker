@@ -318,6 +318,17 @@
   .edit-mode-notice.online { border-color: rgba(255, 202, 40, 0.35); color: var(--warn); }
   .edit-mode-notice.offline { border-color: rgba(74, 222, 128, 0.35); color: var(--ok); }
 
+
+  .push-banner {
+    background: rgba(74, 222, 128, 0.08) !important;
+    border-color: rgba(74, 222, 128, 0.45) !important;
+  }
+  .push-banner h3 { color: var(--ok) !important; }
+  .push-save {
+    background: var(--ok) !important;
+    color: #06110a !important;
+  }
+
   /* Bottom nav */
   .bottom-nav {
     position: fixed;
@@ -504,8 +515,8 @@
   <div class="cat-grid" id="bank-filters">
     <div class="cat-chip active" id="filter-bank-all" onclick="filterBank('všetky')">Všetky</div>
     <div class="cat-chip" id="filter-bank-rb" onclick="filterBank('rb_cz')">RB CZ</div>
-    <div class="cat-chip" id="filter-bank-csob-sk" onclick="filterBank('csob_sk')">CSOB SK</div>
-    <div class="cat-chip" id="filter-bank-csob-cz" onclick="filterBank('csob_cz')">CSOB CZ</div>
+    <div class="cat-chip" id="filter-bank-csob-sk" onclick="filterBank('csob_sk')">ČSOB SK</div>
+    <div class="cat-chip" id="filter-bank-csob-cz" onclick="filterBank('csob_cz')">ČSOB CZ</div>
     <div class="cat-chip" id="filter-bank-moneta" onclick="filterBank('moneta')">Moneta</div>
   </div>
 
@@ -523,18 +534,38 @@
   </div>
   <div class="config-banner">
     <h3>Pripojenie k Google Sheets & Limity</h3>
-    <p>Uprav konfiguráciu a limity platieb pre jednotlivé banky. Zmena limitu sa uloží s platnosťou pre aktuálny mesiac.</p>
+    <p>Uprav Google Sheets pripojenie a mesačné limity pre zvolený mesiac. Limity sa uložia lokálne a ak nastavíš Apps Script Web App URL, zapíšu sa aj do tabu <strong>Limity</strong>.</p>
     <div class="config-input-wrap">
       <label style="font-size: 11px; color: var(--accent); display:block; margin-bottom: 4px;">Google Sheets URL</label>
       <input class="config-input" id="sheets-url" placeholder="https://docs.google.com/spreadsheets/d/..." />
-      
-      <label style="font-size: 11px; color: var(--muted); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit RB (CZ)</label>
-      <input class="config-input" id="rb-limit" placeholder="Predvolené: 10" type="number" />
-      
-      <label style="font-size: 11px; color: var(--muted); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit ČSOB (SK)</label>
-      <input class="config-input" id="csob-limit" placeholder="Predvolené: 5" type="number" />
-      
+
+      <label style="font-size: 11px; color: var(--accent); display:block; margin-bottom: 4px;">Apps Script Web App URL pre zápis limitov</label>
+      <input class="config-input" id="limits-webapp-url" placeholder="https://script.google.com/macros/s/.../exec" />
+
+      <label style="font-size: 11px; color: var(--accent); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesiac limitu</label>
+      <select class="config-input" id="settings-limit-month" onchange="handleSettingsLimitMonthChange()"></select>
+
+      <div class="sim-limit-grid">
+        <div>
+          <label style="font-size: 11px; color: var(--rb-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit RB CZ</label>
+          <input class="config-input" id="rb-limit" placeholder="Predvolené: 10" type="number" min="0" />
+        </div>
+        <div>
+          <label style="font-size: 11px; color: var(--csob-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit ČSOB SK</label>
+          <input class="config-input" id="csob-limit" placeholder="Predvolené: 5" type="number" min="0" />
+        </div>
+        <div>
+          <label style="font-size: 11px; color: #8fbfff; display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit ČSOB CZ</label>
+          <input class="config-input" id="csob-cz-limit" placeholder="Predvolené: 5" type="number" min="0" />
+        </div>
+        <div>
+          <label style="font-size: 11px; color: #ff7ab6; display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit Moneta</label>
+          <input class="config-input" id="moneta-limit" placeholder="Predvolené: 0" type="number" min="0" />
+        </div>
+      </div>
+
       <button class="config-save" onclick="saveConfig()">Uložiť zmeny</button>
+      <div id="limits-sync-status" class="edit-mode-notice" style="margin-top:10px;">Limity sa uložia do appky. Pre zápis do Google Sheets doplň Apps Script Web App URL.</div>
     </div>
   </div>
 
@@ -556,14 +587,6 @@
     <div class="edit-mode-notice">Príklad: budget 10000 CZK + upozornenie 1000 CZK = appka upozorní, keď máš minuté aspoň 9000 CZK.</div>
   </div>
 
-  <div class="config-banner" style="background: rgba(119, 224, 243, 0.06); border-color: rgba(119, 224, 243, 0.35);">
-    <h3 style="color: var(--accent);">Push notifikácie</h3>
-    <p style="color: var(--muted);">Zapni si notifikácie pre pripomienky k mesačným platbám. Token sa zatiaľ uloží lokálne v mobile; ďalší krok bude Apps Script, ktorý bude notifikácie posielať.</p>
-    <button class="config-save" onclick="enableNotifications()" style="margin-top:12px;">Zapnúť push notifikácie 🔔</button>
-    <button class="sim-submit" onclick="copyNotificationToken()" style="margin-top:8px; border-color: var(--border); color: var(--text);">Kopírovať FCM token</button>
-    <div id="push-status" class="edit-mode-notice" style="margin-top:10px;">Push notifikácie zatiaľ nie sú zapnuté.</div>
-  </div>
-
   <div class="config-banner" style="background: rgba(255,255,255,0.02); border-color: var(--border);">
     <h3 style="color: var(--text);">Simulátor transakcií (Vývojár)</h3>
     <p style="color: var(--muted);">Nasimuluj platbu do ľubovoľného mesiaca pre otestovanie archívu a histórie limitov.</p>
@@ -581,11 +604,11 @@
           <input class="config-input" id="sim-limit-rb" placeholder="napr. 10" type="number" min="0" />
         </div>
         <div>
-          <label style="font-size: 11px; color: var(--csob-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Limit CSOB SK</label>
+          <label style="font-size: 11px; color: var(--csob-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Limit ČSOB SK</label>
           <input class="config-input" id="sim-limit-csob-sk" placeholder="napr. 5" type="number" min="0" />
         </div>
         <div>
-          <label style="font-size: 11px; color: #8fbfff; display:block; margin-bottom: 4px; font-family: var(--font-mono);">Limit CSOB CZ</label>
+          <label style="font-size: 11px; color: #8fbfff; display:block; margin-bottom: 4px; font-family: var(--font-mono);">Limit ČSOB CZ</label>
           <input class="config-input" id="sim-limit-csob-cz" placeholder="napr. 5" type="number" min="0" />
         </div>
         <div>
@@ -641,12 +664,12 @@
     <div class="sim-box" style="margin-top:16px;">
       <div class="sim-title-inline" style="color: #8fbfff;"><span>⚡</span> CSOB CZ</div>
       <input class="config-input" id="sim-date-csob-cz" placeholder="Dátum (napr. 15.02.2026 10:15)" type="text" />
-      <input class="config-input" id="sim-merchant-csob-cz" placeholder="Obchodník" type="text" value="Test CSOB CZ" />
+      <input class="config-input" id="sim-merchant-csob-cz" placeholder="Obchodník" type="text" value="Test ČSOB CZ" />
       <div class="sim-limit-grid">
         <div><label style="font-size: 11px; color: var(--muted); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Suma</label><input class="config-input" id="sim-amt-csob-cz" type="number" value="100" step="0.01" /></div>
         <div><label style="font-size: 11px; color: var(--muted); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mena</label><select class="config-input" id="sim-currency-csob-cz"><option value="CZK" selected>CZK</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select></div>
       </div>
-      <button class="sim-submit" data-local-edit-only="true" data-default-title="Pridať platbu do CSOB CZ" onclick="submitSimTx('csob_cz')" style="border-color: #8fbfff; color: #8fbfff;">+ Pridať platbu do CSOB CZ</button>
+      <button class="sim-submit" data-local-edit-only="true" data-default-title="Pridať platbu do ČSOB CZ" onclick="submitSimTx('csob_cz')" style="border-color: #8fbfff; color: #8fbfff;">+ Pridať platbu do ČSOB CZ</button>
     </div>
 
     <div class="sim-box" style="margin-top:16px;">
@@ -661,11 +684,20 @@
     </div>
   </div>
 
+
+  <div class="config-banner push-banner">
+    <h3>Push notifikácie</h3>
+    <p style="color: var(--muted);">Zapni si notifikácie pre pripomienky k mesačným platbám a budgetu. Token sa uloží lokálne v tomto zariadení.</p>
+    <button class="config-save push-save" onclick="enableNotifications()" style="margin-top:12px;">Zapnúť push notifikácie 🔔</button>
+    <button class="sim-submit" onclick="copyNotificationToken()" style="margin-top:8px; border-color: rgba(74,222,128,0.45); color: var(--ok);">Kopírovať FCM token</button>
+    <div id="push-status" class="edit-mode-notice" style="margin-top:10px;">Push notifikácie zatiaľ nie sú zapnuté.</div>
+  </div>
+
   <div style="padding: 0 20px;">
     <div class="section-title">o appke</div>
     <div style="font-size:13px; color:var(--muted); line-height:1.8;">
       Bank Tracker<br>
-      Verzia 3.0.0 · Banky, budget, push notifikácie & multi-bank tracking ⚙️🔥<br>
+      Verzia 3.0.1 · Oprava rozloženia tabov, banky, budget & push ⚙️🔥<br>
       Auto-sync každých 5 min + manual refresh
     </div>
   </div>
@@ -689,6 +721,7 @@
 <script>
 // ── CONFIG & HISTÓRIA LIMITOV ──────────────────────────────
 let SHEETS_URL = localStorage.getItem('sheets_url') || '';
+let LIMITS_WEBAPP_URL = localStorage.getItem('limits_webapp_url') || '';
 let RB_LIMIT = parseInt(localStorage.getItem('rb_limit') || '10');
 let CSOB_LIMIT = parseInt(localStorage.getItem('csob_limit') || '5');
 let limitsHistory = JSON.parse(localStorage.getItem('limits_history') || '{}');
@@ -776,8 +809,8 @@ function formatMonthString(monthYearStr) {
 
 const BANKS = {
   rb_cz: { label: 'RB CZ', short: 'RB', color: 'var(--rb-color)', limitKey: 'rbCz', defaultLimit: 10, primaryCurrency: 'CZK', aliases: ['rb cz','raiffeisen','raiffeisen cz','3684'] },
-  csob_sk: { label: 'CSOB SK', short: 'CSOB SK', color: 'var(--csob-color)', limitKey: 'csobSk', defaultLimit: 5, primaryCurrency: 'EUR', aliases: ['csob sk','čsob sk','csob slov','čsob slov','5612'] },
-  csob_cz: { label: 'CSOB CZ', short: 'CSOB CZ', color: '#8fbfff', limitKey: 'csobCz', defaultLimit: 5, primaryCurrency: 'CZK', aliases: ['csob cz','čsob cz','csob česk','čsob česk'] },
+  csob_sk: { label: 'ČSOB SK', short: 'ČSOB SK', color: 'var(--csob-color)', limitKey: 'csobSk', defaultLimit: 5, primaryCurrency: 'EUR', aliases: ['csob sk','čsob sk','csob slov','čsob slov','5612'] },
+  csob_cz: { label: 'ČSOB CZ', short: 'ČSOB CZ', color: '#8fbfff', limitKey: 'csobCz', defaultLimit: 5, primaryCurrency: 'CZK', aliases: ['csob cz','čsob cz','csob česk','čsob česk'] },
   moneta: { label: 'Moneta', short: 'Moneta', color: '#ff7ab6', limitKey: 'moneta', defaultLimit: 0, primaryCurrency: 'CZK', aliases: ['moneta','moneta money','moneta bank'] }
 };
 const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','moneta'];
@@ -866,6 +899,86 @@ function fillSimulatorLimitInputs(monthStr) {
     const el = document.getElementById(id);
     if (el) el.value = value;
   });
+}
+
+
+function getSettingsLimitMonth() {
+  const select = document.getElementById('settings-limit-month');
+  return normalizeMonthStr(select?.value || getCurrentMonth());
+}
+
+function populateSettingsLimitMonthDropdown(selectedMonth) {
+  const select = document.getElementById('settings-limit-month');
+  if (!select) return;
+  const current = getCurrentMonth();
+  const selected = normalizeMonthStr(selectedMonth || select.value || current);
+  const months = new Set([current, selected]);
+  allTransactions.forEach(t => { if (t.month) months.add(normalizeMonthStr(t.month)); });
+  Object.keys(limitsHistory || {}).forEach(m => months.add(normalizeMonthStr(m)));
+  for (let i = -18; i <= 18; i++) months.add(addMonthsToMonthStr(current, i));
+  const sorted = [...months].sort((a, b) => monthSortValue(b) - monthSortValue(a));
+  select.innerHTML = sorted.map(m => `<option value="${m}">${getMonthDisplayShort(m)}</option>`).join('');
+  select.value = selected;
+}
+
+function handleSettingsLimitMonthChange() {
+  fillSettingsLimitInputs(getSettingsLimitMonth());
+}
+
+function fillSettingsLimitInputs(monthStr) {
+  const hist = getLimitsForMonth(monthStr);
+  const map = {
+    'rb-limit': hist.rbCz,
+    'csob-limit': hist.csobSk,
+    'csob-cz-limit': hist.csobCz,
+    'moneta-limit': hist.moneta
+  };
+  Object.entries(map).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+  });
+}
+
+function readSettingsLimitInputs() {
+  return {
+    rbCz: parseInt(document.getElementById('rb-limit')?.value, 10),
+    csobSk: parseInt(document.getElementById('csob-limit')?.value, 10),
+    csobCz: parseInt(document.getElementById('csob-cz-limit')?.value, 10),
+    moneta: parseInt(document.getElementById('moneta-limit')?.value, 10)
+  };
+}
+
+async function syncLimitsToGoogleSheets(monthStr, limits) {
+  const status = document.getElementById('limits-sync-status');
+  if (!LIMITS_WEBAPP_URL) {
+    if (status) status.textContent = 'Limity uložené lokálne. Pre zápis do Google Sheets doplň Apps Script Web App URL.';
+    return false;
+  }
+
+  const payload = {
+    action: 'saveLimits',
+    month: monthStr,
+    rbCzLimit: limits.rbCz,
+    csobSkLimit: limits.csobSk,
+    csobCzLimit: limits.csobCz,
+    monetaLimit: limits.moneta
+  };
+
+  try {
+    if (status) status.textContent = 'Ukladám limity do Google Sheets...';
+    const res = await fetch(LIMITS_WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if (status) status.textContent = `Limity pre ${getMonthDisplayShort(monthStr)} odoslané do Google Sheets.`;
+    return true;
+  } catch (err) {
+    console.error('Limit sync failed:', err);
+    if (status) status.textContent = 'Limity sú uložené lokálne, ale zápis do Google Sheets zlyhal. Skontroluj Web App URL.';
+    return false;
+  }
 }
 
 function saveLimitsForMonth(monthStr, limits) {
@@ -1333,6 +1446,7 @@ function renderAll() {
   updateTxnPage(monthTxns);
   renderArchive();
   populateSimulatorLimitMonthDropdown(getSimulatorLimitMonth());
+  populateSettingsLimitMonthDropdown(getSettingsLimitMonth());
 }
 
 function renderBankCards(byBank) {
@@ -1459,8 +1573,10 @@ function showPage(pageId) {
 
   if (pageId === 'settings') {
     document.getElementById('sheets-url').value = SHEETS_URL;
-    document.getElementById('rb-limit').value = RB_LIMIT;
-    document.getElementById('csob-limit').value = CSOB_LIMIT;
+    const limitsUrlInput = document.getElementById('limits-webapp-url');
+    if (limitsUrlInput) limitsUrlInput.value = LIMITS_WEBAPP_URL;
+    populateSettingsLimitMonthDropdown(getCurrentMonth());
+    fillSettingsLimitInputs(getSettingsLimitMonth());
     const budgetInput = document.getElementById('monthly-budget-czk');
     const warningInput = document.getElementById('budget-warning-czk');
     if (budgetInput) budgetInput.value = localStorage.getItem('monthly_budget_czk') || '';
@@ -1471,21 +1587,28 @@ function showPage(pageId) {
   }
 }
 
-function saveConfig() {
+async function saveConfig() {
   SHEETS_URL = document.getElementById('sheets-url').value.trim();
-  RB_LIMIT = parseInt(document.getElementById('rb-limit').value) || 10;
-  CSOB_LIMIT = parseInt(document.getElementById('csob-limit').value) || 5;
+  LIMITS_WEBAPP_URL = document.getElementById('limits-webapp-url')?.value.trim() || '';
+
+  const monthStr = getSettingsLimitMonth();
+  const limits = readSettingsLimitInputs();
+
+  RB_LIMIT = Number.isFinite(limits.rbCz) ? limits.rbCz : 10;
+  CSOB_LIMIT = Number.isFinite(limits.csobSk) ? limits.csobSk : 5;
 
   localStorage.setItem('sheets_url', SHEETS_URL);
+  localStorage.setItem('limits_webapp_url', LIMITS_WEBAPP_URL);
   localStorage.setItem('rb_limit', RB_LIMIT);
   localStorage.setItem('csob_limit', CSOB_LIMIT);
 
-  // Uloží limity aj do histórie pre aktuálny mesiac
-  const curMonth = getCurrentMonth();
-  limitsHistory[curMonth] = { rb: RB_LIMIT, csob: CSOB_LIMIT };
-  localStorage.setItem('limits_history', JSON.stringify(limitsHistory));
+  saveLimitsForMonth(monthStr, limits);
+  await syncLimitsToGoogleSheets(monthStr, getLimitsForMonth(monthStr));
 
-  alert(isLocalEditMode() ? 'Konfigurácia uložená. Offline/test režim je aktívny.' : 'Konfigurácia uložená. Google Sheets režim je aktívny, lokálne pridávanie a mazanie platieb je vypnuté.');
+  alert(isLocalEditMode()
+    ? 'Konfigurácia uložená. Offline/test režim je aktívny.'
+    : 'Konfigurácia uložená. Google Sheets režim je aktívny, lokálne pridávanie a mazanie platieb je vypnuté.');
+
   renderAll();
   showPage('overview');
 }
@@ -1493,7 +1616,7 @@ function saveConfig() {
 function ensureLimitsHistoryForLoadedTransactions() {
   allTransactions.forEach(t => {
     if (t.month && !limitsHistory[t.month]) {
-      limitsHistory[t.month] = { rb: RB_LIMIT, csob: CSOB_LIMIT };
+      ensureLimitHistoryForMonth(t.month);
     }
   });
   localStorage.setItem('limits_history', JSON.stringify(limitsHistory));
