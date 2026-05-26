@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bank Card Tracker">
-<title>Bank Card Tracker</title>
+<meta name="apple-mobile-web-app-title" content="Bank Tracker">
+<title>Bank Tracker</title>
 <link rel="manifest" href="./manifest.json?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -432,6 +432,22 @@
     font-family: var(--font-mono);
     font-size: 12px;
   }
+
+  .budget-status {
+    margin: 0 20px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 16px;
+  }
+  .budget-status-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+  .budget-status-main { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+  .budget-status-value { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--text); }
+  .budget-status-note { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+  .budget-progress { height: 6px; background: var(--surface2); border-radius: 4px; overflow:hidden; margin-top: 10px; }
+  .budget-progress-fill { height:100%; background: var(--accent); border-radius:4px; transition: width .3s; }
+  .bank-card-holder { display: grid; grid-template-columns: 1fr; gap: 14px; }
+
 </style>
 </head>
 <body>
@@ -439,7 +455,7 @@
 <div id="page-overview" class="page active">
   <div class="header">
     <div>
-      <div class="header-title">Bank Card Tracker</div>
+      <div class="header-title">Bank Tracker</div>
       <div class="header-month" id="header-month">máj 2026</div>
     </div>
     <div class="sync-btn" id="sync-btn" onclick="syncData()" title="Synchronizovať">↻</div>
@@ -462,22 +478,15 @@
     </div>
   </div>
 
-  <div class="section-title">Bank Card Tracker</div>
+  <div id="budget-status" class="budget-status"></div>
+
+  <div class="section-title">Bank Tracker</div>
   <div id="cards-container"></div>
   <div id="csob-container"></div>
 
   <div class="section-title" style="margin-top:24px;">posledné transakcie</div>
   
-  <div class="tx-columns">
-    <div>
-      <div class="tx-col-title" style="color: var(--rb-color);">RB CZ</div>
-      <div id="recent-rb"></div>
-    </div>
-    <div>
-      <div class="tx-col-title" style="color: var(--csob-color);">ČSOB SK</div>
-      <div id="recent-csob"></div>
-    </div>
-  </div>
+  <div class="tx-columns" id="recent-bank-columns"></div>
 
   <div class="section-title" style="margin-top:28px;">archív mesiacov</div>
   <div class="archive-container" id="archive-months-list"></div>
@@ -494,8 +503,10 @@
   <div class="filter-group-title">Banka</div>
   <div class="cat-grid" id="bank-filters">
     <div class="cat-chip active" id="filter-bank-all" onclick="filterBank('všetky')">Všetky</div>
-    <div class="cat-chip" id="filter-bank-rb" onclick="filterBank('rb')">RB</div>
-    <div class="cat-chip" id="filter-bank-csob" onclick="filterBank('csob')">ČSOB</div>
+    <div class="cat-chip" id="filter-bank-rb" onclick="filterBank('rb_cz')">RB CZ</div>
+    <div class="cat-chip" id="filter-bank-csob-sk" onclick="filterBank('csob_sk')">CSOB SK</div>
+    <div class="cat-chip" id="filter-bank-csob-cz" onclick="filterBank('csob_cz')">CSOB CZ</div>
+    <div class="cat-chip" id="filter-bank-moneta" onclick="filterBank('moneta')">Moneta</div>
   </div>
 
   <div class="filter-group-title">Kategória</div>
@@ -527,6 +538,24 @@
     </div>
   </div>
 
+
+  <div class="config-banner" style="background: rgba(119, 224, 243, 0.06); border-color: rgba(119, 224, 243, 0.25);">
+    <h3 style="color: var(--accent);">Mesačný budget</h3>
+    <p style="color: var(--muted);">Nastav si CZK budget na aktuálny mesiac. Appka ťa vie upozorniť pri prekročení aj pri priblížení k limitu.</p>
+    <div class="sim-limit-grid">
+      <div>
+        <label style="font-size: 11px; color: var(--accent); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný budget CZK</label>
+        <input class="config-input" id="monthly-budget-czk" placeholder="napr. 10000" type="number" min="0" />
+      </div>
+      <div>
+        <label style="font-size: 11px; color: var(--warn); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Upozorni pri zostávajúcich CZK</label>
+        <input class="config-input" id="budget-warning-czk" placeholder="napr. 1000" type="number" min="0" />
+      </div>
+    </div>
+    <button class="config-save" onclick="saveBudgetSettings()">Uložiť budget</button>
+    <div class="edit-mode-notice">Príklad: budget 10000 CZK + upozornenie 1000 CZK = appka upozorní, keď máš minuté aspoň 9000 CZK.</div>
+  </div>
+
   <div class="config-banner" style="background: rgba(119, 224, 243, 0.06); border-color: rgba(119, 224, 243, 0.35);">
     <h3 style="color: var(--accent);">Push notifikácie</h3>
     <p style="color: var(--muted);">Zapni si notifikácie pre pripomienky k mesačným platbám. Token sa zatiaľ uloží lokálne v mobile; ďalší krok bude Apps Script, ktorý bude notifikácie posielať.</p>
@@ -552,8 +581,16 @@
           <input class="config-input" id="sim-limit-rb" placeholder="napr. 10" type="number" min="0" />
         </div>
         <div>
-          <label style="font-size: 11px; color: var(--csob-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Limit ČSOB SK</label>
-          <input class="config-input" id="sim-limit-csob" placeholder="napr. 5" type="number" min="0" />
+          <label style="font-size: 11px; color: var(--csob-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Limit CSOB SK</label>
+          <input class="config-input" id="sim-limit-csob-sk" placeholder="napr. 5" type="number" min="0" />
+        </div>
+        <div>
+          <label style="font-size: 11px; color: #8fbfff; display:block; margin-bottom: 4px; font-family: var(--font-mono);">Limit CSOB CZ</label>
+          <input class="config-input" id="sim-limit-csob-cz" placeholder="napr. 5" type="number" min="0" />
+        </div>
+        <div>
+          <label style="font-size: 11px; color: #ff7ab6; display:block; margin-bottom: 4px; font-family: var(--font-mono);">Limit Moneta</label>
+          <input class="config-input" id="sim-limit-moneta" placeholder="napr. 0" type="number" min="0" />
         </div>
       </div>
       <button class="sim-submit" onclick="saveSimulatorMonthlyLimits()" style="border-color: var(--accent); color: var(--accent);">Uložiť limity pre zvolený mesiac</button>
@@ -600,14 +637,36 @@
       </div>
       <button class="sim-submit" data-local-edit-only="true" data-default-title="Pridať platbu do ČSOB SK" onclick="submitSimTx('csob')" style="border-color: var(--csob-color); color: var(--csob-color);">+ Pridať platbu do ČSOB SK</button>
     </div>
+
+    <div class="sim-box" style="margin-top:16px;">
+      <div class="sim-title-inline" style="color: #8fbfff;"><span>⚡</span> CSOB CZ</div>
+      <input class="config-input" id="sim-date-csob-cz" placeholder="Dátum (napr. 15.02.2026 10:15)" type="text" />
+      <input class="config-input" id="sim-merchant-csob-cz" placeholder="Obchodník" type="text" value="Test CSOB CZ" />
+      <div class="sim-limit-grid">
+        <div><label style="font-size: 11px; color: var(--muted); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Suma</label><input class="config-input" id="sim-amt-csob-cz" type="number" value="100" step="0.01" /></div>
+        <div><label style="font-size: 11px; color: var(--muted); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mena</label><select class="config-input" id="sim-currency-csob-cz"><option value="CZK" selected>CZK</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select></div>
+      </div>
+      <button class="sim-submit" data-local-edit-only="true" data-default-title="Pridať platbu do CSOB CZ" onclick="submitSimTx('csob_cz')" style="border-color: #8fbfff; color: #8fbfff;">+ Pridať platbu do CSOB CZ</button>
+    </div>
+
+    <div class="sim-box" style="margin-top:16px;">
+      <div class="sim-title-inline" style="color: #ff7ab6;"><span>🏦</span> Moneta</div>
+      <input class="config-input" id="sim-date-moneta" placeholder="Dátum (napr. 15.02.2026 10:15)" type="text" />
+      <input class="config-input" id="sim-merchant-moneta" placeholder="Popis pohybu" type="text" value="Pohyb na účte" />
+      <div class="sim-limit-grid">
+        <div><label style="font-size: 11px; color: var(--muted); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Suma</label><input class="config-input" id="sim-amt-moneta" type="number" value="100" step="0.01" /></div>
+        <div><label style="font-size: 11px; color: var(--muted); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mena</label><select class="config-input" id="sim-currency-moneta"><option value="CZK" selected>CZK</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select></div>
+      </div>
+      <button class="sim-submit" data-local-edit-only="true" data-default-title="Pridať pohyb Moneta" onclick="submitSimTx('moneta')" style="border-color: #ff7ab6; color: #ff7ab6;">+ Pridať pohyb Moneta</button>
+    </div>
   </div>
 
   <div style="padding: 0 20px;">
     <div class="section-title">o appke</div>
     <div style="font-size:13px; color:var(--muted); line-height:1.8;">
-      Karta Tracker<br>
-      Verzia 2.3.2 · Režim Google Sheets / offline testovanie, archív & chronologické transakcie ⚙️🔥<br>
-      Sync každých 15 min cez Apps Script
+      Bank Tracker<br>
+      Verzia 3.0.0 · Banky, budget, push notifikácie & multi-bank tracking ⚙️🔥<br>
+      Auto-sync každých 5 min + manual refresh
     </div>
   </div>
 </div>
@@ -668,7 +727,7 @@ function updateEditModeUI() {
       : 'GOOGLE SHEETS REŽIM: lokálne pridávanie a mazanie platieb je vypnuté, aby sa dáta nemiešali so Sheets.';
   }
 
-  ['sim-date-rb','sim-merchant-rb','sim-amt-rb','sim-currency-rb','sim-date-csob','sim-merchant-csob','sim-amt-csob','sim-currency-csob'].forEach(id => {
+  ['sim-date-rb','sim-merchant-rb','sim-amt-rb','sim-currency-rb','sim-date-csob','sim-merchant-csob','sim-amt-csob','sim-currency-csob','sim-date-csob-cz','sim-merchant-csob-cz','sim-amt-csob-cz','sim-currency-csob-cz','sim-date-moneta','sim-merchant-moneta','sim-amt-moneta','sim-currency-moneta'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.disabled = !localMode;
   });
@@ -715,27 +774,36 @@ function formatMonthString(monthYearStr) {
   return `${name} ${y}`;
 }
 
-function getLimitsForMonth(monthStr) {
-  if (limitsHistory[monthStr]) {
-    return {
-      rb: limitsHistory[monthStr].rb ?? RB_LIMIT,
-      csob: limitsHistory[monthStr].csob ?? CSOB_LIMIT
-    };
-  }
-  return { rb: RB_LIMIT, csob: CSOB_LIMIT };
-}
+const BANKS = {
+  rb_cz: { label: 'RB CZ', short: 'RB', color: 'var(--rb-color)', limitKey: 'rbCz', defaultLimit: 10, primaryCurrency: 'CZK', aliases: ['rb cz','raiffeisen','raiffeisen cz','3684'] },
+  csob_sk: { label: 'CSOB SK', short: 'CSOB SK', color: 'var(--csob-color)', limitKey: 'csobSk', defaultLimit: 5, primaryCurrency: 'EUR', aliases: ['csob sk','čsob sk','csob slov','čsob slov','5612'] },
+  csob_cz: { label: 'CSOB CZ', short: 'CSOB CZ', color: '#8fbfff', limitKey: 'csobCz', defaultLimit: 5, primaryCurrency: 'CZK', aliases: ['csob cz','čsob cz','csob česk','čsob česk'] },
+  moneta: { label: 'Moneta', short: 'Moneta', color: '#ff7ab6', limitKey: 'moneta', defaultLimit: 0, primaryCurrency: 'CZK', aliases: ['moneta','moneta money','moneta bank'] }
+};
+const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','moneta'];
 
+function getLimitsForMonth(monthStr) {
+  const saved = limitsHistory[monthStr] || {};
+  return {
+    rbCz: saved.rbCz ?? saved.rb ?? RB_LIMIT,
+    csobSk: saved.csobSk ?? saved.csob ?? CSOB_LIMIT,
+    csobCz: saved.csobCz ?? 5,
+    moneta: saved.moneta ?? 0
+  };
+}
 
 function getMonthFromDate(dateObj) {
   return `${String(dateObj.getMonth()+1).padStart(2,'0')}/${dateObj.getFullYear()}`;
 }
 
 function ensureLimitHistoryForMonth(monthStr) {
-  if (!limitsHistory[monthStr]) {
-    limitsHistory[monthStr] = { rb: RB_LIMIT, csob: CSOB_LIMIT };
-  }
-  if (limitsHistory[monthStr].rb === undefined) limitsHistory[monthStr].rb = RB_LIMIT;
-  if (limitsHistory[monthStr].csob === undefined) limitsHistory[monthStr].csob = CSOB_LIMIT;
+  const existing = limitsHistory[monthStr] || {};
+  limitsHistory[monthStr] = {
+    rbCz: existing.rbCz ?? existing.rb ?? RB_LIMIT,
+    csobSk: existing.csobSk ?? existing.csob ?? CSOB_LIMIT,
+    csobCz: existing.csobCz ?? 5,
+    moneta: existing.moneta ?? 0
+  };
   return limitsHistory[monthStr];
 }
 
@@ -770,20 +838,12 @@ function getSimulatorLimitMonth() {
 function populateSimulatorLimitMonthDropdown(selectedMonth) {
   const select = document.getElementById('sim-limit-month');
   if (!select) return;
-
   const current = getCurrentMonth();
   const selected = normalizeMonthStr(selectedMonth || select.value || current);
   const months = new Set([current, selected]);
-
-  // Pridáme mesiace, ktoré už existujú v transakciách alebo histórii limitov.
   allTransactions.forEach(t => { if (t.month) months.add(normalizeMonthStr(t.month)); });
   Object.keys(limitsHistory || {}).forEach(m => months.add(normalizeMonthStr(m)));
-
-  // Pridáme praktický rozsah okolo aktuálneho mesiaca pre rýchle testovanie.
-  for (let i = -18; i <= 18; i++) {
-    months.add(addMonthsToMonthStr(current, i));
-  }
-
+  for (let i = -18; i <= 18; i++) months.add(addMonthsToMonthStr(current, i));
   const sorted = [...months].sort((a, b) => monthSortValue(b) - monthSortValue(a));
   select.innerHTML = sorted.map(m => `<option value="${m}">${getMonthDisplayShort(m)}</option>`).join('');
   select.value = selected;
@@ -795,52 +855,75 @@ function handleSimulatorLimitMonthChange() {
 
 function fillSimulatorLimitInputs(monthStr) {
   const hist = getLimitsForMonth(monthStr);
-  const rbInput = document.getElementById('sim-limit-rb');
-  const csobInput = document.getElementById('sim-limit-csob');
-  if (rbInput) rbInput.value = hist.rb;
-  if (csobInput) csobInput.value = hist.csob;
+  const map = {
+    'sim-limit-rb': hist.rbCz,
+    'sim-limit-csob-sk': hist.csobSk,
+    'sim-limit-csob': hist.csobSk,
+    'sim-limit-csob-cz': hist.csobCz,
+    'sim-limit-moneta': hist.moneta
+  };
+  Object.entries(map).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+  });
 }
 
-function saveLimitsForMonth(monthStr, rbLimit, csobLimit) {
+function saveLimitsForMonth(monthStr, limits) {
+  const existing = ensureLimitHistoryForMonth(monthStr);
   limitsHistory[monthStr] = {
-    rb: Number.isFinite(rbLimit) ? rbLimit : RB_LIMIT,
-    csob: Number.isFinite(csobLimit) ? csobLimit : CSOB_LIMIT
+    rbCz: Number.isFinite(limits.rbCz) ? limits.rbCz : existing.rbCz,
+    csobSk: Number.isFinite(limits.csobSk) ? limits.csobSk : existing.csobSk,
+    csobCz: Number.isFinite(limits.csobCz) ? limits.csobCz : existing.csobCz,
+    moneta: Number.isFinite(limits.moneta) ? limits.moneta : existing.moneta
   };
   localStorage.setItem('limits_history', JSON.stringify(limitsHistory));
 }
 
+function readLimitInputs() {
+  return {
+    rbCz: parseInt(document.getElementById('sim-limit-rb')?.value, 10),
+    csobSk: parseInt(document.getElementById('sim-limit-csob-sk')?.value ?? document.getElementById('sim-limit-csob')?.value, 10),
+    csobCz: parseInt(document.getElementById('sim-limit-csob-cz')?.value, 10),
+    moneta: parseInt(document.getElementById('sim-limit-moneta')?.value, 10)
+  };
+}
+
 function saveSimulatorMonthlyLimits() {
   const monthStr = getSimulatorLimitMonth();
-  const rbVal = parseInt(document.getElementById('sim-limit-rb')?.value, 10);
-  const csobVal = parseInt(document.getElementById('sim-limit-csob')?.value, 10);
-
-  saveLimitsForMonth(
-    monthStr,
-    Number.isFinite(rbVal) ? rbVal : RB_LIMIT,
-    Number.isFinite(csobVal) ? csobVal : CSOB_LIMIT
-  );
-
-  alert(`Limity pre ${formatMonthString(monthStr)} boli uložené.`);
+  saveLimitsForMonth(monthStr, readLimitInputs());
+  alert(`Limity pre ${formatMonthString(monthStr)} boli uložené lokálne. Sync do Google Sheets pridáme cez Apps Script Web App endpoint.`);
   renderAll();
   updatePushStatus();
 }
 
 function applySimulatorLimitsForMonth(monthStr) {
-  const rbVal = parseInt(document.getElementById('sim-limit-rb')?.value, 10);
-  const csobVal = parseInt(document.getElementById('sim-limit-csob')?.value, 10);
-
-  if (Number.isFinite(rbVal) || Number.isFinite(csobVal)) {
-    const existing = ensureLimitHistoryForMonth(monthStr);
-    saveLimitsForMonth(
-      monthStr,
-      Number.isFinite(rbVal) ? rbVal : existing.rb,
-      Number.isFinite(csobVal) ? csobVal : existing.csob
-    );
-  } else {
+  const values = readLimitInputs();
+  const hasAny = Object.values(values).some(Number.isFinite);
+  if (hasAny) saveLimitsForMonth(monthStr, values);
+  else {
     ensureLimitHistoryForMonth(monthStr);
     localStorage.setItem('limits_history', JSON.stringify(limitsHistory));
   }
 }
+
+function getBankKey(t) {
+  const cardLower = String(t.card || '').toLowerCase();
+  const bankLower = String(t.bank || t.banka || '').toLowerCase();
+  const merchantLower = String(t.merchant || '').toLowerCase();
+  const combined = `${bankLower} ${cardLower} ${merchantLower}`;
+  if (combined.includes('csob cz') || combined.includes('čsob cz') || combined.includes('csob česk') || combined.includes('čsob česk')) return 'csob_cz';
+  if (combined.includes('moneta')) return 'moneta';
+  if (combined.includes('csob sk') || combined.includes('čsob sk') || combined.includes('csob slov') || combined.includes('čsob slov') || cardLower.includes('5612')) return 'csob_sk';
+  if (combined.includes('raiffeisen') || combined.includes('rb cz') || cardLower.includes('3684')) return 'rb_cz';
+  if (merchantLower.includes('sup. maj')) return 'csob_sk';
+  return 'rb_cz';
+}
+
+function getBankInfo(key) {
+  return BANKS[key] || BANKS.rb_cz;
+}
+
+function isCsobTransaction(t) { return getBankKey(t) === 'csob_sk'; }
 
 function getBankStatusText(count, limit) {
   if (count >= limit) {
@@ -971,22 +1054,6 @@ function renderCurrencyTotalLines(txns, primaryCurrency = 'CZK') {
   `).join('');
 }
 
-function isCsobTransaction(t) {
-  const cardLower = String(t.card || '').toLowerCase();
-  const merchantLower = String(t.merchant || '').toLowerCase();
-
-  // Banku už neurčujeme podľa meny, pretože obe karty môžu mať CZK/EUR/PLN platby.
-  // Priorita je text/posledné 4 čísla karty z Google Sheets alebo zo simulátora.
-  // 5612 = ČSOB SK, 3684 = RB CZ.
-  if (cardLower.includes('čsob') || cardLower.includes('csob') || cardLower.includes('csob sk') || cardLower.includes('5612')) return true;
-  if (cardLower.includes('rb') || cardLower.includes('raiffeisen') || cardLower.includes('3684')) return false;
-
-  // Fallback pre staré/špecifické záznamy, ktoré nemajú jasne vyplnenú kartu.
-  if (merchantLower.includes('sup. maj')) return true;
-
-  return false;
-}
-
 function parseSheetData(raw) {
   const json = raw.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
   const data = JSON.parse(json);
@@ -1012,6 +1079,7 @@ function parseSheetData(raw) {
       card: row.c[5]?.v || '????',
       type: row.c[6]?.v || '',
       month: monthStr,
+      bank: row.c[9]?.v || row.c[9]?.f || '',
       timestamp: txDate ? txDate.getTime() : parseCustomDateStr(dateStr).getTime()
     });
     index++;
@@ -1069,26 +1137,35 @@ function loadDemoData() {
 function submitSimTx(bank) {
   if (!guardLocalEdit('Pridávanie platby')) return;
 
-  const dateInput = document.getElementById(`sim-date-${bank}`).value.trim();
-  const merchantInput = document.getElementById(`sim-merchant-${bank}`).value.trim();
-  const amtInput = parseAmountValue(document.getElementById(`sim-amt-${bank}`).value) || 10;
-  const selectedCurrency = (document.getElementById(`sim-currency-${bank}`)?.value || (bank === 'rb' ? 'CZK' : 'EUR')).toUpperCase();
+  const inputPrefix = bank === 'rb' ? 'rb' : bank;
+  const dateInput = document.getElementById(`sim-date-${inputPrefix}`)?.value.trim() || formatDate(new Date());
+  const merchantInput = document.getElementById(`sim-merchant-${inputPrefix}`)?.value.trim() || 'Simulovaný pohyb';
+  const amtInput = parseAmountValue(document.getElementById(`sim-amt-${inputPrefix}`)?.value) || 10;
+  const selectedCurrency = (document.getElementById(`sim-currency-${inputPrefix}`)?.value || 'CZK').toUpperCase();
 
   const parsedDate = parseCustomDateStr(dateInput);
   const timeStr = formatDate(parsedDate);
   const calculatedMonth = getMonthFromDate(parsedDate);
-
   applySimulatorLimitsForMonth(calculatedMonth);
+
+  const bankMap = {
+    rb: { card: '**** 3684', bank: 'RB CZ', category: 'Ostatné', type: 'Platba kartou' },
+    csob: { card: '***** 5612*', bank: 'CSOB SK', category: 'Ostatné', type: 'Platba kartou' },
+    csob_cz: { card: 'CSOB CZ', bank: 'CSOB CZ', category: 'Ostatné', type: 'Platba kartou' },
+    moneta: { card: 'Moneta účet', bank: 'Moneta', category: 'Ostatné', type: 'Pohyb na účte' }
+  };
+  const meta = bankMap[bank] || bankMap.rb;
 
   const testItem = {
     id: 'sim-' + parsedDate.getTime() + '-' + Math.floor(Math.random() * 10000),
     date: timeStr,
     amount: -Math.abs(amtInput),
     currency: selectedCurrency,
-    merchant: merchantInput || 'Simulovaný nákup ⚡',
-    category: 'Ostatné',
-    card: bank === 'rb' ? '**** 3684' : 'ČSOB SK',
-    type: 'Platba kartou',
+    merchant: merchantInput,
+    category: meta.category,
+    card: meta.card,
+    bank: meta.bank,
+    type: meta.type,
     month: calculatedMonth,
     timestamp: parsedDate.getTime()
   };
@@ -1096,7 +1173,6 @@ function submitSimTx(bank) {
   allTransactions.unshift(testItem);
   allTransactions = sortTransactionsNewestFirst(allTransactions);
   localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
-
   ensureLimitHistoryForMonth(calculatedMonth);
   localStorage.setItem('limits_history', JSON.stringify(limitsHistory));
 
@@ -1149,8 +1225,82 @@ function resetSimFields() {
   const simDateCsob = document.getElementById('sim-date-csob');
   if (simDateRb) simDateRb.value = formattedNow;
   if (simDateCsob) simDateCsob.value = formattedNow;
+  const simDateCsobCz = document.getElementById('sim-date-csob-cz');
+  const simDateMoneta = document.getElementById('sim-date-moneta');
+  if (simDateCsobCz) simDateCsobCz.value = formattedNow;
+  if (simDateMoneta) simDateMoneta.value = formattedNow;
   populateSimulatorLimitMonthDropdown(getCurrentMonth());
   fillSimulatorLimitInputs(getSimulatorLimitMonth());
+}
+
+function getTransactionsByBank(monthOnly = true) {
+  const month = getCurrentMonth();
+  const base = allTransactions.filter(t => t.amount < 0 && (!monthOnly || t.month === month));
+  return BANK_ORDER.reduce((acc, key) => {
+    acc[key] = base.filter(t => getBankKey(t) === key);
+    return acc;
+  }, {});
+}
+
+function getCurrentMonthCzkSpent() {
+  const month = getCurrentMonth();
+  return allTransactions
+    .filter(t => t.month === month && t.amount < 0 && String(t.currency || '').toUpperCase() === 'CZK')
+    .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+}
+
+function saveBudgetSettings() {
+  const budget = parseFloat(document.getElementById('monthly-budget-czk')?.value) || 0;
+  const warning = parseFloat(document.getElementById('budget-warning-czk')?.value) || 0;
+  localStorage.setItem('monthly_budget_czk', String(budget));
+  localStorage.setItem('budget_warning_czk', String(warning));
+  alert('Budget bol uložený.');
+  renderAll();
+}
+
+function renderBudgetStatus() {
+  const wrap = document.getElementById('budget-status');
+  if (!wrap) return;
+  const budget = parseFloat(localStorage.getItem('monthly_budget_czk') || '0') || 0;
+  const warning = parseFloat(localStorage.getItem('budget_warning_czk') || '0') || 0;
+  const spent = getCurrentMonthCzkSpent();
+  if (!budget) {
+    wrap.innerHTML = `<div class="budget-status-title">Budget</div><div class="budget-status-note">Budget zatiaľ nie je nastavený. Nájdeš ho v Nastavenia → Mesačný budget.</div>`;
+    return;
+  }
+  const remaining = Math.max(budget - spent, 0);
+  const pct = Math.min(spent / budget, 1) * 100;
+  const status = remaining <= 0 ? 'prekročený' : (warning && remaining <= warning ? 'blízko limitu' : 'v norme');
+  const statusColor = remaining <= 0 ? 'var(--danger)' : (warning && remaining <= warning ? 'var(--warn)' : 'var(--ok)');
+  wrap.innerHTML = `
+    <div class="budget-status-title">Mesačný budget CZK</div>
+    <div class="budget-status-main">
+      <div>
+        <div class="budget-status-value">${formatMoney(spent, 'CZK')} / ${formatMoney(budget, 'CZK')} CZK</div>
+        <div class="budget-status-note">Zostáva ${formatMoney(remaining, 'CZK')} CZK · <span style="color:${statusColor};font-weight:700;">${status}</span></div>
+      </div>
+    </div>
+    <div class="budget-progress"><div class="budget-progress-fill" style="width:${pct}%;background:${statusColor};"></div></div>`;
+  maybeSendBudgetLocalNotification(spent, budget, remaining, warning);
+}
+
+function maybeSendBudgetLocalNotification(spent, budget, remaining, warning) {
+  if (!budget || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const month = getCurrentMonth();
+  if (warning && remaining > 0 && remaining <= warning) {
+    const key = `budget_warn_${month}_${budget}_${warning}`;
+    if (localStorage.getItem(key) !== 'sent') {
+      new Notification('Bank Tracker', { body: `Minuté ${formatMoney(spent, 'CZK')} CZK. Ostáva ${formatMoney(remaining, 'CZK')} CZK do konca mesačného budgetu.` });
+      localStorage.setItem(key, 'sent');
+    }
+  }
+  if (remaining <= 0) {
+    const key = `budget_over_${month}_${budget}`;
+    if (localStorage.getItem(key) !== 'sent') {
+      new Notification('Bank Tracker', { body: `Mesačný budget ${formatMoney(budget, 'CZK')} CZK bol prekročený.` });
+      localStorage.setItem(key, 'sent');
+    }
+  }
 }
 
 function renderAll() {
@@ -1167,244 +1317,107 @@ function renderAll() {
   const totalAmt = Math.abs(monthTxns.reduce((s,t) => {
     const isEur = String(t.currency).toUpperCase() === 'EUR';
     return s + (isEur ? t.amount * 25 : t.amount);
-  }, 0)); 
-  
+  }, 0));
   document.getElementById('sum-txns').textContent = monthTxns.length;
   document.getElementById('sum-amount').textContent = Math.round(totalAmt).toLocaleString('cs');
   document.getElementById('sum-days').textContent = getDaysRemaining();
 
-  const csobTxns = monthTxns.filter(t => isCsobTransaction(t));
-  const rbTxns = monthTxns.filter(t => !isCsobTransaction(t));
+  renderBudgetStatus();
 
-  renderRbCard(rbTxns);
-  renderCsobCard(csobTxns);
-  
-  // Posledné transakcie odfiltrované podľa bánk do dvoch stĺpcov
-  const fullRbTxns = allTransactions.filter(t => !isCsobTransaction(t) && t.amount < 0);
-  const fullCsobTxns = allTransactions.filter(t => isCsobTransaction(t) && t.amount < 0);
-  renderTwoColumns(fullRbTxns, fullCsobTxns);
-  
+  const byBankMonth = getTransactionsByBank(true);
+  renderBankCards(byBankMonth);
+
+  const byBankAll = getTransactionsByBank(false);
+  renderRecentBankColumns(byBankAll);
+
   updateTxnPage(monthTxns);
   renderArchive();
   populateSimulatorLimitMonthDropdown(getSimulatorLimitMonth());
 }
 
-function renderRbCard(rbTxns) {
-  const container = document.getElementById('cards-container');
-  if (!container) return;
-  const used = rbTxns.length;
-  const limit = getLimitsForMonth(getCurrentMonth()).rb;
-  const fillPct = limit > 0 ? Math.min(used / limit, 1) : 1;
+function renderBankCards(byBank) {
+  const main = document.getElementById('cards-container');
+  const extra = document.getElementById('csob-container');
+  if (!main || !extra) return;
+  main.innerHTML = renderBankCard('rb_cz', byBank.rb_cz || []);
+  extra.innerHTML = BANK_ORDER.filter(k => k !== 'rb_cz').map(k => renderBankCard(k, byBank[k] || [])).join('');
+}
+
+function renderBankCard(bankKey, txns) {
+  const bank = getBankInfo(bankKey);
+  const limits = getLimitsForMonth(getCurrentMonth());
+  const limit = limits[bank.limitKey] ?? bank.defaultLimit;
+  const used = txns.length;
+  const fillPct = limit > 0 ? Math.min(used / limit, 1) : 0;
   const barColor = getCardColor(used, limit);
-  
-  const totalSpent = Math.abs(rbTxns.reduce((s,t) => s + t.amount, 0));
-  let cardNum = rbTxns[0]?.card || '**** 3684';
-  cardNum = cardNum.replace(/\*/g, '').trim() || 'RB CZ';
-
-  const delta = limit - used;
-  let warnStatusText = delta > 0 ? 
-    `<span style="color: var(--warn);">${used}/${limit} platieb — zostáva ${delta}</span>` : 
-    `<span style="color: var(--ok);">${used}/${limit} platieb — limit naplnený</span>`;
-
-  container.innerHTML = `
-  <div class="card-widget">
+  let cardNum = txns[0]?.card || bank.label;
+  cardNum = String(cardNum).replace(/\*/g, '').trim() || bank.label;
+  const delta = Math.max(limit - used, 0);
+  const warnStatusText = limit <= 0
+    ? `<span style="color: var(--muted);">bez mesačného limitu</span>`
+    : (delta > 0 ? `<span style="color: var(--warn);">${used}/${limit} platieb — zostáva ${delta}</span>` : `<span style="color: var(--ok);">${used}/${limit} platieb — limit naplnený</span>`);
+  return `
+  <div class="card-widget" style="margin-top:${bankKey === 'rb_cz' ? '0' : '14px'};">
     <div class="card-header" style="background: linear-gradient(135deg, #1a1a1a, #111);">
-      <div>
-        <div class="card-name" style="color: var(--rb-color); font-weight: 700;">RB CZ</div>
-        <div class="card-number">${cardNum}</div>
-      </div>
-      <div class="card-count">
-        <div class="card-count-big" style="color:${barColor};">${used}<span style="font-size:16px;opacity:.5;color:var(--muted);">/${limit}</span></div>
-        <div class="card-count-sub">použití tento mesiac</div>
-      </div>
+      <div><div class="card-name" style="color:${bank.color}; font-weight: 700;">${bank.label}</div><div class="card-number">${cardNum}</div></div>
+      <div class="card-count"><div class="card-count-big" style="color:${barColor};">${used}<span style="font-size:16px;opacity:.5;color:var(--muted);">/${limit}</span></div><div class="card-count-sub">použití tento mesiac</div></div>
     </div>
     <div class="card-body">
-      <div class="progress-wrap">
-        <div class="progress-labels">
-          <span>0</span><span>pokrok</span><span>${limit}</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" style="width: ${fillPct * 100}%; background: ${barColor};"></div>
-        </div>
-      </div>
+      <div class="progress-wrap"><div class="progress-labels"><span>0</span><span>pokrok</span><span>${limit}</span></div><div class="progress-track"><div class="progress-fill" style="width: ${fillPct * 100}%; background: ${barColor};"></div></div></div>
       <div class="card-warning-status">${warnStatusText}</div>
-      <div class="card-stats">
-        <div class="stat-box">
-          <div class="stat-val">${renderCurrencyTotalLines(rbTxns, 'CZK')}</div>
-          <div class="stat-label">minuté podľa meny</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val">${delta > 0 ? delta : 0}</div>
-          <div class="stat-label">zostáva platieb</div>
-        </div>
-      </div>
+      <div class="card-stats"><div class="stat-box"><div class="stat-val">${renderCurrencyTotalLines(txns, bank.primaryCurrency)}</div><div class="stat-label">minuté podľa meny</div></div><div class="stat-box"><div class="stat-val">${delta}</div><div class="stat-label">zostáva platieb</div></div></div>
     </div>
   </div>`;
 }
 
-function renderCsobCard(csobTxns) {
-  const container = document.getElementById('csob-container');
-  if (!container) return;
-  const used = csobTxns.length;
-  const limit = getLimitsForMonth(getCurrentMonth()).csob;
-  const fillPct = limit > 0 ? Math.min(used / limit, 1) : 1;
-  const barColor = getCardColor(used, limit);
-  
-  let cardNum = csobTxns[0]?.card || 'ČSOB SK';
-  cardNum = cardNum.replace(/\*/g, '').trim() || 'ČSOB';
-
-  const delta = limit - used;
-  let warnStatusText = delta > 0 ? 
-    `<span style="color: var(--warn);">${used}/${limit} platieb — zostáva ${delta}</span>` : 
-    `<span style="color: var(--ok);">${used}/${limit} platieb — limit naplnený</span>`;
-
-  container.innerHTML = `
-  <div class="card-widget" style="margin-top: 14px;">
-    <div class="card-header" style="background: linear-gradient(135deg, #1a1a1a, #111);">
-      <div>
-        <div class="card-name" style="color: var(--csob-color); font-weight: 700;">ČSOB SK</div>
-        <div class="card-number">${cardNum}</div>
-      </div>
-      <div class="card-count">
-        <div class="card-count-big" style="color:${barColor};">${used}<span style="font-size:16px;opacity:.5;color:var(--muted);">/${limit}</span></div>
-        <div class="card-count-sub">použití tento mesiac</div>
-      </div>
-    </div>
-    <div class="card-body">
-      <div class="progress-wrap">
-        <div class="progress-labels">
-          <span>0</span><span>pokrok</span><span>${limit}</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" style="width: ${fillPct * 100}%; background: ${barColor};"></div>
-        </div>
-      </div>
-      <div class="card-warning-status">${warnStatusText}</div>
-      <div class="card-stats">
-        <div class="stat-box">
-          <div class="stat-val">${renderCurrencyTotalLines(csobTxns, 'CZK')}</div>
-          <div class="stat-label">minuté podľa meny</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val">${delta > 0 ? delta : 0}</div>
-          <div class="stat-label">zostáva platieb</div>
-        </div>
-      </div>
-    </div>
-  </div>`;
+function renderRecentBankColumns(byBank) {
+  const wrap = document.getElementById('recent-bank-columns');
+  if (!wrap) return;
+  wrap.innerHTML = BANK_ORDER.map(bankKey => {
+    const bank = getBankInfo(bankKey);
+    const txns = sortTransactionsNewestFirst([...(byBank[bankKey] || [])]).slice(0, 5);
+    const items = txns.length === 0 ? '<div class="tx-meta-compact">Žiadne pohyby</div>' : txns.map(t => `
+      <div class="tx-item-compact"><div class="tx-row-top"><div class="tx-merchant-compact">${t.merchant}</div><div class="tx-amt-compact" style="color:${bank.color}; text-align:right;">-${formatMoney(t.amount, t.currency)} ${t.currency}</div></div><div class="tx-meta-compact">${t.date.split(' ')[0]}</div><button class="tx-delete-inline" data-local-edit-only="true" onclick="deleteSingleTransaction('${t.id}')">✕</button></div>`).join('');
+    return `<div><div class="tx-col-title" style="color:${bank.color};">${bank.label}</div>${items}</div>`;
+  }).join('');
 }
 
-// ── OPRAVENÉ VYKRESLENIE 2 STĹPCOV S MINUSOVÝMI SUMAMI A FARBAMI ──
 function renderTwoColumns(rbTxns, csobTxns) {
-  const rbDiv = document.getElementById('recent-rb');
-  const csobDiv = document.getElementById('recent-csob');
-  
-  if (!rbDiv || !csobDiv) return;
-
-  // Limitujeme náhľad na posledných 5 transakcií pre každý stĺpec
-  const sliceRb = sortTransactionsNewestFirst([...rbTxns]).slice(0, 5);
-  const sliceCsob = sortTransactionsNewestFirst([...csobTxns]).slice(0, 5);
-
-  if (sliceRb.length === 0) {
-    rbDiv.innerHTML = '<div class="tx-meta-compact">Žiadne platby</div>';
-  } else {
-    rbDiv.innerHTML = sliceRb.map(t => `
-      <div class="tx-item-compact">
-        <div class="tx-row-top">
-          <div class="tx-merchant-compact">${t.merchant}</div>
-          <div class="tx-amt-compact" style="color: var(--rb-color); text-align: right;">-${formatMoney(t.amount, t.currency)} ${t.currency}</div>
-        </div>
-        <div class="tx-meta-compact">${t.date.split(' ')[0]}</div>
-        <button class="tx-delete-inline" data-local-edit-only="true" onclick="deleteSingleTransaction('${t.id}')">✕</button>
-      </div>
-    `).join('');
-  }
-
-  if (sliceCsob.length === 0) {
-    csobDiv.innerHTML = '<div class="tx-meta-compact">Žiadne platby</div>';
-  } else {
-    csobDiv.innerHTML = sliceCsob.map(t => `
-      <div class="tx-item-compact">
-        <div class="tx-row-top">
-          <div class="tx-merchant-compact">${t.merchant}</div>
-          <div class="tx-amt-compact" style="color: var(--csob-color); text-align: right;">-${formatMoney(t.amount, t.currency)} ${t.currency}</div>
-        </div>
-        <div class="tx-meta-compact">${t.date.split(' ')[0]}</div>
-        <button class="tx-delete-inline" data-local-edit-only="true" onclick="deleteSingleTransaction('${t.id}')">✕</button>
-      </div>
-    `).join('');
-  }
+  renderRecentBankColumns({ rb_cz: rbTxns, csob_sk: csobTxns, csob_cz: [], moneta: [] });
 }
 
-// ── OPRAVENÝ HLAVNÝ ZOZNAM TRANSAKCIÍ (KATEGÓRIE, FILTRE) ──────────
 function updateTxnPage(monthTxns) {
   const listDiv = document.getElementById('txn-list');
   if (!listDiv) return;
-
   let filtered = sortTransactionsNewestFirst(allTransactions.filter(t => t.amount < 0));
-
-  // Filter podľa banky
-  if (activeBank === 'rb') {
-    filtered = filtered.filter(t => !isCsobTransaction(t));
-  } else if (activeBank === 'csob') {
-    filtered = filtered.filter(t => isCsobTransaction(t));
-  }
-
-  // Unikátne kategórie z aktuálne vyfiltrovaných transakcií pre filter chipy
+  if (activeBank !== 'všetky') filtered = filtered.filter(t => getBankKey(t) === activeBank);
   const cats = ['všetky', ...new Set(filtered.map(t => t.category).filter(Boolean))];
   renderCategoryFilters(cats);
-
-  // Filter podľa kategórie
-  if (activeCategory !== 'všetky') {
-    filtered = filtered.filter(t => t.category === activeCategory);
-  }
-
+  if (activeCategory !== 'všetky') filtered = filtered.filter(t => t.category === activeCategory);
   if (filtered.length === 0) {
-    listDiv.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">📭</div>
-        Žiadne transakcie neodpovedajú<br>zvoleným filtrom.
-      </div>`;
+    listDiv.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>Žiadne transakcie neodpovedajú<br>zvoleným filtrom.</div>`;
     return;
   }
-
   listDiv.innerHTML = filtered.map(t => {
-    const isCsob = isCsobTransaction(t);
-    const bankColor = isCsob ? 'var(--csob-color)' : 'var(--rb-color)';
-    return `
-    <div class="tx-item">
-      <div class="tx-left">
-        <div class="tx-icon">${catIcon(t.category)}</div>
-        <div>
-          <div class="tx-merchant">${t.merchant}</div>
-          <div class="tx-meta">${t.date} · <span style="color: ${bankColor}; font-weight:500;">${isCsob ? 'ČSOB SK' : 'RB CZ'}</span></div>
-        </div>
-      </div>
-      <div class="tx-right-side">
-        <div class="tx-amount" style="color: ${bankColor};">
-          -${formatMoney(t.amount, t.currency)} ${t.currency}
-        </div>
-        <button class="tx-delete-main" data-local-edit-only="true" data-default-title="Zmazať" onclick="deleteSingleTransaction('${t.id}')" title="Zmazať">✕</button>
-      </div>
-    </div>`;
+    const bankKey = getBankKey(t);
+    const bank = getBankInfo(bankKey);
+    return `<div class="tx-item"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${t.merchant}</div><div class="tx-meta">${t.date} · <span style="color:${bank.color}; font-weight:500;">${bank.label}</span></div></div></div><div class="tx-right-side"><div class="tx-amount" style="color:${bank.color};">-${formatMoney(t.amount, t.currency)} ${t.currency}</div><button class="tx-delete-main" data-local-edit-only="true" data-default-title="Zmazať" onclick="deleteSingleTransaction('${t.id}')" title="Zmazať">✕</button></div></div>`;
   }).join('');
 }
 
 function renderCategoryFilters(cats) {
   const wrap = document.getElementById('cat-filters');
   if (!wrap) return;
-  wrap.innerHTML = cats.map(c => `
-    <div class="cat-chip ${activeCategory === c ? 'active' : ''}" onclick="filterCategory('${c}')">
-      ${c === 'všetky' ? 'Všetky' : catIcon(c) + ' ' + c}
-    </div>
-  `).join('');
+  wrap.innerHTML = cats.map(c => `<div class="cat-chip ${activeCategory === c ? 'active' : ''}" onclick="filterCategory('${c}')">${c === 'všetky' ? 'Všetky' : catIcon(c) + ' ' + c}</div>`).join('');
 }
 
 function filterBank(bank) {
   activeBank = bank;
   document.getElementById('filter-bank-all').classList.toggle('active', bank === 'všetky');
-  document.getElementById('filter-bank-rb').classList.toggle('active', bank === 'rb');
-  document.getElementById('filter-bank-csob').classList.toggle('active', bank === 'csob');
+  document.getElementById('filter-bank-rb').classList.toggle('active', bank === 'rb_cz');
+  document.getElementById('filter-bank-csob-sk').classList.toggle('active', bank === 'csob_sk');
+  document.getElementById('filter-bank-csob-cz').classList.toggle('active', bank === 'csob_cz');
+  document.getElementById('filter-bank-moneta').classList.toggle('active', bank === 'moneta');
   updateTxnPage();
 }
 
@@ -1416,46 +1429,22 @@ function filterCategory(cat) {
 function renderArchive() {
   const container = document.getElementById('archive-months-list');
   if (!container) return;
-
-  // Vyrobíme zoznam všetkých mesiacov, kde existuje aspoň jedna transakcia
   const monthsInSpecs = [...new Set(allTransactions.map(t => t.month).filter(Boolean))];
-  
-  // Zoradíme od najnovšieho po najstarší
-  monthsInSpecs.sort((a,b) => {
-    const [mA, yA] = a.split('/').map(Number);
-    const [mB, yB] = b.split('/').map(Number);
-    return (yB * 12 + mB) - (yA * 12 + mA);
-  });
-
+  monthsInSpecs.sort((a,b) => monthSortValue(b) - monthSortValue(a));
   if (monthsInSpecs.length === 0) {
     container.innerHTML = '<div class="empty-state" style="padding:20px 0;">Archív je zatiaľ prázdny.</div>';
     return;
   }
-
   container.innerHTML = monthsInSpecs.map(mStr => {
     const txns = allTransactions.filter(t => t.month === mStr && t.amount < 0);
-    const rbCount = txns.filter(t => !isCsobTransaction(t)).length;
-    const csobCount = txns.filter(t => isCsobTransaction(t)).length;
-
     const hist = getLimitsForMonth(mStr);
-
-    return `
-    <div class="archive-item">
-      <div class="archive-month-left">
-        <button class="archive-delete-btn" data-local-edit-only="true" data-default-title="Zmazať mesiac z archívu" onclick="deleteArchiveMonth('${mStr}')" title="Zmazať mesiac z archívu">✕</button>
-        <div class="archive-month-name">${formatMonthString(mStr)}</div>
-      </div>
-      <div class="archive-stats-grid">
-        <div class="archive-bank-col">
-          <span class="archive-bank-title" style="color:var(--rb-color);">RB: ${rbCount}/${hist.rb}</span>
-          ${getBankStatusText(rbCount, hist.rb)}
-        </div>
-        <div class="archive-bank-col">
-          <span class="archive-bank-title" style="color:var(--csob-color);">ČSOB: ${csobCount}/${hist.csob}</span>
-          ${getBankStatusText(csobCount, hist.csob)}
-        </div>
-      </div>
-    </div>`;
+    const cols = BANK_ORDER.map(bankKey => {
+      const bank = getBankInfo(bankKey);
+      const count = txns.filter(t => getBankKey(t) === bankKey).length;
+      const limit = hist[bank.limitKey] ?? bank.defaultLimit;
+      return `<div class="archive-bank-col"><span class="archive-bank-title" style="color:${bank.color};">${bank.short}: ${count}/${limit}</span>${limit > 0 ? getBankStatusText(count, limit) : '<span class="archive-bank-status" style="color:var(--muted);">bez limitu</span>'}</div>`;
+    }).join('');
+    return `<div class="archive-item"><div class="archive-month-left"><button class="archive-delete-btn" data-local-edit-only="true" data-default-title="Zmazať mesiac z archívu" onclick="deleteArchiveMonth('${mStr}')" title="Zmazať mesiac z archívu">✕</button><div class="archive-month-name">${formatMonthString(mStr)}</div></div><div class="archive-stats-grid" style="grid-template-columns: repeat(4, auto); gap: 10px;">${cols}</div></div>`;
   }).join('');
 }
 
@@ -1472,6 +1461,10 @@ function showPage(pageId) {
     document.getElementById('sheets-url').value = SHEETS_URL;
     document.getElementById('rb-limit').value = RB_LIMIT;
     document.getElementById('csob-limit').value = CSOB_LIMIT;
+    const budgetInput = document.getElementById('monthly-budget-czk');
+    const warningInput = document.getElementById('budget-warning-czk');
+    if (budgetInput) budgetInput.value = localStorage.getItem('monthly_budget_czk') || '';
+    if (warningInput) warningInput.value = localStorage.getItem('budget_warning_czk') || '';
     resetSimFields();
     updateEditModeUI();
     updatePushStatus();
@@ -1566,9 +1559,9 @@ import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/fireb
 
 const firebaseConfig = {
   apiKey: "AIzaSyDZtbXCeF1MTmsfnobMrj9KlOQTqYVmOOw",
-  authDomain: "bank-card-tracker.firebaseapp.com",
-  projectId: "bank-card-tracker",
-  storageBucket: "bank-card-tracker.firebasestorage.app",
+  authDomain: "bank-tracker.firebaseapp.com",
+  projectId: "bank-tracker",
+  storageBucket: "bank-tracker.firebasestorage.app",
   messagingSenderId: "768194565850",
   appId: "1:768194565850:web:cc22f9f9357f7f22ac37e3"
 };
@@ -1693,7 +1686,7 @@ window.copyNotificationToken = async function () {
 };
 
 onMessage(messaging, (payload) => {
-  const title = payload.notification?.title || payload.data?.title || "Bank Card Tracker";
+  const title = payload.notification?.title || payload.data?.title || "Bank Tracker";
   const body = payload.notification?.body || payload.data?.body || "Máš novú notifikáciu.";
 
   if (Notification.permission === "granted") {
@@ -1701,7 +1694,7 @@ onMessage(messaging, (payload) => {
       if (registration) {
         registration.showNotification(title, {
           body,
-          tag: "bank-card-tracker-foreground",
+          tag: "bank-tracker-foreground",
           renotify: true
         });
       }
