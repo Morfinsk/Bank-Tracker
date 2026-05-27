@@ -1,9 +1,9 @@
 {
   "name": "Bank Tracker",
   "short_name": "BankTracker",
-  "description": "Sleduj použitie bankovych transakcii",
-  "start_url": "/bank-tracker/",
-  "scope": "/bank-tracker/",
+  "description": "Sleduj použitie bankových transakcií",
+  "start_url": "/Bank-Tracker/",
+  "scope": "/Bank-Tracker/",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
