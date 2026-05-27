@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v23 clean fixes: bank logos, bank-card click filters, transaction logos, limits sync fix -->
+<!-- v30 budget save stability fix -->
 <link rel="manifest" href="./manifest.json?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -702,7 +702,7 @@
     </div>
 
     <button class="config-save" onclick="saveBudgetSettings()" style="background: var(--moneta-color);">Uložiť budgety</button>
-    <div class="edit-mode-notice">Príklad: <span class="moneta-gradient">Moneta CZ</span> budget 10000 CZK + upozornenie 1000 CZK = appka upozorní, keď máš minuté aspoň 9000 CZK v <span class="moneta-gradient">Moneta CZ</span>.</div>
+    <div class="edit-mode-notice">Príklad: <span class="moneta-gradient">Moneta</span> budget 10000 CZK + upozornenie 1000 CZK = appka upozorní, keď máš minuté aspoň 9000 CZK v <span class="moneta-gradient">Moneta</span>.</div>
   </div>
 
   <button class="dev-toggle-btn" onclick="toggleDeveloperSimulator()">
@@ -967,12 +967,26 @@ function bankLogoImg(bankKey, className = 'bank-logo-mini') {
 
 function bankLabelWithLogo(bankKey) {
   const bank = getBankInfo(bankKey);
-  return `<span class="bank-name-with-logo">${bankLogoImg(bankKey)}<span>${bank.label}</span></span>`;
+
+  const displayNames = {
+    rb_cz: 'RB CZ',
+    csob_sk: 'ČSOB SK',
+    csob_cz: 'ČSOB CZ',
+    moneta: '<span class="moneta-gradient">Moneta</span>'
+  };
+
+  return `<span class="bank-name-with-logo">${bankLogoImg(bankKey)}<span>${displayNames[bankKey] || bank.label}</span></span>`;
 }
 
 function bankShortWithLogo(bankKey) {
-  const bank = getBankInfo(bankKey);
-  return `<span class="bank-name-with-logo">${bankLogoImg(bankKey)}<span>${bank.label}</span></span>`;
+  const displayNames = {
+    rb_cz: 'RB CZ',
+    csob_sk: 'ČSOB SK',
+    csob_cz: 'ČSOB CZ',
+    moneta: '<span class="moneta-gradient">Moneta</span>'
+  };
+
+  return `<span class="bank-name-with-logo">${bankLogoImg(bankKey)}<span>${displayNames[bankKey] || plainBankName(bankKey)}</span></span>`;
 }
 
 function plainBankName(bankKey) {
@@ -1548,22 +1562,28 @@ function getBudgetSettingsForBank(bankKey) {
 }
 
 function saveBudgetSettings() {
-  const inputMap = {
-    rb_cz: ['budget-rb-cz', 'budget-warn-rb-cz'],
-    csob_sk: ['budget-csob-sk', 'budget-warn-csob-sk'],
-    csob_cz: ['budget-csob-cz', 'budget-warn-csob-cz'],
-    moneta: ['budget-moneta', 'budget-warn-moneta']
-  };
+  try {
+    const inputMap = {
+      rb_cz: ['budget-rb-cz', 'budget-warn-rb-cz'],
+      csob_sk: ['budget-csob-sk', 'budget-warn-csob-sk'],
+      csob_cz: ['budget-csob-cz', 'budget-warn-csob-cz'],
+      moneta: ['budget-moneta', 'budget-warn-moneta']
+    };
 
-  Object.entries(inputMap).forEach(([bankKey, ids]) => {
-    const budget = parseFloat(document.getElementById(ids[0])?.value) || 0;
-    const warning = parseFloat(document.getElementById(ids[1])?.value) || 0;
-    localStorage.setItem(getBudgetStorageKey(bankKey, 'limit'), String(budget));
-    localStorage.setItem(getBudgetStorageKey(bankKey, 'warn'), String(warning));
-  });
+    Object.entries(inputMap).forEach(([bankKey, ids]) => {
+      const budget = parseFloat(document.getElementById(ids[0])?.value || '0') || 0;
+      const warning = parseFloat(document.getElementById(ids[1])?.value || '0') || 0;
 
-  alert('Budgety podľa bánk boli uložené.');
-  renderAll();
+      localStorage.setItem(getBudgetStorageKey(bankKey, 'limit'), String(budget));
+      localStorage.setItem(getBudgetStorageKey(bankKey, 'warn'), String(warning));
+    });
+
+    renderAll();
+    alert('Budgety podľa bánk boli uložené.');
+  } catch (err) {
+    console.error('Budget save error:', err);
+    alert('Budgety sa nepodarilo uložiť. Pošli mi screenshot chyby z konzoly.');
+  }
 }
 
 function renderBudgetStatus() {
@@ -1572,6 +1592,7 @@ function renderBudgetStatus() {
 
   const rows = BANK_ORDER.map(bankKey => {
     const bank = BANKS[bankKey];
+    const safeBankName = plainBankName(bankKey);
     const { budget, warning } = getBudgetSettingsForBank(bankKey);
     const spent = getCurrentMonthCzkSpent(bankKey);
 
@@ -1592,7 +1613,7 @@ function renderBudgetStatus() {
     const status = remaining <= 0 ? 'prekročený' : (warning && remaining <= warning ? 'blízko limitu' : 'v norme');
     const statusColor = remaining <= 0 ? 'var(--danger)' : (warning && remaining <= warning ? 'var(--warn)' : 'var(--ok)');
 
-    maybeSendBudgetLocalNotification(bankKey, plainBankName(bankKey), spent, budget, remaining, warning);
+    maybeSendBudgetLocalNotification(bankKey, safeBankName, spent, budget, remaining, warning);
 
     return `
       <div style="padding:10px 0;border-bottom:1px solid var(--border);">
@@ -1614,20 +1635,31 @@ function renderBudgetStatus() {
 
 function maybeSendBudgetLocalNotification(bankKey, bankLabel, spent, budget, remaining, warning) {
   if (!budget || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+
   const month = getCurrentMonth();
-  if (warning && remaining > 0 && remaining <= warning) {
-    const key = `budget_warn_${bankKey}_${month}_${budget}_${warning}`;
-    if (localStorage.getItem(key) !== 'sent') {
-      new Notification('Bank Tracker', { body: `${bankLabel}: minuté ${formatMoney(spent, 'CZK')} CZK. Ostáva ${formatMoney(remaining, 'CZK')} CZK do konca mesačného budgetu.` });
-      localStorage.setItem(key, 'sent');
+
+  try {
+    if (warning && remaining > 0 && remaining <= warning) {
+      const key = `budget_warn_${bankKey}_${month}_${budget}_${warning}`;
+      if (localStorage.getItem(key) !== 'sent') {
+        new Notification('Bank Tracker', {
+          body: `${bankLabel}: minuté ${formatMoney(spent, 'CZK')} CZK. Ostáva ${formatMoney(remaining, 'CZK')} CZK do konca mesačného budgetu.`
+        });
+        localStorage.setItem(key, 'sent');
+      }
     }
-  }
-  if (remaining <= 0) {
-    const key = `budget_over_${bankKey}_${month}_${budget}`;
-    if (localStorage.getItem(key) !== 'sent') {
-      new Notification('Bank Tracker', { body: `${bankLabel}: mesačný budget ${formatMoney(budget, 'CZK')} CZK bol prekročený.` });
-      localStorage.setItem(key, 'sent');
+
+    if (remaining <= 0) {
+      const key = `budget_over_${bankKey}_${month}_${budget}`;
+      if (localStorage.getItem(key) !== 'sent') {
+        new Notification('Bank Tracker', {
+          body: `${bankLabel}: mesačný budget ${formatMoney(budget, 'CZK')} CZK bol prekročený.`
+        });
+        localStorage.setItem(key, 'sent');
+      }
     }
+  } catch (err) {
+    console.warn('Budget notification skipped:', err);
   }
 }
 
