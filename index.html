@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v30 budget save stability fix -->
+<!-- v32 product UX -->
 <link rel="manifest" href="./manifest.json?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -554,6 +554,76 @@
     display: none !important;
   }
 
+
+  /* v32 Product UX */
+  .primary-action-row{margin:14px 20px 20px;display:grid;gap:10px}
+  .add-bank-btn,.add-txn-btn,.plan-btn{width:100%;border:1px solid var(--border);border-radius:14px;background:linear-gradient(135deg,rgba(119,224,243,.15),rgba(119,224,243,.05));color:var(--accent);padding:13px 16px;font-family:var(--font-display);font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .txn-filter-pill{padding:7px 13px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:var(--font-mono);font-size:12px;cursor:pointer}
+  .txn-filter-pill.active{color:var(--accent);border-color:var(--accent);background:rgba(119,224,243,.12)}
+  .amount-income{color:var(--ok)!important}.amount-expense{color:var(--danger)!important}
+  .archive-trend-card{margin:0 20px 18px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px}
+  .trend-svg{width:100%;height:180px;display:block}.trend-axis-label{fill:#777;font-size:10px;font-family:monospace}.trend-line{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.trend-dot{fill:var(--accent)}
+  .bottom-sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(8px);z-index:250;display:none}.bottom-sheet-backdrop.open{display:block}
+  .bottom-sheet{position:fixed;left:50%;bottom:0;transform:translateX(-50%) translateY(105%);width:100%;max-width:430px;max-height:92vh;overflow-y:auto;background:#0f0f0f;border:1px solid var(--border);border-bottom:none;border-radius:24px 24px 0 0;z-index:300;padding:16px 20px 28px;transition:transform .25s ease;box-shadow:0 -20px 70px rgba(0,0,0,.55)}.bottom-sheet.open{transform:translateX(-50%) translateY(0)}
+  .sheet-handle{width:42px;height:4px;background:rgba(255,255,255,.18);border-radius:999px;margin:0 auto 16px}.sheet-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.sheet-title{font-size:20px;font-weight:700}.sheet-close{width:34px;height:34px;border-radius:999px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer}
+  .sheet-grid{display:grid;gap:10px}.sheet-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .bank-list-row{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:8px}
+  .plan-grid{margin:0 20px 20px;display:grid;gap:12px}.plan-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px}.plan-card.highlight{border-color:rgba(119,224,243,.45);background:rgba(119,224,243,.08)}.plan-name{font-size:16px;font-weight:700;margin-bottom:4px}.plan-price{font-family:var(--font-mono);color:var(--accent);font-size:14px;margin-bottom:8px}.plan-features{color:var(--muted);font-size:12px;line-height:1.7}
+  .push-toggle-card{margin:0 20px 20px;background:#101827;border:1px solid rgba(119,224,243,.16);border-radius:18px;padding:16px}.push-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.push-toggle-left{display:flex;align-items:center;gap:12px;font-size:15px;font-weight:700}.toggle-switch{position:relative;width:48px;height:28px;border-radius:999px;background:#263244;border:1px solid var(--border);cursor:pointer;flex:0 0 48px}.toggle-switch:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:999px;background:#fff;transition:left .2s ease}.toggle-switch.on{background:#2f81f7}.toggle-switch.on:after{left:23px}.push-token-box{margin-top:12px;font-family:var(--font-mono);font-size:10px;color:var(--muted);word-break:break-all;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:10px}
+
+
+  /* v33 floating action button */
+  .fab {
+    position: fixed;
+    right: 20px;
+    bottom: 86px;
+    width: 58px;
+    height: 58px;
+    border-radius: 999px;
+    border: 1px solid rgba(119,224,243,.25);
+    background: linear-gradient(135deg, rgba(119,224,243,.95), rgba(119,224,243,.75));
+    color: #071018;
+    font-size: 32px;
+    font-weight: 700;
+    box-shadow: 0 14px 30px rgba(0,0,0,.35);
+    z-index: 320;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .fab:active {
+    transform: scale(.97);
+  }
+
+  .mini-action-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .mini-action-btn {
+    width: 100%;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.04);
+    color: var(--text);
+    padding: 14px 16px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .mini-action-btn small {
+    display: block;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 400;
+    margin-top: 4px;
+  }
+
 </style>
 </head>
 <body>
@@ -561,7 +631,7 @@
 <div id="page-overview" class="page active">
   <div class="header">
     <div>
-      <div class="header-title">Bank Tracker</div>
+      <div class="header-title" style="color: var(--muted);">Bank Tracker</div>
       <div class="header-month" id="header-month">máj 2026</div>
     </div>
     <div class="sync-btn" id="sync-btn" onclick="syncData()" title="Synchronizovať">↻</div>
@@ -594,8 +664,7 @@
   
   <div class="tx-columns" id="recent-bank-columns"></div>
 
-  <div class="section-title" style="margin-top:28px;">archív mesiacov</div>
-  <div class="archive-container" id="archive-months-list"></div>
+
 </div>
 
 <div id="page-txns" class="page">
@@ -606,6 +675,14 @@
     </div>
   </div>
   
+
+  <div class="filter-group-title">Typ</div>
+  <div class="cat-grid" id="direction-filters">
+    <div class="txn-filter-pill active" id="filter-dir-all" onclick="filterDirection('all')">All</div>
+    <div class="txn-filter-pill" id="filter-dir-incoming" onclick="filterDirection('incoming')">Incoming</div>
+    <div class="txn-filter-pill" id="filter-dir-outgoing" onclick="filterDirection('outgoing')">Outgoing</div>
+  </div>
+
   <div class="filter-group-title">Banka</div>
   <div class="cat-grid" id="bank-filters">
     <div class="cat-chip active" id="filter-bank-all" onclick="filterBank('všetky')">Všetky</div>
@@ -619,6 +696,22 @@
   <div class="cat-grid" id="cat-filters"></div>
   
   <div id="txn-list" style="margin: 0 20px;"></div>
+</div>
+
+
+<div id="page-archive" class="page">
+  <div class="header">
+    <div>
+      <div class="header-title">Archív</div>
+      <div class="header-month">Mesačné trendy</div>
+    </div>
+  </div>
+  <div class="archive-trend-card">
+    <div class="section-title" style="padding:0;margin-bottom:12px;">trend výdavkov</div>
+    <div id="archive-trend-chart"></div>
+  </div>
+  <div class="section-title" style="margin-top:8px;">archív mesiacov</div>
+  <div class="archive-container" id="archive-months-list"></div>
 </div>
 
 <div id="page-settings" class="page">
@@ -702,7 +795,8 @@
     </div>
 
     <button class="config-save" onclick="saveBudgetSettings()" style="background: var(--moneta-color);">Uložiť budgety</button>
-    <div class="edit-mode-notice">Príklad: <span class="moneta-gradient">Moneta</span> budget 10000 CZK + upozornenie 1000 CZK = appka upozorní, keď máš minuté aspoň 9000 CZK v <span class="moneta-gradient">Moneta</span>.</div>
+    <div id="budget-sync-status" class="edit-mode-notice" style="margin-top:10px;">Budgety sa uložia lokálne. Ak je vyplnená Apps Script Web App URL, zapíšu sa aj do tabu <strong>Budgety</strong>.</div>
+    <div class="edit-mode-notice">Príklad: <span class="moneta-gradient">Moneta CZ</span> budget 10000 CZK + upozornenie 1000 CZK = appka upozorní, keď máš minuté aspoň 9000 CZK v <span class="moneta-gradient">Moneta CZ</span>.</div>
   </div>
 
   <button class="dev-toggle-btn" onclick="toggleDeveloperSimulator()">
@@ -810,13 +904,27 @@
 
   </div>
 
-  <div class="config-banner push-banner">
-    <h3>Push notifikácie</h3>
-    <p style="color: var(--muted);">Zapni si notifikácie pre pripomienky k mesačným platbám a budgetu. Token sa uloží lokálne v tomto zariadení.</p>
-    <button class="config-save push-save" onclick="enableNotifications()" style="margin-top:12px;">Zapnúť push notifikácie 🔔</button>
-    <button class="sim-submit" onclick="copyNotificationToken()" style="margin-top:8px; border-color: rgba(74,222,128,0.45); color: var(--ok);">Kopírovať FCM token</button>
-    <div id="push-status" class="edit-mode-notice" style="margin-top:10px;">Push notifikácie zatiaľ nie sú zapnuté.</div>
+  
+  <div class="push-toggle-card">
+    <div class="push-toggle-row">
+      <div class="push-toggle-left"><span style="color:#58a6ff;font-size:22px;">♧</span><span>Enable Notifications</span></div>
+      <div id="push-toggle" class="toggle-switch" onclick="togglePushNotifications()"></div>
+    </div>
+    <div id="push-status" class="edit-mode-notice" style="margin-top:14px;">Push notifikácie zatiaľ nie sú zapnuté.</div>
+    <div id="push-token-preview" class="push-token-box" style="display:none;"></div>
+    <button class="sim-submit" onclick="copyNotificationToken()" style="margin-top:10px; border-color: rgba(74,222,128,0.45); color: var(--ok);">Kopírovať FCM token</button>
   </div>
+
+
+
+  <div class="section-title" style="margin-top:6px;">plán</div>
+  <div class="plan-grid">
+    <div class="plan-card"><div class="plan-name">Free</div><div class="plan-price">€0 / mesiac</div><div class="plan-features">1 banka<br>Manual entry<br>Základný prehľad</div><button class="plan-btn" onclick="selectPlan('free')" style="margin-top:12px;">Aktuálny plán</button></div>
+    <div class="plan-card highlight"><div class="plan-name">Premium</div><div class="plan-price">€1.99 / mesiac</div><div class="plan-features">Unlimited banks<br>Auto-sync<br>Notifications<br>Archive export</div><button class="plan-btn" onclick="selectPlan('premium')" style="margin-top:12px;">Upgrade na Premium</button></div>
+    <div class="plan-card"><div class="plan-name">Pro</div><div class="plan-price">€4.99 / mesiac</div><div class="plan-features">AI insights<br>Multi-currency<br>Family sharing<br>Advanced forecasts</div><button class="plan-btn" onclick="selectPlan('pro')" style="margin-top:12px;">Upgrade na Pro</button></div>
+  </div>
+  <div class="section-title">Moje banky</div>
+  <div class="primary-action-row"><button class="add-bank-btn" onclick="openBankManagerSheet()">Spravovať banky</button></div>
 
   <div style="padding: 0 20px;">
     <div class="section-title">o appke</div>
@@ -828,6 +936,56 @@
   </div>
 </div>
 
+
+<div id="bottom-sheet-backdrop" class="bottom-sheet-backdrop" onclick="closeBottomSheets()"></div>
+<div id="add-bank-sheet" class="bottom-sheet">
+  <div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title">Pridať banku</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>
+  <div class="sheet-grid">
+    <label>Názov banky</label><input class="config-input" id="new-bank-name" placeholder="napr. Air Bank CZ" />
+    <div class="sheet-grid-2"><div><label>Mena</label><select class="config-input" id="new-bank-currency"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select></div><div><label>Typ</label><select class="config-input" id="new-bank-type"><option value="card">Karta</option><option value="account">Účet</option></select></div></div>
+    <div class="sheet-grid-2"><div><label>Mesačný budget</label><input class="config-input" id="new-bank-budget" type="number" min="0" placeholder="10000" /></div><div><label>Upozorni keď zostáva</label><input class="config-input" id="new-bank-warning" type="number" min="0" placeholder="1000" /></div></div>
+    <label>Mesačný limit karty</label><input class="config-input" id="new-bank-card-limit" type="number" min="0" placeholder="5" />
+    <button class="config-save" onclick="saveNewBank()">Uložiť banku</button>
+  </div>
+</div>
+<div id="add-transaction-sheet" class="bottom-sheet">
+  <div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title">Pridať transakciu</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>
+  <div class="sheet-grid">
+    <label>Banka</label><select class="config-input" id="manual-tx-bank"></select>
+    <label>Obchodník / popis</label><input class="config-input" id="manual-tx-merchant" placeholder="napr. Tesco" />
+    <div class="sheet-grid-2"><div><label>Suma</label><input class="config-input" id="manual-tx-amount" type="number" step="0.01" placeholder="100" /></div><div><label>Typ</label><select class="config-input" id="manual-tx-direction"><option value="outgoing">Outgoing (-)</option><option value="incoming">Incoming (+)</option></select></div></div>
+    <div class="sheet-grid-2"><div><label>Mena</label><select class="config-input" id="manual-tx-currency"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select></div><div><label>Kategória</label><input class="config-input" id="manual-tx-category" placeholder="Ostatné" /></div></div>
+    <button class="config-save" onclick="saveManualTransaction()">Uložiť transakciu</button>
+  </div>
+</div>
+<div id="bank-manager-sheet" class="bottom-sheet">
+  <div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title">Moje banky</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>
+  <div id="bank-manager-list"></div>
+</div>
+
+
+<button id="global-fab" class="fab" onclick="openQuickAddSheet()">+</button>
+
+<div id="quick-add-sheet" class="bottom-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title-row">
+    <div class="sheet-title">Rýchle pridanie</div>
+    <button class="sheet-close" onclick="closeBottomSheets()">×</button>
+  </div>
+
+  <div class="mini-action-list">
+    <button class="mini-action-btn" onclick="openAddTransactionFromQuick()">
+      Pridať transakciu
+      <small>Manuálne zadaj novú platbu alebo príjem.</small>
+    </button>
+
+    <button class="mini-action-btn" onclick="openAddBankFromQuick()">
+      Pridať banku
+      <small>Pridaj novú banku, menu, budget a limit karty.</small>
+    </button>
+  </div>
+</div>
+
 <nav class="bottom-nav">
   <div class="nav-item active" id="nav-overview" onclick="showPage('overview')">
     <span class="nav-icon">◉</span>
@@ -836,6 +994,10 @@
   <div class="nav-item" id="nav-txns" onclick="showPage('txns')">
     <span class="nav-icon">≡</span>
     <span>Transakcie</span>
+  </div>
+  <div class="nav-item" id="nav-archive" onclick="showPage('archive')">
+    <span class="nav-icon">⌁</span>
+    <span>Archív</span>
   </div>
   <div class="nav-item" id="nav-settings" onclick="showPage('settings')">
     <span class="nav-icon">⚙</span>
@@ -855,6 +1017,7 @@ let limitsHistory = JSON.parse(localStorage.getItem('limits_history') || '{}');
 let allTransactions = [];
 let activeCategory = 'všetky';
 let activeBank = 'všetky';
+let activeDirection = 'all';
 let autoSyncTimer = null;
 let isSyncing = false;
 const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minút
@@ -967,26 +1130,12 @@ function bankLogoImg(bankKey, className = 'bank-logo-mini') {
 
 function bankLabelWithLogo(bankKey) {
   const bank = getBankInfo(bankKey);
-
-  const displayNames = {
-    rb_cz: 'RB CZ',
-    csob_sk: 'ČSOB SK',
-    csob_cz: 'ČSOB CZ',
-    moneta: '<span class="moneta-gradient">Moneta</span>'
-  };
-
-  return `<span class="bank-name-with-logo">${bankLogoImg(bankKey)}<span>${displayNames[bankKey] || bank.label}</span></span>`;
+  return `<span class="bank-name-with-logo">${bankLogoImg(bankKey)}<span>${bank.label}</span></span>`;
 }
 
 function bankShortWithLogo(bankKey) {
-  const displayNames = {
-    rb_cz: 'RB CZ',
-    csob_sk: 'ČSOB SK',
-    csob_cz: 'ČSOB CZ',
-    moneta: '<span class="moneta-gradient">Moneta</span>'
-  };
-
-  return `<span class="bank-name-with-logo">${bankLogoImg(bankKey)}<span>${displayNames[bankKey] || plainBankName(bankKey)}</span></span>`;
+  const bank = getBankInfo(bankKey);
+  return `<span class="bank-name-with-logo">${bankLogoImg(bankKey)}<span>${bank.label}</span></span>`;
 }
 
 function plainBankName(bankKey) {
@@ -1561,7 +1710,54 @@ function getBudgetSettingsForBank(bankKey) {
   };
 }
 
-function saveBudgetSettings() {
+
+function readBudgetSettingsInputs() {
+  return {
+    rbCzBudget: parseFloat(document.getElementById('budget-rb-cz')?.value || '0') || 0,
+    rbCzWarning: parseFloat(document.getElementById('budget-warn-rb-cz')?.value || '0') || 0,
+    csobSkBudget: parseFloat(document.getElementById('budget-csob-sk')?.value || '0') || 0,
+    csobSkWarning: parseFloat(document.getElementById('budget-warn-csob-sk')?.value || '0') || 0,
+    csobCzBudget: parseFloat(document.getElementById('budget-csob-cz')?.value || '0') || 0,
+    csobCzWarning: parseFloat(document.getElementById('budget-warn-csob-cz')?.value || '0') || 0,
+    monetaBudget: parseFloat(document.getElementById('budget-moneta')?.value || '0') || 0,
+    monetaWarning: parseFloat(document.getElementById('budget-warn-moneta')?.value || '0') || 0
+  };
+}
+
+async function syncBudgetToGoogleSheets(monthStr, budgetValues) {
+  const status = document.getElementById('budget-sync-status');
+
+  if (!LIMITS_WEBAPP_URL) {
+    if (status) status.textContent = 'Budgety uložené lokálne. Pre zápis do Google Sheets doplň Apps Script Web App URL.';
+    return false;
+  }
+
+  const payload = {
+    action: 'saveBudgets',
+    month: monthStr,
+    ...budgetValues
+  };
+
+  try {
+    if (status) status.textContent = 'Ukladám budgety do Google Sheets...';
+
+    await fetch(LIMITS_WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+
+    if (status) status.textContent = `Budgety pre ${getMonthDisplayShort(monthStr)} odoslané do Google Sheets.`;
+    return true;
+  } catch (err) {
+    console.error('Budget sync failed:', err);
+    if (status) status.textContent = 'Budgety sú uložené lokálne, ale zápis do Google Sheets zlyhal. Skontroluj Web App URL.';
+    return false;
+  }
+}
+
+async function saveBudgetSettings() {
   try {
     const inputMap = {
       rb_cz: ['budget-rb-cz', 'budget-warn-rb-cz'],
@@ -1578,6 +1774,11 @@ function saveBudgetSettings() {
       localStorage.setItem(getBudgetStorageKey(bankKey, 'warn'), String(warning));
     });
 
+    const monthStr = getSettingsLimitMonth();
+    const budgetValues = readBudgetSettingsInputs();
+
+    await syncBudgetToGoogleSheets(monthStr, budgetValues);
+
     renderAll();
     alert('Budgety podľa bánk boli uložené.');
   } catch (err) {
@@ -1592,7 +1793,6 @@ function renderBudgetStatus() {
 
   const rows = BANK_ORDER.map(bankKey => {
     const bank = BANKS[bankKey];
-    const safeBankName = plainBankName(bankKey);
     const { budget, warning } = getBudgetSettingsForBank(bankKey);
     const spent = getCurrentMonthCzkSpent(bankKey);
 
@@ -1613,7 +1813,7 @@ function renderBudgetStatus() {
     const status = remaining <= 0 ? 'prekročený' : (warning && remaining <= warning ? 'blízko limitu' : 'v norme');
     const statusColor = remaining <= 0 ? 'var(--danger)' : (warning && remaining <= warning ? 'var(--warn)' : 'var(--ok)');
 
-    maybeSendBudgetLocalNotification(bankKey, safeBankName, spent, budget, remaining, warning);
+    maybeSendBudgetLocalNotification(bankKey, plainBankName(bankKey), spent, budget, remaining, warning);
 
     return `
       <div style="padding:10px 0;border-bottom:1px solid var(--border);">
@@ -1635,31 +1835,20 @@ function renderBudgetStatus() {
 
 function maybeSendBudgetLocalNotification(bankKey, bankLabel, spent, budget, remaining, warning) {
   if (!budget || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-
   const month = getCurrentMonth();
-
-  try {
-    if (warning && remaining > 0 && remaining <= warning) {
-      const key = `budget_warn_${bankKey}_${month}_${budget}_${warning}`;
-      if (localStorage.getItem(key) !== 'sent') {
-        new Notification('Bank Tracker', {
-          body: `${bankLabel}: minuté ${formatMoney(spent, 'CZK')} CZK. Ostáva ${formatMoney(remaining, 'CZK')} CZK do konca mesačného budgetu.`
-        });
-        localStorage.setItem(key, 'sent');
-      }
+  if (warning && remaining > 0 && remaining <= warning) {
+    const key = `budget_warn_${bankKey}_${month}_${budget}_${warning}`;
+    if (localStorage.getItem(key) !== 'sent') {
+      new Notification('Bank Tracker', { body: `${bankLabel}: minuté ${formatMoney(spent, 'CZK')} CZK. Ostáva ${formatMoney(remaining, 'CZK')} CZK do konca mesačného budgetu.` });
+      localStorage.setItem(key, 'sent');
     }
-
-    if (remaining <= 0) {
-      const key = `budget_over_${bankKey}_${month}_${budget}`;
-      if (localStorage.getItem(key) !== 'sent') {
-        new Notification('Bank Tracker', {
-          body: `${bankLabel}: mesačný budget ${formatMoney(budget, 'CZK')} CZK bol prekročený.`
-        });
-        localStorage.setItem(key, 'sent');
-      }
+  }
+  if (remaining <= 0) {
+    const key = `budget_over_${bankKey}_${month}_${budget}`;
+    if (localStorage.getItem(key) !== 'sent') {
+      new Notification('Bank Tracker', { body: `${bankLabel}: mesačný budget ${formatMoney(budget, 'CZK')} CZK bol prekročený.` });
+      localStorage.setItem(key, 'sent');
     }
-  } catch (err) {
-    console.warn('Budget notification skipped:', err);
   }
 }
 
@@ -1692,6 +1881,7 @@ function renderAll() {
 
   updateTxnPage(monthTxns);
   renderArchive();
+  renderArchiveTrendChart();
   populateSimulatorLimitMonthDropdown(getSimulatorLimitMonth());
   populateSettingsLimitMonthDropdown(getSettingsLimitMonth());
 }
@@ -1750,7 +1940,9 @@ function renderTwoColumns(rbTxns, csobTxns) {
 function updateTxnPage(monthTxns) {
   const listDiv = document.getElementById('txn-list');
   if (!listDiv) return;
-  let filtered = sortTransactionsNewestFirst(allTransactions.filter(t => t.amount < 0));
+  let filtered = sortTransactionsNewestFirst(allTransactions);
+  if (activeDirection === 'incoming') filtered = filtered.filter(t => Number(t.amount) > 0);
+  if (activeDirection === 'outgoing') filtered = filtered.filter(t => Number(t.amount) < 0);
   if (activeBank !== 'všetky') filtered = filtered.filter(t => getBankKey(t) === activeBank);
   const cats = ['všetky', ...new Set(filtered.map(t => t.category).filter(Boolean))];
   renderCategoryFilters(cats);
@@ -1762,7 +1954,10 @@ function updateTxnPage(monthTxns) {
   listDiv.innerHTML = filtered.map(t => {
     const bankKey = getBankKey(t);
     const bank = getBankInfo(bankKey);
-    return `<div class="tx-item"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${t.merchant}</div><div class="tx-meta">${t.date}</div></div></div><div class="tx-right-side"><div class="tx-amount" style="color:${bank.color};">-${formatMoney(t.amount, t.currency)} ${t.currency}</div>${bankLogoImg(bankKey, 'tx-bank-logo')}</div></div>`;
+    const isIncome = Number(t.amount) > 0;
+    const sign = isIncome ? '+' : '-';
+    const amountClass = isIncome ? 'amount-income' : 'amount-expense';
+    return `<div class="tx-item"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${t.merchant}</div><div class="tx-meta">${t.date}</div></div></div><div class="tx-right-side"><div class="tx-amount ${amountClass}">${sign}${formatMoney(t.amount, t.currency)} ${t.currency}</div>${bankLogoImg(bankKey, 'tx-bank-logo')}</div></div>`;
   }).join('');
 }
 
@@ -1921,6 +2116,38 @@ document.addEventListener('visibilitychange', () => {
 });
 
 
+
+function getCustomBanks(){try{return JSON.parse(localStorage.getItem('custom_banks')||'[]')}catch(e){return[]}}
+function saveCustomBanks(banks){localStorage.setItem('custom_banks',JSON.stringify(banks||[]))}
+function openSheet(id){document.getElementById('bottom-sheet-backdrop')?.classList.add('open');document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));document.getElementById(id)?.classList.add('open')}
+function closeBottomSheets(){document.getElementById('bottom-sheet-backdrop')?.classList.remove('open');document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'))}
+
+function openQuickAddSheet() {
+  openSheet('quick-add-sheet');
+}
+
+function openAddTransactionFromQuick() {
+  closeBottomSheets();
+  setTimeout(() => openAddTransactionSheet(), 80);
+}
+
+function openAddBankFromQuick() {
+  closeBottomSheets();
+  setTimeout(() => openAddBankSheet(), 80);
+}
+
+function openAddBankSheet(){openSheet('add-bank-sheet')}
+function openAddTransactionSheet(){fillManualTransactionBanks();openSheet('add-transaction-sheet')}
+function openBankManagerSheet(){renderBankManager();openSheet('bank-manager-sheet')}
+function saveNewBank(){const name=document.getElementById('new-bank-name')?.value.trim();if(!name){alert('Zadaj názov banky.');return}const banks=getCustomBanks();banks.push({id:'custom_'+Date.now(),name,currency:document.getElementById('new-bank-currency')?.value||'CZK',type:document.getElementById('new-bank-type')?.value||'card',budget:parseFloat(document.getElementById('new-bank-budget')?.value||'0')||0,warning:parseFloat(document.getElementById('new-bank-warning')?.value||'0')||0,cardLimit:parseInt(document.getElementById('new-bank-card-limit')?.value||'0',10)||0});saveCustomBanks(banks);alert('Banka bola uložená lokálne. Napojenie na Google Sheets tab Banky doplníme v ďalšom kroku.');closeBottomSheets();renderAll()}
+function renderBankManager(){const wrap=document.getElementById('bank-manager-list');if(!wrap)return;const system=BANK_ORDER.map(k=>({id:k,name:plainBankName(k),logo:bankLogoImg(k),currency:getBankInfo(k).primaryCurrency,limit:getLimitsForMonth(getCurrentMonth())[getBankInfo(k).limitKey]??getBankInfo(k).defaultLimit}));const custom=getCustomBanks().map(b=>({id:b.id,name:b.name,logo:'🏦',currency:b.currency,limit:b.cardLimit||0}));wrap.innerHTML=[...system,...custom].map(b=>`<div class="bank-list-row"><div><div style="font-weight:700;">${b.logo} ${b.name}</div><div class="tx-meta">${b.currency||''} · limit ${b.limit||0}</div></div><button class="sim-submit" style="width:auto;padding:7px 12px;" onclick="alert('Editácia banky príde v ďalšom kroku.')">Upraviť</button></div>`).join('')||'<div class="empty-state">Nemáš pridané banky.</div>'}
+function fillManualTransactionBanks(){const select=document.getElementById('manual-tx-bank');if(!select)return;select.innerHTML=BANK_ORDER.map(k=>`<option value="${k}">${plainBankName(k)}</option>`).join('')+getCustomBanks().map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}
+function saveManualTransaction(){const bankKey=document.getElementById('manual-tx-bank')?.value||'rb_cz';const merchant=document.getElementById('manual-tx-merchant')?.value.trim()||'Manuálna transakcia';const amountRaw=parseFloat(document.getElementById('manual-tx-amount')?.value||'0')||0;const direction=document.getElementById('manual-tx-direction')?.value||'outgoing';const currency=document.getElementById('manual-tx-currency')?.value||'CZK';const category=document.getElementById('manual-tx-category')?.value.trim()||'Ostatné';const now=new Date();const amount=direction==='incoming'?Math.abs(amountRaw):-Math.abs(amountRaw);const customBank=getCustomBanks().find(b=>b.id===bankKey);const bankName=customBank?customBank.name:plainBankName(bankKey);allTransactions.unshift({id:'manual-'+Date.now(),date:formatDate(now),amount,currency,merchant,category,card:bankName,type:direction==='incoming'?'Príjem':'Výdaj',month:getMonthFromDate(now),bank:bankName,timestamp:now.getTime()});allTransactions=sortTransactionsNewestFirst(allTransactions);localStorage.setItem('cached_txns',JSON.stringify(allTransactions));closeBottomSheets();renderAll()}
+function filterDirection(direction){activeDirection=direction;document.getElementById('filter-dir-all')?.classList.toggle('active',direction==='all');document.getElementById('filter-dir-incoming')?.classList.toggle('active',direction==='incoming');document.getElementById('filter-dir-outgoing')?.classList.toggle('active',direction==='outgoing');updateTxnPage()}
+function renderArchiveTrendChart(){const wrap=document.getElementById('archive-trend-chart');if(!wrap)return;const monthly={};allTransactions.forEach(t=>{if(!t.month||!(t.amount<0))return;const val=String(t.currency||'').toUpperCase()==='EUR'?Math.abs(t.amount)*25:Math.abs(t.amount);monthly[t.month]=(monthly[t.month]||0)+val});const months=Object.keys(monthly).sort((a,b)=>monthSortValue(a)-monthSortValue(b)).slice(-8);if(!months.length){wrap.innerHTML='<div class="empty-state" style="padding:22px 0;">Zatiaľ nie sú dáta pre trend.</div>';return}const values=months.map(m=>monthly[m]);const max=Math.max(...values,1);const w=360,h=160,pad=22,step=months.length===1?0:(w-pad*2)/(months.length-1);const pts=months.map((m,i)=>({x:pad+i*step,y:h-pad-(values[i]/max)*(h-pad*2),m}));wrap.innerHTML=`<svg class="trend-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="rgba(255,255,255,.12)" /><polyline class="trend-line" points="${pts.map(p=>p.x+','+p.y).join(' ')}" />${pts.map(p=>`<circle class="trend-dot" cx="${p.x}" cy="${p.y}" r="4"></circle>`).join('')}${pts.map(p=>`<text class="trend-axis-label" x="${p.x-14}" y="${h-5}">${p.m.split('/')[0]}/${p.m.split('/')[1].slice(2)}</text>`).join('')}</svg><div class="budget-status-note">Trend výdavkov podľa mesiacov, EUR orientačne kurzom 25 CZK.</div>`}
+function selectPlan(plan){localStorage.setItem('selected_plan',plan);alert('Plán '+plan+' je zatiaľ uložený len lokálne. Platby/upgrade napojíme neskôr.')}
+async function togglePushNotifications(){const isEnabled=localStorage.getItem('push_enabled')==='true';if(isEnabled){localStorage.setItem('push_enabled','false');updatePushStatus();alert('Push notifikácie sú lokálne vypnuté. V ďalšom kroku token označíme ako neaktívny v Google Sheets.');return}await enableNotifications();if(localStorage.getItem('fcm_token'))localStorage.setItem('push_enabled','true');updatePushStatus()}
+
 function toggleDeveloperSimulator() {
   const panel = document.getElementById('developer-simulator-panel');
   const arrow = document.getElementById('dev-simulator-arrow');
@@ -2008,7 +2235,16 @@ window.updatePushStatus = function () {
   const token = localStorage.getItem("fcm_token");
   const permission = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
 
-  if (permission === "granted" && token) {
+  const pushEnabled = localStorage.getItem('push_enabled') === 'true';
+  const toggle = document.getElementById('push-toggle');
+  const preview = document.getElementById('push-token-preview');
+  if (toggle) toggle.classList.toggle('on', permission === "granted" && token && pushEnabled);
+  if (preview) {
+    preview.style.display = token ? 'block' : 'none';
+    preview.textContent = token || '';
+  }
+
+  if (permission === "granted" && token && pushEnabled) {
     status.className = "edit-mode-notice offline";
     status.innerHTML = "Push notifikácie sú zapnuté ✅<br><span style='color:var(--muted);'>FCM token je uložený lokálne v tomto zariadení.</span>";
   } else if (permission === "denied") {
@@ -2055,6 +2291,7 @@ window.enableNotifications = async function () {
     }
 
     localStorage.setItem("fcm_token", token);
+    localStorage.setItem("push_enabled", "true");
     console.log("FCM TOKEN:", token);
     updatePushStatus();
     alert("Push notifikácie boli úspešne zapnuté 🔔");
