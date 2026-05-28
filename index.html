@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v50 Android pull-to-refresh guard -->
+<!-- v49 english html lang + overview recent widget -->
 <link rel="manifest" href="./manifest.json?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -1199,24 +1199,6 @@
   }
   .overview-recent-widget .tx-item-compact:last-child {
     border-bottom: none;
-  }
-
-
-  /* v50 Android PWA pull-to-refresh protection */
-  html,
-  body {
-    overscroll-behavior-y: none;
-    overscroll-behavior-x: none;
-  }
-
-  body {
-    touch-action: pan-y;
-  }
-
-  .app,
-  .page,
-  .bottom-sheet {
-    overscroll-behavior: contain;
   }
 
 </style>
@@ -3224,38 +3206,6 @@ function applyLanguage() {
   const select = document.getElementById('language-select');
   if (select) select.value = lang;
 }
-
-
-// ── ANDROID PWA PULL-TO-REFRESH GUARD ─────────────────────
-(function preventAndroidPullToRefresh() {
-  let startY = 0;
-
-  window.addEventListener('touchstart', function(e) {
-    if (!e.touches || e.touches.length !== 1) return;
-    startY = e.touches[0].clientY;
-  }, { passive: true });
-
-  window.addEventListener('touchmove', function(e) {
-    if (!e.touches || e.touches.length !== 1) return;
-
-    const currentY = e.touches[0].clientY;
-    const pullingDown = currentY > startY;
-    const atTop = window.scrollY <= 0;
-
-    if (atTop && pullingDown) {
-      e.preventDefault();
-    }
-  }, { passive: false });
-})();
-
-// ── SAFE ERROR LOGGING FOR MOBILE PWA ─────────────────────
-window.addEventListener('error', function(event) {
-  console.error('Bank Tracker runtime error:', event.error || event.message);
-});
-
-window.addEventListener('unhandledrejection', function(event) {
-  console.error('Bank Tracker unhandled promise:', event.reason);
-});
 
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
