@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v32 product UX -->
+<!-- v48 english base full i18n pass -->
 <link rel="manifest" href="./manifest.json?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -624,6 +624,556 @@
     margin-top: 4px;
   }
 
+
+  /* v34 plan UX */
+  .top-upgrade-btn {
+    border: none;
+    border-radius: 999px;
+    background: #58a6ff;
+    color: #fff;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 12px;
+    padding: 9px 13px;
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(88,166,255,.22);
+  }
+
+  .settings-plan-row {
+    margin: 0 20px 20px;
+    background: #101827;
+    border: 1px solid rgba(88,166,255,.25);
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .settings-plan-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .plan-bolt {
+    color: #58a6ff;
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .settings-plan-name {
+    font-weight: 800;
+    font-size: 15px;
+  }
+
+  .settings-plan-sub {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  .settings-plan-upgrade {
+    border: none;
+    border-radius: 999px;
+    background: #58a6ff;
+    color: white;
+    font-weight: 800;
+    padding: 9px 14px;
+    cursor: pointer;
+  }
+
+  .upgrade-hero {
+    padding: 4px 2px 12px;
+  }
+
+  .upgrade-hero h2 {
+    font-size: 28px;
+    line-height: 1.08;
+    margin-bottom: 14px;
+    letter-spacing: -0.04em;
+  }
+
+  .upgrade-hero p {
+    color: var(--muted);
+    line-height: 1.5;
+    font-size: 14px;
+  }
+
+  .billing-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #2b3b50;
+    border-radius: 12px;
+    padding: 5px;
+    margin: 16px 0;
+  }
+
+  .billing-toggle button {
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: #9fb0c8;
+    font-weight: 800;
+    padding: 11px;
+    cursor: pointer;
+  }
+
+  .billing-toggle button.active {
+    background: #111a2d;
+    color: white;
+  }
+
+  .upgrade-card {
+    border: 1px solid rgba(255,255,255,.1);
+    background: #172238;
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+
+  .upgrade-card.premium {
+    border-color: #409cff;
+    box-shadow: inset 0 0 0 1px rgba(64,156,255,.2);
+  }
+
+  .popular-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #58a6ff;
+    color: white;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 900;
+    margin-bottom: 12px;
+  }
+
+  .upgrade-plan-name {
+    font-size: 20px;
+    font-weight: 900;
+  }
+
+  .upgrade-price {
+    color: #58a6ff;
+    font-size: 24px;
+    font-weight: 900;
+    margin: 2px 0 12px;
+  }
+
+  .upgrade-price span {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .upgrade-features {
+    display: grid;
+    gap: 9px;
+    color: #dce8ff;
+    font-size: 13px;
+  }
+
+  .upgrade-features div::before {
+    content: "✓";
+    color: #58a6ff;
+    margin-right: 9px;
+  }
+
+  .bank-edit-inputs {
+    margin-top: 10px;
+    display: none;
+    gap: 8px;
+  }
+
+  .bank-list-row.open .bank-edit-inputs {
+    display: grid;
+  }
+
+
+  /* v35 bank manager + upgrade polish */
+  .managed-bank-row {
+    margin-bottom: 12px;
+    background: #101827;
+    border: 1px solid rgba(88,166,255,.20);
+    border-radius: 16px;
+    padding: 14px 16px;
+  }
+
+  .managed-bank-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .managed-bank-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .managed-bank-icon {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    color: #58a6ff;
+    font-size: 20px;
+  }
+
+  .managed-bank-name {
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .managed-bank-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .managed-bank-edit-btn {
+    border: none;
+    border-radius: 999px;
+    background: #58a6ff;
+    color: white;
+    font-weight: 800;
+    padding: 8px 13px;
+    cursor: pointer;
+  }
+
+  .managed-bank-form {
+    display: none;
+    margin-top: 14px;
+    gap: 10px;
+  }
+
+  .managed-bank-row.open .managed-bank-form {
+    display: grid;
+  }
+
+  .upgrade-sheet-wide {
+    background: #0d1323;
+  }
+
+  .year-save-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    background: #22c55e;
+    color: white;
+    border-radius: 999px;
+    padding: 3px 7px;
+    font-size: 10px;
+    font-weight: 900;
+  }
+
+  .upgrade-card .upgrade-features div {
+    font-weight: 500;
+  }
+
+  .upgrade-card.premium .upgrade-features div {
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .upgrade-card.pro .upgrade-features div::before {
+    color: #22c55e;
+  }
+
+  .waitlist-btn {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    background: #58aefb;
+    color: white;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 15px;
+    padding: 15px;
+    margin-top: 16px;
+    cursor: pointer;
+  }
+
+
+  /* v37 full navy visual theme */
+  :root {
+    --bg: #0b1020;
+    --surface: #101827;
+    --surface2: #172238;
+    --border: rgba(148, 163, 184, 0.18);
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --danger: #fb7185;
+    --ok: #4ade80;
+    --accent: #58a6ff;
+    --warn: #facc15;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at top left, rgba(88,166,255,.18), transparent 34%),
+      radial-gradient(circle at top right, rgba(69,89,244,.13), transparent 32%),
+      linear-gradient(180deg, #08111f 0%, #0b1020 42%, #090d18 100%);
+  }
+
+  .header {
+    border-bottom: 1px solid rgba(148,163,184,.08);
+    margin-bottom: 10px;
+  }
+
+  .header-title {
+    color: #ffffff;
+    text-shadow: 0 0 22px rgba(88,166,255,.08);
+  }
+
+  .header-month {
+    color: #8fbfff !important;
+  }
+
+  .summary,
+  .card-widget,
+  .archive-container,
+  .config-banner,
+  .budget-status,
+  .archive-trend-card,
+  .settings-plan-row,
+  .push-toggle-card,
+  .plan-card,
+  .managed-bank-row,
+  .bottom-sheet,
+  .upgrade-card {
+    background: linear-gradient(180deg, rgba(23,34,56,.98), rgba(15,24,42,.98));
+    border-color: rgba(148,163,184,.20);
+    box-shadow: 0 18px 50px rgba(0,0,0,.22);
+  }
+
+  .card-header {
+    background:
+      linear-gradient(135deg, rgba(20,31,52,.98), rgba(12,18,32,.98)) !important;
+    border-bottom: 1px solid rgba(148,163,184,.08);
+  }
+
+  .card-body,
+  .stat-box,
+  .sim-box,
+  .config-input,
+  .cat-chip,
+  .txn-filter-pill,
+  .tx-icon,
+  .sync-btn,
+  .sheet-close,
+  .dev-toggle-btn,
+  .bottom-nav {
+    background: #172238;
+    border-color: rgba(148,163,184,.16);
+  }
+
+  .config-input {
+    color: #f8fafc;
+  }
+
+  .config-input:focus {
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 3px rgba(88,166,255,.10);
+  }
+
+  .summary-val,
+  .section-title,
+  .config-banner h3,
+  .nav-item.active,
+  .cat-chip.active,
+  .txn-filter-pill.active {
+    color: #8fbfff;
+  }
+
+  .cat-chip.active,
+  .txn-filter-pill.active {
+    background: rgba(88,166,255,.12);
+    border-color: rgba(88,166,255,.55);
+  }
+
+  .top-upgrade-btn,
+  .settings-plan-upgrade,
+  .managed-bank-edit-btn,
+  .config-save,
+  .waitlist-btn {
+    background: linear-gradient(135deg, #58a6ff, #7dd3fc) !important;
+    color: #06111f !important;
+    box-shadow: 0 12px 28px rgba(88,166,255,.20);
+  }
+
+  .add-bank-btn,
+  .add-txn-btn,
+  .plan-btn {
+    background: linear-gradient(135deg, rgba(88,166,255,.20), rgba(125,211,252,.08));
+    border-color: rgba(88,166,255,.28);
+    color: #bfdbfe;
+  }
+
+  .fab {
+    background: linear-gradient(135deg, #58a6ff, #7dd3fc);
+    color: #06111f;
+    border-color: rgba(191,219,254,.42);
+    box-shadow: 0 18px 38px rgba(88,166,255,.25);
+  }
+
+  .tx-item,
+  .archive-item,
+  .tx-item-compact {
+    border-bottom-color: rgba(148,163,184,.11);
+  }
+
+  .tx-merchant,
+  .card-name,
+  .settings-plan-name,
+  .managed-bank-name,
+  .upgrade-plan-name,
+  .sheet-title {
+    color: #f8fafc;
+  }
+
+  .tx-meta,
+  .card-number,
+  .card-count-sub,
+  .summary-label,
+  .stat-label,
+  .budget-status-note,
+  .managed-bank-sub,
+  .settings-plan-sub,
+  .upgrade-hero p,
+  .plan-features {
+    color: #94a3b8;
+  }
+
+  .bottom-sheet {
+    background:
+      radial-gradient(circle at top, rgba(88,166,255,.12), transparent 28%),
+      linear-gradient(180deg, #111a2d 0%, #0b1020 100%);
+  }
+
+  .bottom-sheet-backdrop {
+    background: rgba(2,6,23,.72);
+  }
+
+  .bottom-nav {
+    background: rgba(8, 17, 31, .92);
+    backdrop-filter: blur(18px);
+  }
+
+  .upgrade-sheet-wide {
+    background:
+      radial-gradient(circle at top right, rgba(88,166,255,.20), transparent 30%),
+      linear-gradient(180deg, #0d1323 0%, #09101f 100%);
+  }
+
+  .upgrade-card.premium {
+    border-color: #58a6ff;
+    box-shadow:
+      inset 0 0 0 1px rgba(88,166,255,.25),
+      0 20px 50px rgba(0,0,0,.22);
+  }
+
+  .billing-toggle {
+    background: #334155;
+  }
+
+  .billing-toggle button.active {
+    background: #111a2d;
+  }
+
+  .progress-track,
+  .budget-progress {
+    background: #0b1220;
+  }
+
+  .push-toggle-card {
+    background: linear-gradient(180deg, #101827, #111a2d);
+  }
+
+  .toggle-switch {
+    background: #334155;
+  }
+
+  .toggle-switch.on {
+    background: #58a6ff;
+  }
+
+  .edit-mode-notice {
+    background: rgba(15,23,42,.9);
+    border-color: rgba(148,163,184,.18);
+  }
+
+  .bank-list-row {
+    background: #101827;
+    border-color: rgba(148,163,184,.18);
+  }
+
+  .mini-action-btn {
+    background: #172238;
+    border-color: rgba(148,163,184,.18);
+  }
+
+
+  /* v42 fixed settings order only */
+  .app-info-card {
+    margin: 0 20px 20px;
+    background: linear-gradient(180deg, rgba(23,34,56,.98), rgba(15,24,42,.98));
+    border: 1px solid rgba(148,163,184,.20);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.22);
+  }
+  .app-info-title { font-size: 17px; font-weight: 900; color: #f8fafc; margin-bottom: 4px; }
+  .app-info-sub { color: #94a3b8; font-size: 12px; line-height: 1.55; }
+  .app-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .app-info-grid > div { background: #172238; border: 1px solid rgba(148,163,184,.16); border-radius: 12px; padding: 10px; }
+  .app-info-label { color: #94a3b8; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+  .app-info-value { color: #f8fafc; font-size: 12px; font-weight: 700; }
+
+
+  .language-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #334155;
+    border-radius: 12px;
+    padding: 5px;
+    margin: 0 20px 20px;
+  }
+
+  .language-switch button {
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: #9fb0c8;
+    font-weight: 900;
+    padding: 11px;
+    cursor: pointer;
+  }
+
+  .language-switch button.active {
+    background: #111a2d;
+    color: #fff;
+  }
+
+
+  /* v47 language dropdown */
+  #language-select {
+    width: 100%;
+    appearance: none;
+    background:
+      linear-gradient(180deg, rgba(23,34,56,.98), rgba(15,24,42,.98)),
+      #172238;
+    border: 1px solid rgba(148,163,184,.20);
+    border-radius: 16px;
+    padding: 14px 16px;
+    color: #f8fafc;
+    font-weight: 800;
+  }
+
 </style>
 </head>
 <body>
@@ -631,16 +1181,19 @@
 <div id="page-overview" class="page active">
   <div class="header">
     <div>
-      <div class="header-title" style="color: var(--muted);">Bank Tracker</div>
-      <div class="header-month" id="header-month">máj 2026</div>
+      <div class="header-title" data-i18n="appTitle">Bank Tracker</div>
+      <div class="header-month" id="header-month" style="color: var(--accent);">máj 2026</div>
     </div>
-    <div class="sync-btn" id="sync-btn" onclick="syncData()" title="Synchronizovať">↻</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="top-upgrade-btn" onclick="openUpgradeSheet()">Upgrade</button>
+      <div class="sync-btn" id="sync-btn" onclick="syncData()" title="Synchronizovať">↻</div>
+    </div>
   </div>
 
   <div class="summary">
     <div class="summary-item">
       <div class="summary-val" id="sum-txns">0</div>
-      <div class="summary-label">platieb</div>
+      <div class="summary-label" data-i18n="payments">payments</div>
     </div>
     <div class="summary-divider"></div>
     <div class="summary-item">
@@ -650,7 +1203,7 @@
     <div class="summary-divider"></div>
     <div class="summary-item">
       <div class="summary-val" id="sum-days">0</div>
-      <div class="summary-label">dní zostatok</div>
+      <div class="summary-label" data-i18n="daysLeft">days left</div>
     </div>
   </div>
 
@@ -670,20 +1223,20 @@
 <div id="page-txns" class="page">
   <div class="header">
     <div>
-      <div class="header-title">Transakcie</div>
+      <div class="header-title" data-i18n="transactions">Transactions</div>
       <div class="header-month" id="txn-month">máj 2026</div>
     </div>
   </div>
   
 
-  <div class="filter-group-title">Typ</div>
+  <div class="filter-group-title" data-i18n="type">Type</div>
   <div class="cat-grid" id="direction-filters">
-    <div class="txn-filter-pill active" id="filter-dir-all" onclick="filterDirection('all')">All</div>
-    <div class="txn-filter-pill" id="filter-dir-incoming" onclick="filterDirection('incoming')">Incoming</div>
-    <div class="txn-filter-pill" id="filter-dir-outgoing" onclick="filterDirection('outgoing')">Outgoing</div>
+    <div class="txn-filter-pill active" id="filter-dir-all" onclick="filterDirection('all')" data-i18n="all">All</div>
+    <div class="txn-filter-pill" id="filter-dir-incoming" onclick="filterDirection('incoming')" data-i18n="incoming">Incoming</div>
+    <div class="txn-filter-pill" id="filter-dir-outgoing" onclick="filterDirection('outgoing')" data-i18n="outgoing">Outgoing</div>
   </div>
 
-  <div class="filter-group-title">Banka</div>
+  <div class="filter-group-title" data-i18n="bank">Bank</div>
   <div class="cat-grid" id="bank-filters">
     <div class="cat-chip active" id="filter-bank-all" onclick="filterBank('všetky')">Všetky</div>
     <div class="cat-chip" id="filter-bank-rb" onclick="filterBank('rb_cz')"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/RB.png" alt="RB CZ" loading="lazy"><span>RB CZ</span></span></div>
@@ -692,11 +1245,12 @@
     <div class="cat-chip" id="filter-bank-moneta" onclick="filterBank('moneta')"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Moneta-CZ.png" alt="Moneta" loading="lazy"><span class="moneta-gradient">Moneta</span></span></div>
   </div>
 
-  <div class="filter-group-title">Kategória</div>
+  <div class="filter-group-title" data-i18n="category">Category</div>
   <div class="cat-grid" id="cat-filters"></div>
   
   <div id="txn-list" style="margin: 0 20px;"></div>
 </div>
+
 
 
 <div id="page-archive" class="page">
@@ -717,12 +1271,47 @@
 <div id="page-settings" class="page">
   <div class="header">
     <div>
-      <div class="header-title">Nastavenia</div>
+      <div class="header-title" data-i18n="settings">Settings</div>
     </div>
   </div>
+
+  <div class="section-title" data-i18n="language">Language</div>
+<div style="margin: 0 20px 20px;">
+  <select class="config-input" id="language-select" onchange="setLanguage(this.value)">
+    <option value="en">English</option>
+    <option value="sk">Slovenčina</option>
+    <option value="cs">Čeština</option>
+  </select>
+</div>
+
+  <div class="section-title" style="margin-top:6px;">plan</div>
+  <div class="settings-plan-row" onclick="openUpgradeSheet()">
+    <div class="settings-plan-left">
+      <div class="plan-bolt">ϟ</div>
+      <div>
+        <div class="settings-plan-name" data-i18n="freePlan">Free plan</div>
+        <div class="settings-plan-sub" data-i18n="freePlanSub">Manual entry · upgrade for auto-sync</div>
+      </div>
+    </div>
+    <button class="settings-plan-upgrade" onclick="event.stopPropagation(); openUpgradeSheet();">Upgrade</button>
+  </div>
+
+  <div class="push-toggle-card">
+    <div class="push-toggle-row">
+      <div class="push-toggle-left"><span style="color:#58a6ff;font-size:22px;">♧</span><span>Enable Notifications</span></div>
+      <div id="push-toggle" class="toggle-switch" onclick="togglePushNotifications()"></div>
+    </div>
+    <div id="push-status" class="edit-mode-notice" style="margin-top:14px;" data-i18n="notificationsOff">Push notifications are not enabled yet.</div>
+    <div id="push-token-preview" class="push-token-box" style="display:none;"></div>
+    <button class="sim-submit" onclick="copyNotificationToken()" style="margin-top:10px; border-color: rgba(74,222,128,0.45); color: var(--ok);" data-i18n="copyFcmToken">Copy FCM token</button>
+  </div>
+
+  <div class="section-title" data-i18n="myBanks">My banks</div>
+  <div class="primary-action-row"><button class="add-bank-btn" onclick="openBankManagerSheet()" data-i18n="manageBanks">Manage banks</button></div>
+
   <div class="config-banner">
-    <h3>Pripojenie k Google Sheets & Limity</h3>
-    <p>Uprav Google Sheets pripojenie a mesačné limity pre zvolený mesiac. Limity sa uložia lokálne a ak nastavíš Apps Script Web App URL, zapíšu sa aj do tabu <strong>Limity</strong>.</p>
+    <h3 data-i18n="googleSheetsConnection">Google Sheets connection</h3>
+    <p>Uprav Google Sheets pripojenie. Limity kariet a budgety sa nastavujú nižšie cez <strong>Spravovať banky</strong>.</p>
     <div class="config-input-wrap">
       <label style="font-size: 11px; color: var(--accent); display:block; margin-bottom: 4px;">Google Sheets URL</label>
       <input class="config-input" id="sheets-url" placeholder="https://docs.google.com/spreadsheets/d/..." />
@@ -730,74 +1319,27 @@
       <label style="font-size: 11px; color: var(--accent); display:block; margin-bottom: 4px;">Apps Script Web App URL pre zápis limitov</label>
       <input class="config-input" id="limits-webapp-url" placeholder="https://script.google.com/macros/s/.../exec" />
 
-      <label style="font-size: 11px; color: var(--accent); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesiac limitu</label>
-      <select class="config-input" id="settings-limit-month" onchange="handleSettingsLimitMonthChange()"></select>
-
-      <div class="sim-limit-grid">
-        <div>
-          <label style="font-size: 11px; color: var(--rb-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit karty RB CZ</label>
-          <input class="config-input" id="rb-limit" placeholder="Predvolené: 10" type="number" min="0" />
-        </div>
-        <div>
-          <label style="font-size: 11px; color: var(--csob-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit karty ČSOB SK</label>
-          <input class="config-input" id="csob-limit" placeholder="Predvolené: 5" type="number" min="0" />
-        </div>
-        <div>
-          <label style="font-size: 11px; color: #8fbfff; display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit karty ČSOB CZ</label>
-          <input class="config-input" id="csob-cz-limit" placeholder="Predvolené: 5" type="number" min="0" />
-        </div>
-        <div>
-          <label style="font-size: 11px; color: var(--moneta-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Mesačný limit karty <span class="moneta-gradient">Moneta</span></label>
-          <input class="config-input" id="moneta-limit" placeholder="Predvolené: 0" type="number" min="0" />
-        </div>
-      </div>
-
-      <button class="config-save" onclick="saveConfig()">Uložiť zmeny</button>
-      <div id="limits-sync-status" class="edit-mode-notice" style="margin-top:10px;">Limity sa uložia do appky. Pre zápis do Google Sheets doplň Apps Script Web App URL.</div>
+      <button class="config-save" onclick="saveConfig()" data-i18n="saveChanges">Save changes</button>
+      <div id="limits-sync-status" class="edit-mode-notice" style="margin-top:10px;">Google Sheets pripojenie je uložené lokálne. Apps Script URL použijeme na zápis limitov, budgetov a tokenov.</div>
     </div>
   </div>
 
+  <div class="section-title" data-i18n="aboutApp">about app</div>
+<div class="app-info-card">
+  <div class="app-info-title" data-i18n="appTitle">Bank Tracker</div>
+  <div class="app-info-sub" data-i18n="appInfoSub">Version 3.0.2 · bank overview, budgets, archive and push notifications ⚙️🔥</div>
 
-  <div class="config-banner" style="background: rgba(167, 139, 250, 0.08); border-color: rgba(167, 139, 250, 0.35);">
-    <h3 style="color: var(--moneta-color);">Mesačný budget podľa banky</h3>
-    <p style="color: var(--muted);">Nastav si CZK budget pre každú banku zvlášť. Appka ťa lokálne upozorní, keď sa priblížiš k limitu alebo ho prekročíš.</p>
-
-    <div class="sim-box" style="border-color: rgba(218,218,54,0.25);">
-      <div class="sim-title-inline" style="color: var(--rb-color);"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/RB.png" alt="RB CZ" loading="lazy"><span>RB CZ</span></span></div>
-      <div class="sim-limit-grid">
-        <div><label style="font-size: 11px; color: var(--rb-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Budget CZK</label><input class="config-input" id="budget-rb-cz" placeholder="napr. 10000" type="number" min="0" /></div>
-        <div><label style="font-size: 11px; color: var(--warn); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Upozorni keď zostáva</label><input class="config-input" id="budget-warn-rb-cz" placeholder="napr. 1000" type="number" min="0" /></div>
-      </div>
+  <div class="app-info-grid">
+    <div>
+      <div class="app-info-label" data-i18n="sync">Sync</div>
+      <div class="app-info-value" data-i18n="syncValue">Auto every 5 min</div>
     </div>
-
-    <div class="sim-box" style="border-color: rgba(59,158,255,0.25);">
-      <div class="sim-title-inline" style="color: var(--csob-color);"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/CSOB-SK.png" alt="ČSOB SK" loading="lazy"><span>ČSOB SK</span></span></div>
-      <div class="sim-limit-grid">
-        <div><label style="font-size: 11px; color: var(--csob-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Budget CZK</label><input class="config-input" id="budget-csob-sk" placeholder="napr. 5000" type="number" min="0" /></div>
-        <div><label style="font-size: 11px; color: var(--warn); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Upozorni keď zostáva</label><input class="config-input" id="budget-warn-csob-sk" placeholder="napr. 500" type="number" min="0" /></div>
-      </div>
+    <div>
+      <div class="app-info-label" data-i18n="mode">Mode</div>
+      <div class="app-info-value" data-i18n="modeValue">PWA / Google Sheets</div>
     </div>
-
-    <div class="sim-box" style="border-color: rgba(143,191,255,0.25);">
-      <div class="sim-title-inline" style="color: #8fbfff;"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/CSOB-CZ.jpg" alt="ČSOB CZ" loading="lazy"><span>ČSOB CZ</span></span></div>
-      <div class="sim-limit-grid">
-        <div><label style="font-size: 11px; color: #8fbfff; display:block; margin-bottom: 4px; font-family: var(--font-mono);">Budget CZK</label><input class="config-input" id="budget-csob-cz" placeholder="napr. 5000" type="number" min="0" /></div>
-        <div><label style="font-size: 11px; color: var(--warn); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Upozorni keď zostáva</label><input class="config-input" id="budget-warn-csob-cz" placeholder="napr. 500" type="number" min="0" /></div>
-      </div>
-    </div>
-
-    <div class="sim-box" style="border-color: rgba(167,139,250,0.28);">
-      <div class="sim-title-inline" style="color: var(--moneta-color);"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Moneta-CZ.png" alt="Moneta" loading="lazy"><span class="moneta-gradient">Moneta</span></span></div>
-      <div class="sim-limit-grid">
-        <div><label style="font-size: 11px; color: var(--moneta-color); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Budget CZK</label><input class="config-input" id="budget-moneta" placeholder="napr. 15000" type="number" min="0" /></div>
-        <div><label style="font-size: 11px; color: var(--warn); display:block; margin-bottom: 4px; font-family: var(--font-mono);">Upozorni keď zostáva</label><input class="config-input" id="budget-warn-moneta" placeholder="napr. 1000" type="number" min="0" /></div>
-      </div>
-    </div>
-
-    <button class="config-save" onclick="saveBudgetSettings()" style="background: var(--moneta-color);">Uložiť budgety</button>
-    <div id="budget-sync-status" class="edit-mode-notice" style="margin-top:10px;">Budgety sa uložia lokálne. Ak je vyplnená Apps Script Web App URL, zapíšu sa aj do tabu <strong>Budgety</strong>.</div>
-    <div class="edit-mode-notice">Príklad: <span class="moneta-gradient">Moneta CZ</span> budget 10000 CZK + upozornenie 1000 CZK = appka upozorní, keď máš minuté aspoň 9000 CZK v <span class="moneta-gradient">Moneta CZ</span>.</div>
   </div>
+</div>
 
   <button class="dev-toggle-btn" onclick="toggleDeveloperSimulator()">
   <span>Vývojársky simulátor</span>
@@ -834,7 +1376,7 @@
           <input class="config-input" id="sim-limit-moneta" placeholder="napr. 0" type="number" min="0" />
         </div>
       </div>
-      <button class="sim-submit" onclick="saveSimulatorMonthlyLimits()" style="border-color: var(--accent); color: var(--accent);">Uložiť limity pre zvolený mesiac</button>
+      <button class="sim-submit" onclick="saveSimulatorMesačneLimits()" style="border-color: var(--accent); color: var(--accent);">Uložiť limity pre zvolený mesiac</button>
     </div>
 
     <div class="sim-box">
@@ -903,63 +1445,32 @@
   </div>
 
   </div>
-
-  
-  <div class="push-toggle-card">
-    <div class="push-toggle-row">
-      <div class="push-toggle-left"><span style="color:#58a6ff;font-size:22px;">♧</span><span>Enable Notifications</span></div>
-      <div id="push-toggle" class="toggle-switch" onclick="togglePushNotifications()"></div>
-    </div>
-    <div id="push-status" class="edit-mode-notice" style="margin-top:14px;">Push notifikácie zatiaľ nie sú zapnuté.</div>
-    <div id="push-token-preview" class="push-token-box" style="display:none;"></div>
-    <button class="sim-submit" onclick="copyNotificationToken()" style="margin-top:10px; border-color: rgba(74,222,128,0.45); color: var(--ok);">Kopírovať FCM token</button>
-  </div>
-
-
-
-  <div class="section-title" style="margin-top:6px;">plán</div>
-  <div class="plan-grid">
-    <div class="plan-card"><div class="plan-name">Free</div><div class="plan-price">€0 / mesiac</div><div class="plan-features">1 banka<br>Manual entry<br>Základný prehľad</div><button class="plan-btn" onclick="selectPlan('free')" style="margin-top:12px;">Aktuálny plán</button></div>
-    <div class="plan-card highlight"><div class="plan-name">Premium</div><div class="plan-price">€1.99 / mesiac</div><div class="plan-features">Unlimited banks<br>Auto-sync<br>Notifications<br>Archive export</div><button class="plan-btn" onclick="selectPlan('premium')" style="margin-top:12px;">Upgrade na Premium</button></div>
-    <div class="plan-card"><div class="plan-name">Pro</div><div class="plan-price">€4.99 / mesiac</div><div class="plan-features">AI insights<br>Multi-currency<br>Family sharing<br>Advanced forecasts</div><button class="plan-btn" onclick="selectPlan('pro')" style="margin-top:12px;">Upgrade na Pro</button></div>
-  </div>
-  <div class="section-title">Moje banky</div>
-  <div class="primary-action-row"><button class="add-bank-btn" onclick="openBankManagerSheet()">Spravovať banky</button></div>
-
-  <div style="padding: 0 20px;">
-    <div class="section-title">o appke</div>
-    <div style="font-size:13px; color:var(--muted); line-height:1.8;">
-      Bank Tracker<br>
-      Verzia 3.0.2 · <span class="moneta-gradient">Moneta</span>, budget podľa banky & push ⚙️🔥<br>
-      Auto-sync každých 5 min + manual refresh
-    </div>
-  </div>
 </div>
-
 
 <div id="bottom-sheet-backdrop" class="bottom-sheet-backdrop" onclick="closeBottomSheets()"></div>
 <div id="add-bank-sheet" class="bottom-sheet">
-  <div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title">Pridať banku</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>
+  <div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title" data-i18n="addBank">Add bank</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>
   <div class="sheet-grid">
-    <label>Názov banky</label><input class="config-input" id="new-bank-name" placeholder="napr. Air Bank CZ" />
-    <div class="sheet-grid-2"><div><label>Mena</label><select class="config-input" id="new-bank-currency"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select></div><div><label>Typ</label><select class="config-input" id="new-bank-type"><option value="card">Karta</option><option value="account">Účet</option></select></div></div>
-    <div class="sheet-grid-2"><div><label>Mesačný budget</label><input class="config-input" id="new-bank-budget" type="number" min="0" placeholder="10000" /></div><div><label>Upozorni keď zostáva</label><input class="config-input" id="new-bank-warning" type="number" min="0" placeholder="1000" /></div></div>
-    <label>Mesačný limit karty</label><input class="config-input" id="new-bank-card-limit" type="number" min="0" placeholder="5" />
-    <button class="config-save" onclick="saveNewBank()">Uložiť banku</button>
+    <label data-i18n="bankName">Bank name</label><input class="config-input" id="new-bank-name" placeholder="napr. Air Bank CZ" />
+    <label><span data-i18n="accountLast4">Account / last 4 digits</span> <span style="color:var(--muted);font-weight:400;">(optional)</span></label><input class="config-input" id="new-bank-account" placeholder="napr. ****4571 alebo 4571" />
+    <div class="sheet-grid-2"><div><label data-i18n="currency">Currency</label><select class="config-input" id="new-bank-currency"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select></div><div><label data-i18n="type">Type</label><select class="config-input" id="new-bank-type"><option value="card">Karta</option><option value="account">Účet</option></select></div></div>
+    <div class="sheet-grid-2"><div><label data-i18n="monthlyBudget">Monthly budget</label><input class="config-input" id="new-bank-budget" type="number" min="0" placeholder="10000" /></div><div><label data-i18n="warnWhenRemaining">Warn when remaining</label><input class="config-input" id="new-bank-warning" type="number" min="0" placeholder="1000" /></div></div>
+    <label data-i18n="monthlyCardLimit">Monthly card limit</label><input class="config-input" id="new-bank-card-limit" type="number" min="0" placeholder="5" />
+    <button class="config-save" onclick="saveNewBank()" data-i18n="saveBank">Save bank</button>
   </div>
 </div>
 <div id="add-transaction-sheet" class="bottom-sheet">
-  <div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title">Pridať transakciu</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>
+  <div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title" data-i18n="addTransaction">Add transaction</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>
   <div class="sheet-grid">
     <label>Banka</label><select class="config-input" id="manual-tx-bank"></select>
-    <label>Obchodník / popis</label><input class="config-input" id="manual-tx-merchant" placeholder="napr. Tesco" />
-    <div class="sheet-grid-2"><div><label>Suma</label><input class="config-input" id="manual-tx-amount" type="number" step="0.01" placeholder="100" /></div><div><label>Typ</label><select class="config-input" id="manual-tx-direction"><option value="outgoing">Outgoing (-)</option><option value="incoming">Incoming (+)</option></select></div></div>
-    <div class="sheet-grid-2"><div><label>Mena</label><select class="config-input" id="manual-tx-currency"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select></div><div><label>Kategória</label><input class="config-input" id="manual-tx-category" placeholder="Ostatné" /></div></div>
-    <button class="config-save" onclick="saveManualTransaction()">Uložiť transakciu</button>
+    <label data-i18n="merchantDescription">Merchant / description</label><input class="config-input" id="manual-tx-merchant" placeholder="napr. Tesco" />
+    <div class="sheet-grid-2"><div><label>Suma</label><input class="config-input" id="manual-tx-amount" type="number" step="0.01" placeholder="100" /></div><div><label data-i18n="type">Type</label><select class="config-input" id="manual-tx-direction"><option value="outgoing">Outgoing (-)</option><option value="incoming">Incoming (+)</option></select></div></div>
+    <div class="sheet-grid-2"><div><label data-i18n="currency">Currency</label><select class="config-input" id="manual-tx-currency"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select></div><div><label data-i18n="category">Category</label><input class="config-input" id="manual-tx-category" placeholder="Ostatné" /></div></div>
+    <button class="config-save" onclick="saveManualTransaction()" data-i18n="saveTransaction">Save transaction</button>
   </div>
 </div>
 <div id="bank-manager-sheet" class="bottom-sheet">
-  <div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title">Moje banky</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>
+  <div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title" data-i18n="myBanks">My banks</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>
   <div id="bank-manager-list"></div>
 </div>
 
@@ -969,39 +1480,105 @@
 <div id="quick-add-sheet" class="bottom-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title-row">
-    <div class="sheet-title">Rýchle pridanie</div>
+    <div class="sheet-title" data-i18n="quickAdd">Quick add</div>
     <button class="sheet-close" onclick="closeBottomSheets()">×</button>
   </div>
 
   <div class="mini-action-list">
     <button class="mini-action-btn" onclick="openAddTransactionFromQuick()">
-      Pridať transakciu
-      <small>Manuálne zadaj novú platbu alebo príjem.</small>
+      <span data-i18n="addTransaction">Add transaction</span><small data-i18n="addTransactionHint">Manually add a new payment or income.</small>
     </button>
 
     <button class="mini-action-btn" onclick="openAddBankFromQuick()">
-      Pridať banku
-      <small>Pridaj novú banku, menu, budget a limit karty.</small>
+      <span data-i18n="addBank">Add bank</span><small data-i18n="addBankHint">Add a new bank, currency, budget and card limit.</small>
     </button>
+  </div>
+</div>
+
+
+
+<div id="upgrade-sheet" class="bottom-sheet upgrade-sheet-wide">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title-row">
+    <div class="sheet-title" data-i18n="upgrade">Upgrade</div>
+    <button class="sheet-close" onclick="closeBottomSheets()">×</button>
+  </div>
+
+  <div class="upgrade-hero">
+    <h2>All your banks,<br>one place — automatically.</h2>
+    <p>EU law (PSD2) gives you the right to your own bank data. We make it seamless across 2,300+ banks in 31 countries.</p>
+  </div>
+
+  <div class="billing-toggle">
+    <button id="billing-monthly" class="active" onclick="setBillingMode('monthly')">Monthly</button>
+    <button id="billing-yearly" onclick="setBillingMode('yearly')">Yearly <span class="year-save-badge">Save 37%</span></button>
+  </div>
+
+  <div class="upgrade-card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div class="upgrade-plan-name">Free</div>
+        <div class="upgrade-price" id="free-price">€0 <span>/ month</span></div>
+      </div>
+      <span style="background:#2b3b50;color:#b7c5da;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:800;">Current</span>
+    </div>
+    <div class="upgrade-features">
+      <div>Up to 2 banks</div>
+      <div>Manual transaction entry</div>
+      <div>Monthly budget tracking</div>
+      <div>3 months of archive</div>
+      <div>Basic push notifications</div>
+    </div>
+  </div>
+
+  <div class="upgrade-card premium">
+    <div class="popular-badge">⭐ Most Popular</div>
+    <div class="upgrade-plan-name">Premium</div>
+    <div class="upgrade-price" id="premium-price">€1.99 <span>/ month</span></div>
+    <div class="upgrade-features">
+      <div>Unlimited banks</div>
+      <div>Auto-sync via Open Banking (PSD2)</div>
+      <div>Transactions imported automatically</div>
+      <div>Full archive history</div>
+      <div>Advanced budget & target alerts</div>
+      <div>CSV export</div>
+      <div>Multi-currency support</div>
+      <div>Priority support</div>
+    </div>
+    <button class="waitlist-btn" onclick="selectPlan('premium')">Join Waitlist — Free</button>
+  </div>
+
+  <div class="upgrade-card pro">
+    <div class="upgrade-plan-name">Pro</div>
+    <div class="upgrade-price" id="pro-price">€4.99 <span>/ month</span></div>
+    <div class="upgrade-features">
+      <div>Everything in Premium</div>
+      <div>AI spending insights</div>
+      <div>Family sharing (up to 5 people)</div>
+      <div>Custom categories</div>
+      <div>Spending forecasts</div>
+      <div>Tax report export</div>
+    </div>
+    <button class="waitlist-btn" onclick="selectPlan('pro')" style="background:#243244;">Join Pro Waitlist</button>
   </div>
 </div>
 
 <nav class="bottom-nav">
   <div class="nav-item active" id="nav-overview" onclick="showPage('overview')">
     <span class="nav-icon">◉</span>
-    <span>Prehľad</span>
+    <span data-i18n-static-sk="Prehľad">Prehľad</span>
   </div>
   <div class="nav-item" id="nav-txns" onclick="showPage('txns')">
     <span class="nav-icon">≡</span>
-    <span>Transakcie</span>
+    <span data-i18n="transactions">Transactions</span>
   </div>
   <div class="nav-item" id="nav-archive" onclick="showPage('archive')">
     <span class="nav-icon">⌁</span>
-    <span>Archív</span>
+    <span data-i18n="archiveTitle">Archive</span>
   </div>
   <div class="nav-item" id="nav-settings" onclick="showPage('settings')">
     <span class="nav-icon">⚙</span>
-    <span>Nastavenia</span>
+    <span data-i18n="settings">Settings</span>
   </div>
 </nav>
 
@@ -1079,7 +1656,7 @@ function getCardColor(used, limit) {
   return pct < 0.4 ? 'var(--danger)' : 'var(--warn)'; 
 }
 
-function getCurrentMonth() {
+function getAktuálneMonth() {
   const now = new Date();
   return `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
 }
@@ -1177,7 +1754,7 @@ function ensureLimitHistoryForMonth(monthStr) {
 function normalizeMonthStr(monthStr) {
   const value = String(monthStr || '').trim();
   const match = value.match(/^(\d{1,2})\/(\d{4})$/);
-  if (!match) return getCurrentMonth();
+  if (!match) return getAktuálneMonth();
   return `${String(parseInt(match[1], 10)).padStart(2,'0')}/${match[2]}`;
 }
 
@@ -1199,13 +1776,13 @@ function addMonthsToMonthStr(monthStr, offset) {
 
 function getSimulatorLimitMonth() {
   const select = document.getElementById('sim-limit-month');
-  return normalizeMonthStr(select?.value || getCurrentMonth());
+  return normalizeMonthStr(select?.value || getAktuálneMonth());
 }
 
 function populateSimulatorLimitMonthDropdown(selectedMonth) {
   const select = document.getElementById('sim-limit-month');
   if (!select) return;
-  const current = getCurrentMonth();
+  const current = getAktuálneMonth();
   const selected = normalizeMonthStr(selectedMonth || select.value || current);
   const months = new Set([current, selected]);
   allTransactions.forEach(t => { if (t.month) months.add(normalizeMonthStr(t.month)); });
@@ -1238,13 +1815,13 @@ function fillSimulatorLimitInputs(monthStr) {
 
 function getSettingsLimitMonth() {
   const select = document.getElementById('settings-limit-month');
-  return normalizeMonthStr(select?.value || getCurrentMonth());
+  return normalizeMonthStr(select?.value || getAktuálneMonth());
 }
 
 function populateSettingsLimitMonthDropdown(selectedMonth) {
   const select = document.getElementById('settings-limit-month');
   if (!select) return;
-  const current = getCurrentMonth();
+  const current = getAktuálneMonth();
   const selected = normalizeMonthStr(selectedMonth || select.value || current);
   const months = new Set([current, selected]);
   allTransactions.forEach(t => { if (t.month) months.add(normalizeMonthStr(t.month)); });
@@ -1335,7 +1912,7 @@ function readLimitInputs() {
   };
 }
 
-async function saveSimulatorMonthlyLimits() {
+async function saveSimulatorMesačneLimits() {
   const monthStr = getSimulatorLimitMonth();
   const limits = readLimitInputs();
   saveLimitsForMonth(monthStr, limits);
@@ -1375,10 +1952,17 @@ function getBankInfo(key) {
 function isCsobTransaction(t) { return getBankKey(t) === 'csob_sk'; }
 
 function getBankStatusText(count, limit) {
-  if (count >= limit) {
-    return `<span class="archive-bank-status" style="color: var(--ok);">splnené</span>`;
+  const dict = I18N[getLanguage()] || I18N.en;
+
+  if (!limit || limit <= 0) {
+    return `<span class="archive-bank-status" style="color:#8fbfff;">${dict.noLimit}</span>`;
   }
-  return `<span class="archive-bank-status" style="color: var(--danger);">nesplnené</span>`;
+
+  if (count >= limit) {
+    return `<span class="archive-bank-status" style="color:var(--ok);">${dict.completed}</span>`;
+  }
+
+  return `<span class="archive-bank-status" style="color:var(--danger);">${dict.notCompleted}</span>`;
 }
 
 function getDaysRemaining() {
@@ -1556,10 +2140,11 @@ async function syncData() {
   if (btn) btn.classList.remove('spinning');
   isSyncing = false;
   renderAll();
+  applyLanguage();
 }
 
 function loadDemoData() {
-  const current = getCurrentMonth();
+  const current = getAktuálneMonth();
   allTransactions = [
     { id: 'demo-1', date:'18.05.2026 14:20', amount:-12.50, currency:'EUR', merchant:'Billa SK', category:'Potraviny', card:'ČSOB SK', month: current, timestamp: new Date(2026, 4, 18, 14, 20).getTime() },
     { id: 'demo-2', date:'15.05.2026 08:30', amount:-4.20, currency:'EUR', merchant:'Starbucks SK', category:'Káva', card:'ČSOB SK', month: current, timestamp: new Date(2026, 4, 15, 8, 30).getTime() },
@@ -1678,12 +2263,12 @@ function resetSimFields() {
   const simDateMoneta = document.getElementById('sim-date-moneta');
   if (simDateCsobCz) simDateCsobCz.value = formattedNow;
   if (simDateMoneta) simDateMoneta.value = formattedNow;
-  populateSimulatorLimitMonthDropdown(getCurrentMonth());
+  populateSimulatorLimitMonthDropdown(getAktuálneMonth());
   fillSimulatorLimitInputs(getSimulatorLimitMonth());
 }
 
 function getTransactionsByBank(monthOnly = true) {
-  const month = getCurrentMonth();
+  const month = getAktuálneMonth();
   const base = allTransactions.filter(t => t.amount < 0 && (!monthOnly || t.month === month));
   return BANK_ORDER.reduce((acc, key) => {
     acc[key] = base.filter(t => getBankKey(t) === key);
@@ -1691,8 +2276,8 @@ function getTransactionsByBank(monthOnly = true) {
   }, {});
 }
 
-function getCurrentMonthCzkSpent(bankKey = null) {
-  const month = getCurrentMonth();
+function getAktuálneMonthCzkSpent(bankKey = null) {
+  const month = getAktuálneMonth();
   return allTransactions
     .filter(t => t.month === month && t.amount < 0 && String(t.currency || '').toUpperCase() === 'CZK')
     .filter(t => !bankKey || getBankKey(t) === bankKey)
@@ -1794,7 +2379,7 @@ function renderBudgetStatus() {
   const rows = BANK_ORDER.map(bankKey => {
     const bank = BANKS[bankKey];
     const { budget, warning } = getBudgetSettingsForBank(bankKey);
-    const spent = getCurrentMonthCzkSpent(bankKey);
+    const spent = getAktuálneMonthCzkSpent(bankKey);
 
     if (!budget) {
       return `
@@ -1835,7 +2420,7 @@ function renderBudgetStatus() {
 
 function maybeSendBudgetLocalNotification(bankKey, bankLabel, spent, budget, remaining, warning) {
   if (!budget || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-  const month = getCurrentMonth();
+  const month = getAktuálneMonth();
   if (warning && remaining > 0 && remaining <= warning) {
     const key = `budget_warn_${bankKey}_${month}_${budget}_${warning}`;
     if (localStorage.getItem(key) !== 'sent') {
@@ -1855,13 +2440,13 @@ function maybeSendBudgetLocalNotification(bankKey, bankLabel, spent, budget, rem
 function renderAll() {
   allTransactions = sortTransactionsNewestFirst(allTransactions);
   localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
-  const month = getCurrentMonth();
+  const month = getAktuálneMonth();
   const monthTxns = allTransactions.filter(t => t.month === month && t.amount < 0);
 
   document.getElementById('header-month').textContent = getMonthLabel();
   document.getElementById('txn-month').textContent = getMonthLabel();
-  const txnCurrentDate = document.getElementById('txn-current-date');
-  if (txnCurrentDate) txnCurrentDate.textContent = `Dnes: ${formatDate(new Date())}`;
+  const txnAktuálneDate = document.getElementById('txn-current-date');
+  if (txnAktuálneDate) txnAktuálneDate.textContent = `Dnes: ${formatDate(new Date())}`;
 
   const totalAmt = Math.abs(monthTxns.reduce((s,t) => {
     const isEur = String(t.currency).toUpperCase() === 'EUR';
@@ -1896,7 +2481,7 @@ function renderBankCards(byBank) {
 
 function renderBankCard(bankKey, txns) {
   const bank = getBankInfo(bankKey);
-  const limits = getLimitsForMonth(getCurrentMonth());
+  const limits = getLimitsForMonth(getAktuálneMonth());
   const limit = limits[bank.limitKey] ?? bank.defaultLimit;
   const used = txns.length;
   const fillPct = limit > 0 ? Math.min(used / limit, 1) : 0;
@@ -1928,7 +2513,7 @@ function renderRecentBankColumns(byBank) {
     const bank = getBankInfo(bankKey);
     const txns = sortTransactionsNewestFirst([...(byBank[bankKey] || [])]).slice(0, 5);
     const items = txns.length === 0 ? '<div class="tx-meta-compact">Žiadne pohyby</div>' : txns.map(t => `
-      <div class="tx-item-compact"><div class="tx-row-top"><div class="tx-merchant-compact">${t.merchant}</div><div class="tx-amt-compact" style="color:${bank.color}; text-align:right;">-${formatMoney(t.amount, t.currency)} ${t.currency}</div></div><div class="tx-meta-compact">${t.date.split(' ')[0]}</div><button class="tx-delete-inline" data-local-edit-only="true" onclick="deleteSingleTransaction('${t.id}')">✕</button></div>`).join('');
+      <div class="tx-item-compact"><div class="tx-row-top"><div class="tx-merchant-compact">${t.merchant}</div><div class="tx-amt-compact ${Number(t.amount) > 0 ? 'amount-income' : 'amount-expense'}" style="text-align:right;">${Number(t.amount) > 0 ? '+' : '-'}${formatMoney(t.amount, t.currency)} ${t.currency}</div></div><div class="tx-meta-compact">${t.date.split(' ')[0]}</div><button class="tx-delete-inline" data-local-edit-only="true" onclick="deleteSingleTransaction('${t.id}')">✕</button></div>`).join('');
     return `<div><div class="tx-col-title" style="color:${bank.color};">${bankLabelWithLogo(bankKey)}</div>${items}</div>`;
   }).join('');
 }
@@ -1988,27 +2573,7 @@ function filterCategory(cat) {
   updateTxnPage();
 }
 
-function renderArchive() {
-  const container = document.getElementById('archive-months-list');
-  if (!container) return;
-  const monthsInSpecs = [...new Set(allTransactions.map(t => t.month).filter(Boolean))];
-  monthsInSpecs.sort((a,b) => monthSortValue(b) - monthSortValue(a));
-  if (monthsInSpecs.length === 0) {
-    container.innerHTML = '<div class="empty-state" style="padding:20px 0;">Archív je zatiaľ prázdny.</div>';
-    return;
-  }
-  container.innerHTML = monthsInSpecs.map(mStr => {
-    const txns = allTransactions.filter(t => t.month === mStr && t.amount < 0);
-    const hist = getLimitsForMonth(mStr);
-    const cols = BANK_ORDER.map(bankKey => {
-      const bank = getBankInfo(bankKey);
-      const count = txns.filter(t => getBankKey(t) === bankKey).length;
-      const limit = hist[bank.limitKey] ?? bank.defaultLimit;
-      return `<div class="archive-bank-col"><span class="archive-bank-title" style="color:${bank.color};"><span class="bank-inline-logo">${bankLogoImg(bankKey)}<span>${count}/${limit}</span></span></span>${limit > 0 ? getBankStatusText(count, limit) : '<span class="archive-bank-status" style="color:var(--muted);">bez limitu</span>'}</div>`;
-    }).join('');
-    return `<div class="archive-item"><div class="archive-month-left"><div class="archive-month-name">${formatMonthString(mStr)}</div></div><div class="archive-stats-grid" style="grid-template-columns: repeat(4, auto); gap: 10px;">${cols}</div></div>`;
-  }).join('');
-}
+
 
 function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -2023,8 +2588,6 @@ function showPage(pageId) {
     document.getElementById('sheets-url').value = SHEETS_URL;
     const limitsUrlInput = document.getElementById('limits-webapp-url');
     if (limitsUrlInput) limitsUrlInput.value = LIMITS_WEBAPP_URL;
-    populateSettingsLimitMonthDropdown(getCurrentMonth());
-    fillSettingsLimitInputs(getSettingsLimitMonth());
     const budgetInputMap = {
       rb_cz: ['budget-rb-cz', 'budget-warn-rb-cz'],
       csob_sk: ['budget-csob-sk', 'budget-warn-csob-sk'],
@@ -2047,19 +2610,8 @@ async function saveConfig() {
   SHEETS_URL = document.getElementById('sheets-url').value.trim();
   LIMITS_WEBAPP_URL = document.getElementById('limits-webapp-url')?.value.trim() || '';
 
-  const monthStr = getSettingsLimitMonth();
-  const limits = readSettingsLimitInputs();
-
-  RB_LIMIT = Number.isFinite(limits.rbCz) ? limits.rbCz : 10;
-  CSOB_LIMIT = Number.isFinite(limits.csobSk) ? limits.csobSk : 5;
-
   localStorage.setItem('sheets_url', SHEETS_URL);
   localStorage.setItem('limits_webapp_url', LIMITS_WEBAPP_URL);
-  localStorage.setItem('rb_limit', RB_LIMIT);
-  localStorage.setItem('csob_limit', CSOB_LIMIT);
-
-  saveLimitsForMonth(monthStr, limits);
-  await syncLimitsToGoogleSheets(monthStr, getLimitsForMonth(monthStr));
 
   alert(isLocalEditMode()
     ? 'Konfigurácia uložená. Offline/test režim je aktívny.'
@@ -2068,6 +2620,7 @@ async function saveConfig() {
   renderAll();
   showPage('overview');
 }
+
 
 function ensureLimitsHistoryForLoadedTransactions() {
   allTransactions.forEach(t => {
@@ -2089,8 +2642,8 @@ function loadCachedOrDemoData() {
 
 function prepareUiAfterDataLoad() {
   ensureLimitsHistoryForLoadedTransactions();
-  populateSimulatorLimitMonthDropdown(getCurrentMonth());
-  fillSimulatorLimitInputs(getCurrentMonth());
+  populateSimulatorLimitMonthDropdown(getAktuálneMonth());
+  fillSimulatorLimitInputs(getAktuálneMonth());
   renderAll();
 }
 
@@ -2122,6 +2675,61 @@ function saveCustomBanks(banks){localStorage.setItem('custom_banks',JSON.stringi
 function openSheet(id){document.getElementById('bottom-sheet-backdrop')?.classList.add('open');document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));document.getElementById(id)?.classList.add('open')}
 function closeBottomSheets(){document.getElementById('bottom-sheet-backdrop')?.classList.remove('open');document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'))}
 
+
+function openUpgradeSheet() {
+  openSheet('upgrade-sheet');
+}
+
+function setBillingMode(mode) {
+  document.getElementById('billing-monthly')?.classList.toggle('active', mode === 'monthly');
+  document.getElementById('billing-yearly')?.classList.toggle('active', mode === 'yearly');
+
+  const free = document.getElementById('free-price');
+  const premium = document.getElementById('premium-price');
+  const pro = document.getElementById('pro-price');
+
+  if (mode === 'yearly') {
+    if (free) free.innerHTML = '€0 <span>/ month</span>';
+    if (premium) premium.innerHTML = '€1.25 <span>/ month · €14.99/year</span>';
+    if (pro) pro.innerHTML = '€3.33 <span>/ month · €39.99/year</span>';
+  } else {
+    if (free) free.innerHTML = '€0 <span>/ month</span>';
+    if (premium) premium.innerHTML = '€1.99 <span>/ month</span>';
+    if (pro) pro.innerHTML = '€4.99 <span>/ month</span>';
+  }
+}
+
+function normalizeAccountMask(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return raw;
+  return '****' + digits.slice(-4);
+}
+
+function toggleBankEdit(bankId) {
+  const row = document.getElementById('bank-row-' + bankId);
+  if (row) row.classList.toggle('open');
+}
+
+function updateCustomBank(bankId) {
+  const banks = getCustomBanks();
+  const bank = banks.find(b => b.id === bankId);
+  if (!bank) return;
+
+  bank.name = document.getElementById('edit-name-' + bankId)?.value.trim() || bank.name;
+  bank.account = normalizeAccountMask(document.getElementById('edit-account-' + bankId)?.value || bank.account || '');
+  bank.currency = document.getElementById('edit-currency-' + bankId)?.value || bank.currency;
+  bank.budget = parseFloat(document.getElementById('edit-budget-' + bankId)?.value || '0') || 0;
+  bank.warning = parseFloat(document.getElementById('edit-warning-' + bankId)?.value || '0') || 0;
+  bank.cardLimit = parseInt(document.getElementById('edit-card-limit-' + bankId)?.value || '0', 10) || 0;
+
+  saveCustomBanks(banks);
+  renderBankManager();
+  renderAll();
+  alert('Banka bola upravená.');
+}
+
 function openQuickAddSheet() {
   openSheet('quick-add-sheet');
 }
@@ -2139,12 +2747,176 @@ function openAddBankFromQuick() {
 function openAddBankSheet(){openSheet('add-bank-sheet')}
 function openAddTransactionSheet(){fillManualTransactionBanks();openSheet('add-transaction-sheet')}
 function openBankManagerSheet(){renderBankManager();openSheet('bank-manager-sheet')}
-function saveNewBank(){const name=document.getElementById('new-bank-name')?.value.trim();if(!name){alert('Zadaj názov banky.');return}const banks=getCustomBanks();banks.push({id:'custom_'+Date.now(),name,currency:document.getElementById('new-bank-currency')?.value||'CZK',type:document.getElementById('new-bank-type')?.value||'card',budget:parseFloat(document.getElementById('new-bank-budget')?.value||'0')||0,warning:parseFloat(document.getElementById('new-bank-warning')?.value||'0')||0,cardLimit:parseInt(document.getElementById('new-bank-card-limit')?.value||'0',10)||0});saveCustomBanks(banks);alert('Banka bola uložená lokálne. Napojenie na Google Sheets tab Banky doplníme v ďalšom kroku.');closeBottomSheets();renderAll()}
-function renderBankManager(){const wrap=document.getElementById('bank-manager-list');if(!wrap)return;const system=BANK_ORDER.map(k=>({id:k,name:plainBankName(k),logo:bankLogoImg(k),currency:getBankInfo(k).primaryCurrency,limit:getLimitsForMonth(getCurrentMonth())[getBankInfo(k).limitKey]??getBankInfo(k).defaultLimit}));const custom=getCustomBanks().map(b=>({id:b.id,name:b.name,logo:'🏦',currency:b.currency,limit:b.cardLimit||0}));wrap.innerHTML=[...system,...custom].map(b=>`<div class="bank-list-row"><div><div style="font-weight:700;">${b.logo} ${b.name}</div><div class="tx-meta">${b.currency||''} · limit ${b.limit||0}</div></div><button class="sim-submit" style="width:auto;padding:7px 12px;" onclick="alert('Editácia banky príde v ďalšom kroku.')">Upraviť</button></div>`).join('')||'<div class="empty-state">Nemáš pridané banky.</div>'}
+function saveNewBank(){const name=document.getElementById('new-bank-name')?.value.trim();if(!name){alert('Zadaj názov banky.');return}const banks=getCustomBanks();banks.push({id:'custom_'+Date.now(),name,currency:document.getElementById('new-bank-currency')?.value||'CZK',type:document.getElementById('new-bank-type')?.value||'card',account:normalizeAccountMask(document.getElementById('new-bank-account')?.value||''),budget:parseFloat(document.getElementById('new-bank-budget')?.value||'0')||0,warning:parseFloat(document.getElementById('new-bank-warning')?.value||'0')||0,cardLimit:parseInt(document.getElementById('new-bank-card-limit')?.value||'0',10)||0});saveCustomBanks(banks);alert('Banka bola uložená lokálne. Napojenie na Google Sheets tab Banky doplníme v ďalšom kroku.');closeBottomSheets();renderAll()}
+
+function getBankDisplayOverride(bankKey) {
+  return localStorage.getItem('bank_display_name_' + bankKey) || plainBankName(bankKey);
+}
+
+function setBankDisplayOverride(bankKey, value) {
+  localStorage.setItem('bank_display_name_' + bankKey, String(value || '').trim() || plainBankName(bankKey));
+}
+
+function renderBankManager(){
+  const wrap=document.getElementById('bank-manager-list');
+  if(!wrap)return;
+
+  const currentMonth = getAktuálneMonth();
+  const currentLimits = getLimitsForMonth(currentMonth);
+
+  const system=BANK_ORDER.map(k=>{
+    const bank = getBankInfo(k);
+    const budgetSettings = getBudgetSettingsForBank(k);
+    return {
+      id:k,
+      name:getBankDisplayOverride(k),
+      originalName: plainBankName(k),
+      logo:bankLogoImg(k),
+      currency:localStorage.getItem('bank_currency_' + k) || bank.primaryCurrency,
+      cardLimit: currentLimits[bank.limitKey] ?? bank.defaultLimit,
+      budget: budgetSettings.budget || 0,
+      warning: budgetSettings.warning || 0,
+      system:true
+    };
+  });
+
+  const custom=getCustomBanks().map(b=>({
+    id:b.id,
+    name:b.name,
+    originalName:b.name,
+    logo:'🏦',
+    currency:b.currency || 'CZK',
+    account:b.account||'',
+    cardLimit:b.cardLimit||0,
+    budget:b.budget||0,
+    warning:b.warning||0,
+    system:false
+  }));
+
+  const row = (b) => `
+    <div class="managed-bank-row" id="bank-row-${b.id}">
+      <div class="managed-bank-top">
+        <div class="managed-bank-left">
+          <div class="managed-bank-icon">${b.logo}</div>
+          <div>
+            <div class="managed-bank-name">${b.name}</div>
+            <div class="managed-bank-sub">${b.currency} · karta limit ${b.cardLimit || 0} · budget ${formatMoney(b.budget || 0, 'CZK')} CZK</div>
+          </div>
+        </div>
+        <button class="managed-bank-edit-btn" onclick="toggleBankEdit('${b.id}')">Upraviť</button>
+      </div>
+
+      <div class="managed-bank-form">
+        <label data-i18n="bankName">Bank name</label>
+        <input class="config-input" id="edit-name-${b.id}" value="${b.name}" placeholder="Názov banky" />
+
+        ${b.system ? '' : `
+        <label>Účet / posledné 4 čísla</label>
+        <input class="config-input" id="edit-account-${b.id}" value="${b.account||''}" placeholder="napr. ****4571" />`}
+
+        <label>Currency</label>
+        <select class="config-input" id="edit-currency-${b.id}">
+          <option value="CZK" ${b.currency==='CZK'?'selected':''}>CZK</option>
+          <option value="EUR" ${b.currency==='EUR'?'selected':''}>EUR</option>
+          <option value="PLN" ${b.currency==='PLN'?'selected':''}>PLN</option>
+        </select>
+
+        <label>Mesačný limit platobnej karty</label>
+        <input class="config-input" id="edit-card-limit-${b.id}" type="number" value="${b.cardLimit||0}" placeholder="napr. 10" />
+
+        <label>Budget</label>
+        <div class="sheet-grid-2">
+          <input class="config-input" id="edit-budget-${b.id}" type="number" value="${b.budget||0}" placeholder="Mesačný budget" />
+          <input class="config-input" id="edit-warning-${b.id}" type="number" value="${b.warning||0}" placeholder="Upozorni keď zostáva" />
+        </div>
+
+        <button class="config-save" onclick="${b.system ? `updateSystemBankSettings('${b.id}')` : `updateCustomBank('${b.id}')`}">Uložiť zmeny</button>
+      </div>
+    </div>
+  `;
+
+  wrap.innerHTML=[...system,...custom].map(row).join('') || '<div class="empty-state">Nemáš pridané banky.</div>';
+}
+
+function updateSystemBankSettings(bankKey) {
+  const monthStr = getAktuálneMonth();
+  const bank = getBankInfo(bankKey);
+  const limits = getLimitsForMonth(monthStr);
+
+  const newName = document.getElementById('edit-name-' + bankKey)?.value.trim() || plainBankName(bankKey);
+  const newCurrency = document.getElementById('edit-currency-' + bankKey)?.value || bank.primaryCurrency;
+  const newLimit = parseInt(document.getElementById('edit-card-limit-' + bankKey)?.value || '0', 10) || 0;
+  const newBudget = parseFloat(document.getElementById('edit-budget-' + bankKey)?.value || '0') || 0;
+  const newWarning = parseFloat(document.getElementById('edit-warning-' + bankKey)?.value || '0') || 0;
+
+  setBankDisplayOverride(bankKey, newName);
+  localStorage.setItem('bank_currency_' + bankKey, newCurrency);
+
+  limits[bank.limitKey] = newLimit;
+  saveLimitsForMonth(monthStr, limits);
+
+  localStorage.setItem(getBudgetStorageKey(bankKey, 'limit'), String(newBudget));
+  localStorage.setItem(getBudgetStorageKey(bankKey, 'warn'), String(newWarning));
+
+  renderBankManager();
+  renderAll();
+  alert('Nastavenia banky boli uložené lokálne.');
+}
+
 function fillManualTransactionBanks(){const select=document.getElementById('manual-tx-bank');if(!select)return;select.innerHTML=BANK_ORDER.map(k=>`<option value="${k}">${plainBankName(k)}</option>`).join('')+getCustomBanks().map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}
 function saveManualTransaction(){const bankKey=document.getElementById('manual-tx-bank')?.value||'rb_cz';const merchant=document.getElementById('manual-tx-merchant')?.value.trim()||'Manuálna transakcia';const amountRaw=parseFloat(document.getElementById('manual-tx-amount')?.value||'0')||0;const direction=document.getElementById('manual-tx-direction')?.value||'outgoing';const currency=document.getElementById('manual-tx-currency')?.value||'CZK';const category=document.getElementById('manual-tx-category')?.value.trim()||'Ostatné';const now=new Date();const amount=direction==='incoming'?Math.abs(amountRaw):-Math.abs(amountRaw);const customBank=getCustomBanks().find(b=>b.id===bankKey);const bankName=customBank?customBank.name:plainBankName(bankKey);allTransactions.unshift({id:'manual-'+Date.now(),date:formatDate(now),amount,currency,merchant,category,card:bankName,type:direction==='incoming'?'Príjem':'Výdaj',month:getMonthFromDate(now),bank:bankName,timestamp:now.getTime()});allTransactions=sortTransactionsNewestFirst(allTransactions);localStorage.setItem('cached_txns',JSON.stringify(allTransactions));closeBottomSheets();renderAll()}
 function filterDirection(direction){activeDirection=direction;document.getElementById('filter-dir-all')?.classList.toggle('active',direction==='all');document.getElementById('filter-dir-incoming')?.classList.toggle('active',direction==='incoming');document.getElementById('filter-dir-outgoing')?.classList.toggle('active',direction==='outgoing');updateTxnPage()}
+function getArchiveMonthlySeries() {
+  const monthly = {};
+
+  allTransactions.forEach(t => {
+    if (!t.month) return;
+
+    if (!monthly[t.month]) {
+      monthly[t.month] = { month: t.month, incoming: 0, spent: 0 };
+    }
+
+    const currency = String(t.currency || 'CZK').toUpperCase();
+    const amount = Math.abs(Number(t.amount) || 0);
+    const czkValue = currency === 'EUR' ? amount * 25 : amount;
+
+    if (Number(t.amount) > 0) monthly[t.month].incoming += czkValue;
+    if (Number(t.amount) < 0) monthly[t.month].spent += czkValue;
+  });
+
+  return Object.values(monthly)
+    .sort((a, b) => monthSortValue(a.month) - monthSortValue(b.month))
+    .slice(-8);
+}
+
+
+
+
+
 function renderArchiveTrendChart(){const wrap=document.getElementById('archive-trend-chart');if(!wrap)return;const monthly={};allTransactions.forEach(t=>{if(!t.month||!(t.amount<0))return;const val=String(t.currency||'').toUpperCase()==='EUR'?Math.abs(t.amount)*25:Math.abs(t.amount);monthly[t.month]=(monthly[t.month]||0)+val});const months=Object.keys(monthly).sort((a,b)=>monthSortValue(a)-monthSortValue(b)).slice(-8);if(!months.length){wrap.innerHTML='<div class="empty-state" style="padding:22px 0;">Zatiaľ nie sú dáta pre trend.</div>';return}const values=months.map(m=>monthly[m]);const max=Math.max(...values,1);const w=360,h=160,pad=22,step=months.length===1?0:(w-pad*2)/(months.length-1);const pts=months.map((m,i)=>({x:pad+i*step,y:h-pad-(values[i]/max)*(h-pad*2),m}));wrap.innerHTML=`<svg class="trend-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="rgba(255,255,255,.12)" /><polyline class="trend-line" points="${pts.map(p=>p.x+','+p.y).join(' ')}" />${pts.map(p=>`<circle class="trend-dot" cx="${p.x}" cy="${p.y}" r="4"></circle>`).join('')}${pts.map(p=>`<text class="trend-axis-label" x="${p.x-14}" y="${h-5}">${p.m.split('/')[0]}/${p.m.split('/')[1].slice(2)}</text>`).join('')}</svg><div class="budget-status-note">Trend výdavkov podľa mesiacov, EUR orientačne kurzom 25 CZK.</div>`}
+
+function renderArchive() {
+  const container = document.getElementById('archive-months-list');
+  if (!container) return;
+  const monthsInSpecs = [...new Set(allTransactions.map(t => t.month).filter(Boolean))];
+  monthsInSpecs.sort((a,b) => monthSortValue(b) - monthSortValue(a));
+  if (monthsInSpecs.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="padding:20px 0;">Archív je zatiaľ prázdny.</div>';
+    return;
+  }
+  container.innerHTML = monthsInSpecs.map(mStr => {
+    const txns = allTransactions.filter(t => t.month === mStr && t.amount < 0);
+    const hist = getLimitsForMonth(mStr);
+    const cols = BANK_ORDER.map(bankKey => {
+      const bank = getBankInfo(bankKey);
+      const count = txns.filter(t => getBankKey(t) === bankKey).length;
+      const limit = hist[bank.limitKey] ?? bank.defaultLimit;
+      return `<div class="archive-bank-col"><span class="archive-bank-title" style="color:${bank.color};"><span class="bank-inline-logo">${bankLogoImg(bankKey)}<span>${count}/${limit}</span></span></span>${limit > 0 ? getBankStatusText(count, limit) : '<span class="archive-bank-status" style="color:var(--muted);">bez limitu</span>'}</div>`;
+    }).join('');
+    return `<div class="archive-item"><div class="archive-month-left"><div class="archive-month-name">${formatMonthString(mStr)}</div></div><div class="archive-stats-grid" style="grid-template-columns: repeat(4, auto); gap: 10px;">${cols}</div></div>`;
+  }).join('');
+}
+
 function selectPlan(plan){localStorage.setItem('selected_plan',plan);alert('Plán '+plan+' je zatiaľ uložený len lokálne. Platby/upgrade napojíme neskôr.')}
 async function togglePushNotifications(){const isEnabled=localStorage.getItem('push_enabled')==='true';if(isEnabled){localStorage.setItem('push_enabled','false');updatePushStatus();alert('Push notifikácie sú lokálne vypnuté. V ďalšom kroku token označíme ako neaktívny v Google Sheets.');return}await enableNotifications();if(localStorage.getItem('fcm_token'))localStorage.setItem('push_enabled','true');updatePushStatus()}
 
@@ -2159,11 +2931,262 @@ function toggleDeveloperSimulator() {
   }
 }
 
+
+const I18N = {
+  en: {
+    appTitle: 'Bank Tracker',
+    overview: 'Overview',
+    transactions: 'Transactions',
+    archiveTitle: 'Archive',
+    settings: 'Settings',
+    language: 'Language',
+    payments: 'payments',
+    daysLeft: 'days left',
+    recentTransactions: 'recent transactions',
+    spentByCurrency: 'spent by currency',
+    spentByBank: 'spent by bank',
+    budgetByBank: 'budget by bank',
+    type: 'Type',
+    bank: 'Bank',
+    category: 'Category',
+    all: 'All',
+    incoming: 'Incoming',
+    outgoing: 'Outgoing',
+    spent: 'Spent',
+    income: 'Income',
+    archiveSubtitle: 'Monthly trends',
+    spendingTrend: 'Spending trend',
+    lastMonthsHint: 'Last 8 months · tap point to inspect',
+    noHistoryYet: 'No history yet',
+    noHistoryText: 'Past months with transactions will appear here once a full month has passed.',
+    monthlyArchive: 'Monthly archive',
+    plan: 'plan',
+    freePlan: 'Free plan',
+    freePlanSub: 'Manual entry · upgrade for auto-sync',
+    upgrade: 'Upgrade',
+    enableNotifications: 'Enable notifications',
+    notificationsOff: 'Push notifications are not enabled yet.',
+    copyFcmToken: 'Copy FCM token',
+    myBanks: 'My banks',
+    manageBanks: 'Manage banks',
+    googleSheetsConnection: 'Google Sheets connection',
+    aboutApp: 'about app',
+    appInfoSub: 'Version 3.0.2 · bank overview, budgets, archive and push notifications ⚙️🔥',
+    sync: 'Sync',
+    syncValue: 'Auto every 5 min',
+    mode: 'Mode',
+    modeValue: 'PWA / Google Sheets',
+    quickAdd: 'Quick add',
+    addTransaction: 'Add transaction',
+    addTransactionHint: 'Manually add a new payment or income.',
+    addBank: 'Add bank',
+    addBankHint: 'Add a new bank, currency, budget and card limit.',
+    completed: 'completed',
+    notCompleted: 'not completed',
+    noLimit: 'no limit',
+    monthArchive: 'Monthly archive',
+    saveChanges: 'Save changes',
+    saveBank: 'Save bank',
+    saveTransaction: 'Save transaction',
+    current: 'Current',
+    monthly: 'Monthly',
+    yearly: 'Yearly',
+    bankName: 'Bank name',
+    accountLast4: 'Account / last 4 digits',
+    currency: 'Currency',
+    monthlyBudget: 'Monthly budget',
+    warnWhenRemaining: 'Warn when remaining',
+    monthlyCardLimit: 'Monthly card limit',
+    merchantDescription: 'Merchant / description',
+    amount: 'Amount',
+    devSimulator: 'Developer simulator',
+    expand: 'Expand ↓',
+    collapse: 'Collapse ↑'
+  },
+  sk: {
+    appTitle: 'Bank Tracker',
+    overview: 'Prehľad',
+    transactions: 'Transakcie',
+    archiveTitle: 'Archív',
+    settings: 'Nastavenia',
+    language: 'Jazyk',
+    payments: 'platieb',
+    daysLeft: 'dní zostáva',
+    recentTransactions: 'posledné transakcie',
+    spentByCurrency: 'minuté podľa meny',
+    spentByBank: 'minuté podľa banky',
+    budgetByBank: 'budget podľa banky',
+    type: 'Typ',
+    bank: 'Banka',
+    category: 'Kategória',
+    all: 'Všetky',
+    incoming: 'Príjem',
+    outgoing: 'Výdaj',
+    spent: 'Výdavky',
+    income: 'Príjem',
+    archiveSubtitle: 'Mesačné trendy',
+    spendingTrend: 'Trend výdavkov',
+    lastMonthsHint: 'Posledných 8 mesiacov · klikni na bod pre detail',
+    noHistoryYet: 'Zatiaľ žiadna história',
+    noHistoryText: 'Minulé mesiace s transakciami sa zobrazia po uzavretí celého mesiaca.',
+    monthlyArchive: 'Archív mesiacov',
+    plan: 'plán',
+    freePlan: 'Free plán',
+    freePlanSub: 'Ručné zadávanie · upgrade pre auto-sync',
+    upgrade: 'Upgrade',
+    enableNotifications: 'Povoliť upozornenia',
+    notificationsOff: 'Push notifications are not enabled yet.',
+    copyFcmToken: 'Copy FCM token',
+    myBanks: 'Moje banky',
+    manageBanks: 'Spravovať banky',
+    googleSheetsConnection: 'Pripojenie k Google Sheets',
+    aboutApp: 'o appke',
+    appInfoSub: 'Verzia 3.0.2 · bankové prehľady, budgety, archív a push notifikácie ⚙️🔥',
+    sync: 'Sync',
+    syncValue: 'Auto každých 5 min',
+    mode: 'Režim',
+    modeValue: 'PWA / Google Sheets',
+    quickAdd: 'Rýchle pridanie',
+    addTransaction: 'Pridať transakciu',
+    addTransactionHint: 'Manuálne zadaj novú platbu alebo príjem.',
+    addBank: 'Pridať banku',
+    addBankHint: 'Pridaj novú banku, menu, budget a limit karty.',
+    completed: 'splnené',
+    notCompleted: 'nesplnené',
+    noLimit: 'bez limitu',
+    monthArchive: 'Archív mesiacov',
+    saveChanges: 'Uložiť zmeny',
+    saveBank: 'Uložiť banku',
+    saveTransaction: 'Uložiť transakciu',
+    current: 'Aktuálne',
+    monthly: 'Mesačne',
+    yearly: 'Ročne',
+    bankName: 'Názov banky',
+    accountLast4: 'Účet / posledné 4 čísla',
+    currency: 'Mena',
+    monthlyBudget: 'Mesačný budget',
+    warnWhenRemaining: 'Upozorniť keď zostáva',
+    monthlyCardLimit: 'Mesačný limit karty',
+    merchantDescription: 'Obchodník / popis',
+    amount: 'Suma',
+    devSimulator: 'Vývojársky simulátor',
+    expand: 'Rozbaliť ↓',
+    collapse: 'Zbaliť ↑'
+  },
+  cs: {
+    appTitle: 'Bank Tracker',
+    overview: 'Přehled',
+    transactions: 'Transakce',
+    archiveTitle: 'Archiv',
+    settings: 'Nastavení',
+    language: 'Jazyk',
+    payments: 'plateb',
+    daysLeft: 'dní zbývá',
+    recentTransactions: 'poslední transakce',
+    spentByCurrency: 'utraceno podle měny',
+    spentByBank: 'utraceno podle banky',
+    budgetByBank: 'budget podle banky',
+    type: 'Typ',
+    bank: 'Banka',
+    category: 'Kategorie',
+    all: 'Vše',
+    incoming: 'Příjem',
+    outgoing: 'Výdaj',
+    spent: 'Výdaje',
+    income: 'Příjem',
+    archiveSubtitle: 'Měsíční trendy',
+    spendingTrend: 'Trend výdajů',
+    lastMonthsHint: 'Posledních 8 měsíců · klikni na bod pro detail',
+    noHistoryYet: 'Zatím žádná historie',
+    noHistoryText: 'Minulé měsíce s transakcemi se zobrazí po uzavření celého měsíce.',
+    monthlyArchive: 'Archiv měsíců',
+    plan: 'plán',
+    freePlan: 'Free plán',
+    freePlanSub: 'Ruční zadávání · upgrade pro auto-sync',
+    upgrade: 'Upgrade',
+    enableNotifications: 'Povolit upozornění',
+    notificationsOff: 'Push notifikace zatím nejsou zapnuté.',
+    copyFcmToken: 'Kopírovat FCM token',
+    myBanks: 'Moje banky',
+    manageBanks: 'Spravovat banky',
+    googleSheetsConnection: 'Připojení ke Google Sheets',
+    aboutApp: 'o aplikaci',
+    appInfoSub: 'Verze 3.0.2 · bankovní přehledy, budgety, archiv a push notifikace ⚙️🔥',
+    sync: 'Sync',
+    syncValue: 'Auto každých 5 min',
+    mode: 'Režim',
+    modeValue: 'PWA / Google Sheets',
+    quickAdd: 'Rychlé přidání',
+    addTransaction: 'Přidat transakci',
+    addTransactionHint: 'Ručně zadej novou platbu nebo příjem.',
+    addBank: 'Přidat banku',
+    addBankHint: 'Přidej novou banku, měnu, budget a limit karty.',
+    completed: 'splněno',
+    notCompleted: 'nesplněno',
+    noLimit: 'bez limitu',
+    monthArchive: 'Archiv měsíců',
+    saveChanges: 'Uložit změny',
+    saveBank: 'Uložit banku',
+    saveTransaction: 'Uložit transakci',
+    current: 'Aktuální',
+    monthly: 'Měsíčně',
+    yearly: 'Ročně',
+    bankName: 'Název banky',
+    accountLast4: 'Účet / poslední 4 čísla',
+    currency: 'Měna',
+    monthlyBudget: 'Měsíční budget',
+    warnWhenRemaining: 'Upozornit když zbývá',
+    monthlyCardLimit: 'Měsíční limit karty',
+    merchantDescription: 'Obchodník / popis',
+    amount: 'Částka',
+    devSimulator: 'Vývojářský simulátor',
+    expand: 'Rozbalit ↓',
+    collapse: 'Sbalit ↑'
+  }
+};
+
+function getLanguage() {
+  return localStorage.getItem('app_language') || 'en';
+}
+
+function setLanguage(lang) {
+  localStorage.setItem('app_language', lang);
+  applyLanguage();
+  renderArchiveTrendChart();
+  renderArchive();
+}
+
+function applyLanguage() {
+  const lang = getLanguage();
+  const dict = I18N[lang] || I18N.en;
+
+  document.documentElement.lang = lang;
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key]) el.textContent = dict[key];
+  });
+
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (dict[key]) el.setAttribute('placeholder', dict[key]);
+  });
+
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    if (dict[key]) el.setAttribute('title', dict[key]);
+  });
+
+  const select = document.getElementById('language-select');
+  if (select) select.value = lang;
+}
+
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   // Najprv zobrazíme cache/demo dáta, aby appka nebola prázdna.
   loadCachedOrDemoData();
   prepareUiAfterDataLoad();
+  applyLanguage();
 
   // Ak je nastavené Google Sheets URL, pri každom otvorení/refreshi stránky
   // sa automaticky natiahnu najnovšie dáta z Google Sheets.
@@ -2255,7 +3278,7 @@ window.updatePushStatus = function () {
     status.textContent = "Push notifikácie vyžadujú HTTPS alebo localhost. Testuj cez GitHub Pages alebo localhost.";
   } else {
     status.className = "edit-mode-notice";
-    status.textContent = "Push notifikácie zatiaľ nie sú zapnuté.";
+    status.textContent = "Push notifications are not enabled yet.";
   }
 };
 
