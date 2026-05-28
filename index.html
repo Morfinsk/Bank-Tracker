@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v49 english html lang + overview recent widget -->
+<!-- v51 default sheets url fallback -->
 <link rel="manifest" href="./manifest.json?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -1201,6 +1201,24 @@
     border-bottom: none;
   }
 
+
+  /* v50 Android PWA pull-to-refresh protection */
+  html,
+  body {
+    overscroll-behavior-y: none;
+    overscroll-behavior-x: none;
+  }
+
+  body {
+    touch-action: pan-y;
+  }
+
+  .app,
+  .page,
+  .bottom-sheet {
+    overscroll-behavior: contain;
+  }
+
 </style>
 </head>
 <body>
@@ -1346,6 +1364,11 @@
       <input class="config-input" id="limits-webapp-url" placeholder="https://script.google.com/macros/s/.../exec" />
 
       <button class="config-save" onclick="saveConfig()" data-i18n="saveChanges">Save changes</button>
+      
+      <div class="edit-mode-notice" style="margin-top:10px;">
+        Default Google Sheets URL je uložená priamo v HTML. Ak Android stratí localStorage, appka použije túto predvolenú URL.
+      </div>
+
       <div id="limits-sync-status" class="edit-mode-notice" style="margin-top:10px;">Google Sheets pripojenie je uložené lokálne. Apps Script URL použijeme na zápis limitov, budgetov a tokenov.</div>
     </div>
   </div>
@@ -1610,8 +1633,11 @@
 
 <script>
 // ── CONFIG & HISTÓRIA LIMITOV ──────────────────────────────
-let SHEETS_URL = localStorage.getItem('sheets_url') || '';
-let LIMITS_WEBAPP_URL = localStorage.getItem('limits_webapp_url') || '';
+const DEFAULT_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/1sEj4c-FTFwH1cH2tMPXDAn_J9OjtBWk86V65JFaudzs/edit?gid=987073740#gid=987073740';
+const DEFAULT_LIMITS_WEBAPP_URL = '';
+
+let SHEETS_URL = localStorage.getItem('sheets_url') || DEFAULT_SHEETS_URL;
+let LIMITS_WEBAPP_URL = localStorage.getItem('limits_webapp_url') || DEFAULT_LIMITS_WEBAPP_URL;
 let RB_LIMIT = parseInt(localStorage.getItem('rb_limit') || '10');
 let CSOB_LIMIT = parseInt(localStorage.getItem('csob_limit') || '5');
 let limitsHistory = JSON.parse(localStorage.getItem('limits_history') || '{}');
@@ -2611,7 +2637,7 @@ function showPage(pageId) {
   if (targetNav) targetNav.classList.add('active');
 
   if (pageId === 'settings') {
-    document.getElementById('sheets-url').value = SHEETS_URL;
+    document.getElementById('sheets-url').value = SHEETS_URL || DEFAULT_SHEETS_URL;
     const limitsUrlInput = document.getElementById('limits-webapp-url');
     if (limitsUrlInput) limitsUrlInput.value = LIMITS_WEBAPP_URL;
     const budgetInputMap = {
@@ -2633,8 +2659,8 @@ function showPage(pageId) {
 }
 
 async function saveConfig() {
-  SHEETS_URL = document.getElementById('sheets-url').value.trim();
-  LIMITS_WEBAPP_URL = document.getElementById('limits-webapp-url')?.value.trim() || '';
+  SHEETS_URL = document.getElementById('sheets-url').value.trim() || DEFAULT_SHEETS_URL;
+  LIMITS_WEBAPP_URL = document.getElementById('limits-webapp-url')?.value.trim() || DEFAULT_LIMITS_WEBAPP_URL;
 
   localStorage.setItem('sheets_url', SHEETS_URL);
   localStorage.setItem('limits_webapp_url', LIMITS_WEBAPP_URL);
@@ -2682,7 +2708,8 @@ function startAutoSync() {
   if (!SHEETS_URL) return;
 
   autoSyncTimer = setInterval(() => {
-    syncData();
+    ensureDefaultConfig();
+syncData();
   }, AUTO_SYNC_INTERVAL_MS);
 }
 
@@ -3205,6 +3232,56 @@ function applyLanguage() {
 
   const select = document.getElementById('language-select');
   if (select) select.value = lang;
+}
+
+
+// ── ANDROID PWA PULL-TO-REFRESH GUARD ─────────────────────
+(function preventAndroidPullToRefresh() {
+  let startY = 0;
+
+  window.addEventListener('touchstart', function(e) {
+    if (!e.touches || e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', function(e) {
+    if (!e.touches || e.touches.length !== 1) return;
+
+    const currentY = e.touches[0].clientY;
+    const pullingDown = currentY > startY;
+    const atTop = window.scrollY <= 0;
+
+    if (atTop && pullingDown) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+})();
+
+// ── SAFE ERROR LOGGING FOR MOBILE PWA ─────────────────────
+window.addEventListener('error', function(event) {
+  console.error('Bank Tracker runtime error:', event.error || event.message);
+});
+
+window.addEventListener('unhandledrejection', function(event) {
+  console.error('Bank Tracker unhandled promise:', event.reason);
+});
+
+
+function ensureDefaultConfig() {
+  try {
+    if (!localStorage.getItem('sheets_url')) {
+      localStorage.setItem('sheets_url', DEFAULT_SHEETS_URL);
+    }
+    if (!localStorage.getItem('limits_webapp_url') && DEFAULT_LIMITS_WEBAPP_URL) {
+      localStorage.setItem('limits_webapp_url', DEFAULT_LIMITS_WEBAPP_URL);
+    }
+    SHEETS_URL = localStorage.getItem('sheets_url') || DEFAULT_SHEETS_URL;
+    LIMITS_WEBAPP_URL = localStorage.getItem('limits_webapp_url') || DEFAULT_LIMITS_WEBAPP_URL;
+  } catch (err) {
+    console.warn('Default config fallback used:', err);
+    SHEETS_URL = DEFAULT_SHEETS_URL;
+    LIMITS_WEBAPP_URL = DEFAULT_LIMITS_WEBAPP_URL;
+  }
 }
 
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
