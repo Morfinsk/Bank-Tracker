@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="sk">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v48 english base full i18n pass -->
+<!-- v50 Android pull-to-refresh guard -->
 <link rel="manifest" href="./manifest.json?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -1174,6 +1174,51 @@
     font-weight: 800;
   }
 
+
+  /* v49 overview recent transactions widget */
+  .overview-recent-widget {
+    margin: 0 20px 22px;
+    background: linear-gradient(180deg, rgba(23,34,56,.98), rgba(15,24,42,.98));
+    border: 1px solid rgba(148,163,184,.20);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.22);
+  }
+  .overview-recent-widget .section-title {
+    padding: 0;
+    margin: 0 0 12px;
+  }
+  .overview-recent-widget .tx-columns {
+    margin: 0;
+  }
+  .overview-recent-widget .tx-column {
+    background: rgba(15,23,42,.52);
+    border: 1px solid rgba(148,163,184,.12);
+    border-radius: 14px;
+    padding: 10px;
+  }
+  .overview-recent-widget .tx-item-compact:last-child {
+    border-bottom: none;
+  }
+
+
+  /* v50 Android PWA pull-to-refresh protection */
+  html,
+  body {
+    overscroll-behavior-y: none;
+    overscroll-behavior-x: none;
+  }
+
+  body {
+    touch-action: pan-y;
+  }
+
+  .app,
+  .page,
+  .bottom-sheet {
+    overscroll-behavior: contain;
+  }
+
 </style>
 </head>
 <body>
@@ -1211,11 +1256,10 @@
   <div id="cards-container"></div>
   <div id="csob-container"></div>
 
-  <div id="budget-status" class="budget-status" style="margin-top:18px;"></div>
-
-  <div class="section-title" style="margin-top:24px;">posledné transakcie</div>
-  
-  <div class="tx-columns" id="recent-bank-columns"></div>
+  <div id="budget-status" class="budget-status" style="margin-top:18px;"></div>  <div class="overview-recent-widget">
+    <div class="section-title" data-i18n="recentTransactions">recent transactions</div>
+    <div class="tx-columns" id="recent-bank-columns"></div>
+  </div>
 
 
 </div>
@@ -3180,6 +3224,38 @@ function applyLanguage() {
   const select = document.getElementById('language-select');
   if (select) select.value = lang;
 }
+
+
+// ── ANDROID PWA PULL-TO-REFRESH GUARD ─────────────────────
+(function preventAndroidPullToRefresh() {
+  let startY = 0;
+
+  window.addEventListener('touchstart', function(e) {
+    if (!e.touches || e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', function(e) {
+    if (!e.touches || e.touches.length !== 1) return;
+
+    const currentY = e.touches[0].clientY;
+    const pullingDown = currentY > startY;
+    const atTop = window.scrollY <= 0;
+
+    if (atTop && pullingDown) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+})();
+
+// ── SAFE ERROR LOGGING FOR MOBILE PWA ─────────────────────
+window.addEventListener('error', function(event) {
+  console.error('Bank Tracker runtime error:', event.error || event.message);
+});
+
+window.addEventListener('unhandledrejection', function(event) {
+  console.error('Bank Tracker unhandled promise:', event.reason);
+});
 
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
