@@ -5,8 +5,8 @@
   "start_url": "/Bank-Tracker/",
   "scope": "/Bank-Tracker/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
+  "theme_color": "#08111f",
+  "background_color": "#08111f",
   "orientation": "portrait",
   "icons": [
     {
