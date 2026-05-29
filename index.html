@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v91 safe double click transaction edit -->
-<link rel="manifest" href="./manifest.json?v=4">
+<!-- v92 Android nav bar dark theme hardening -->
+<link rel="manifest" href="./manifest.json?v=92">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -2277,9 +2277,72 @@
     padding: 0 20px 8px;
   }
 
+
+  /* v92 Android/iOS system bar theme hardening */
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    background: #08111f !important;
+    background-color: #08111f !important;
+    min-height: 100%;
+  }
+
+  body {
+    background-color: #08111f !important;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    z-index: 9999;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top);
+    background: #08111f;
+    pointer-events: none;
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    z-index: 98;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: max(24px, env(safe-area-inset-bottom));
+    background:
+      radial-gradient(circle at top, rgba(88,166,255,.13), transparent 58%),
+      linear-gradient(180deg, rgba(12,23,42,.99), rgba(5,12,24,.99));
+    pointer-events: none;
+  }
+
+  .bottom-nav {
+    bottom: 0 !important;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+    background:
+      radial-gradient(circle at top, rgba(88,166,255,.14), transparent 55%),
+      linear-gradient(180deg, rgba(12,23,42,.99), rgba(5,12,24,.99)) !important;
+    border-top-color: rgba(88,166,255,.20) !important;
+    z-index: 120 !important;
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    html,
+    body {
+      background-color: #08111f !important;
+    }
+  }
+
 </style>
   <meta name="msapplication-navbutton-color" content="#08111f">
   <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
 </head>
 <body>
 
@@ -6089,6 +6152,29 @@ window.addEventListener('DOMContentLoaded', async () => {
 document.addEventListener('DOMContentLoaded', initBottomSheetDragToClose);
 
 document.addEventListener('DOMContentLoaded', initGlobalPullDownControl);
+
+// ── SYSTEM BAR THEME COLOR REINFORCER ──────────────────────
+(function enforceSystemBarThemeColor() {
+  const color = '#08111f';
+
+  function setTheme() {
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', color);
+
+    document.documentElement.style.backgroundColor = color;
+    document.body.style.backgroundColor = color;
+  }
+
+  setTheme();
+  document.addEventListener('visibilitychange', setTheme);
+  window.addEventListener('pageshow', setTheme);
+})();
+
 </script>
 
 
