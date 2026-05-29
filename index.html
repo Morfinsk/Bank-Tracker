@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v77 equal fast swipe -->
+<!-- v86 manual transaction category dropdown -->
 <link rel="manifest" href="./manifest.json?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -1633,6 +1633,479 @@
     to { transform: translate3d(0,0,0); opacity: 1; }
   }
 
+
+  /* v78 no swipe + themed bottom nav + cheap tab effect */
+  .page.active.page-tab-fade {
+    animation: tabFadePop .14s ease-out;
+    will-change: opacity, transform;
+  }
+
+  @keyframes tabFadePop {
+    from {
+      opacity: .88;
+      transform: translate3d(0, 8px, 0) scale(.998);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  .bottom-nav {
+    background:
+      radial-gradient(circle at top, rgba(88,166,255,.14), transparent 55%),
+      linear-gradient(180deg, rgba(12,23,42,.98), rgba(6,14,27,.98)) !important;
+    border-top: 1px solid rgba(88,166,255,.18) !important;
+    box-shadow:
+      0 -18px 45px rgba(0,0,0,.38),
+      inset 0 1px 0 rgba(255,255,255,.04);
+    padding: 8px 10px calc(20px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .nav-item {
+    position: relative;
+    border-radius: 16px;
+    min-height: 58px;
+    justify-content: center;
+    color: #8fa6c7 !important;
+    transition: color .12s ease, background .12s ease, transform .12s ease;
+  }
+
+  .nav-item:active {
+    transform: scale(.96);
+  }
+
+  .nav-item.active {
+    color: #8fdcff !important;
+    background: rgba(88,166,255,.10);
+    box-shadow:
+      inset 0 0 0 1px rgba(88,166,255,.18),
+      0 8px 22px rgba(88,166,255,.08);
+  }
+
+  .nav-item.active::before {
+    content: "";
+    position: absolute;
+    top: 6px;
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: #8fdcff;
+    box-shadow: 0 0 12px rgba(143,220,255,.85);
+  }
+
+  .nav-icon {
+    font-size: 21px;
+    line-height: 1;
+    filter: drop-shadow(0 0 10px rgba(88,166,255,.10));
+  }
+
+  .nav-item span:last-child {
+    font-size: 10px;
+    margin-top: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page.active.page-tab-fade {
+      animation: none !important;
+    }
+
+    .nav-item {
+      transition: none !important;
+    }
+  }
+
+
+  /* v78 force-disable old swipe slide classes */
+  .page.active.page-slide-in-right,
+  .page.active.page-slide-in-left,
+  .page.swipe-peeking {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+
+
+  /* v79 tab light on/off effect */
+  .page.active.page-light-switch {
+    animation: pageLightSwitch .22s ease-out;
+    will-change: opacity, transform;
+  }
+
+  @keyframes pageLightSwitch {
+    0% {
+      opacity: .38;
+      transform: translate3d(0, 6px, 0) scale(.996);
+    }
+    45% {
+      opacity: .72;
+    }
+    100% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  .nav-item.active .nav-icon {
+    animation: navIconGlow .22s ease-out;
+  }
+
+  @keyframes navIconGlow {
+    0% {
+      opacity: .35;
+      transform: scale(.92);
+      filter: drop-shadow(0 0 0 rgba(143,220,255,0));
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+      filter: drop-shadow(0 0 12px rgba(143,220,255,.45));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page.active.page-light-switch,
+    .nav-item.active .nav-icon {
+      animation: none !important;
+    }
+  }
+
+
+  /* v80 stable bottom sheet drag */
+  .bottom-sheet {
+    will-change: transform;
+    transform: translateX(-50%) translateY(105%);
+    touch-action: pan-y;
+  }
+
+  .bottom-sheet.open {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .bottom-sheet.dragging {
+    transition: none !important;
+  }
+
+  .sheet-handle,
+  .sheet-title-row {
+    touch-action: none;
+  }
+
+  .sheet-handle {
+    cursor: grab;
+    position: relative;
+  }
+
+  .sheet-handle::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 190px;
+    height: 58px;
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+  }
+
+  .bottom-sheet.dragging .sheet-handle {
+    cursor: grabbing;
+  }
+
+
+  /* v81 archive daily bank detail + stable sheet touch */
+  .archive-bank-col {
+    cursor: pointer;
+    border-radius: 10px;
+    padding: 4px 5px;
+    transition: background .12s ease, transform .12s ease;
+  }
+
+  .archive-bank-col:active {
+    background: rgba(88,166,255,.10);
+    transform: scale(.96);
+  }
+
+  .archive-hint {
+    color: var(--muted);
+    font-size: 11px;
+    margin: -4px 20px 10px;
+    font-family: var(--font-mono);
+  }
+
+  .daily-chart-card {
+    background: rgba(15,23,42,.62);
+    border: 1px solid rgba(148,163,184,.16);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+
+  .daily-chart-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+
+  .daily-chart-title strong {
+    color: #f8fafc;
+    font-size: 14px;
+  }
+
+  .daily-chart-title span {
+    color: var(--muted);
+    font-size: 11px;
+    font-family: var(--font-mono);
+  }
+
+  .daily-legend {
+    display: flex;
+    gap: 14px;
+    margin: 8px 0 4px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  .daily-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .daily-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    display: inline-block;
+  }
+
+  .daily-svg {
+    width: 100%;
+    height: 190px;
+    overflow: visible;
+    display: block;
+  }
+
+  .daily-grid-line {
+    stroke: rgba(148,163,184,.12);
+    stroke-width: 1;
+  }
+
+  .daily-income-line {
+    fill: none;
+    stroke: var(--ok);
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .daily-expense-line {
+    fill: none;
+    stroke: var(--danger);
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .daily-axis-label {
+    fill: #8fa6c7;
+    font-size: 9px;
+    font-family: var(--font-mono);
+  }
+
+  .daily-point-income {
+    fill: var(--ok);
+    stroke: rgba(15,24,42,.9);
+    stroke-width: 1.2;
+  }
+
+  .daily-point-expense {
+    fill: var(--danger);
+    stroke: rgba(15,24,42,.9);
+    stroke-width: 1.2;
+  }
+
+  .daily-tx-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(148,163,184,.10);
+  }
+
+  .daily-tx-row:last-child {
+    border-bottom: none;
+  }
+
+  .daily-tx-main {
+    min-width: 0;
+  }
+
+  .daily-tx-title {
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .daily-tx-sub {
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    margin-top: 2px;
+  }
+
+  .daily-tx-amount {
+    flex: 0 0 auto;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  body.sheet-open {
+    overscroll-behavior: none;
+  }
+
+  .bottom-sheet.open {
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+
+  .bottom-sheet.dragging {
+    transition: none !important;
+  }
+
+
+  /* v82 restore archive row layout, keep clickable banks */
+  .archive-item {
+    align-items: center !important;
+  }
+
+  .archive-stats-grid {
+    grid-template-columns: repeat(4, auto) !important;
+    gap: 10px !important;
+    width: auto !important;
+    flex: 0 0 auto;
+  }
+
+  .archive-bank-col {
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 0 !important;
+    min-width: auto !important;
+    text-align: center;
+    transition: opacity .12s ease, transform .12s ease;
+  }
+
+  .archive-bank-col:hover {
+    opacity: .86;
+  }
+
+  .archive-bank-col:active {
+    transform: scale(.96);
+    background: transparent !important;
+  }
+
+  .archive-bank-status {
+    white-space: nowrap;
+  }
+
+  .archive-bank-legend-item {
+    cursor: pointer;
+    border-radius: 999px;
+    padding: 3px 6px;
+    transition: background .12s ease, transform .12s ease;
+  }
+
+  .archive-bank-legend-item:hover {
+    background: rgba(88,166,255,.10);
+  }
+
+  .archive-bank-legend-item:active {
+    transform: scale(.96);
+  }
+
+
+  /* v83 archive FX axis labels */
+  .archive-chart-note {
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    margin: 4px 0 2px;
+  }
+
+  .archive-y-label,
+  .archive-axis-unit {
+    fill: #8fa6c7;
+    font-size: 8.5px;
+    font-family: var(--font-mono);
+  }
+
+
+  /* v84 daily grouped bar chart with filtering */
+  .daily-chart-help {
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    margin: 6px 0 2px;
+  }
+
+  .daily-bar-income,
+  .daily-bar-expense {
+    cursor: pointer;
+    transition: opacity .12s ease, transform .12s ease, filter .12s ease;
+    transform-box: fill-box;
+    transform-origin: center bottom;
+  }
+
+  .daily-bar-income {
+    fill: var(--ok);
+  }
+
+  .daily-bar-expense {
+    fill: var(--danger);
+  }
+
+  .daily-bar-income:hover,
+  .daily-bar-expense:hover,
+  .daily-bar-income.active,
+  .daily-bar-expense.active {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(255,255,255,.22));
+    transform: scaleY(1.04);
+  }
+
+  .daily-bar-muted {
+    opacity: .22;
+  }
+
+  .daily-reset-filter {
+    border: 1px solid rgba(148,163,184,.22);
+    background: rgba(15,23,42,.72);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 6px 9px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+  }
+
+  .daily-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 5px 8px;
+    background: rgba(88,166,255,.10);
+    color: #8fdcff;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    margin-top: 6px;
+  }
+
 </style>
 </head>
 <body>
@@ -1728,6 +2201,7 @@
     <div id="archive-trend-chart"></div>
   </div>
   <div class="section-title" style="margin-top:8px;" data-i18n="monthlyArchive">Monthly archive</div>
+  <div class="archive-hint" data-i18n="tapBankForDaily">Tap a bank to see daily income and expenses.</div>
   <div class="archive-container" id="archive-months-list"></div>
 </div>
 
@@ -1832,13 +2306,39 @@
 <div id="add-transaction-sheet" class="bottom-sheet">
   <div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title" data-i18n="addTransaction">Add transaction</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>
   <div class="sheet-grid">
-    <label>Banka</label><select class="config-input" id="manual-tx-bank"></select>
+    <label data-i18n="date">Date</label>
+    <input class="config-input" id="manual-tx-date" type="date" />
+    <div class="budget-status-note" data-i18n="selectArchiveDate">Select date to place this transaction into the correct archive month.</div>
+
+    <label data-i18n="bank">Bank</label><select class="config-input" id="manual-tx-bank"></select>
     <label data-i18n="merchantDescription">Merchant / description</label><input class="config-input" id="manual-tx-merchant" placeholder="napr. Tesco" />
-    <div class="sheet-grid-2"><div><label>Suma</label><input class="config-input" id="manual-tx-amount" type="number" step="0.01" placeholder="100" /></div><div><label data-i18n="type">Type</label><select class="config-input" id="manual-tx-direction"><option value="outgoing">Outgoing (-)</option><option value="incoming">Incoming (+)</option></select></div></div>
-    <div class="sheet-grid-2"><div><label data-i18n="currency">Currency</label><select class="config-input" id="manual-tx-currency"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select></div><div><label data-i18n="category">Category</label><input class="config-input" id="manual-tx-category" placeholder="Ostatné" /></div></div>
+    <div class="sheet-grid-2"><div><label data-i18n="amount">Amount</label><input class="config-input" id="manual-tx-amount" type="number" step="0.01" placeholder="100" /></div><div><label data-i18n="type">Type</label><select class="config-input" id="manual-tx-direction"><option value="outgoing">Outgoing (-)</option><option value="incoming">Incoming (+)</option></select></div></div>
+    <div class="sheet-grid-2"><div><label data-i18n="currency">Currency</label><select class="config-input" id="manual-tx-currency"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select></div><div><label data-i18n="category">Category</label>
+<select class="config-input" id="manual-tx-category">
+  <option value="Domácnosť">Domácnosť</option>
+  <option value="Potraviny">Potraviny</option>
+  <option value="Pohonné hmoty">Pohonné hmoty</option>
+  <option value="Reštaurácie">Reštaurácie</option>
+  <option value="Káva">Káva</option>
+  <option value="Doprava">Doprava</option>
+  <option value="Zdravie">Zdravie</option>
+  <option value="Drogéria">Drogéria</option>
+  <option value="Dom">Dom</option>
+  <option value="Šport">Šport</option>
+  <option value="Zábava">Zábava</option>
+  <option value="Predplatné">Predplatné</option>
+  <option value="Oblečenie">Oblečenie</option>
+  <option value="Obuv">Obuv</option>
+  <option value="Jedlo">Jedlo</option>
+  <option value="Bývanie">Bývanie</option>
+  <option value="Lekáreň">Lekáreň</option>
+  <option value="Účet">Účet</option>
+  <option value="Ostatné" selected>Ostatné</option>
+</select></div></div>
     <button class="config-save" onclick="saveManualTransaction()" data-i18n="saveTransaction">Save transaction</button>
   </div>
 </div>
+
 <div id="bank-manager-sheet" class="bottom-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title-row">
@@ -1945,6 +2445,22 @@
       <div data-i18n="upgradeTaxExport">Tax report export</div>
     </div>
     <button class="waitlist-btn" onclick="selectPlan('pro')" style="background:#243244;" data-i18n="joinProWaitlist">Join Pro Waitlist</button>
+  </div>
+</div>
+
+
+<div id="archive-bank-detail-sheet" class="bottom-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title-row">
+    <div class="sheet-title" id="archive-bank-detail-title" data-i18n="dailyArchive">Daily archive</div>
+    <button class="sheet-close" onclick="closeBottomSheets()">×</button>
+  </div>
+
+  <div class="sheet-grid">
+    <label data-i18n="selectMonth">Month</label>
+    <select class="config-input" id="archive-detail-month" onchange="archiveDetailFilter=null;renderArchiveBankDetail()"></select>
+    <div id="archive-bank-detail-chart"></div>
+    <div id="archive-bank-detail-list"></div>
   </div>
 </div>
 
@@ -2565,6 +3081,201 @@ function loadDemoData() {
 
 
 
+
+// ── ARCHIVE DAILY BANK DETAIL ──────────────────────────────
+let archiveDetailBankKey = 'rb_cz';
+
+function transactionToCzkEquivalent(tx) {
+  return convertTransactionAmount(tx, 'CZK');
+}
+
+function getArchiveMonths() {
+  return [...new Set(allTransactions.map(t => t.month).filter(Boolean))]
+    .sort((a,b) => monthSortValue(b) - monthSortValue(a));
+}
+
+function openArchiveBankDetail(bankKey, monthStr) {
+  archiveDetailFilter = null;
+  archiveDetailBankKey = bankKey || 'rb_cz';
+
+  const monthSelect = document.getElementById('archive-detail-month');
+  if (monthSelect) {
+    const months = getArchiveMonths();
+    const selected = normalizeMonthStr(monthStr || months[0] || getAktuálneMonth());
+    monthSelect.innerHTML = months.map(m => `<option value="${m}" ${normalizeMonthStr(m) === selected ? 'selected' : ''}>${formatMonthString(m)}</option>`).join('');
+    monthSelect.value = selected;
+  }
+
+  renderArchiveBankDetail();
+  openSheet('archive-bank-detail-sheet');
+}
+
+let archiveDetailFilter = null;
+
+function clearArchiveDetailFilter() {
+  archiveDetailFilter = null;
+  renderArchiveBankDetail();
+}
+
+function setArchiveDetailFilter(day, type) {
+  archiveDetailFilter = { day: Number(day), type: String(type || 'all') };
+  renderArchiveBankDetail();
+}
+
+function renderArchiveBankDetail() {
+  const chartWrap = document.getElementById('archive-bank-detail-chart');
+  const listWrap = document.getElementById('archive-bank-detail-list');
+  const title = document.getElementById('archive-bank-detail-title');
+  const monthStr = normalizeMonthStr(document.getElementById('archive-detail-month')?.value || getAktuálneMonth());
+  const bankKey = archiveDetailBankKey || 'rb_cz';
+  const bankName = plainBankName(bankKey);
+  const targetCurrency = getBankChartCurrency(bankKey);
+
+  if (title) title.innerHTML = `${bankLogoImg(bankKey)} ${bankName} — ${t('dailyArchive')}`;
+
+  if (!chartWrap || !listWrap) return;
+
+  const txns = sortTransactionsNewestFirst(allTransactions.filter(tx => {
+    return tx.month === monthStr && getBankKey(tx) === bankKey;
+  }));
+
+  if (txns.length === 0) {
+    chartWrap.innerHTML = `<div class="empty-state" style="padding:22px 0;">${t('noDailyData')}</div>`;
+    listWrap.innerHTML = '';
+    return;
+  }
+
+  const [mm, yyyy] = normalizeMonthStr(monthStr).split('/').map(Number);
+  const daysInMonth = new Date(yyyy, mm, 0).getDate();
+
+  const daily = Array.from({ length: daysInMonth }, (_, idx) => ({
+    day: idx + 1,
+    income: 0,
+    expense: 0,
+    incomeCount: 0,
+    expenseCount: 0
+  }));
+
+  const txnsWithDay = txns.map(tx => {
+    const parsed = parseCustomDateStr(tx.date);
+    const day = parsed && !isNaN(parsed.getTime()) ? parsed.getDate() : 1;
+    const safeDay = Math.max(1, Math.min(daysInMonth, day));
+    return { ...tx, __archiveDay: safeDay };
+  });
+
+  txnsWithDay.forEach(tx => {
+    const idx = tx.__archiveDay - 1;
+    const value = convertTransactionAmount(tx, targetCurrency);
+
+    if (Number(tx.amount) > 0) {
+      daily[idx].income += value;
+      daily[idx].incomeCount += 1;
+    }
+    if (Number(tx.amount) < 0) {
+      daily[idx].expense += value;
+      daily[idx].expenseCount += 1;
+    }
+  });
+
+  const max = Math.max(1, ...daily.map(d => Math.max(d.income, d.expense)));
+  const niceMax = Math.ceil(max / 1000) * 1000 || max;
+  const w = 360;
+  const h = 210;
+  const padL = 34;
+  const padR = 10;
+  const padT = 16;
+  const axisY = 150;
+  const chartW = w - padL - padR;
+  const dayBand = chartW / daysInMonth;
+  const barW = Math.max(2, Math.min(7, dayBand * 0.33));
+  const barGap = Math.max(1, Math.min(3, dayBand * 0.08));
+  const maxBarH = axisY - padT - 10;
+
+  const barHeight = (value) => Math.max(value > 0 ? 2 : 0, (value / niceMax) * maxBarH);
+  const yFor = (value) => axisY - barHeight(value);
+
+  const selected = archiveDetailFilter;
+  const selectedLabel = selected
+    ? `${t('selectedDay')} ${String(selected.day).padStart(2, '0')} · ${selected.type === 'income' ? t('income') : t('expenses')}`
+    : t('allDays');
+
+  const totalIncome = daily.reduce((s,d) => s + d.income, 0);
+  const totalExpense = daily.reduce((s,d) => s + d.expense, 0);
+
+  const labelDays = [1, Math.ceil(daysInMonth / 3), Math.ceil(daysInMonth * 2 / 3), daysInMonth]
+    .filter((v, i, arr) => arr.indexOf(v) === i);
+
+  const bars = daily.map(d => {
+    const xCenter = padL + (d.day - 0.5) * dayBand;
+    const incomeH = barHeight(d.income);
+    const expenseH = barHeight(d.expense);
+    const incomeActive = selected && selected.day === d.day && selected.type === 'income';
+    const expenseActive = selected && selected.day === d.day && selected.type === 'expense';
+    const hasSelected = !!selected;
+    const incomeMuted = hasSelected && !incomeActive ? ' daily-bar-muted' : '';
+    const expenseMuted = hasSelected && !expenseActive ? ' daily-bar-muted' : '';
+
+    return `
+      <rect class="daily-bar-income${incomeActive ? ' active' : ''}${incomeMuted}" x="${xCenter - barW - barGap / 2}" y="${axisY - incomeH}" width="${barW}" height="${incomeH}" rx="2" onclick="setArchiveDetailFilter(${d.day}, 'income')"></rect>
+      <rect class="daily-bar-expense${expenseActive ? ' active' : ''}${expenseMuted}" x="${xCenter + barGap / 2}" y="${axisY - expenseH}" width="${barW}" height="${expenseH}" rx="2" onclick="setArchiveDetailFilter(${d.day}, 'expense')"></rect>
+    `;
+  }).join('');
+
+  chartWrap.innerHTML = `
+    <div class="daily-chart-card">
+      <div class="daily-chart-title">
+        <strong>${t('dailyCashflow')} · ${formatMonthString(monthStr)}</strong>
+        <span>${t('bankCurrencyNote')} · ${targetCurrency}</span>
+      </div>
+      <div class="daily-legend">
+        <span><i class="daily-dot" style="background:var(--ok);"></i>${t('income')}: ${Math.round(totalIncome).toLocaleString('cs-CZ')} ${targetCurrency}</span>
+        <span><i class="daily-dot" style="background:var(--danger);"></i>${t('expenses')}: ${Math.round(totalExpense).toLocaleString('cs-CZ')} ${targetCurrency}</span>
+      </div>
+      <div class="daily-chart-help">${t('clickBarToFilter')}</div>
+      <div class="daily-filter-chip">${selectedLabel}</div>
+      ${selected ? `<button class="daily-reset-filter" onclick="clearArchiveDetailFilter()" style="margin-left:8px;">${t('allDays')}</button>` : ''}
+      <svg class="daily-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+        <line class="daily-grid-line" x1="${padL}" y1="${axisY}" x2="${w - padR}" y2="${axisY}"></line>
+        <line class="daily-grid-line" x1="${padL}" y1="${Math.round(axisY / 2)}" x2="${w - padR}" y2="${Math.round(axisY / 2)}"></line>
+        <line class="daily-grid-line" x1="${padL}" y1="${padT}" x2="${w - padR}" y2="${padT}"></line>
+        <text class="daily-axis-label" x="2" y="${padT + 4}">${formatCompactAmount(niceMax)}</text>
+        <text class="daily-axis-label" x="2" y="${Math.round(axisY / 2) + 4}">${formatCompactAmount(niceMax / 2)}</text>
+        <text class="daily-axis-label" x="2" y="${axisY + 4}">0</text>
+        ${bars}
+        ${labelDays.map(day => {
+          const x = padL + (day - 0.5) * dayBand;
+          return `<text class="daily-axis-label" x="${x - 5}" y="${axisY + 25}">${String(day).padStart(2,'0')}</text>`;
+        }).join('')}
+      </svg>
+    </div>
+  `;
+
+  let visibleTxns = txnsWithDay;
+  if (selected) {
+    visibleTxns = visibleTxns.filter(tx => {
+      const typeOk = selected.type === 'income' ? Number(tx.amount) > 0 : Number(tx.amount) < 0;
+      return tx.__archiveDay === selected.day && typeOk;
+    });
+  }
+
+  listWrap.innerHTML = `
+    <div class="budget-status-note" style="margin:0 0 8px;">${t('showing')}: ${visibleTxns.length} / ${txnsWithDay.length}</div>
+    ${visibleTxns.map(tx => {
+      const isIncome = Number(tx.amount) > 0;
+      const amountClass = isIncome ? 'amount-income' : 'amount-expense';
+      const sign = isIncome ? '+' : '-';
+      return `
+        <div class="daily-tx-row">
+          <div class="daily-tx-main">
+            <div class="daily-tx-title">${tx.merchant || ''}</div>
+            <div class="daily-tx-sub">${tx.date || ''} · ${translateCategory(tx.category || '')}</div>
+          </div>
+          <div class="daily-tx-amount ${amountClass}">${sign}${formatMoney(tx.amount, tx.currency)} ${tx.currency || 'CZK'}</div>
+        </div>`;
+    }).join('')}
+  `;
+}
+
 // ── OPRAVENÉ MAZANIE JEDNEJ TRANSAKCIE ──────────────────────────
 function deleteSingleTransaction(txId) {
   if (!txId) return;
@@ -3082,9 +3793,9 @@ function resetTransactionFilters() {
   document.getElementById('filter-bank-all')?.classList.add('active');
 }
 
-function showPage(pageId, direction = 'none') {
+function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => {
-    p.classList.remove('active', 'page-slide-in-right', 'page-slide-in-left', 'swipe-peeking');
+    p.classList.remove('active', 'page-slide-in-right', 'page-slide-in-left', 'swipe-peeking', 'page-tab-fade', 'page-light-switch');
     p.style.transform = '';
   });
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -3094,41 +3805,43 @@ function showPage(pageId, direction = 'none') {
 
   if (targetPage) {
     targetPage.classList.add('active');
-    if (direction === 'right') targetPage.classList.add('page-slide-in-right');
-    if (direction === 'left') targetPage.classList.add('page-slide-in-left');
+
+    // Cheap light off/on effect when switching tabs.
+    requestAnimationFrame(() => {
+      targetPage.classList.add('page-light-switch');
+      window.setTimeout(() => {
+        targetPage.classList.remove('page-light-switch');
+      }, 240);
+    });
   }
 
   if (targetNav) targetNav.classList.add('active');
 
-  // Heavy rendering is deferred so swipe animation stays fast on mobile.
-  window.clearTimeout(window.__deferredTabRenderTimer);
-  window.__deferredTabRenderTimer = window.setTimeout(() => {
-    if (pageId === 'txns') {
-      resetTransactionFilters();
-      updateTxnPage();
-    }
+  if (pageId === 'txns') {
+    resetTransactionFilters();
+    updateTxnPage();
+  }
 
-    if (pageId === 'settings') {
-      document.getElementById('sheets-url').value = SHEETS_URL || DEFAULT_SHEETS_URL;
-      const limitsUrlInput = document.getElementById('limits-webapp-url');
-      if (limitsUrlInput) limitsUrlInput.value = LIMITS_WEBAPP_URL;
-      const budgetInputMap = {
-        rb_cz: ['budget-rb-cz', 'budget-warn-rb-cz'],
-        csob_sk: ['budget-csob-sk', 'budget-warn-csob-sk'],
-        csob_cz: ['budget-csob-cz', 'budget-warn-csob-cz'],
-        moneta: ['budget-moneta', 'budget-warn-moneta']
-      };
-      Object.entries(budgetInputMap).forEach(([bankKey, ids]) => {
-        const budgetInput = document.getElementById(ids[0]);
-        const warningInput = document.getElementById(ids[1]);
-        if (budgetInput) budgetInput.value = localStorage.getItem(getBudgetStorageKey(bankKey, 'limit')) || '';
-        if (warningInput) warningInput.value = localStorage.getItem(getBudgetStorageKey(bankKey, 'warn')) || '';
-      });
-      resetSimFields();
-      updateEditModeUI();
-      updatePushStatus();
-    }
-  }, direction === 'none' ? 0 : 90);
+  if (pageId === 'settings') {
+    document.getElementById('sheets-url').value = SHEETS_URL || DEFAULT_SHEETS_URL;
+    const limitsUrlInput = document.getElementById('limits-webapp-url');
+    if (limitsUrlInput) limitsUrlInput.value = LIMITS_WEBAPP_URL;
+    const budgetInputMap = {
+      rb_cz: ['budget-rb-cz', 'budget-warn-rb-cz'],
+      csob_sk: ['budget-csob-sk', 'budget-warn-csob-sk'],
+      csob_cz: ['budget-csob-cz', 'budget-warn-csob-cz'],
+      moneta: ['budget-moneta', 'budget-warn-moneta']
+    };
+    Object.entries(budgetInputMap).forEach(([bankKey, ids]) => {
+      const budgetInput = document.getElementById(ids[0]);
+      const warningInput = document.getElementById(ids[1]);
+      if (budgetInput) budgetInput.value = localStorage.getItem(getBudgetStorageKey(bankKey, 'limit')) || '';
+      if (warningInput) warningInput.value = localStorage.getItem(getBudgetStorageKey(bankKey, 'warn')) || '';
+    });
+    resetSimFields();
+    updateEditModeUI();
+    updatePushStatus();
+  }
 }
 
 async function saveConfig() {
@@ -3304,15 +4017,20 @@ function initSheetOpenPullRefreshGuard() {
     if (!event.touches || event.touches.length !== 1) return;
 
     const openSheet = document.querySelector('.bottom-sheet.open');
-    const targetInsideOpenSheet = openSheet && event.target.closest && event.target.closest('.bottom-sheet.open');
+    if (!openSheet) return;
 
-    // If user is interacting with the open sheet itself, allow sheet scroll/drag logic.
-    if (targetInsideOpenSheet) return;
-
+    const insideSheet = event.target.closest && event.target.closest('.bottom-sheet.open');
     const currentY = event.touches[0].clientY;
     const pullingDown = currentY > startY;
 
-    if (pullingDown) {
+    if (!insideSheet) {
+      if (pullingDown && event.cancelable) event.preventDefault();
+      return;
+    }
+
+    // If user is inside the sheet and sheet content is already at the top,
+    // prevent browser/page pull-to-refresh. The drag handler still receives the gesture.
+    if (pullingDown && openSheet.scrollTop <= 0 && event.cancelable) {
       event.preventDefault();
     }
   }, { passive: false });
@@ -3328,86 +4046,163 @@ function initBottomSheetDragToClose() {
     let currentY = 0;
     let isDragging = false;
     let pointerId = null;
+    let touchMode = false;
 
-    const canStartFrom = (event) => {
+    const canStartDrag = (target, clientY) => {
       if (!sheet.classList.contains('open')) return false;
-      if (event.target.closest('button, input, select, textarea, a')) return false;
+      if (target.closest && target.closest('button, input, select, textarea, a')) return false;
 
       const rect = sheet.getBoundingClientRect();
-      const yInside = event.clientY - rect.top;
+      const yInside = clientY - rect.top;
 
-      // Large comfortable touch zone: top part of every sheet.
-      return yInside >= 0 && yInside <= 96;
+      // Big top grab zone plus any direct handle/title drag.
+      const inTopZone = yInside >= 0 && yInside <= 124;
+      const onHandle = target.closest && target.closest('.sheet-handle, .sheet-title-row');
+      return inTopZone || onHandle;
     };
 
-    const startDrag = (event) => {
-      if (!canStartFrom(event)) return;
-
-      pointerId = event.pointerId;
-      startY = event.clientY;
-      currentY = startY;
+    const setDrag = (clientY, id = null, isTouch = false) => {
+      startY = clientY;
+      currentY = clientY;
+      pointerId = id;
+      touchMode = isTouch;
       isDragging = true;
-
+      sheet.dataset.dragActive = 'true';
       sheet.classList.add('dragging');
-      try { sheet.setPointerCapture(pointerId); } catch (_) {}
+      sheet.style.transition = '';
     };
 
-    const moveDrag = (event) => {
-      if (!isDragging || event.pointerId !== pointerId) return;
+    const moveDrag = (clientY, event) => {
+      if (!isDragging) return;
 
-      currentY = event.clientY;
+      currentY = clientY;
       const deltaY = Math.max(0, currentY - startY);
 
       if (deltaY > 0) {
         sheet.style.transform = `translateX(-50%) translateY(${deltaY}px)`;
-        event.preventDefault();
+        if (event && event.cancelable) event.preventDefault();
       }
     };
 
-    const endDrag = (event) => {
-      if (!isDragging || event.pointerId !== pointerId) return;
-
-      const deltaY = Math.max(0, currentY - startY);
+    const resetDragState = () => {
       isDragging = false;
       pointerId = null;
+      touchMode = false;
+      currentY = 0;
+      startY = 0;
+      sheet.dataset.dragActive = 'false';
+      sheet.classList.remove('dragging');
+      sheet.style.transition = '';
+      sheet.style.transform = '';
+    };
+
+    const finishDrag = () => {
+      if (!isDragging) return;
+
+      const deltaY = Math.max(0, currentY - startY);
+
       sheet.classList.remove('dragging');
 
-      try { sheet.releasePointerCapture(event.pointerId); } catch (_) {}
-
-      if (deltaY > 88) {
-        sheet.style.transform = '';
+      if (deltaY > 82) {
+        resetDragState();
         closeBottomSheets();
       } else {
-        sheet.style.transform = '';
+        sheet.style.transition = 'transform .16s ease-out';
+        sheet.style.transform = 'translateX(-50%) translateY(0)';
+
+        window.setTimeout(() => {
+          if (sheet.classList.contains('open')) {
+            sheet.style.transition = '';
+            sheet.style.transform = '';
+          }
+          resetDragState();
+        }, 170);
       }
     };
 
-    sheet.addEventListener('pointerdown', startDrag);
-    sheet.addEventListener('pointermove', moveDrag);
-    sheet.addEventListener('pointerup', endDrag);
-    sheet.addEventListener('pointercancel', endDrag);
+    sheet.addEventListener('pointerdown', (event) => {
+      if (!canStartDrag(event.target, event.clientY)) return;
+      setDrag(event.clientY, event.pointerId, false);
+      try { sheet.setPointerCapture(pointerId); } catch (_) {}
+    });
+
+    sheet.addEventListener('pointermove', (event) => {
+      if (!isDragging || touchMode || event.pointerId !== pointerId) return;
+      moveDrag(event.clientY, event);
+    }, { passive: false });
+
+    sheet.addEventListener('pointerup', (event) => {
+      if (!isDragging || touchMode || event.pointerId !== pointerId) return;
+      try { sheet.releasePointerCapture(pointerId); } catch (_) {}
+      finishDrag();
+    });
+
+    sheet.addEventListener('pointercancel', () => {
+      if (!touchMode) resetDragState();
+    });
+
+    // Explicit touch fallback for mobile PWA / iOS / Android browsers.
+    sheet.addEventListener('touchstart', (event) => {
+      if (!event.touches || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      if (!canStartDrag(event.target, touch.clientY)) return;
+      setDrag(touch.clientY, 'touch', true);
+    }, { passive: true });
+
+    sheet.addEventListener('touchmove', (event) => {
+      if (!isDragging || !touchMode) return;
+      if (!event.touches || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      moveDrag(touch.clientY, event);
+    }, { passive: false });
+
+    sheet.addEventListener('touchend', () => {
+      if (!isDragging || !touchMode) return;
+      finishDrag();
+    }, { passive: true });
+
+    sheet.addEventListener('touchcancel', () => {
+      if (!touchMode) return;
+      resetDragState();
+    });
   });
 }
 
 function openSheet(id){
   document.body.classList.add('sheet-open');
+
   document.getElementById('bottom-sheet-backdrop')?.classList.add('open');
-  document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));
-  document.getElementById(id)?.classList.add('open');
+
+  document.querySelectorAll('.bottom-sheet').forEach(sheet => {
+    sheet.classList.remove('open', 'dragging');
+    sheet.style.transition = '';
+    sheet.style.transform = '';
+    sheet.dataset.dragActive = 'false';
+    sheet.scrollTop = 0;
+  });
+
+  const sheet = document.getElementById(id);
+  if (sheet) {
+    sheet.offsetHeight;
+    sheet.classList.add('open');
+  }
+
   initBottomSheetDragToClose();
-  initSheetOpenPullRefreshGuard();
+  if (typeof initSheetOpenPullRefreshGuard === 'function') initSheetOpenPullRefreshGuard();
 }
 function closeBottomSheets(){
   document.body.classList.remove('sheet-open');
-  document.getElementById('bottom-sheet-backdrop')?.classList.remove('open');
-  document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));
 
-  if (typeof resetManagerFilters === 'function') resetManagerFilters();
+  document.getElementById('bottom-sheet-backdrop')?.classList.remove('open');
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
+    sheet.classList.remove('open', 'dragging');
+    sheet.style.transition = '';
     sheet.style.transform = '';
-    sheet.classList.remove('dragging');
+    sheet.dataset.dragActive = 'false';
   });
+
+  if (typeof resetManagerFilters === 'function') resetManagerFilters();
 }
 
 
@@ -3698,7 +4493,41 @@ function openAddBankFromQuick() {
 }
 
 function openAddBankSheet(){openSheet('add-bank-sheet')}
-function openAddTransactionSheet(){fillManualTransactionBanks();openSheet('add-transaction-sheet')}
+
+function toDateInputValue(dateObj = new Date()) {
+  const d = new Date(dateObj);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function parseManualDateInput(value) {
+  if (!value) return new Date();
+  const parts = String(value).split('-').map(Number);
+  if (parts.length === 3 && parts.every(Boolean)) {
+    return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+  }
+  return parseCustomDateStr(value);
+}
+
+
+function translateManualCategoryDropdown() {
+  const select = document.getElementById('manual-tx-category');
+  if (!select || typeof translateCategory !== 'function') return;
+
+  Array.from(select.options).forEach(option => {
+    option.textContent = translateCategory(option.value);
+  });
+}
+
+function openAddTransactionSheet(){
+  fillManualTransactionBanks();
+  translateManualCategoryDropdown();
+  const dateInput = document.getElementById('manual-tx-date');
+  if (dateInput && !dateInput.value) dateInput.value = toDateInputValue(new Date());
+  openSheet('add-transaction-sheet');
+}
 function openBankManagerSheet(){switchManagementTab('banks');renderBankManager();renderTransactionManager();openSheet('bank-manager-sheet')}
 function saveNewBank(){const name=document.getElementById('new-bank-name')?.value.trim();if(!name){alert('Zadaj názov banky.');return}const banks=getCustomBanks();banks.push({id:'custom_'+Date.now(),name,currency:document.getElementById('new-bank-currency')?.value||'CZK',type:document.getElementById('new-bank-type')?.value||'card',account:normalizeAccountMask(document.getElementById('new-bank-account')?.value||''),budget:parseFloat(document.getElementById('new-bank-budget')?.value||'0')||0,warning:parseFloat(document.getElementById('new-bank-warning')?.value||'0')||0,cardLimit:parseInt(document.getElementById('new-bank-card-limit')?.value||'0',10)||0});saveCustomBanks(banks);postToBankTrackerEndpoint('saveBank', { bank: banks[banks.length - 1] });alert('Banka bola uložená lokálne a odoslaná do Google Sheets endpointu, ak je Web App URL nastavená.');closeBottomSheets();renderAll()}
 
@@ -3827,11 +4656,44 @@ function updateSystemBankSettings(bankKey) {
 }
 
 function fillManualTransactionBanks(){const select=document.getElementById('manual-tx-bank');if(!select)return;select.innerHTML=BANK_ORDER.map(k=>`<option value="${k}">${plainBankName(k)}</option>`).join('')+getCustomBanks().map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}
-function saveManualTransaction(){const bankKey=document.getElementById('manual-tx-bank')?.value||'rb_cz';const merchant=document.getElementById('manual-tx-merchant')?.value.trim()||'Manuálna transakcia';const amountRaw=parseFloat(document.getElementById('manual-tx-amount')?.value||'0')||0;const direction=document.getElementById('manual-tx-direction')?.value||'outgoing';const currency=document.getElementById('manual-tx-currency')?.value||'CZK';const category=document.getElementById('manual-tx-category')?.value.trim()||'Ostatné';const now=new Date();const amount=direction==='incoming'?Math.abs(amountRaw):-Math.abs(amountRaw);const customBank=getCustomBanks().find(b=>b.id===bankKey);const bankName=customBank?customBank.name:plainBankName(bankKey);const newTx = {id:'manual-'+Date.now(),date:formatDate(now),amount,currency,merchant,category,card:bankName,type:direction==='incoming'?'Príjem':'Výdaj',month:getMonthFromDate(now),bank:bankName,timestamp:now.getTime()};
+function saveManualTransaction(){
+  const bankKey=document.getElementById('manual-tx-bank')?.value||'rb_cz';
+  const merchant=document.getElementById('manual-tx-merchant')?.value.trim()||t('manualTransaction');
+  const amountRaw=parseFloat(document.getElementById('manual-tx-amount')?.value||'0')||0;
+  const direction=document.getElementById('manual-tx-direction')?.value||'outgoing';
+  const currency=document.getElementById('manual-tx-currency')?.value||'CZK';
+  const category=document.getElementById('manual-tx-category')?.value||'Ostatné';
+  const txDate=parseManualDateInput(document.getElementById('manual-tx-date')?.value);
+  const amount=direction==='incoming'?Math.abs(amountRaw):-Math.abs(amountRaw);
+  const customBank=getCustomBanks().find(b=>b.id===bankKey);
+  const bankName=customBank?customBank.name:plainBankName(bankKey);
+
+  const newTx = {
+    id:'manual-'+Date.now(),
+    date:formatDate(txDate),
+    rawDate:txDate.toISOString(),
+    amount,
+    currency,
+    merchant,
+    category,
+    card:bankName,
+    type:direction==='incoming'?'Príjem':'Výdaj',
+    month:getMonthFromDate(txDate),
+    bank:bankName,
+    timestamp:txDate.getTime()
+  };
+
   allTransactions.unshift(newTx);
   allTransactions=sortTransactionsNewestFirst(allTransactions);
   localStorage.setItem('cached_txns',JSON.stringify(allTransactions));
   postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(newTx) });
+
+  document.getElementById('manual-tx-merchant').value='';
+  document.getElementById('manual-tx-amount').value='';
+  document.getElementById('manual-tx-category').value='Ostatné';
+  const dateInput = document.getElementById('manual-tx-date');
+  if (dateInput) dateInput.value = toDateInputValue(new Date());
+
   closeBottomSheets();
   renderAll();
 }
@@ -3863,10 +4725,46 @@ function getArchiveMonthlySeries() {
 
 
 
+
+const FX_RATES = {
+  CZK_PER_EUR: 25
+};
+
+function convertAmountCurrency(amount, fromCurrency, toCurrency) {
+  const value = Math.abs(Number(amount) || 0);
+  const from = String(fromCurrency || 'CZK').toUpperCase();
+  const to = String(toCurrency || 'CZK').toUpperCase();
+
+  if (from === to) return value;
+
+  if (from === 'EUR' && to === 'CZK') return value * FX_RATES.CZK_PER_EUR;
+  if (from === 'CZK' && to === 'EUR') return value / FX_RATES.CZK_PER_EUR;
+
+  // Unknown currencies stay as entered until we add real FX backend.
+  return value;
+}
+
+function convertTransactionAmount(tx, targetCurrency = 'CZK') {
+  return convertAmountCurrency(tx.amount, tx.currency, targetCurrency);
+}
+
+function getBankChartCurrency(bankKey) {
+  const bank = getBankInfo(bankKey);
+  return localStorage.getItem('bank_currency_' + bankKey) || bank.primaryCurrency || 'CZK';
+}
+
+function formatCompactAmount(value) {
+  const n = Math.round(Number(value) || 0);
+  if (n >= 1000000) return `${Math.round(n / 100000) / 10}M`;
+  if (n >= 1000) return `${Math.round(n / 100) / 10}k`;
+  return String(n);
+}
+
 function renderArchiveTrendChart() {
   const wrap = document.getElementById('archive-trend-chart');
   if (!wrap) return;
 
+  const targetCurrency = 'CZK';
   const monthly = {};
   allTransactions.forEach(t => {
     if (!t.month || !(Number(t.amount) < 0)) return;
@@ -3874,9 +4772,7 @@ function renderArchiveTrendChart() {
     const bankKey = getBankKey(t);
     if (!BANK_ORDER.includes(bankKey)) return;
 
-    const currency = String(t.currency || 'CZK').toUpperCase();
-    const amount = Math.abs(Number(t.amount) || 0);
-    const czkValue = currency === 'EUR' ? amount * 25 : amount;
+    const czkValue = convertTransactionAmount(t, targetCurrency);
 
     if (!monthly[t.month]) monthly[t.month] = {};
     monthly[t.month][bankKey] = (monthly[t.month][bankKey] || 0) + czkValue;
@@ -3892,11 +4788,11 @@ function renderArchiveTrendChart() {
   }
 
   const w = 360;
-  const h = 176;
-  const padL = 22;
+  const h = 190;
+  const padL = 36;
   const padR = 12;
-  const padT = 14;
-  const axisY = 128;
+  const padT = 16;
+  const axisY = 134;
   const step = months.length === 1 ? 0 : (w - padL - padR) / (months.length - 1);
 
   let max = 1;
@@ -3906,10 +4802,14 @@ function renderArchiveTrendChart() {
     });
   });
 
+  const niceMax = Math.ceil(max / 1000) * 1000 || max;
+  const halfLabel = formatCompactAmount(niceMax / 2);
+  const maxLabel = formatCompactAmount(niceMax);
+
   const getPoint = (month, bankKey, index) => {
     const value = monthly[month][bankKey] || 0;
     const x = padL + index * step;
-    const y = axisY - (value / max) * (axisY - padT - 16);
+    const y = axisY - (value / niceMax) * (axisY - padT - 14);
     return { x, y, value };
   };
 
@@ -3924,7 +4824,8 @@ function renderArchiveTrendChart() {
 
   const legend = BANK_ORDER.map(bankKey => {
     const bank = getBankInfo(bankKey);
-    return `<span class="archive-bank-legend-item"><span class="archive-bank-legend-dot" style="background:${bank.color};"></span>${plainBankName(bankKey)}</span>`;
+    const defaultMonth = months[months.length - 1] || getAktuálneMonth();
+    return `<span class="archive-bank-legend-item" onclick="openArchiveBankDetail('${bankKey}','${defaultMonth}')" title="${t('dailyArchive')}"><span class="archive-bank-legend-dot" style="background:${bank.color};"></span>${plainBankName(bankKey)}</span>`;
   }).join('');
 
   const lines = BANK_ORDER.map(bankKey => {
@@ -3938,16 +4839,23 @@ function renderArchiveTrendChart() {
 
   wrap.innerHTML = `
     <div class="archive-bank-legend">${legend}</div>
+    <div class="archive-chart-note">${t('trendCurrencyNote')}</div>
     <svg class="archive-multiline-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
       <line class="archive-grid-line" x1="${padL}" y1="${axisY}" x2="${w - padR}" y2="${axisY}"></line>
       <line class="archive-grid-line" x1="${padL}" y1="${Math.round(axisY / 2)}" x2="${w - padR}" y2="${Math.round(axisY / 2)}"></line>
+      <line class="archive-grid-line" x1="${padL}" y1="${padT}" x2="${w - padR}" y2="${padT}"></line>
+
+      <text class="archive-y-label" x="2" y="${padT + 4}">${maxLabel}</text>
+      <text class="archive-y-label" x="2" y="${Math.round(axisY / 2) + 4}">${halfLabel}</text>
+      <text class="archive-y-label" x="2" y="${axisY + 4}">0</text>
+      <text class="archive-axis-unit" x="${padL}" y="${h - 6}">${t('czkEquivalent')}</text>
+
       ${lines}
       ${months.map((m, i) => {
         const x = padL + i * step;
-        return `<text class="archive-axis-label" x="${x - 10}" y="${axisY + 24}">${monthLabel(m)}</text>`;
+        return `<text class="archive-axis-label" x="${x - 13}" y="${axisY + 24}">${monthLabel(m)}</text>`;
       }).join('')}
     </svg>
-    <div class="budget-status-note">${t('monthlyBankTrendNote')}</div>
   `;
 }
 
@@ -3967,7 +4875,7 @@ function renderArchive() {
       const bank = getBankInfo(bankKey);
       const count = txns.filter(t => getBankKey(t) === bankKey).length;
       const limit = hist[bank.limitKey] ?? bank.defaultLimit;
-      return `<div class="archive-bank-col"><span class="archive-bank-title" style="color:${bank.color};"><span class="bank-inline-logo">${bankLogoImg(bankKey)}<span>${count}/${limit}</span></span></span>${getBankStatusText(count, limit)}</div>`;
+      return `<div class="archive-bank-col" onclick="openArchiveBankDetail('${bankKey}','${mStr}')" title="${t('dailyArchive')}"><span class="archive-bank-title" style="color:${bank.color};"><span class="bank-inline-logo">${bankLogoImg(bankKey)}<span>${count}/${limit}</span></span></span>${getBankStatusText(count, limit)}</div>`;
     }).join('');
     return `<div class="archive-item"><div class="archive-month-left"><div class="archive-month-name">${formatMonthString(mStr)}</div></div><div class="archive-stats-grid" style="grid-template-columns: repeat(4, auto); gap: 10px;">${cols}</div></div>`;
   }).join('');
@@ -4131,7 +5039,24 @@ const I18N = {
     budgetLabel: 'budget',
     noBanksAdded: 'No banks added yet.',
     cardPayments: 'card payments',
-    limitReached: 'limit reached'},
+    limitReached: 'limit reached',
+    dailyArchive: 'Daily archive',
+    dailyCashflow: 'Daily cashflow',
+    expenses: 'Expenses',
+    selectMonth: 'Month',
+    dailyTotal: 'Daily total',
+    noDailyData: 'No daily data for this bank and month.',
+    tapBankForDaily: 'Tap a bank to see daily income and expenses.',
+    czkEquivalent: 'CZK equivalent',
+    trendCurrencyNote: 'All currencies are converted to CZK for comparison.',
+    bankCurrencyNote: 'Converted to bank currency',
+    amountAxis: 'Amount',
+    clickBarToFilter: 'Tap a bar to filter transactions.',
+    allDays: 'All days',
+    selectedDay: 'Selected day',
+    showing: 'Showing',
+    manualTransaction: 'Manual transaction',
+    selectArchiveDate: 'Select date to place this transaction into the correct archive month.'},
   sk: {
     appTitle: 'Bank Tracker',
     overview: 'Prehľad',
@@ -4152,7 +5077,7 @@ const I18N = {
     incoming: 'Príjem',
     outgoing: 'Výdaj',
     spent: 'Výdavky',
-    income: 'Príjem',
+    income: 'Príjmy',
     archiveSubtitle: 'Mesačné trendy',
     spendingTrend: 'Trend výdavkov',
     lastMonthsHint: 'Posledných 8 mesiacov · klikni na bod pre detail',
@@ -4277,7 +5202,24 @@ const I18N = {
     budgetLabel: 'budget',
     noBanksAdded: 'Nemáš pridané banky.',
     cardPayments: 'platby kartou',
-    limitReached: 'limit naplnený'},
+    limitReached: 'limit naplnený',
+    dailyArchive: 'Denný archív',
+    dailyCashflow: 'Denný cashflow',
+    expenses: 'Výdavky',
+    selectMonth: 'Mesiac',
+    dailyTotal: 'Denný súčet',
+    noDailyData: 'Pre túto banku a mesiac nie sú denné dáta.',
+    tapBankForDaily: 'Klikni na banku pre denné príjmy a výdavky.',
+    czkEquivalent: 'CZK ekvivalent',
+    trendCurrencyNote: 'Všetky meny sú pre porovnanie prepočítané na CZK.',
+    bankCurrencyNote: 'Prepočítané do meny banky',
+    amountAxis: 'Suma',
+    clickBarToFilter: 'Klikni na stĺpec pre filtrovanie transakcií.',
+    allDays: 'Všetky dni',
+    selectedDay: 'Vybraný deň',
+    showing: 'Zobrazené',
+    manualTransaction: 'Manuálna transakcia',
+    selectArchiveDate: 'Vyber dátum, aby sa transakcia zaradila do správneho mesiaca v archíve.'},
   cs: {
     appTitle: 'Bank Tracker',
     overview: 'Přehled',
@@ -4298,7 +5240,7 @@ const I18N = {
     incoming: 'Příjem',
     outgoing: 'Výdaj',
     spent: 'Výdaje',
-    income: 'Příjem',
+    income: 'Příjmy',
     archiveSubtitle: 'Měsíční trendy',
     spendingTrend: 'Trend výdajů',
     lastMonthsHint: 'Posledních 8 měsíců · klikni na bod pro detail',
@@ -4426,7 +5368,24 @@ const I18N = {
     budgetLabel: 'budget',
     noBanksAdded: 'Nemáš přidané banky.',
     cardPayments: 'platby kartou',
-    limitReached: 'limit splněn'}
+    limitReached: 'limit splněn',
+    dailyArchive: 'Denní archiv',
+    dailyCashflow: 'Denní cashflow',
+    expenses: 'Výdaje',
+    selectMonth: 'Měsíc',
+    dailyTotal: 'Denní součet',
+    noDailyData: 'Pro tuto banku a měsíc nejsou denní data.',
+    tapBankForDaily: 'Klikni na banku pro denní příjmy a výdaje.',
+    czkEquivalent: 'CZK ekvivalent',
+    trendCurrencyNote: 'Všechny měny jsou pro porovnání přepočítané na CZK.',
+    bankCurrencyNote: 'Přepočteno do měny banky',
+    amountAxis: 'Částka',
+    clickBarToFilter: 'Klikni na sloupec pro filtrování transakcí.',
+    allDays: 'Všechny dny',
+    selectedDay: 'Vybraný den',
+    showing: 'Zobrazeno',
+    manualTransaction: 'Manuální transakce',
+    selectArchiveDate: 'Vyber datum, aby se transakce zařadila do správného měsíce v archivu.'}
 };
 
 function getLanguage() {
@@ -4448,6 +5407,8 @@ function setLanguage(lang) {
   setBillingMode(document.getElementById('billing-yearly')?.classList.contains('active') ? 'yearly' : 'monthly');
 
   if (document.getElementById('bank-manager-sheet')?.classList.contains('open')) { renderBankManager(); renderTransactionManager(); }
+
+  translateManualCategoryDropdown();
 }
 
 function applyLanguage() {
@@ -4638,14 +5599,7 @@ function getActivePageId() {
 }
 
 function navigateBySwipe(deltaX) {
-  const activeId = getActivePageId();
-  const index = PAGE_SWIPE_ORDER.indexOf(activeId);
-  if (index === -1) return;
-
-  const nextIndex = deltaX < 0 ? index + 1 : index - 1;
-  if (nextIndex < 0 || nextIndex >= PAGE_SWIPE_ORDER.length) return;
-
-  showPage(PAGE_SWIPE_ORDER[nextIndex], deltaX < 0 ? 'right' : 'left');
+  // v78: swipe navigation disabled.
 }
 
 function shouldIgnorePageSwipeTarget(target) {
@@ -4656,112 +5610,7 @@ function shouldIgnorePageSwipeTarget(target) {
 }
 
 function initPageSwipeNavigation() {
-  if (window.__pageSwipeNavigationBound) return;
-  window.__pageSwipeNavigationBound = true;
-
-  let startX = 0;
-  let startY = 0;
-  let currentX = 0;
-  let tracking = false;
-  let horizontal = false;
-  let pointerId = null;
-  let startedAt = 0;
-
-  const start = (x, y, target, id = null) => {
-    if (document.body.classList.contains('sheet-open')) return false;
-    if (shouldIgnorePageSwipeTarget(target)) return false;
-
-    startX = x;
-    startY = y;
-    currentX = x;
-    tracking = true;
-    horizontal = false;
-    pointerId = id;
-    startedAt = Date.now();
-
-    return true;
-  };
-
-  const move = (x, y, event) => {
-    if (!tracking) return;
-
-    currentX = x;
-    const deltaX = currentX - startX;
-    const deltaY = y - startY;
-
-    if (!horizontal && Math.abs(deltaX) > 18 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35) {
-      horizontal = true;
-    }
-
-    // Mobile performance: do not transform the whole page on every touchmove.
-    // We only prevent vertical scroll once the gesture is clearly horizontal.
-    if (horizontal && event && event.cancelable) {
-      event.preventDefault();
-    }
-  };
-
-  const finish = () => {
-    if (!tracking) return;
-
-    const deltaX = currentX - startX;
-    const elapsed = Math.max(Date.now() - startedAt, 1);
-    const velocity = Math.abs(deltaX) / elapsed;
-
-    const shouldNavigate =
-      horizontal &&
-      (
-        Math.abs(deltaX) > 64 ||
-        (Math.abs(deltaX) > 42 && velocity > 0.45)
-      );
-
-    tracking = false;
-    horizontal = false;
-    pointerId = null;
-
-    if (shouldNavigate) {
-      navigateBySwipe(deltaX);
-    }
-  };
-
-  window.addEventListener('pointerdown', (event) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    start(event.clientX, event.clientY, event.target, event.pointerId);
-  });
-
-  window.addEventListener('pointermove', (event) => {
-    if (!tracking || pointerId !== event.pointerId) return;
-    move(event.clientX, event.clientY, event);
-  }, { passive: false });
-
-  window.addEventListener('pointerup', (event) => {
-    if (pointerId !== null && pointerId !== event.pointerId) return;
-    finish();
-  });
-
-  window.addEventListener('pointercancel', finish);
-
-  window.addEventListener('touchstart', (event) => {
-    if (!event.touches || event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    start(touch.clientX, touch.clientY, event.target, 'touch');
-  }, { passive: true });
-
-  window.addEventListener('touchmove', (event) => {
-    if (!tracking || pointerId !== 'touch') return;
-    if (!event.touches || event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    move(touch.clientX, touch.clientY, event);
-  }, { passive: false });
-
-  window.addEventListener('touchend', () => {
-    if (pointerId !== 'touch') return;
-    finish();
-  }, { passive: true });
-
-  window.addEventListener('touchcancel', () => {
-    if (pointerId !== 'touch') return;
-    finish();
-  }, { passive: true });
+  // v78: swipe navigation disabled for smoother mobile performance.
 }
 
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
@@ -4782,8 +5631,6 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 document.addEventListener('DOMContentLoaded', initBottomSheetDragToClose);
-
-document.addEventListener('DOMContentLoaded', initPageSwipeNavigation);
 </script>
 
 
