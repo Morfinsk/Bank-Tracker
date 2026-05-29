@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v74 corrected swipe direction -->
+<!-- v75 mobile swipe fallback -->
 <link rel="manifest" href="./manifest.json?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -1568,6 +1568,21 @@
 
   .page.swipe-peeking {
     transition: transform .08s linear;
+  }
+
+
+  /* v75 mobile swipe support */
+  .page.active {
+    touch-action: pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .page.active input,
+  .page.active textarea,
+  .page.active select {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
 </style>
@@ -4582,6 +4597,13 @@ function navigateBySwipe(deltaX) {
   showPage(PAGE_SWIPE_ORDER[nextIndex], deltaX < 0 ? 'right' : 'left');
 }
 
+function shouldIgnorePageSwipeTarget(target) {
+  if (!target) return false;
+  return !!target.closest(
+    'button, input, select, textarea, a, .bottom-sheet, .bottom-nav, .cat-chip, .txn-filter-pill, .sync-btn, .fab, .top-upgrade-btn, .sheet-close'
+  );
+}
+
 function initPageSwipeNavigation() {
   if (window.__pageSwipeNavigationBound) return;
   window.__pageSwipeNavigationBound = true;
@@ -4589,56 +4611,52 @@ function initPageSwipeNavigation() {
   let startX = 0;
   let startY = 0;
   let currentX = 0;
-  let pointerId = null;
   let tracking = false;
   let horizontal = false;
+  let pointerId = null;
 
-  const ignoreTarget = (target) => {
-    if (!target) return false;
-    return !!target.closest('button, input, select, textarea, a, .bottom-sheet, .bottom-nav, .cat-chip, .txn-filter-pill, .sync-btn, .fab, .top-upgrade-btn');
-  };
-
-  window.addEventListener('pointerdown', (event) => {
-    if (document.body.classList.contains('sheet-open')) return;
-    if (ignoreTarget(event.target)) return;
-    if (event.button !== undefined && event.button !== 0) return;
+  const start = (x, y, target, id = null) => {
+    if (document.body.classList.contains('sheet-open')) return false;
+    if (shouldIgnorePageSwipeTarget(target)) return false;
 
     const active = document.querySelector('.page.active');
-    if (!active) return;
+    if (!active) return false;
 
-    pointerId = event.pointerId;
-    startX = event.clientX;
-    startY = event.clientY;
-    currentX = startX;
+    startX = x;
+    startY = y;
+    currentX = x;
     tracking = true;
     horizontal = false;
+    pointerId = id;
 
     active.classList.add('swipe-peeking');
-  });
+    return true;
+  };
 
-  window.addEventListener('pointermove', (event) => {
-    if (!tracking || event.pointerId !== pointerId) return;
+  const move = (x, y, event) => {
+    if (!tracking) return;
 
-    currentX = event.clientX;
+    currentX = x;
     const deltaX = currentX - startX;
-    const deltaY = event.clientY - startY;
+    const deltaY = y - startY;
 
-    if (!horizontal && Math.abs(deltaX) > 18 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35) {
+    if (!horizontal && Math.abs(deltaX) > 16 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25) {
       horizontal = true;
     }
 
     if (horizontal) {
       const active = document.querySelector('.page.active');
       if (active) {
-        const peek = Math.max(-34, Math.min(34, deltaX * 0.16));
+        const peek = Math.max(-38, Math.min(38, deltaX * 0.18));
         active.style.transform = `translateX(${peek}px)`;
       }
-      event.preventDefault();
-    }
-  }, { passive: false });
 
-  const finish = (event) => {
-    if (!tracking || (event.pointerId !== undefined && event.pointerId !== pointerId)) return;
+      if (event && event.cancelable) event.preventDefault();
+    }
+  };
+
+  const finish = () => {
+    if (!tracking) return;
 
     const deltaX = currentX - startX;
     const active = document.querySelector('.page.active');
@@ -4648,16 +4666,58 @@ function initPageSwipeNavigation() {
       active.style.transform = '';
     }
 
+    const shouldNavigate = horizontal && Math.abs(deltaX) > 64;
+
     tracking = false;
+    horizontal = false;
     pointerId = null;
 
-    if (horizontal && Math.abs(deltaX) > 72) {
+    if (shouldNavigate) {
       navigateBySwipe(deltaX);
     }
   };
 
-  window.addEventListener('pointerup', finish);
+  // Pointer events work well on desktop and some Android browsers.
+  window.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    start(event.clientX, event.clientY, event.target, event.pointerId);
+  });
+
+  window.addEventListener('pointermove', (event) => {
+    if (!tracking || pointerId !== event.pointerId) return;
+    move(event.clientX, event.clientY, event);
+  }, { passive: false });
+
+  window.addEventListener('pointerup', (event) => {
+    if (pointerId !== null && pointerId !== event.pointerId) return;
+    finish();
+  });
+
   window.addEventListener('pointercancel', finish);
+
+  // Explicit touch fallback for mobile/PWA where pointer events can be unreliable.
+  window.addEventListener('touchstart', (event) => {
+    if (!event.touches || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    start(touch.clientX, touch.clientY, event.target, 'touch');
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (event) => {
+    if (!tracking || pointerId !== 'touch') return;
+    if (!event.touches || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    move(touch.clientX, touch.clientY, event);
+  }, { passive: false });
+
+  window.addEventListener('touchend', () => {
+    if (pointerId !== 'touch') return;
+    finish();
+  }, { passive: true });
+
+  window.addEventListener('touchcancel', () => {
+    if (pointerId !== 'touch') return;
+    finish();
+  }, { passive: true });
 }
 
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
