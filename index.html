@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#08111f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v87 global pull down closes sheet -->
+<!-- v91 safe double click transaction edit -->
 <link rel="manifest" href="./manifest.json?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -2139,7 +2139,147 @@
     transition: none !important;
   }
 
+
+  /* v88 iOS safe-area status bar theme */
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    background: #08111f !important;
+    min-height: 100%;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at top left, rgba(88,166,255,.18), transparent 42%),
+      linear-gradient(180deg, #08111f 0%, #07101f 45%, #050b16 100%) !important;
+    background-color: #08111f !important;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: env(safe-area-inset-top);
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    z-index: 9999;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top);
+    background: #08111f;
+    pointer-events: none;
+  }
+
+  .page {
+    padding-top: max(34px, calc(34px + env(safe-area-inset-top) * .15));
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    html,
+    body {
+      background-color: #08111f !important;
+    }
+  }
+
+
+  /* v89 iPhone-safe tab switch effect */
+  .page.active.page-light-switch {
+    animation: pageLightSwitch .20s ease-out;
+    will-change: opacity, transform;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  @keyframes pageLightSwitch {
+    0% {
+      opacity: .34;
+      transform: translate3d(0, 7px, 0) scale(.997);
+    }
+    55% {
+      opacity: .78;
+    }
+    100% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  @-webkit-keyframes pageLightSwitch {
+    0% {
+      opacity: .34;
+      -webkit-transform: translate3d(0, 7px, 0) scale(.997);
+    }
+    55% {
+      opacity: .78;
+    }
+    100% {
+      opacity: 1;
+      -webkit-transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  .nav-item.tab-just-activated .nav-icon {
+    animation: navIconLightSwitch .22s ease-out;
+    -webkit-animation: navIconLightSwitch .22s ease-out;
+  }
+
+  @keyframes navIconLightSwitch {
+    0% {
+      opacity: .35;
+      transform: scale(.90);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @-webkit-keyframes navIconLightSwitch {
+    0% {
+      opacity: .35;
+      -webkit-transform: scale(.90);
+    }
+    100% {
+      opacity: 1;
+      -webkit-transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page.active.page-light-switch,
+    .nav-item.tab-just-activated .nav-icon {
+      animation: none !important;
+      -webkit-animation: none !important;
+    }
+  }
+
+
+  /* v91 safe transaction edit from lists */
+  .tx-item,
+  .tx-item-compact {
+    cursor: pointer;
+  }
+
+  .tx-item.tx-open-hint,
+  .tx-item-compact.tx-open-hint {
+    background: rgba(88,166,255,.10);
+    transform: scale(.992);
+  }
+
+  .txn-edit-hint {
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    padding: 0 20px 8px;
+  }
+
 </style>
+  <meta name="msapplication-navbutton-color" content="#08111f">
+  <meta name="color-scheme" content="dark">
 </head>
 <body>
 
@@ -2217,6 +2357,7 @@
   <div class="filter-group-title" data-i18n="category">Category</div>
   <div class="cat-grid" id="cat-filters"></div>
   
+  <div class="txn-edit-hint" data-i18n="doubleTapToEdit">Double tap / double click to edit.</div>
   <div id="txn-list" style="margin: 0 20px;"></div>
 </div>
 
@@ -2494,6 +2635,60 @@
     <select class="config-input" id="archive-detail-month" onchange="archiveDetailFilter=null;renderArchiveBankDetail()"></select>
     <div id="archive-bank-detail-chart"></div>
     <div id="archive-bank-detail-list"></div>
+  </div>
+</div>
+
+
+<div id="transaction-edit-sheet" class="bottom-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title-row">
+    <div class="sheet-title" data-i18n="editTransaction">Edit transaction</div>
+    <button class="sheet-close" onclick="closeBottomSheets()">×</button>
+  </div>
+
+  <div class="sheet-grid">
+    <input type="hidden" id="edit-tx-id" />
+
+    <label data-i18n="date">Date</label>
+    <input class="config-input" id="edit-tx-date" type="date" />
+
+    <label data-i18n="merchantDescription">Merchant / description</label>
+    <input class="config-input" id="edit-tx-merchant" />
+
+    <div class="sheet-grid-2">
+      <div>
+        <label data-i18n="amount">Amount</label>
+        <input class="config-input" id="edit-tx-amount" type="number" step="0.01" />
+      </div>
+      <div>
+        <label data-i18n="direction">Direction</label>
+        <select class="config-input" id="edit-tx-direction">
+          <option value="outgoing">Outgoing (-)</option>
+          <option value="incoming">Incoming (+)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sheet-grid-2">
+      <div>
+        <label data-i18n="currency">Currency</label>
+        <select class="config-input" id="edit-tx-currency">
+          <option value="CZK">CZK</option>
+          <option value="EUR">EUR</option>
+          <option value="PLN">PLN</option>
+        </select>
+      </div>
+      <div>
+        <label data-i18n="category">Category</label>
+        <select class="config-input" id="edit-tx-category"></select>
+      </div>
+    </div>
+
+    <label data-i18n="bank">Bank</label>
+    <select class="config-input" id="edit-tx-bank"></select>
+
+    <button class="config-save" onclick="saveEditedTransaction()" data-i18n="saveTransaction">Save transaction</button>
+    <button class="manager-danger-btn" onclick="deleteEditedTransaction()" data-i18n="deleteTransaction">Delete transaction</button>
   </div>
 </div>
 
@@ -3313,7 +3508,7 @@ function renderArchiveBankDetail() {
 function deleteSingleTransaction(txId) {
   if (!txId) return;
 
-  allTransactions = allTransactions.filter(t => String(t.id) !== String(txId));
+  allTransactions = allTransactions.filter(t => String(t.id || t.msgId || '') !== String(txId));
   localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
 
   postToBankTrackerEndpoint('deleteTransaction', { id: String(txId) });
@@ -3830,8 +4025,9 @@ function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active', 'page-slide-in-right', 'page-slide-in-left', 'swipe-peeking', 'page-tab-fade', 'page-light-switch');
     p.style.transform = '';
+    p.style.webkitTransform = '';
   });
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active', 'tab-just-activated'));
 
   const targetPage = document.getElementById(`page-${pageId}`);
   const targetNav = document.getElementById(`nav-${pageId}`);
@@ -3839,7 +4035,7 @@ function showPage(pageId) {
   if (targetPage) {
     targetPage.classList.add('active');
 
-    // Cheap light off/on effect when switching tabs.
+    // iPhone-safe light off/on tab effect.
     requestAnimationFrame(() => {
       targetPage.classList.add('page-light-switch');
       window.setTimeout(() => {
@@ -3848,7 +4044,10 @@ function showPage(pageId) {
     });
   }
 
-  if (targetNav) targetNav.classList.add('active');
+  if (targetNav) {
+    targetNav.classList.add('active', 'tab-just-activated');
+    window.setTimeout(() => targetNav.classList.remove('tab-just-activated'), 260);
+  }
 
   if (pageId === 'txns') {
     resetTransactionFilters();
@@ -5132,7 +5331,10 @@ const I18N = {
     selectedDay: 'Selected day',
     showing: 'Showing',
     manualTransaction: 'Manual transaction',
-    selectArchiveDate: 'Select date to place this transaction into the correct archive month.'},
+    selectArchiveDate: 'Select date to place this transaction into the correct archive month.',
+    editTransaction: 'Edit transaction',
+    transactionDeleted: 'Transaction deleted.',
+    doubleTapToEdit: 'Double tap / double click to edit.'},
   sk: {
     appTitle: 'Bank Tracker',
     overview: 'Prehľad',
@@ -5295,7 +5497,10 @@ const I18N = {
     selectedDay: 'Vybraný deň',
     showing: 'Zobrazené',
     manualTransaction: 'Manuálna transakcia',
-    selectArchiveDate: 'Vyber dátum, aby sa transakcia zaradila do správneho mesiaca v archíve.'},
+    selectArchiveDate: 'Vyber dátum, aby sa transakcia zaradila do správneho mesiaca v archíve.',
+    editTransaction: 'Upraviť transakciu',
+    transactionDeleted: 'Transakcia bola vymazaná.',
+    doubleTapToEdit: 'Dvojklik / dvojité ťuknutie pre úpravu.'},
   cs: {
     appTitle: 'Bank Tracker',
     overview: 'Přehled',
@@ -5461,7 +5666,10 @@ const I18N = {
     selectedDay: 'Vybraný den',
     showing: 'Zobrazeno',
     manualTransaction: 'Manuální transakce',
-    selectArchiveDate: 'Vyber datum, aby se transakce zařadila do správného měsíce v archivu.'}
+    selectArchiveDate: 'Vyber datum, aby se transakce zařadila do správného měsíce v archivu.',
+    editTransaction: 'Upravit transakci',
+    transactionDeleted: 'Transakce byla smazána.',
+    doubleTapToEdit: 'Dvojklik / dvojité klepnutí pro úpravu.'}
 };
 
 function getLanguage() {
@@ -5628,13 +5836,169 @@ function askDeleteTransaction(txId) {
   }
 }
 
+
+function txEditEscapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function toDateInputValue(dateObj = new Date()) {
+  const d = new Date(dateObj);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function parseManualDateInput(value) {
+  if (!value) return new Date();
+  const parts = String(value).split('-').map(Number);
+  if (parts.length === 3 && parts.every(Boolean)) {
+    return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+  }
+  return parseCustomDateStr(value);
+}
+
+function getTxEditCategoryOptions(selectedCategory = '') {
+  if (typeof getCategoryOptionsHtml === 'function') {
+    return getCategoryOptionsHtml(selectedCategory);
+  }
+
+  const categories = ['Domácnosť','Potraviny','Pohonné hmoty','Reštaurácie','Káva','Doprava','Zdravie','Drogéria','Dom','Šport','Zábava','Predplatné','Oblečenie','Obuv','Jedlo','Bývanie','Lekáreň','Účet','Ostatné'];
+  return categories.map(category => {
+    const label = typeof translateCategory === 'function' ? translateCategory(category) : category;
+    return `<option value="${txEditEscapeHtml(category)}" ${selectedCategory === category ? 'selected' : ''}>${txEditEscapeHtml(label)}</option>`;
+  }).join('');
+}
+
+function getTxEditBankOptions(selectedValue = '') {
+  if (typeof getAllBankOptions === 'function') {
+    return getAllBankOptions(selectedValue);
+  }
+
+  return BANK_ORDER.map(key => {
+    const name = plainBankName(key);
+    return `<option value="${key}" ${selectedValue === key ? 'selected' : ''}>${txEditEscapeHtml(name)}</option>`;
+  }).join('');
+}
+
+function getTxEditBankName(bankKey) {
+  if (typeof getBankNameFromOption === 'function') return getBankNameFromOption(bankKey);
+  return plainBankName(bankKey);
+}
+
+function getTxEditBankAccount(bankKey) {
+  if (typeof getBankAccountFromOption === 'function') return getBankAccountFromOption(bankKey);
+  return plainBankName(bankKey);
+}
+
+
+// ── SAFE TRANSACTION EDIT FROM TRANSACTIONS + RECENT LISTS ──
+function getTransactionId(tx) {
+  return String(tx?.id || tx?.msgId || '');
+}
+
+function findTransactionById(txId) {
+  return allTransactions.find(tx => String(tx.id || tx.msgId || '') === String(txId));
+}
+
+function fillEditTransactionSheet(txId) {
+  const tx = findTransactionById(txId);
+  if (!tx) return false;
+
+  const amount = Number(tx.amount || 0);
+  const parsed = parseCustomDateStr(tx.rawDate || tx.date);
+  const bankKey = getBankKey(tx);
+
+  document.getElementById('edit-tx-id').value = getTransactionId(tx);
+  document.getElementById('edit-tx-date').value = toDateInputValue(parsed);
+  document.getElementById('edit-tx-merchant').value = tx.merchant || '';
+  document.getElementById('edit-tx-amount').value = Math.abs(amount);
+  document.getElementById('edit-tx-direction').value = amount >= 0 ? 'incoming' : 'outgoing';
+  document.getElementById('edit-tx-currency').value = String(tx.currency || 'CZK').toUpperCase();
+
+  const catSelect = document.getElementById('edit-tx-category');
+  if (catSelect) {
+    catSelect.innerHTML = getTxEditCategoryOptions(tx.category || 'Ostatné');
+    if ([...catSelect.options].some(option => option.value === tx.category)) catSelect.value = tx.category;
+  }
+
+  const bankSelect = document.getElementById('edit-tx-bank');
+  if (bankSelect) {
+    bankSelect.innerHTML = getTxEditBankOptions(bankKey);
+    bankSelect.value = bankKey;
+  }
+
+  return true;
+}
+
+function openTransactionEditSheet(txId) {
+  if (!fillEditTransactionSheet(txId)) return;
+  openSheet('transaction-edit-sheet');
+}
+
+function saveEditedTransaction() {
+  const txId = document.getElementById('edit-tx-id')?.value || '';
+  const tx = findTransactionById(txId);
+  if (!tx) return;
+
+  const parsedDate = parseManualDateInput(document.getElementById('edit-tx-date')?.value || '');
+  const amountRaw = parseFloat(document.getElementById('edit-tx-amount')?.value || '0') || 0;
+  const direction = document.getElementById('edit-tx-direction')?.value || 'outgoing';
+  const currency = document.getElementById('edit-tx-currency')?.value || tx.currency || 'CZK';
+  const category = document.getElementById('edit-tx-category')?.value || tx.category || 'Ostatné';
+  const merchant = document.getElementById('edit-tx-merchant')?.value.trim() || tx.merchant || '';
+  const bankKey = document.getElementById('edit-tx-bank')?.value || getBankKey(tx);
+  const finalAmount = direction === 'incoming' ? Math.abs(amountRaw) : -Math.abs(amountRaw);
+
+  tx.date = formatDate(parsedDate);
+  tx.rawDate = parsedDate.toISOString();
+  tx.timestamp = parsedDate.getTime();
+  tx.month = getMonthFromDate(parsedDate);
+  tx.amount = finalAmount;
+  tx.currency = currency;
+  tx.category = category;
+  tx.merchant = merchant;
+  tx.merchantRaw = merchant;
+  tx.bank = getTxEditBankName(bankKey);
+  tx.card = tx.card || getTxEditBankAccount(bankKey);
+  tx.type = direction === 'incoming' ? 'manual income' : 'manual expense';
+  tx.msgId = tx.msgId || tx.id;
+
+  allTransactions = sortTransactionsNewestFirst(allTransactions);
+  localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
+
+  postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
+
+  closeBottomSheets();
+  renderAll();
+  alert(t('transactionSaved'));
+}
+
+function deleteEditedTransaction() {
+  const txId = document.getElementById('edit-tx-id')?.value || '';
+  if (!txId) return;
+  if (!confirm(t('deleteTransactionConfirm'))) return;
+
+  deleteSingleTransaction(txId);
+  closeBottomSheets();
+  alert(t('transactionDeleted'));
+}
+
 function bindTransactionDeleteGestures() {
   document.querySelectorAll('[data-tx-id]').forEach(el => {
     if (el.dataset.deleteBound === 'true') return;
     el.dataset.deleteBound = 'true';
     el.classList.add('long-press-ready');
 
-    el.addEventListener('touchstart', () => {
+    let lastTapAt = 0;
+
+    el.addEventListener('touchstart', (event) => {
+      if (event.target.closest && event.target.closest('button')) return;
       txLongPressTargetId = el.dataset.txId;
       txLongPressTimer = setTimeout(() => {
         el.classList.add('delete-hint');
@@ -5644,10 +6008,22 @@ function bindTransactionDeleteGestures() {
       }, 650);
     }, { passive: true });
 
-    el.addEventListener('touchend', () => {
+    el.addEventListener('touchend', (event) => {
       clearTimeout(txLongPressTimer);
       txLongPressTimer = null;
-    }, { passive: true });
+
+      if (event.target.closest && event.target.closest('button')) return;
+
+      const now = Date.now();
+      if (now - lastTapAt < 320) {
+        event.preventDefault?.();
+        el.classList.add('tx-open-hint');
+        navigator.vibrate?.(18);
+        setTimeout(() => el.classList.remove('tx-open-hint'), 220);
+        openTransactionEditSheet(el.dataset.txId);
+      }
+      lastTapAt = now;
+    }, { passive: false });
 
     el.addEventListener('touchmove', () => {
       clearTimeout(txLongPressTimer);
@@ -5659,8 +6035,12 @@ function bindTransactionDeleteGestures() {
       askDeleteTransaction(el.dataset.txId);
     });
 
-    el.addEventListener('dblclick', () => {
-      askDeleteTransaction(el.dataset.txId);
+    el.addEventListener('dblclick', (e) => {
+      if (e.target.closest && e.target.closest('button')) return;
+      e.preventDefault();
+      el.classList.add('tx-open-hint');
+      setTimeout(() => el.classList.remove('tx-open-hint'), 220);
+      openTransactionEditSheet(el.dataset.txId);
     });
   });
 }
@@ -5686,7 +6066,7 @@ function shouldIgnorePageSwipeTarget(target) {
 }
 
 function initPageSwipeNavigation() {
-  // v78: swipe navigation disabled for smoother mobile performance.
+  // v89: swipe navigation remains disabled for smooth mobile performance.
 }
 
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
