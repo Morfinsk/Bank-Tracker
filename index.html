@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v86 manual transaction category dropdown -->
+<!-- v87 global pull down closes sheet -->
 <link rel="manifest" href="./manifest.json?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -2106,6 +2106,39 @@
     margin-top: 6px;
   }
 
+
+  /* v87 global pull-down closes sheet, page refresh disabled */
+  html,
+  body {
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    overscroll-behavior-x: none;
+  }
+
+  body {
+    touch-action: pan-y;
+  }
+
+  .page,
+  .app,
+  .bottom-sheet,
+  .bottom-sheet-backdrop {
+    overscroll-behavior: contain;
+  }
+
+  body.sheet-open {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .bottom-sheet.open {
+    touch-action: pan-y;
+  }
+
+  .bottom-sheet.dragging {
+    transition: none !important;
+  }
+
 </style>
 </head>
 <body>
@@ -4000,40 +4033,83 @@ function saveCustomBanks(banks){localStorage.setItem('custom_banks',JSON.stringi
 
 
 // ── PREVENT PAGE REFRESH ONLY WHILE BOTTOM SHEET IS OPEN ───
-function initSheetOpenPullRefreshGuard() {
-  if (window.__sheetPullRefreshGuardBound) return;
-  window.__sheetPullRefreshGuardBound = true;
+
+// ── GLOBAL PULL-DOWN CONTROL ───────────────────────────────
+// Pull-to-refresh is disabled. When a bottom sheet is open,
+// pulling down anywhere on the page closes the sheet.
+function initGlobalPullDownControl() {
+  if (window.__globalPullDownControlBound) return;
+  window.__globalPullDownControlBound = true;
 
   let startY = 0;
+  let startX = 0;
+  let tracking = false;
+  let startedOnControl = false;
+  let closedByPull = false;
+
+  const isFormControl = (target) => {
+    return !!(target && target.closest && target.closest('input, textarea, select, button, a'));
+  };
 
   window.addEventListener('touchstart', function(event) {
-    if (!document.body.classList.contains('sheet-open')) return;
     if (!event.touches || event.touches.length !== 1) return;
-    startY = event.touches[0].clientY;
+
+    const touch = event.touches[0];
+    startY = touch.clientY;
+    startX = touch.clientX;
+    tracking = true;
+    closedByPull = false;
+    startedOnControl = isFormControl(event.target);
   }, { passive: true });
 
   window.addEventListener('touchmove', function(event) {
-    if (!document.body.classList.contains('sheet-open')) return;
-    if (!event.touches || event.touches.length !== 1) return;
+    if (!tracking || !event.touches || event.touches.length !== 1) return;
 
-    const openSheet = document.querySelector('.bottom-sheet.open');
-    if (!openSheet) return;
+    const touch = event.touches[0];
+    const deltaY = touch.clientY - startY;
+    const deltaX = touch.clientX - startX;
+    const pullingDown = deltaY > 0;
+    const mostlyVertical = Math.abs(deltaY) > Math.abs(deltaX) * 1.25;
+    const sheetOpen = document.body.classList.contains('sheet-open') && !!document.querySelector('.bottom-sheet.open');
 
-    const insideSheet = event.target.closest && event.target.closest('.bottom-sheet.open');
-    const currentY = event.touches[0].clientY;
-    const pullingDown = currentY > startY;
+    // Always block browser pull-to-refresh at top of app.
+    const atTop =
+      window.scrollY <= 0 &&
+      (document.documentElement.scrollTop || 0) <= 0 &&
+      (document.body.scrollTop || 0) <= 0;
 
-    if (!insideSheet) {
-      if (pullingDown && event.cancelable) event.preventDefault();
-      return;
+    if (atTop && pullingDown && event.cancelable) {
+      event.preventDefault();
     }
 
-    // If user is inside the sheet and sheet content is already at the top,
-    // prevent browser/page pull-to-refresh. The drag handler still receives the gesture.
-    if (pullingDown && openSheet.scrollTop <= 0 && event.cancelable) {
+    if (!sheetOpen) return;
+
+    // Do not close while interacting with form controls.
+    if (startedOnControl) return;
+
+    // If sheet is open, a clear downward pull anywhere closes it.
+    if (!closedByPull && pullingDown && mostlyVertical && deltaY > 72) {
+      closedByPull = true;
+      if (event.cancelable) event.preventDefault();
+      closeBottomSheets();
+    } else if (pullingDown && event.cancelable) {
       event.preventDefault();
     }
   }, { passive: false });
+
+  window.addEventListener('touchend', function() {
+    tracking = false;
+    closedByPull = false;
+  }, { passive: true });
+
+  window.addEventListener('touchcancel', function() {
+    tracking = false;
+    closedByPull = false;
+  }, { passive: true });
+}
+
+function initSheetOpenPullRefreshGuard() {
+  initGlobalPullDownControl();
 }
 
 // ── BOTTOM SHEET DRAG DOWN TO CLOSE — LARGE TOUCH ZONE ─────
@@ -4188,7 +4264,7 @@ function openSheet(id){
   }
 
   initBottomSheetDragToClose();
-  if (typeof initSheetOpenPullRefreshGuard === 'function') initSheetOpenPullRefreshGuard();
+  initGlobalPullDownControl();
 }
 function closeBottomSheets(){
   document.body.classList.remove('sheet-open');
@@ -5631,6 +5707,8 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 document.addEventListener('DOMContentLoaded', initBottomSheetDragToClose);
+
+document.addEventListener('DOMContentLoaded', initGlobalPullDownControl);
 </script>
 
 
