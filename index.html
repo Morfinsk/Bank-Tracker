@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v75 mobile swipe fallback -->
+<!-- v76 mobile swipe performance -->
 <link rel="manifest" href="./manifest.json?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -1549,21 +1549,21 @@
   }
 
   .page.active.page-slide-in-right {
-    animation: pageSlideInRight .22s ease-out;
+    animation: pageSlideInRight .16s ease-out;
   }
 
   .page.active.page-slide-in-left {
-    animation: pageSlideInLeft .22s ease-out;
+    animation: pageSlideInLeft .16s ease-out;
   }
 
   @keyframes pageSlideInRight {
-    from { transform: translateX(34px); opacity: .72; }
-    to { transform: translateX(0); opacity: 1; }
+    from { transform: translate3d(22px,0,0); opacity: .86; }
+    to { transform: translate3d(0,0,0); opacity: 1; }
   }
 
   @keyframes pageSlideInLeft {
-    from { transform: translateX(-34px); opacity: .72; }
-    to { transform: translateX(0); opacity: 1; }
+    from { transform: translate3d(-22px,0,0); opacity: .86; }
+    to { transform: translate3d(0,0,0); opacity: 1; }
   }
 
   .page.swipe-peeking {
@@ -1583,6 +1583,34 @@
   .page.active select {
     -webkit-user-select: text;
     user-select: text;
+  }
+
+
+  /* v76 mobile swipe performance */
+  .page {
+    contain: layout paint;
+  }
+
+  .page.active {
+    touch-action: pan-y;
+  }
+
+  .page.active.page-slide-in-right,
+  .page.active.page-slide-in-left {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+  }
+
+  .page.swipe-peeking {
+    transition: none !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page.active.page-slide-in-right,
+    .page.active.page-slide-in-left {
+      animation: none !important;
+    }
   }
 
 </style>
@@ -4575,7 +4603,7 @@ function bindTransactionDeleteGestures() {
 }
 
 
-// ── CARD-LIKE PAGE SWIPE NAVIGATION ────────────────────────
+// ── CARD-LIKE PAGE SWIPE NAVIGATION — MOBILE OPTIMIZED ─────
 const PAGE_SWIPE_ORDER = ['overview', 'txns', 'archive', 'settings'];
 
 function getActivePageId() {
@@ -4588,19 +4616,18 @@ function navigateBySwipe(deltaX) {
   const index = PAGE_SWIPE_ORDER.indexOf(activeId);
   if (index === -1) return;
 
-  // Standard mobile convention:
-  // swipe left  -> next tab
-  // swipe right -> previous tab.
   const nextIndex = deltaX < 0 ? index + 1 : index - 1;
   if (nextIndex < 0 || nextIndex >= PAGE_SWIPE_ORDER.length) return;
 
-  showPage(PAGE_SWIPE_ORDER[nextIndex], deltaX < 0 ? 'right' : 'left');
+  requestAnimationFrame(() => {
+    showPage(PAGE_SWIPE_ORDER[nextIndex], deltaX < 0 ? 'right' : 'left');
+  });
 }
 
 function shouldIgnorePageSwipeTarget(target) {
   if (!target) return false;
   return !!target.closest(
-    'button, input, select, textarea, a, .bottom-sheet, .bottom-nav, .cat-chip, .txn-filter-pill, .sync-btn, .fab, .top-upgrade-btn, .sheet-close'
+    'button, input, select, textarea, a, .bottom-sheet, .bottom-nav, .cat-chip, .txn-filter-pill, .sync-btn, .fab, .top-upgrade-btn, .sheet-close, .tx-item, .tx-item-compact'
   );
 }
 
@@ -4614,13 +4641,11 @@ function initPageSwipeNavigation() {
   let tracking = false;
   let horizontal = false;
   let pointerId = null;
+  let startedAt = 0;
 
   const start = (x, y, target, id = null) => {
     if (document.body.classList.contains('sheet-open')) return false;
     if (shouldIgnorePageSwipeTarget(target)) return false;
-
-    const active = document.querySelector('.page.active');
-    if (!active) return false;
 
     startX = x;
     startY = y;
@@ -4628,8 +4653,8 @@ function initPageSwipeNavigation() {
     tracking = true;
     horizontal = false;
     pointerId = id;
+    startedAt = Date.now();
 
-    active.classList.add('swipe-peeking');
     return true;
   };
 
@@ -4640,18 +4665,14 @@ function initPageSwipeNavigation() {
     const deltaX = currentX - startX;
     const deltaY = y - startY;
 
-    if (!horizontal && Math.abs(deltaX) > 16 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25) {
+    if (!horizontal && Math.abs(deltaX) > 18 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35) {
       horizontal = true;
     }
 
-    if (horizontal) {
-      const active = document.querySelector('.page.active');
-      if (active) {
-        const peek = Math.max(-38, Math.min(38, deltaX * 0.18));
-        active.style.transform = `translateX(${peek}px)`;
-      }
-
-      if (event && event.cancelable) event.preventDefault();
+    // Mobile performance: do not transform the whole page on every touchmove.
+    // We only prevent vertical scroll once the gesture is clearly horizontal.
+    if (horizontal && event && event.cancelable) {
+      event.preventDefault();
     }
   };
 
@@ -4659,14 +4680,15 @@ function initPageSwipeNavigation() {
     if (!tracking) return;
 
     const deltaX = currentX - startX;
-    const active = document.querySelector('.page.active');
+    const elapsed = Math.max(Date.now() - startedAt, 1);
+    const velocity = Math.abs(deltaX) / elapsed;
 
-    if (active) {
-      active.classList.remove('swipe-peeking');
-      active.style.transform = '';
-    }
-
-    const shouldNavigate = horizontal && Math.abs(deltaX) > 64;
+    const shouldNavigate =
+      horizontal &&
+      (
+        Math.abs(deltaX) > 64 ||
+        (Math.abs(deltaX) > 42 && velocity > 0.45)
+      );
 
     tracking = false;
     horizontal = false;
@@ -4677,7 +4699,6 @@ function initPageSwipeNavigation() {
     }
   };
 
-  // Pointer events work well on desktop and some Android browsers.
   window.addEventListener('pointerdown', (event) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     start(event.clientX, event.clientY, event.target, event.pointerId);
@@ -4695,7 +4716,6 @@ function initPageSwipeNavigation() {
 
   window.addEventListener('pointercancel', finish);
 
-  // Explicit touch fallback for mobile/PWA where pointer events can be unreliable.
   window.addEventListener('touchstart', (event) => {
     if (!event.touches || event.touches.length !== 1) return;
     const touch = event.touches[0];
