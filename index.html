@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v76 mobile swipe performance -->
+<!-- v77 equal fast swipe -->
 <link rel="manifest" href="./manifest.json?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -1613,6 +1613,26 @@
     }
   }
 
+
+  /* v77 equal fast swipe animation */
+  .page.active.page-slide-in-right {
+    animation: pageSlideInRight .11s ease-out !important;
+  }
+
+  .page.active.page-slide-in-left {
+    animation: pageSlideInLeft .11s ease-out !important;
+  }
+
+  @keyframes pageSlideInRight {
+    from { transform: translate3d(14px,0,0); opacity: .94; }
+    to { transform: translate3d(0,0,0); opacity: 1; }
+  }
+
+  @keyframes pageSlideInLeft {
+    from { transform: translate3d(-14px,0,0); opacity: .94; }
+    to { transform: translate3d(0,0,0); opacity: 1; }
+  }
+
 </style>
 </head>
 <body>
@@ -3071,38 +3091,44 @@ function showPage(pageId, direction = 'none') {
 
   const targetPage = document.getElementById(`page-${pageId}`);
   const targetNav = document.getElementById(`nav-${pageId}`);
+
   if (targetPage) {
     targetPage.classList.add('active');
     if (direction === 'right') targetPage.classList.add('page-slide-in-right');
     if (direction === 'left') targetPage.classList.add('page-slide-in-left');
   }
+
   if (targetNav) targetNav.classList.add('active');
 
-  if (pageId === 'txns') {
-    resetTransactionFilters();
-    updateTxnPage();
-  }
+  // Heavy rendering is deferred so swipe animation stays fast on mobile.
+  window.clearTimeout(window.__deferredTabRenderTimer);
+  window.__deferredTabRenderTimer = window.setTimeout(() => {
+    if (pageId === 'txns') {
+      resetTransactionFilters();
+      updateTxnPage();
+    }
 
-  if (pageId === 'settings') {
-    document.getElementById('sheets-url').value = SHEETS_URL || DEFAULT_SHEETS_URL;
-    const limitsUrlInput = document.getElementById('limits-webapp-url');
-    if (limitsUrlInput) limitsUrlInput.value = LIMITS_WEBAPP_URL;
-    const budgetInputMap = {
-      rb_cz: ['budget-rb-cz', 'budget-warn-rb-cz'],
-      csob_sk: ['budget-csob-sk', 'budget-warn-csob-sk'],
-      csob_cz: ['budget-csob-cz', 'budget-warn-csob-cz'],
-      moneta: ['budget-moneta', 'budget-warn-moneta']
-    };
-    Object.entries(budgetInputMap).forEach(([bankKey, ids]) => {
-      const budgetInput = document.getElementById(ids[0]);
-      const warningInput = document.getElementById(ids[1]);
-      if (budgetInput) budgetInput.value = localStorage.getItem(getBudgetStorageKey(bankKey, 'limit')) || '';
-      if (warningInput) warningInput.value = localStorage.getItem(getBudgetStorageKey(bankKey, 'warn')) || '';
-    });
-    resetSimFields();
-    updateEditModeUI();
-    updatePushStatus();
-  }
+    if (pageId === 'settings') {
+      document.getElementById('sheets-url').value = SHEETS_URL || DEFAULT_SHEETS_URL;
+      const limitsUrlInput = document.getElementById('limits-webapp-url');
+      if (limitsUrlInput) limitsUrlInput.value = LIMITS_WEBAPP_URL;
+      const budgetInputMap = {
+        rb_cz: ['budget-rb-cz', 'budget-warn-rb-cz'],
+        csob_sk: ['budget-csob-sk', 'budget-warn-csob-sk'],
+        csob_cz: ['budget-csob-cz', 'budget-warn-csob-cz'],
+        moneta: ['budget-moneta', 'budget-warn-moneta']
+      };
+      Object.entries(budgetInputMap).forEach(([bankKey, ids]) => {
+        const budgetInput = document.getElementById(ids[0]);
+        const warningInput = document.getElementById(ids[1]);
+        if (budgetInput) budgetInput.value = localStorage.getItem(getBudgetStorageKey(bankKey, 'limit')) || '';
+        if (warningInput) warningInput.value = localStorage.getItem(getBudgetStorageKey(bankKey, 'warn')) || '';
+      });
+      resetSimFields();
+      updateEditModeUI();
+      updatePushStatus();
+    }
+  }, direction === 'none' ? 0 : 90);
 }
 
 async function saveConfig() {
@@ -4619,9 +4645,7 @@ function navigateBySwipe(deltaX) {
   const nextIndex = deltaX < 0 ? index + 1 : index - 1;
   if (nextIndex < 0 || nextIndex >= PAGE_SWIPE_ORDER.length) return;
 
-  requestAnimationFrame(() => {
-    showPage(PAGE_SWIPE_ORDER[nextIndex], deltaX < 0 ? 'right' : 'left');
-  });
+  showPage(PAGE_SWIPE_ORDER[nextIndex], deltaX < 0 ? 'right' : 'left');
 }
 
 function shouldIgnorePageSwipeTarget(target) {
