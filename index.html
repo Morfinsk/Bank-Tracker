@@ -14,15 +14,20 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v100 white contrast currencies -->
-<link rel="manifest" href="./manifest.json?v=98">
+<!-- v105 archive daily widget white theme polish -->
+<link rel="manifest" href="./manifest.json?v=105">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
 <script>
 (function(){
   try {
-    var theme = localStorage.getItem('app_theme') || 'dark';
+    var defaultVersion = 'v104';
+    if (localStorage.getItem('app_theme_default_version') !== defaultVersion) {
+      localStorage.setItem('app_theme', 'dark');
+      localStorage.setItem('app_theme_default_version', defaultVersion);
+    }
+    var theme = localStorage.getItem('app_theme') === 'light' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', theme);
   } catch(e) {
     document.documentElement.setAttribute('data-theme', 'dark');
@@ -2734,6 +2739,432 @@
     color: #06111f !important;
   }
 
+
+  /* v102 restore v100 flow + clarify widgets */
+  .budget-bank-row {
+    cursor: pointer;
+    border-radius: 12px;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    transition: background .12s ease, transform .12s ease;
+  }
+
+  .budget-bank-row:hover {
+    background: rgba(88,166,255,.08);
+  }
+
+  .budget-bank-row:active {
+    transform: scale(.992);
+    background: rgba(88,166,255,.12);
+  }
+
+  .overview-recent-hint {
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    margin: -6px 0 10px;
+  }
+
+  .overview-recent-widget .tx-col-title {
+    cursor: pointer;
+    border-radius: 10px;
+    padding: 7px 8px;
+    transition: background .12s ease, transform .12s ease;
+  }
+
+  .overview-recent-widget .tx-col-title:hover {
+    background: rgba(88,166,255,.08);
+  }
+
+  .overview-recent-widget .tx-col-title:active {
+    transform: scale(.98);
+    background: rgba(88,166,255,.12);
+  }
+
+  .tx-delete-inline {
+    display: none !important;
+  }
+
+  html[data-theme="light"] .budget-bank-row:hover,
+  html[data-theme="light"] .overview-recent-widget .tx-col-title:hover {
+    background: rgba(37,99,235,.08) !important;
+  }
+
+
+  /* v103 recent transaction layout + exact date filter */
+  .overview-recent-widget {
+    overflow: hidden;
+  }
+
+  .overview-recent-widget .tx-columns {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .overview-recent-widget .tx-column {
+    width: 100%;
+    min-width: 0;
+    background: rgba(15,23,42,.52);
+    border: 1px solid rgba(148,163,184,.12);
+    border-radius: 14px;
+    padding: 10px;
+  }
+
+  .overview-recent-widget .tx-col-title {
+    margin: 0 0 8px;
+    border-bottom: 1px solid rgba(148,163,184,.12);
+  }
+
+  .overview-recent-widget .tx-item-compact {
+    padding: 9px 0;
+  }
+
+  .overview-recent-widget .tx-row-top {
+    gap: 10px;
+    padding-right: 0 !important;
+  }
+
+  .overview-recent-widget .tx-merchant-compact {
+    max-width: none !important;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .overview-recent-widget .tx-amt-compact {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  .overview-recent-widget .tx-delete-inline {
+    display: none !important;
+  }
+
+  .date-range-filter {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 0 20px;
+    margin-bottom: 8px;
+  }
+
+  .date-range-filter label {
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+
+  .date-range-filter .config-input {
+    margin-bottom: 0;
+  }
+
+  .date-range-clear-wrap {
+    padding: 0 20px 14px;
+  }
+
+  .date-range-clear-btn {
+    border: 1px solid rgba(148,163,184,.18);
+    background: rgba(15,23,42,.52);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  .date-range-clear-btn:active {
+    transform: scale(.98);
+  }
+
+  html[data-theme="light"] .overview-recent-widget .tx-column,
+  html[data-theme="light"] .date-range-clear-btn {
+    background: #eef4fb !important;
+    border-color: rgba(15,23,42,.12) !important;
+  }
+
+  html[data-theme="light"] .date-range-clear-btn {
+    color: #334155 !important;
+  }
+
+
+  /* v104 high contrast white theme + dark default */
+  html[data-theme="light"] {
+    --accent: #1d4ed8;
+    --muted: #334155;
+    --text: #0b1220;
+    --surface: #ffffff;
+    --surface2: #e8f1fb;
+    --border: rgba(15,23,42,.18);
+  }
+
+  html[data-theme="light"] .header-month,
+  html[data-theme="light"] .section-title,
+  html[data-theme="light"] .filter-group-title,
+  html[data-theme="light"] .budget-status-title,
+  html[data-theme="light"] .app-info-label,
+  html[data-theme="light"] .config-banner h3,
+  html[data-theme="light"] .archive-chart-note,
+  html[data-theme="light"] .archive-hint,
+  html[data-theme="light"] .overview-recent-hint,
+  html[data-theme="light"] .txn-edit-hint,
+  html[data-theme="light"] .date-range-filter label,
+  html[data-theme="light"] .daily-chart-help {
+    color: #1d4ed8 !important;
+    font-weight: 900 !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+  }
+
+  html[data-theme="light"] .summary-label,
+  html[data-theme="light"] .stat-label,
+  html[data-theme="light"] .card-count-sub,
+  html[data-theme="light"] .card-number,
+  html[data-theme="light"] .tx-meta,
+  html[data-theme="light"] .tx-meta-compact,
+  html[data-theme="light"] .budget-status-note,
+  html[data-theme="light"] .settings-plan-sub,
+  html[data-theme="light"] .theme-mode-sub,
+  html[data-theme="light"] .managed-bank-sub,
+  html[data-theme="light"] .managed-tx-sub,
+  html[data-theme="light"] .upgrade-hero p,
+  html[data-theme="light"] .app-info-sub,
+  html[data-theme="light"] .sheets-toggle-sub,
+  html[data-theme="light"] .plan-features,
+  html[data-theme="light"] .daily-tx-sub {
+    color: #334155 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] .archive-axis-label,
+  html[data-theme="light"] .archive-y-label,
+  html[data-theme="light"] .archive-axis-unit,
+  html[data-theme="light"] .daily-axis-label,
+  html[data-theme="light"] .trend-axis-label {
+    fill: #1e3a8a !important;
+    color: #1e3a8a !important;
+    opacity: 1 !important;
+    font-weight: 800 !important;
+  }
+
+  html[data-theme="light"] .nav-item span:last-child,
+  html[data-theme="light"] .nav-icon {
+    color: #334155 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] .nav-item.active span:last-child,
+  html[data-theme="light"] .nav-item.active .nav-icon {
+    color: #1d4ed8 !important;
+  }
+
+  html[data-theme="light"] .config-input,
+  html[data-theme="light"] select.config-input,
+  html[data-theme="light"] textarea.config-input,
+  html[data-theme="light"] input.config-input {
+    color: #0b1220 !important;
+    background: #eef6ff !important;
+    border-color: rgba(15,23,42,.20) !important;
+  }
+
+  html[data-theme="light"] .config-input::placeholder {
+    color: #475569 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] .cat-chip,
+  html[data-theme="light"] .txn-filter-pill,
+  html[data-theme="light"] .date-range-clear-btn,
+  html[data-theme="light"] .txn-show-more-btn {
+    color: #334155 !important;
+    background: #e8f1fb !important;
+    border-color: rgba(15,23,42,.16) !important;
+  }
+
+  html[data-theme="light"] .cat-chip.active,
+  html[data-theme="light"] .txn-filter-pill.active {
+    color: #1d4ed8 !important;
+    background: rgba(37,99,235,.13) !important;
+    border-color: rgba(37,99,235,.45) !important;
+    font-weight: 900 !important;
+  }
+
+  html[data-theme="light"] .theme-mode-toggle button:not(.active),
+  html[data-theme="light"] .billing-toggle button:not(.active),
+  html[data-theme="light"] .manager-tab:not(.active) {
+    color: #334155 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] .theme-mode-toggle button.active,
+  html[data-theme="light"] .billing-toggle button.active,
+  html[data-theme="light"] .manager-tab.active {
+    color: #06111f !important;
+    font-weight: 900 !important;
+  }
+
+  html[data-theme="light"] .sheets-toggle-title,
+  html[data-theme="light"] .push-toggle-left,
+  html[data-theme="light"] .sheet-title,
+  html[data-theme="light"] .theme-mode-title,
+  html[data-theme="light"] .settings-plan-name,
+  html[data-theme="light"] .managed-bank-name,
+  html[data-theme="light"] .managed-tx-title,
+  html[data-theme="light"] .app-info-title,
+  html[data-theme="light"] .tx-merchant,
+  html[data-theme="light"] .tx-merchant-compact,
+  html[data-theme="light"] .daily-tx-title,
+  html[data-theme="light"] .card-name,
+  html[data-theme="light"] .upgrade-plan-name {
+    color: #0b1220 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] .amount-expense {
+    color: #be123c !important;
+  }
+
+  html[data-theme="light"] .amount-income {
+    color: #15803d !important;
+  }
+
+  html[data-theme="light"] .section-title {
+    letter-spacing: .12em;
+  }
+
+  html[data-theme="light"] .header-month {
+    font-size: 13px;
+  }
+
+
+  /* v105 archive daily detail widget theme polish */
+  .daily-chart-card {
+    background: linear-gradient(180deg, rgba(23,34,56,.98), rgba(15,24,42,.98)) !important;
+    border: 1px solid rgba(148,163,184,.20) !important;
+    border-radius: 16px !important;
+    padding: 16px !important;
+    box-shadow: 0 18px 50px rgba(0,0,0,.18) !important;
+  }
+
+  .daily-chart-title {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+    align-items: start !important;
+    margin-bottom: 10px !important;
+  }
+
+  .daily-chart-title strong {
+    color: var(--text) !important;
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+    letter-spacing: .02em;
+  }
+
+  .daily-chart-title span {
+    color: var(--muted) !important;
+    font-size: 10px !important;
+    line-height: 1.35 !important;
+  }
+
+  .daily-legend {
+    flex-wrap: wrap !important;
+    gap: 8px 14px !important;
+    color: var(--muted) !important;
+  }
+
+  .daily-chart-help {
+    color: #8fbfff !important;
+    font-weight: 800 !important;
+    margin-top: 8px !important;
+  }
+
+  .daily-filter-chip {
+    background: rgba(88,166,255,.16) !important;
+    color: #8fdcff !important;
+    border: 1px solid rgba(88,166,255,.22);
+    font-weight: 800;
+  }
+
+  .daily-reset-filter {
+    border-color: rgba(88,166,255,.24) !important;
+    color: #8fdcff !important;
+    background: rgba(88,166,255,.10) !important;
+  }
+
+  .daily-grid-line {
+    stroke: rgba(148,163,184,.16) !important;
+  }
+
+  .daily-axis-label {
+    fill: #8fa6c7 !important;
+    font-weight: 800;
+  }
+
+  html[data-theme="light"] .daily-chart-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+    border: 1px solid rgba(15,23,42,.14) !important;
+    box-shadow: 0 18px 45px rgba(15,23,42,.08) !important;
+  }
+
+  html[data-theme="light"] .daily-chart-title strong {
+    color: #0b1220 !important;
+  }
+
+  html[data-theme="light"] .daily-chart-title span,
+  html[data-theme="light"] .daily-legend {
+    color: #334155 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] .daily-chart-help {
+    color: #1d4ed8 !important;
+    font-weight: 900 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] .daily-filter-chip {
+    background: rgba(37,99,235,.12) !important;
+    color: #1d4ed8 !important;
+    border-color: rgba(37,99,235,.28) !important;
+  }
+
+  html[data-theme="light"] .daily-reset-filter {
+    background: #eef6ff !important;
+    color: #1d4ed8 !important;
+    border-color: rgba(37,99,235,.24) !important;
+  }
+
+  html[data-theme="light"] .daily-grid-line {
+    stroke: rgba(15,23,42,.12) !important;
+  }
+
+  html[data-theme="light"] .daily-axis-label {
+    fill: #1e3a8a !important;
+    color: #1e3a8a !important;
+    opacity: 1 !important;
+    font-weight: 900 !important;
+  }
+
+  html[data-theme="light"] .daily-tx-row {
+    border-bottom-color: rgba(15,23,42,.10) !important;
+  }
+
+  html[data-theme="light"] .daily-tx-title {
+    color: #0b1220 !important;
+  }
+
+  html[data-theme="light"] .daily-tx-sub {
+    color: #334155 !important;
+  }
+
 </style>
 </head>
 <body>
@@ -2767,12 +3198,13 @@
     </div>
   </div>
 
-  <div class="section-title" data-i18n="bankBudgetTitle">Bank budget</div>
+  <div class="section-title" data-i18n="bankCardLimitsTitle">Bank card limits</div>
   <div id="cards-container"></div>
   <div id="csob-container"></div>
 
   <div id="budget-status" class="budget-status" style="margin-top:18px;"></div>  <div class="overview-recent-widget">
     <div class="section-title" data-i18n="recentTransactions">recent transactions</div>
+    <div class="overview-recent-hint" data-i18n="tapRecentBank">Tap a bank name to open its transactions.</div>
     <div class="tx-columns" id="recent-bank-columns"></div>
   </div>
 
@@ -2791,6 +3223,21 @@
   
   <div class="search-wrap">
     <input class="config-input search-input" id="txn-search" data-i18n-placeholder="searchTransactions" placeholder="Search transactions" oninput="handleTransactionSearch()" />
+  </div>
+
+  <div class="filter-group-title" data-i18n="dateRange">Date range</div>
+  <div class="date-range-filter">
+    <div>
+      <label data-i18n="fromDate">From</label>
+      <input class="config-input" id="txn-date-from" type="date" onchange="handleTransactionDateRange()" />
+    </div>
+    <div>
+      <label data-i18n="toDate">To</label>
+      <input class="config-input" id="txn-date-to" type="date" onchange="handleTransactionDateRange()" />
+    </div>
+  </div>
+  <div class="date-range-clear-wrap">
+    <button class="date-range-clear-btn" onclick="clearTransactionDateRange()" data-i18n="clearDateFilter">Clear date filter</button>
   </div>
 
   <div class="filter-group-title" data-i18n="type">Type</div>
@@ -3191,6 +3638,8 @@ let activeCategory = 'všetky';
 let activeBank = 'všetky';
 let activeDirection = 'all';
 let activeSearch = '';
+let activeDateFrom = '';
+let activeDateTo = '';
 let autoSyncTimer = null;
 let isSyncing = false;
 const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minút
@@ -3917,7 +4366,7 @@ function renderArchiveBankDetail() {
     <div class="daily-chart-card">
       <div class="daily-chart-title">
         <strong>${t('dailyCashflow')} · ${formatMonthString(monthStr)}</strong>
-        <span>${t('bankCurrencyNote')} · ${targetCurrency}</span>
+        <span>${t('bankCurrencyNote')}: ${targetCurrency}</span>
       </div>
       <div class="daily-legend">
         <span><i class="daily-dot" style="background:var(--ok);"></i>${t('income')}: ${Math.round(totalIncome).toLocaleString('cs-CZ')} ${targetCurrency}</span>
@@ -4131,7 +4580,7 @@ function renderBudgetStatus() {
 
     if (!budget) {
       return `
-        <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+        <div class="budget-bank-row" onclick="openBankBudgetManager('${bankKey}')" title="${t('manageThisBank')}" style="padding:10px 0;border-bottom:1px solid var(--border);">
           <div class="budget-status-main">
             <div>
               <div class="budget-status-value" style="color:${bank.color};font-size:15px;">${bankLabelWithLogo(bankKey)}</div>
@@ -4149,7 +4598,7 @@ function renderBudgetStatus() {
     maybeSendBudgetLocalNotification(bankKey, plainBankName(bankKey), spent, budget, remaining, warning);
 
     return `
-      <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+      <div class="budget-bank-row" onclick="openBankBudgetManager('${bankKey}')" title="${t('manageThisBank')}" style="padding:10px 0;border-bottom:1px solid var(--border);">
         <div class="budget-status-main">
           <div>
             <div class="budget-status-value" style="color:${bank.color};font-size:15px;">${bankLabelWithLogo(bankKey)}</div>
@@ -4267,9 +4716,18 @@ function renderRecentBankColumns(byBank) {
   wrap.innerHTML = BANK_ORDER.map(bankKey => {
     const bank = getBankInfo(bankKey);
     const txns = sortTransactionsNewestFirst([...(byBank[bankKey] || [])]).slice(0, 5);
-    const items = txns.length === 0 ? `<div class="tx-meta-compact">${t('emptyMovements')}</div>` : txns.map(t => `
-      <div class="tx-item-compact" data-tx-id="${t.id}"><div class="tx-row-top"><div class="tx-merchant-compact">${t.merchant}</div><div class="tx-amt-compact ${Number(t.amount) > 0 ? 'amount-income' : 'amount-expense'}" style="text-align:right;">${Number(t.amount) > 0 ? '+' : '-'}${formatMoney(t.amount, t.currency)} ${t.currency}</div></div><div class="tx-meta-compact">${t.date.split(' ')[0]}</div><button class="tx-delete-inline" data-local-edit-only="true" onclick="deleteSingleTransaction('${t.id}')">✕</button></div>`).join('');
-    return `<div><div class="tx-col-title" style="color:${bank.color};">${bankLabelWithLogo(bankKey)}</div>${items}</div>`;
+    const items = txns.length === 0 ? `<div class="tx-meta-compact">${t('emptyMovements')}</div>` : txns.map(t => {
+      const txId = typeof getTransactionId === 'function' ? getTransactionId(t) : (t.id || t.msgId || '');
+      return `
+      <div class="tx-item-compact" data-tx-id="${escapeAttr(txId)}">
+        <div class="tx-row-top">
+          <div class="tx-merchant-compact">${escapeHtml(t.merchant)}</div>
+          <div class="tx-amt-compact ${Number(t.amount) > 0 ? 'amount-income' : 'amount-expense'}">${Number(t.amount) > 0 ? '+' : '-'}${formatMoney(t.amount, t.currency)} ${escapeHtml(t.currency)}</div>
+        </div>
+        <div class="tx-meta-compact">${escapeHtml((t.date || '').split(' ')[0])}</div>
+      </div>`;
+    }).join('');
+    return `<div class="tx-column"><div class="tx-col-title" onclick="openBankTransactions('${bankKey}')" title="${t('tapRecentBank')}" style="color:${bank.color};">${bankLabelWithLogo(bankKey)}</div>${items}</div>`;
   }).join('');
 }
 
@@ -4277,28 +4735,88 @@ function renderTwoColumns(rbTxns, csobTxns) {
   renderRecentBankColumns({ rb_cz: rbTxns, csob_sk: csobTxns, csob_cz: [], moneta: [] });
 }
 
+
+function parseDateInputForFilter(value, endOfDay = false) {
+  if (!value) return null;
+  const parts = String(value).split('-').map(Number);
+  if (parts.length === 3 && parts.every(Boolean)) {
+    return new Date(parts[0], parts[1] - 1, parts[2], endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+  }
+  const parsed = parseCustomDateStr(value);
+  if (!parsed || isNaN(parsed.getTime())) return null;
+  if (endOfDay) parsed.setHours(23, 59, 59, 999);
+  else parsed.setHours(0, 0, 0, 0);
+  return parsed;
+}
+
+function filterTransactionsByDateRange(txns) {
+  const from = parseDateInputForFilter(activeDateFrom, false);
+  const to = parseDateInputForFilter(activeDateTo, true);
+  if (!from && !to) return txns;
+
+  return txns.filter(tx => {
+    const parsed = parseCustomDateStr(tx.rawDate || tx.date);
+    if (!parsed || isNaN(parsed.getTime())) return false;
+    if (from && parsed < from) return false;
+    if (to && parsed > to) return false;
+    return true;
+  });
+}
+
+function handleTransactionDateRange() {
+  activeDateFrom = document.getElementById('txn-date-from')?.value || '';
+  activeDateTo = document.getElementById('txn-date-to')?.value || '';
+  updateTxnPage();
+}
+
+function clearTransactionDateRange() {
+  activeDateFrom = '';
+  activeDateTo = '';
+  const from = document.getElementById('txn-date-from');
+  const to = document.getElementById('txn-date-to');
+  if (from) from.value = '';
+  if (to) to.value = '';
+  updateTxnPage();
+}
+
+function updateTransactionDateInputs() {
+  const from = document.getElementById('txn-date-from');
+  const to = document.getElementById('txn-date-to');
+  if (from && from.value !== activeDateFrom) from.value = activeDateFrom || '';
+  if (to && to.value !== activeDateTo) to.value = activeDateTo || '';
+}
+
 function updateTxnPage(monthTxns) {
   const listDiv = document.getElementById('txn-list');
   if (!listDiv) return;
+
+  updateTransactionDateInputs();
+
   let filtered = sortTransactionsNewestFirst(allTransactions);
+  filtered = filterTransactionsByDateRange(filtered);
+
   if (activeDirection === 'incoming') filtered = filtered.filter(t => Number(t.amount) > 0);
   if (activeDirection === 'outgoing') filtered = filtered.filter(t => Number(t.amount) < 0);
   if (activeBank !== 'všetky') filtered = filtered.filter(t => getBankKey(t) === activeBank);
   if (activeSearch) filtered = filtered.filter(t => transactionMatchesSearch(t, activeSearch));
+
   const cats = ['všetky', ...new Set(filtered.map(t => t.category).filter(Boolean))];
   renderCategoryFilters(cats);
+
   if (activeCategory !== 'všetky') filtered = filtered.filter(t => t.category === activeCategory);
+
   if (filtered.length === 0) {
     listDiv.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>${t('noTransactionsForFilters')}</div>`;
     return;
   }
+
   listDiv.innerHTML = filtered.map(t => {
     const bankKey = getBankKey(t);
-    const bank = getBankInfo(bankKey);
     const isIncome = Number(t.amount) > 0;
     const sign = isIncome ? '+' : '-';
     const amountClass = isIncome ? 'amount-income' : 'amount-expense';
-    return `<div class="tx-item" data-tx-id="${t.id}"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${escapeHtml(t.merchant)}</div><div class="tx-meta">${escapeHtml(t.date)}</div></div></div><div class="tx-right-side"><div class="tx-amount ${amountClass}">${sign}${formatMoney(t.amount, t.currency)} ${escapeHtml(t.currency)}</div>${bankLogoImg(bankKey, 'tx-bank-logo')}</div></div>`;
+    const txId = typeof getTransactionId === 'function' ? getTransactionId(t) : (t.id || t.msgId || '');
+    return `<div class="tx-item" data-tx-id="${escapeAttr(txId)}"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${escapeHtml(t.merchant)}</div><div class="tx-meta">${escapeHtml(t.date)}</div></div></div><div class="tx-right-side"><div class="tx-amount ${amountClass}">${sign}${formatMoney(t.amount, t.currency)} ${escapeHtml(t.currency)}</div>${bankLogoImg(bankKey, 'tx-bank-logo')}</div></div>`;
   }).join('');
 
   bindTransactionDeleteGestures();
@@ -4445,6 +4963,19 @@ function renderCategoryFilters(cats) {
   }).join('');
 }
 
+
+function openBankBudgetManager(bankKey) {
+  openBankManagerSheet();
+  window.setTimeout(() => {
+    switchManagementTab('banks');
+    const row = document.getElementById('bank-row-' + bankKey);
+    if (row) {
+      row.classList.add('open');
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 120);
+}
+
 function openBankTransactions(bankKey) {
   activeCategory = 'všetky';
   showPage('txns');
@@ -4474,9 +5005,13 @@ function resetTransactionFilters() {
   activeBank = 'všetky';
   activeCategory = 'všetky';
   activeSearch = '';
+  activeDateFrom = '';
+  activeDateTo = '';
 
   const search = document.getElementById('txn-search');
   if (search) search.value = '';
+
+  updateTransactionDateInputs();
 
   document.querySelectorAll('#direction-filters .txn-filter-pill').forEach(el => el.classList.remove('active'));
   document.getElementById('filter-dir-all')?.classList.add('active');
@@ -5890,7 +6425,14 @@ const I18N = {
     themeMode: 'Theme mode',
     darkTheme: 'Dark',
     lightTheme: 'White',
-    themeModeHint: 'Choose the app theme. It also updates the browser/PWA system bars where supported.'},
+    themeModeHint: 'Choose the app theme. It also updates the browser/PWA system bars where supported.',
+    bankCardLimitsTitle: 'Bank card limits',
+    manageThisBank: 'Manage this bank',
+    tapRecentBank: 'Tap a bank name to open its transactions.',
+    dateRange: 'Date range',
+    fromDate: 'From',
+    toDate: 'To',
+    clearDateFilter: 'Clear date filter'},
   sk: {
     appTitle: 'Bank Tracker',
     overview: 'Prehľad',
@@ -5970,7 +6512,7 @@ const I18N = {
     paymentLimitReached: 'limit platieb naplnený',
     withoutMonthlyLimit: 'bez mesačného limitu',
     budgetNotSet: 'Budget zatiaľ nie je nastavený.',
-    budgetStatusTitle: 'Budget podľa banky',
+    budgetStatusTitle: 'Bankový budget',
     remaining: 'zostáva',
     overBudget: 'prekročený',
     nearLimit: 'blízko limitu',
@@ -6061,7 +6603,14 @@ const I18N = {
     themeMode: 'Režim témy',
     darkTheme: 'Tmavá',
     lightTheme: 'Biela',
-    themeModeHint: 'Vyber tému appky. Kde to systém dovolí, zmení sa aj horná/spodná systémová lišta.'},
+    themeModeHint: 'Vyber tému appky. Kde to systém dovolí, zmení sa aj horná/spodná systémová lišta.',
+    bankCardLimitsTitle: 'Limity platieb kartou',
+    manageThisBank: 'Spravovať túto banku',
+    tapRecentBank: 'Klikni na názov banky pre jej transakcie.',
+    dateRange: 'Rozsah dátumov',
+    fromDate: 'Od',
+    toDate: 'Do',
+    clearDateFilter: 'Vymazať dátumový filter'},
   cs: {
     appTitle: 'Bank Tracker',
     overview: 'Přehled',
@@ -6144,7 +6693,7 @@ const I18N = {
     paymentLimitReached: 'limit plateb splněn',
     withoutMonthlyLimit: 'bez měsíčního limitu',
     budgetNotSet: 'Budget zatím není nastavený.',
-    budgetStatusTitle: 'Budget podle banky',
+    budgetStatusTitle: 'Bankovní budget',
     remaining: 'zbývá',
     overBudget: 'překročený',
     nearLimit: 'blízko limitu',
@@ -6235,7 +6784,14 @@ const I18N = {
     themeMode: 'Režim tématu',
     darkTheme: 'Tmavá',
     lightTheme: 'Bílá',
-    themeModeHint: 'Vyber téma appky. Kde to systém dovolí, změní se i horní/spodní systémová lišta.'}
+    themeModeHint: 'Vyber téma appky. Kde to systém dovolí, změní se i horní/spodní systémová lišta.',
+    bankCardLimitsTitle: 'Limity plateb kartou',
+    manageThisBank: 'Spravovat tuto banku',
+    tapRecentBank: 'Klikni na název banky pro její transakce.',
+    dateRange: 'Rozsah datumů',
+    fromDate: 'Od',
+    toDate: 'Do',
+    clearDateFilter: 'Smazat datumový filtr'}
 };
 
 function getLanguage() {
@@ -6600,11 +7156,6 @@ function bindTransactionDeleteGestures() {
       txLongPressTimer = null;
     }, { passive: true });
 
-    el.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      askDeleteTransaction(el.dataset.txId);
-    });
-
     el.addEventListener('dblclick', (e) => {
       if (e.target.closest && e.target.closest('button')) return;
       e.preventDefault();
@@ -6707,6 +7258,7 @@ function applyAppTheme(theme = getAppTheme()) {
 }
 
 function setAppTheme(theme) {
+  localStorage.setItem('app_theme_user_selected', 'true');
   applyAppTheme(theme);
   renderAll();
   applyLanguage();
