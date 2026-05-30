@@ -1,25 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sk">
 <head>
 <meta charset="UTF-8">
-<meta name="theme-color" content="#0b1528">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0b1528">
+<title>Bank Tracker</title>
+
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b1528">
-<meta name="msapplication-navbutton-color" content="#0b1528">
-<meta name="color-scheme" content="dark">
-<meta name="supported-color-schemes" content="dark light">
+
+<meta name="color-scheme" content="light dark">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
-<title>Bank Tracker</title>
-<!-- v105 archive daily widget white theme polish -->
+
 <link rel="manifest" href="./manifest.json?v=105">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
 <script>
+(function(){
+  try {
+    var defaultVersion = 'v104';
+    if (localStorage.getItem('app_theme_default_version') !== defaultVersion) {
+      localStorage.setItem('app_theme', 'dark');
+      localStorage.setItem('app_theme_default_version', defaultVersion);
+    }
+    var theme = localStorage.getItem('app_theme') === 'light' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    
+    // PWA FIX: Okamžité donútenie Androidu prefarbiť systémové lišty podľa uloženej témy
+    var metaThemeDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
+    var metaThemeLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
+    
+    if (theme === 'dark') {
+      if(metaThemeDark) metaThemeDark.setAttribute('content', '#0b1528');
+      if(metaThemeLight) metaThemeLight.setAttribute('content', '#0b1528');
+    } else {
+      if(metaThemeDark) metaThemeDark.setAttribute('content', '#ffffff');
+      if(metaThemeLight) metaThemeLight.setAttribute('content', '#ffffff');
+    }
+  } catch(e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+})();
+</script>
 (function(){
   try {
     var defaultVersion = 'v104';
