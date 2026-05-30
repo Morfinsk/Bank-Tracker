@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="theme-color" content="#08111f">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f8fafc">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#08111f">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08111f">
 <meta name="msapplication-navbutton-color" content="#08111f">
-<meta name="color-scheme" content="dark light">
+<meta name="color-scheme" content="dark">
 <meta name="supported-color-schemes" content="dark light">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
@@ -14,8 +14,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v97 light dark theme settings -->
-<link rel="manifest" href="./manifest.json?v=97">
+<!-- v98 dark-default theme bar fix -->
+<link rel="manifest" href="./manifest.json?v=98">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -2559,6 +2559,49 @@
     html[data-theme="dark"] {
       color-scheme: dark;
     }
+  }
+
+
+  /* v98 dark default system shell; light only after explicit app choice */
+  html:not([data-theme="light"]) {
+    color-scheme: dark;
+    background: #08111f !important;
+    background-color: #08111f !important;
+  }
+
+  html:not([data-theme="light"]) body {
+    background-color: #08111f !important;
+  }
+
+  html:not([data-theme="light"]) .bottom-nav {
+    background:
+      radial-gradient(circle at top, rgba(88,166,255,.14), transparent 55%),
+      linear-gradient(180deg, rgba(12,23,42,.99), rgba(5,12,24,.99)) !important;
+    border-top-color: rgba(88,166,255,.20) !important;
+  }
+
+  html:not([data-theme="light"])::after {
+    content: "";
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: max(32px, env(safe-area-inset-bottom));
+    background: #08111f;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  html[data-theme="light"]::after {
+    content: "";
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: max(32px, env(safe-area-inset-bottom));
+    background: #f8fafc;
+    pointer-events: none;
+    z-index: 0;
   }
 
 </style>
@@ -6404,9 +6447,25 @@ function getAppTheme() {
 function updateThemeMeta(theme) {
   const config = APP_THEMES[theme] || APP_THEMES.dark;
 
-  document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
+  let metas = Array.from(document.querySelectorAll('meta[name="theme-color"]'));
+  if (!metas.length) {
+    const meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    document.head.appendChild(meta);
+    metas = [meta];
+  }
+
+  metas.forEach(meta => {
     meta.setAttribute('content', config.themeColor);
   });
+
+  let navMeta = document.querySelector('meta[name="msapplication-navbutton-color"]');
+  if (!navMeta) {
+    navMeta = document.createElement('meta');
+    navMeta.setAttribute('name', 'msapplication-navbutton-color');
+    document.head.appendChild(navMeta);
+  }
+  navMeta.setAttribute('content', config.themeColor);
 
   let colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
   if (!colorSchemeMeta) {
