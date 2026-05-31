@@ -14,8 +14,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v111 android back tabs card account filter -->
-<link rel="manifest" href="./manifest.json?v=111">
+<!-- v116 smart scroll button mobile sheet performance -->
+<link rel="manifest" href="./manifest.json?v=116">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -3517,6 +3517,323 @@
     opacity: 1 !important;
   }
 
+
+  /* v112 archive card-only main + payment type detail filter */
+  .archive-detail-kind-filters {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+    background: rgba(15,23,42,.58);
+    border: 1px solid rgba(148,163,184,.14);
+    border-radius: 14px;
+    padding: 5px;
+  }
+
+  .archive-detail-kind-filters button {
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 12px;
+    padding: 9px 6px;
+    cursor: pointer;
+  }
+
+  .archive-detail-kind-filters button.active {
+    background: linear-gradient(135deg, rgba(88,166,255,.95), rgba(125,211,252,.85));
+    color: #06111f;
+  }
+
+  .archive-detail-kind-hint {
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    line-height: 1.45;
+    margin-top: -2px;
+  }
+
+  .daily-tx-kind {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(148,163,184,.16);
+    border-radius: 999px;
+    padding: 2px 6px;
+    margin-left: 4px;
+    color: #8fdcff;
+  }
+
+  html[data-theme="light"] .archive-detail-kind-filters {
+    background: #eef6ff !important;
+    border-color: rgba(15,23,42,.14) !important;
+  }
+
+  html[data-theme="light"] .archive-detail-kind-filters button {
+    color: #334155 !important;
+  }
+
+  html[data-theme="light"] .archive-detail-kind-filters button.active {
+    background: linear-gradient(135deg, #60a5fa, #bfdbfe) !important;
+    color: #06111f !important;
+  }
+
+  html[data-theme="light"] .archive-detail-kind-hint {
+    color: #334155 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] .daily-tx-kind {
+    color: #1d4ed8 !important;
+    border-color: rgba(37,99,235,.24) !important;
+  }
+
+
+  /* v113 manual payment type + cash filter */
+  .payment-kind-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .payment-kind-grid .txn-filter-pill {
+    padding-left: 7px;
+    padding-right: 7px;
+    text-align: center;
+  }
+
+  .archive-detail-kind-filters {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .archive-detail-kind-filters button {
+    font-size: 11px !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+
+  @media (max-width: 380px) {
+    .payment-kind-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .archive-detail-kind-filters {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+  }
+
+
+  /* v114 drag strip + archive long-press edit + double-back exit */
+  .sheet-handle {
+    width: 86px !important;
+    height: 6px !important;
+    background: linear-gradient(90deg, rgba(88,166,255,.65), rgba(125,211,252,.92), rgba(88,166,255,.65)) !important;
+    box-shadow: 0 0 18px rgba(88,166,255,.22);
+    opacity: .92;
+  }
+
+  .sheet-handle::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(320px, 78vw);
+    height: 44px;
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+    background: rgba(88,166,255,.075);
+    border: 1px solid rgba(88,166,255,.13);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .sheet-handle::before {
+    width: min(360px, 90vw) !important;
+    height: 88px !important;
+  }
+
+  .sheet-title-row {
+    border-bottom: 1px solid rgba(88,166,255,.10);
+    padding-bottom: 12px;
+    margin-bottom: 14px !important;
+  }
+
+  .archive-edit-row {
+    cursor: pointer;
+    transition: background .12s ease, transform .12s ease, border-color .12s ease;
+    border-radius: 12px;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    margin-left: -8px;
+    margin-right: -8px;
+  }
+
+  .archive-edit-row.long-press-edit {
+    background: rgba(88,166,255,.13);
+    transform: scale(.992);
+  }
+
+  .archive-edit-hint {
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    line-height: 1.45;
+    margin: 0 0 8px;
+  }
+
+  .back-exit-toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(102px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(16px);
+    max-width: min(340px, calc(100vw - 40px));
+    background: rgba(8,17,31,.94);
+    color: #f8fafc;
+    border: 1px solid rgba(88,166,255,.24);
+    border-radius: 999px;
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 800;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .16s ease, transform .16s ease;
+    box-shadow: 0 16px 40px rgba(0,0,0,.28);
+    text-align: center;
+  }
+
+  .back-exit-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  html[data-theme="light"] .sheet-handle {
+    background: linear-gradient(90deg, rgba(37,99,235,.58), rgba(14,165,233,.86), rgba(37,99,235,.58)) !important;
+    box-shadow: 0 0 18px rgba(37,99,235,.18);
+  }
+
+  html[data-theme="light"] .sheet-handle::after {
+    background: rgba(37,99,235,.075);
+    border-color: rgba(37,99,235,.18);
+  }
+
+  html[data-theme="light"] .sheet-title-row {
+    border-bottom-color: rgba(37,99,235,.12);
+  }
+
+  html[data-theme="light"] .archive-edit-row.long-press-edit {
+    background: rgba(37,99,235,.10) !important;
+  }
+
+  html[data-theme="light"] .archive-edit-hint {
+    color: #334155 !important;
+  }
+
+  html[data-theme="light"] .back-exit-toast {
+    background: rgba(255,255,255,.96);
+    color: #0b1220;
+    border-color: rgba(37,99,235,.24);
+  }
+
+
+  /* v115 edit payment type + scroll-to-latest button */
+  .scroll-top-fab {
+    position: fixed;
+    right: 24px;
+    bottom: calc(156px + env(safe-area-inset-bottom));
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    border: 1px solid rgba(88,166,255,.30);
+    background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(30,41,59,.96));
+    color: #8fdcff;
+    font-size: 23px;
+    font-weight: 900;
+    box-shadow: 0 14px 30px rgba(0,0,0,.28);
+    z-index: 321;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .scroll-top-fab.visible {
+    display: flex;
+  }
+
+  .scroll-top-fab:active {
+    transform: scale(.96);
+  }
+
+  html[data-theme="light"] .scroll-top-fab {
+    background: linear-gradient(135deg, #ffffff, #eef6ff) !important;
+    color: #1d4ed8 !important;
+    border-color: rgba(37,99,235,.28) !important;
+    box-shadow: 0 14px 30px rgba(15,23,42,.14);
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    .scroll-top-fab {
+      bottom: calc(190px + env(safe-area-inset-bottom));
+    }
+  }
+
+
+  /* v116 scroll-to-latest smart visibility + mobile sheet performance */
+  .scroll-top-fab {
+    opacity: 0;
+    transform: translateY(10px) scale(.94);
+    pointer-events: none;
+    transition: opacity .16s ease, transform .16s ease;
+  }
+
+  .scroll-top-fab.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  @media (hover: none), (pointer: coarse), (max-width: 700px) {
+    .bottom-sheet-backdrop {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: rgba(0,0,0,.50) !important;
+    }
+
+    .bottom-sheet {
+      transition: transform .16s cubic-bezier(.22,.72,.23,1) !important;
+      box-shadow: 0 -10px 34px rgba(0,0,0,.36) !important;
+      contain: layout paint;
+      transform: translate3d(-50%, 105%, 0) !important;
+      will-change: transform;
+    }
+
+    .bottom-sheet.open {
+      transform: translate3d(-50%, 0, 0) !important;
+    }
+
+    .bottom-sheet.sheet-snapping {
+      transition: transform .18s cubic-bezier(.22,.72,.23,1) !important;
+    }
+
+    .bottom-sheet.dragging {
+      transition: none !important;
+    }
+
+    .upgrade-card,
+    .daily-chart-card,
+    .archive-trend-card,
+    .txn-totals-card {
+      box-shadow: 0 10px 28px rgba(0,0,0,.12) !important;
+    }
+
+    html[data-theme="light"] .upgrade-card,
+    html[data-theme="light"] .daily-chart-card,
+    html[data-theme="light"] .archive-trend-card,
+    html[data-theme="light"] .txn-totals-card {
+      box-shadow: 0 10px 24px rgba(15,23,42,.06) !important;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -3609,10 +3926,11 @@
   </div>
 
   <div class="filter-group-title" data-i18n="transactionKind">Payment type</div>
-  <div class="cat-grid" id="payment-kind-filters">
+  <div class="cat-grid payment-kind-grid" id="payment-kind-filters">
     <div class="txn-filter-pill active" id="filter-kind-all" onclick="filterPaymentKind('all')" data-i18n="all">All</div>
     <div class="txn-filter-pill" id="filter-kind-card" onclick="filterPaymentKind('card')" data-i18n="cardsOnly">Cards</div>
     <div class="txn-filter-pill" id="filter-kind-account" onclick="filterPaymentKind('account')" data-i18n="accountsOnly">Accounts</div>
+    <div class="txn-filter-pill" id="filter-kind-cash" onclick="filterPaymentKind('cash')" data-i18n="cashOnly">Cash</div>
   </div>
   <div class="txn-payment-kind-hint" data-i18n="cardVsAccountHint">Card payments count towards bank benefits. Account payments are separated.</div>
 
@@ -3637,7 +3955,7 @@
     <div id="archive-trend-chart"></div>
   </div>
   <div class="section-title" style="margin-top:8px;" data-i18n="monthlyArchive">Monthly archive</div>
-  <div class="archive-hint" data-i18n="tapBankForDaily">Tap a bank to see daily income and expenses.</div>
+  <div class="archive-hint" data-i18n="archiveCardsOnlyHint">Monthly archive and trend count card payments only.</div>
   <div class="archive-container" id="archive-months-list"></div>
 </div>
 
@@ -3761,6 +4079,13 @@
     <div class="budget-status-note" data-i18n="selectArchiveDate">Select date to place this transaction into the correct archive month.</div>
 
     <label data-i18n="bank">Bank</label><select class="config-input" id="manual-tx-bank"></select>
+    <label data-i18n="transactionKind">Payment type</label>
+    <select class="config-input" id="manual-tx-kind">
+      <option value="card" data-i18n="cardPaymentKind">Card payment</option>
+      <option value="account" data-i18n="accountPaymentKind">Account payment</option>
+      <option value="cash" data-i18n="cashPaymentKind">Cash payment</option>
+    </select>
+    <div class="budget-status-note" data-i18n="manualKindHint">Cards count towards bank benefits. Account and cash payments are tracked separately.</div>
     <label data-i18n="merchantDescription">Merchant / description</label><input class="config-input" id="manual-tx-merchant" placeholder="napr. Tesco" />
     <div class="sheet-grid-2"><div><label data-i18n="amount">Amount</label><input class="config-input" id="manual-tx-amount" type="number" step="0.01" placeholder="100" /></div><div><label data-i18n="type">Type</label><select class="config-input" id="manual-tx-direction"><option value="outgoing">Outgoing (-)</option><option value="incoming">Incoming (+)</option></select></div></div>
     <div class="sheet-grid-2"><div><label data-i18n="currency">Currency</label><select class="config-input" id="manual-tx-currency"><option value="CZK">CZK — Czech koruna</option><option value="EUR">EUR — Euro</option><option value="USD">USD — US dollar</option><option value="GBP">GBP — British pound</option><option value="PLN">PLN — Polish zloty</option><option value="HUF">HUF — Hungarian forint</option><option value="RON">RON — Romanian leu</option><option value="BGN">BGN — Bulgarian lev</option><option value="CHF">CHF — Swiss franc</option><option value="SEK">SEK — Swedish krona</option><option value="NOK">NOK — Norwegian krone</option><option value="DKK">DKK — Danish krone</option><option value="ISK">ISK — Icelandic krona</option><option value="TRY">TRY — Turkish lira</option><option value="UAH">UAH — Ukrainian hryvnia</option><option value="AUD">AUD — Australian dollar</option><option value="CAD">CAD — Canadian dollar</option><option value="NZD">NZD — New Zealand dollar</option><option value="JPY">JPY — Japanese yen</option><option value="CNY">CNY — Chinese yuan</option><option value="HKD">HKD — Hong Kong dollar</option><option value="SGD">SGD — Singapore dollar</option><option value="KRW">KRW — South Korean won</option><option value="INR">INR — Indian rupee</option><option value="THB">THB — Thai baht</option><option value="MYR">MYR — Malaysian ringgit</option><option value="IDR">IDR — Indonesian rupiah</option><option value="PHP">PHP — Philippine peso</option><option value="VND">VND — Vietnamese dong</option><option value="AED">AED — UAE dirham</option><option value="SAR">SAR — Saudi riyal</option><option value="QAR">QAR — Qatari riyal</option><option value="KWD">KWD — Kuwaiti dinar</option><option value="ILS">ILS — Israeli shekel</option><option value="ZAR">ZAR — South African rand</option><option value="MXN">MXN — Mexican peso</option><option value="BRL">BRL — Brazilian real</option><option value="ARS">ARS — Argentine peso</option><option value="CLP">CLP — Chilean peso</option><option value="COP">COP — Colombian peso</option><option value="PEN">PEN — Peruvian sol</option><option value="EGP">EGP — Egyptian pound</option><option value="MAD">MAD — Moroccan dirham</option></select></div><div><label data-i18n="category">Category</label>
@@ -3810,6 +4135,7 @@
 </div>
 
 
+<button id="scroll-top-fab" class="scroll-top-fab" onclick="scrollToLatestVisibleTransaction()" title="Back to latest" aria-label="Back to latest" data-i18n-title="scrollToLatest">⇈</button>
 <button id="global-fab" class="fab" onclick="openQuickAddSheet()">+</button>
 
 <div id="quick-add-sheet" class="bottom-sheet">
@@ -3909,6 +4235,14 @@
   <div class="sheet-grid">
     <label data-i18n="selectMonth">Month</label>
     <select class="config-input" id="archive-detail-month" onchange="archiveDetailFilter=null;renderArchiveBankDetail()"></select>
+    <label data-i18n="transactionKind">Payment type</label>
+    <div class="archive-detail-kind-filters" id="archive-detail-kind-filters">
+      <button type="button" id="archive-kind-all" onclick="filterArchivePaymentKind('all')" data-i18n="paymentKindAll">All payments</button>
+      <button type="button" id="archive-kind-card" onclick="filterArchivePaymentKind('card')" data-i18n="cardsOnly">Cards</button>
+      <button type="button" id="archive-kind-account" onclick="filterArchivePaymentKind('account')" data-i18n="accountsOnly">Accounts</button>
+      <button type="button" id="archive-kind-cash" onclick="filterArchivePaymentKind('cash')" data-i18n="cashOnly">Cash</button>
+    </div>
+    <div class="archive-detail-kind-hint" data-i18n="archivePaymentTypeHint">Filter this bank detail by all payments, card payments or account payments.</div>
     <div id="archive-bank-detail-chart"></div>
     <div id="archive-bank-detail-list"></div>
   </div>
@@ -3959,10 +4293,19 @@
     <label data-i18n="bank">Bank</label>
     <select class="config-input" id="edit-tx-bank"></select>
 
+    <label data-i18n="transactionKind">Payment type</label>
+    <select class="config-input" id="edit-tx-kind">
+      <option value="card" data-i18n="cardPaymentKind">Card payment</option>
+      <option value="account" data-i18n="accountPaymentKind">Account payment</option>
+      <option value="cash" data-i18n="cashPaymentKind">Cash payment</option>
+    </select>
+    <div class="budget-status-note" data-i18n="editKindHint">Changing payment type also updates whether the transaction counts as card, account or cash.</div>
+
     <button class="config-save" onclick="saveEditedTransaction()" data-i18n="saveTransaction">Save transaction</button>
     <button class="manager-danger-btn" onclick="deleteEditedTransaction()" data-i18n="deleteTransaction">Delete transaction</button>
   </div>
 </div>
+<div id="back-exit-toast" class="back-exit-toast" data-i18n="backAgainToExit">Press Back again to exit</div>
 <nav class="bottom-nav">
   <div class="nav-item active" id="nav-overview" onclick="showPage('overview')">
     <span class="nav-icon">◉</span>
@@ -4589,6 +4932,7 @@ function loadDemoData() {
 
 // ── ARCHIVE DAILY BANK DETAIL ──────────────────────────────
 let archiveDetailBankKey = 'rb_cz';
+let archiveDetailPaymentKind = 'all';
 
 function transactionToCzkEquivalent(tx) {
   return convertTransactionAmount(tx, 'CZK');
@@ -4599,8 +4943,38 @@ function getArchiveMonths() {
     .sort((a,b) => monthSortValue(b) - monthSortValue(a));
 }
 
+
+function updateArchivePaymentKindFilterUi() {
+  document.getElementById('archive-kind-all')?.classList.toggle('active', archiveDetailPaymentKind === 'all');
+  document.getElementById('archive-kind-card')?.classList.toggle('active', archiveDetailPaymentKind === 'card');
+  document.getElementById('archive-kind-account')?.classList.toggle('active', archiveDetailPaymentKind === 'account');
+  document.getElementById('archive-kind-cash')?.classList.toggle('active', archiveDetailPaymentKind === 'cash');
+}
+
+function filterArchivePaymentKind(kind) {
+  archiveDetailPaymentKind = kind || 'all';
+  archiveDetailFilter = null;
+  updateArchivePaymentKindFilterUi();
+  renderArchiveBankDetail();
+}
+
+function filterArchiveDetailTransactionsByKind(txns) {
+  if (archiveDetailPaymentKind === 'card') return txns.filter(tx => isCardTransaction(tx));
+  if (archiveDetailPaymentKind === 'account') return txns.filter(tx => isAccountTransaction(tx));
+  if (archiveDetailPaymentKind === 'cash') return txns.filter(tx => isCashTransaction(tx));
+  return txns;
+}
+
+function getPaymentKindLabel(tx) {
+  const kind = getTransactionPaymentKind(tx);
+  if (kind === 'account') return t('accountsOnly');
+  if (kind === 'cash') return t('cashOnly');
+  return t('cardsOnly');
+}
+
 function openArchiveBankDetail(bankKey, monthStr) {
   archiveDetailFilter = null;
+  archiveDetailPaymentKind = 'all';
   archiveDetailBankKey = bankKey || 'rb_cz';
 
   const monthSelect = document.getElementById('archive-detail-month');
@@ -4611,6 +4985,7 @@ function openArchiveBankDetail(bankKey, monthStr) {
     monthSelect.value = selected;
   }
 
+  updateArchivePaymentKindFilterUi();
   renderArchiveBankDetail();
   openSheet('archive-bank-detail-sheet');
 }
@@ -4636,17 +5011,21 @@ function renderArchiveBankDetail() {
   const bankName = plainBankName(bankKey);
   const targetCurrency = getBankChartCurrency(bankKey);
 
+  updateArchivePaymentKindFilterUi();
+
   if (title) title.innerHTML = `${bankLogoImg(bankKey)} ${bankName} — ${t('dailyArchive')}`;
 
   if (!chartWrap || !listWrap) return;
 
-  const txns = sortTransactionsNewestFirst(allTransactions.filter(tx => {
+  const allBankMonthTxns = sortTransactionsNewestFirst(allTransactions.filter(tx => {
     return tx.month === monthStr && getBankKey(tx) === bankKey;
   }));
 
+  const txns = filterArchiveDetailTransactionsByKind(allBankMonthTxns);
+
   if (txns.length === 0) {
     chartWrap.innerHTML = `<div class="empty-state" style="padding:22px 0;">${t('noDailyData')}</div>`;
-    listWrap.innerHTML = '';
+    listWrap.innerHTML = `<div class="budget-status-note" style="margin:0 0 8px;">${t('showing')}: 0 / ${allBankMonthTxns.length}</div>`;
     return;
   }
 
@@ -4697,7 +5076,6 @@ function renderArchiveBankDetail() {
   const maxBarH = axisY - padT - 10;
 
   const barHeight = (value) => Math.max(value > 0 ? 2 : 0, (value / niceMax) * maxBarH);
-  const yFor = (value) => axisY - barHeight(value);
 
   const selected = archiveDetailFilter;
   const selectedLabel = selected
@@ -4726,11 +5104,17 @@ function renderArchiveBankDetail() {
     `;
   }).join('');
 
+  const kindLabel = archiveDetailPaymentKind === 'all'
+    ? t('paymentKindAll')
+    : archiveDetailPaymentKind === 'card'
+      ? t('cardsOnly')
+      : t('accountsOnly');
+
   chartWrap.innerHTML = `
     <div class="daily-chart-card">
       <div class="daily-chart-title">
         <strong>${t('dailyCashflow')} · ${formatMonthString(monthStr)}</strong>
-        <span>${t('bankCurrencyNote')}: ${targetCurrency}</span>
+        <span>${t('bankCurrencyNote')}: ${targetCurrency} · ${kindLabel}</span>
       </div>
       <div class="daily-legend">
         <span><i class="daily-dot" style="background:var(--ok);"></i>${t('income')}: ${Math.round(totalIncome).toLocaleString('cs-CZ')} ${targetCurrency}</span>
@@ -4764,24 +5148,78 @@ function renderArchiveBankDetail() {
   }
 
   listWrap.innerHTML = `
-    <div class="budget-status-note" style="margin:0 0 8px;">${t('showing')}: ${visibleTxns.length} / ${txnsWithDay.length}</div>
+    <div class="budget-status-note" style="margin:0 0 8px;">${t('showing')}: ${visibleTxns.length} / ${allBankMonthTxns.length}</div><div class="archive-edit-hint">${t('longPressToEdit')}</div>
     ${visibleTxns.map(tx => {
       const isIncome = Number(tx.amount) > 0;
       const amountClass = isIncome ? 'amount-income' : 'amount-expense';
       const sign = isIncome ? '+' : '-';
       return `
-        <div class="daily-tx-row">
+        <div class="daily-tx-row archive-edit-row" data-archive-tx-id="${escapeAttr(typeof getTransactionId === 'function' ? getTransactionId(tx) : (tx.id || tx.msgId || ''))}" title="${t('editTransaction')}">
           <div class="daily-tx-main">
-            <div class="daily-tx-title">${tx.merchant || ''}</div>
-            <div class="daily-tx-sub">${tx.date || ''} · ${translateCategory(tx.category || '')}</div>
+            <div class="daily-tx-title">${escapeHtml(tx.merchant || '')}</div>
+            <div class="daily-tx-sub">${escapeHtml(tx.date || '')} · ${translateCategory(tx.category || '')}<span class="daily-tx-kind">${getPaymentKindLabel(tx)}</span></div>
           </div>
-          <div class="daily-tx-amount ${amountClass}">${sign}${formatMoney(tx.amount, tx.currency)} ${tx.currency || 'CZK'}</div>
+          <div class="daily-tx-amount ${amountClass}">${sign}${formatMoney(tx.amount, tx.currency)} ${escapeHtml(tx.currency || 'CZK')}</div>
         </div>`;
     }).join('')}
   `;
+  bindArchiveTransactionEditGestures();
+  scheduleFloatingUtilityUpdate();
 }
 
 // ── OPRAVENÉ MAZANIE JEDNEJ TRANSAKCIE ──────────────────────────
+
+function bindArchiveTransactionEditGestures() {
+  document.querySelectorAll('[data-archive-tx-id]').forEach(row => {
+    if (row.dataset.archiveEditBound === 'true') return;
+    row.dataset.archiveEditBound = 'true';
+
+    let timer = null;
+    let startX = 0;
+    let startY = 0;
+    let didOpen = false;
+
+    const clear = () => {
+      if (timer) clearTimeout(timer);
+      timer = null;
+    };
+
+    const openEdit = () => {
+      const txId = row.dataset.archiveTxId;
+      if (!txId || didOpen) return;
+      didOpen = true;
+      row.classList.add('long-press-edit');
+      navigator.vibrate?.(25);
+      window.setTimeout(() => row.classList.remove('long-press-edit'), 350);
+      openTransactionEditSheet(txId);
+    };
+
+    row.addEventListener('pointerdown', (event) => {
+      if (event.target.closest && event.target.closest('button, input, select, textarea, a')) return;
+      didOpen = false;
+      startX = event.clientX || 0;
+      startY = event.clientY || 0;
+      timer = window.setTimeout(openEdit, 560);
+    });
+
+    row.addEventListener('pointermove', (event) => {
+      const dx = Math.abs((event.clientX || 0) - startX);
+      const dy = Math.abs((event.clientY || 0) - startY);
+      if (dx > 12 || dy > 12) clear();
+    });
+
+    row.addEventListener('pointerup', clear);
+    row.addEventListener('pointercancel', clear);
+    row.addEventListener('pointerleave', clear);
+
+    row.addEventListener('dblclick', (event) => {
+      if (event.target.closest && event.target.closest('button, input, select, textarea, a')) return;
+      event.preventDefault();
+      openEdit();
+    });
+  });
+}
+
 function deleteSingleTransaction(txId) {
   if (!txId) return;
 
@@ -4833,12 +5271,24 @@ function getTransactionPaymentKind(tx) {
   const card = String(tx?.card || '');
   const type = String(tx?.type || '');
   const category = String(tx?.category || '');
+  const merchant = String(tx?.merchant || '');
 
   const cardLower = card.toLowerCase();
   const typeLower = type.toLowerCase();
   const categoryLower = category.toLowerCase();
+  const merchantLower = merchant.toLowerCase();
 
-  // Account transfers from ČSOB CZ / Moneta look like 6624/0300 or 4571/0600.
+  if (
+    cardLower.includes('cash') ||
+    cardLower.includes('hotov') ||
+    typeLower.includes('cash') ||
+    typeLower.includes('hotov') ||
+    categoryLower.includes('hotov') ||
+    merchantLower === 'cash'
+  ) {
+    return 'cash';
+  }
+
   if (
     /^\d{4}\/\d{4}$/.test(card.trim()) ||
     cardLower.includes('účet') ||
@@ -4851,7 +5301,6 @@ function getTransactionPaymentKind(tx) {
     return 'account';
   }
 
-  // Card payments use Karta / **** mask or explicit card payment type.
   if (
     cardLower.includes('karta') ||
     cardLower.includes('card') ||
@@ -4862,8 +5311,6 @@ function getTransactionPaymentKind(tx) {
     return 'card';
   }
 
-  // Default to card so older imported card transactions without explicit "Karta"
-  // still count towards bank card limits.
   return 'card';
 }
 
@@ -4875,10 +5322,15 @@ function isAccountTransaction(tx) {
   return getTransactionPaymentKind(tx) === 'account';
 }
 
+function isCashTransaction(tx) {
+  return getTransactionPaymentKind(tx) === 'cash';
+}
+
 function updatePaymentKindFilterUi() {
   document.getElementById('filter-kind-all')?.classList.toggle('active', activePaymentKind === 'all');
   document.getElementById('filter-kind-card')?.classList.toggle('active', activePaymentKind === 'card');
   document.getElementById('filter-kind-account')?.classList.toggle('active', activePaymentKind === 'account');
+  document.getElementById('filter-kind-cash')?.classList.toggle('active', activePaymentKind === 'cash');
 }
 
 function filterPaymentKind(kind) {
@@ -4899,18 +5351,70 @@ function initTabHistory() {
   window.__bankTrackerTabHistoryReady = true;
 
   activePageId = getActivePageId() || 'overview';
+  window.__bankTrackerLastBackAt = 0;
+  window.__bankTrackerBackToastTimer = null;
+
+  const url = location.pathname + location.search + '#' + activePageId;
 
   try {
-    history.replaceState({ bankTrackerPage: activePageId }, '', location.pathname + location.search + '#' + activePageId);
+    history.replaceState({ bankTrackerRoot: true, bankTrackerPage: activePageId }, '', url);
+    history.pushState({ bankTrackerPage: activePageId, bankTrackerExitGuard: true }, '', url);
   } catch (_) {}
 
   window.addEventListener('popstate', (event) => {
-    const pageId = event.state && event.state.bankTrackerPage;
+    const now = Date.now();
+    const state = event.state || {};
+
+    if (now - (window.__bankTrackerLastBackAt || 0) < 950) {
+      exitBankTrackerApp();
+      return;
+    }
+
+    window.__bankTrackerLastBackAt = now;
+
+    if (state.bankTrackerRoot) {
+      showBackExitToast();
+      try {
+        history.pushState({ bankTrackerPage: activePageId || 'overview', bankTrackerExitGuard: true }, '', location.pathname + location.search + '#' + (activePageId || 'overview'));
+      } catch (_) {}
+      return;
+    }
+
+    const pageId = state.bankTrackerPage;
     if (pageId && document.getElementById('page-' + pageId)) {
       showPage(pageId, { fromHistory: true });
+      return;
     }
-    // If there is no bankTrackerPage state, browser/PWA handles back normally and can exit.
+
+    showBackExitToast();
   });
+}
+
+function showBackExitToast() {
+  const toast = document.getElementById('back-exit-toast');
+  if (!toast) return;
+
+  toast.textContent = t('backAgainToExit');
+  toast.classList.add('show');
+
+  if (window.__bankTrackerBackToastTimer) {
+    clearTimeout(window.__bankTrackerBackToastTimer);
+  }
+
+  window.__bankTrackerBackToastTimer = window.setTimeout(() => {
+    toast.classList.remove('show');
+  }, 1300);
+}
+
+function exitBankTrackerApp() {
+  const toast = document.getElementById('back-exit-toast');
+  if (toast) toast.classList.remove('show');
+
+  try { window.close(); } catch (_) {}
+
+  window.setTimeout(() => {
+    try { history.back(); } catch (_) {}
+  }, 60);
 }
 
 function pushTabHistory(pageId) {
@@ -5428,6 +5932,7 @@ function updateTxnPage(monthTxns) {
 
   if (activePaymentKind === 'card') filtered = filtered.filter(t => isCardTransaction(t));
   if (activePaymentKind === 'account') filtered = filtered.filter(t => isAccountTransaction(t));
+  if (activePaymentKind === 'cash') filtered = filtered.filter(t => isCashTransaction(t));
 
   if (activeSearch) filtered = filtered.filter(t => transactionMatchesSearch(t, activeSearch));
 
@@ -5459,6 +5964,7 @@ function updateTxnPage(monthTxns) {
     renderTransactionTotals(filtered);
 
   bindTransactionDeleteGestures();
+  scheduleFloatingUtilityUpdate();
 }
 
 
@@ -5724,6 +6230,8 @@ function showPage(pageId, options = {}) {
     updateEditModeUI();
     updatePushStatus();
   }
+
+  scheduleFloatingUtilityUpdate();
 }
 
 async function saveConfig() {
@@ -5938,8 +6446,24 @@ function getCurrencyOptionsHtml(selectedCurrency = 'CZK') {
 
 function fillCurrencySelect(select, selectedCurrency = 'CZK') {
   if (!select) return;
-  select.innerHTML = getCurrencyOptionsHtml(selectedCurrency);
-  select.value = String(selectedCurrency || 'CZK').toUpperCase();
+
+  const selected = String(selectedCurrency || 'CZK').toUpperCase();
+  const expectedCount = Array.isArray(COMMON_CURRENCIES) ? COMMON_CURRENCIES.length : 0;
+  const alreadyLoaded = select.dataset.currencyOptionsLoaded === 'true' && select.options.length >= expectedCount;
+
+  if (!alreadyLoaded) {
+    select.innerHTML = getCurrencyOptionsHtml(selected);
+    select.dataset.currencyOptionsLoaded = 'true';
+  }
+
+  if (![...select.options].some(option => option.value === selected)) {
+    const option = document.createElement('option');
+    option.value = selected;
+    option.textContent = selected;
+    select.insertBefore(option, select.firstChild);
+  }
+
+  select.value = selected;
 }
 
 function initCurrencyDropdowns() {
@@ -6237,11 +6761,14 @@ function openSheet(id){
     sheet.scrollTop = 0;
     requestAnimationFrame(() => {
       sheet.classList.add('open');
+      scheduleFloatingUtilityUpdate();
+      window.setTimeout(scheduleFloatingUtilityUpdate, 180);
     });
   }
 
   initBottomSheetDragToClose();
   if (typeof initGlobalPullDownControl === 'function') initGlobalPullDownControl();
+  scheduleFloatingUtilityUpdate();
 }
 function closeBottomSheets(){
   document.body.classList.remove('sheet-open');
@@ -6257,6 +6784,7 @@ function closeBottomSheets(){
   });
 
   if (typeof resetManagerFilters === 'function') resetManagerFilters();
+  scheduleFloatingUtilityUpdate();
 }
 
 
@@ -6485,7 +7013,7 @@ function updateManagedTransactionFromButton(button) {
   tx.date = formatDate(parsedDate);
   tx.rawDate = parsedDate.toISOString();
   tx.timestamp = parsedDate.getTime();
-  tx.month = getMonthFromDate(parsedDate);
+  tx.month = getMonthFromDate(parsedDate); // v114 auto archive month after edit
   tx.amount = finalAmount;
   tx.currency = currency;
   tx.category = category;
@@ -6708,8 +7236,35 @@ function updateSystemBankSettings(bankKey) {
 }
 
 function fillManualTransactionBanks(){const select=document.getElementById('manual-tx-bank');if(!select)return;select.innerHTML=BANK_ORDER.map(k=>`<option value="${k}">${plainBankName(k)}</option>`).join('')+getCustomBanks().map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}
+
+function getManualPaymentMeta(paymentKind, direction, bankKey, bankName, customBank) {
+  const kind = paymentKind || 'card';
+  const isIncoming = direction === 'incoming';
+
+  if (kind === 'cash') {
+    return {
+      card: 'Cash',
+      type: isIncoming ? t('cashPaymentKind') : t('cashPaymentKind')
+    };
+  }
+
+  if (kind === 'account') {
+    const account = customBank?.account || '';
+    return {
+      card: account || `Účet ${bankName}`,
+      type: isIncoming ? 'príjem na účet' : 'odchod z účtu'
+    };
+  }
+
+  return {
+    card: `Karta ${bankName}`,
+    type: 'platba kartou'
+  };
+}
+
 function saveManualTransaction(){
   const bankKey=document.getElementById('manual-tx-bank')?.value||'rb_cz';
+  const paymentKind=document.getElementById('manual-tx-kind')?.value||'card';
   const merchant=document.getElementById('manual-tx-merchant')?.value.trim()||t('manualTransaction');
   const amountRaw=parseFloat(document.getElementById('manual-tx-amount')?.value||'0')||0;
   const direction=document.getElementById('manual-tx-direction')?.value||'outgoing';
@@ -6719,6 +7274,7 @@ function saveManualTransaction(){
   const amount=direction==='incoming'?Math.abs(amountRaw):-Math.abs(amountRaw);
   const customBank=getCustomBanks().find(b=>b.id===bankKey);
   const bankName=customBank?customBank.name:plainBankName(bankKey);
+  const paymentMeta = getManualPaymentMeta(paymentKind, direction, bankKey, bankName, customBank);
 
   const newTx = {
     id:'manual-'+Date.now(),
@@ -6728,8 +7284,9 @@ function saveManualTransaction(){
     currency,
     merchant,
     category,
-    card:bankName,
-    type:direction==='incoming'?'Príjem':'Výdaj',
+    card:paymentMeta.card,
+    type:paymentMeta.type,
+    paymentKind,
     month:getMonthFromDate(txDate),
     bank:bankName,
     timestamp:txDate.getTime()
@@ -6743,6 +7300,8 @@ function saveManualTransaction(){
   document.getElementById('manual-tx-merchant').value='';
   document.getElementById('manual-tx-amount').value='';
   document.getElementById('manual-tx-category').value='Ostatné';
+  const kindInput = document.getElementById('manual-tx-kind');
+  if (kindInput) kindInput.value = 'card';
   const dateInput = document.getElementById('manual-tx-date');
   if (dateInput) dateInput.value = toDateInputValue(new Date());
 
@@ -6827,6 +7386,7 @@ function renderArchiveTrendChart() {
   const monthly = {};
   allTransactions.forEach(t => {
     if (!t.month || !(Number(t.amount) < 0)) return;
+    if (!isCardTransaction(t)) return;
 
     const bankKey = getBankKey(t);
     if (!BANK_ORDER.includes(bankKey)) return;
@@ -6898,7 +7458,7 @@ function renderArchiveTrendChart() {
 
   wrap.innerHTML = `
     <div class="archive-bank-legend">${legend}</div>
-    <div class="archive-chart-note">${t('trendCurrencyNote')}</div>
+    <div class="archive-chart-note">${t('trendCurrencyNote')} · ${t('cardsOnly')}</div>
     <svg class="archive-multiline-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
       <line class="archive-grid-line" x1="${padL}" y1="${axisY}" x2="${w - padR}" y2="${axisY}"></line>
       <line class="archive-grid-line" x1="${padL}" y1="${Math.round(axisY / 2)}" x2="${w - padR}" y2="${Math.round(axisY / 2)}"></line>
@@ -6921,14 +7481,18 @@ function renderArchiveTrendChart() {
 function renderArchive() {
   const container = document.getElementById('archive-months-list');
   if (!container) return;
-  const monthsInSpecs = [...new Set(allTransactions.map(t => t.month).filter(Boolean))];
+
+  const cardTxnsAll = allTransactions.filter(t => isCardTransaction(t));
+  const monthsInSpecs = [...new Set(cardTxnsAll.map(t => t.month).filter(Boolean))];
   monthsInSpecs.sort((a,b) => monthSortValue(b) - monthSortValue(a));
+
   if (monthsInSpecs.length === 0) {
     container.innerHTML = `<div class="empty-state" style="padding:20px 0;">${t('archiveEmpty')}</div>`;
     return;
   }
+
   container.innerHTML = monthsInSpecs.map(mStr => {
-    const txns = allTransactions.filter(t => t.month === mStr && t.amount < 0);
+    const txns = cardTxnsAll.filter(t => t.month === mStr && Number(t.amount) < 0);
     const hist = getLimitsForMonth(mStr);
     const cols = BANK_ORDER.map(bankKey => {
       const bank = getBankInfo(bankKey);
@@ -7146,7 +7710,20 @@ const I18N = {
     transactionKind: 'Payment type',
     cardsOnly: 'Cards',
     accountsOnly: 'Accounts',
-    cardVsAccountHint: 'Card payments count towards bank benefits. Account payments are separated.'},
+    cardVsAccountHint: 'Card payments count towards bank benefits. Account payments are separated.',
+    archiveCardsOnlyHint: 'Monthly archive and trend count card payments only.',
+    archivePaymentTypeHint: 'Filter this bank detail by all payments, card payments or account payments.',
+    paymentKindAll: 'All payments',
+    cashOnly: 'Cash',
+    manualKindHint: 'Cards count towards bank benefits. Account and cash payments are tracked separately.',
+    accountPaymentKind: 'Account payment',
+    cashPaymentKind: 'Cash payment',
+    cardPaymentKind: 'Card payment',
+    longPressToEdit: 'Long press a transaction to edit it.',
+    backAgainToExit: 'Press Back again to exit',
+    dragSheetHint: 'Drag here',
+    scrollToLatest: 'Back to latest',
+    editKindHint: 'Changing payment type also updates whether the transaction counts as card, account or cash.'},
   sk: {
     appTitle: 'Bank Tracker',
     overview: 'Prehľad',
@@ -7340,7 +7917,20 @@ const I18N = {
     transactionKind: 'Typ platby',
     cardsOnly: 'Karty',
     accountsOnly: 'Účty',
-    cardVsAccountHint: 'Kartové platby sa počítajú do bankových benefitov. Účtové platby sú oddelené.'},
+    cardVsAccountHint: 'Kartové platby sa počítajú do bankových benefitov. Účtové platby sú oddelené.',
+    archiveCardsOnlyHint: 'Mesačný archív a trend počítajú iba kartové platby.',
+    archivePaymentTypeHint: 'Detail banky môžeš filtrovať podľa všetkých platieb, kariet alebo účtov.',
+    paymentKindAll: 'Všetky platby',
+    cashOnly: 'Hotovosť',
+    manualKindHint: 'Kartové platby sa počítajú do bankových benefitov. Účtové a hotovostné platby sú oddelené.',
+    accountPaymentKind: 'Účtová platba',
+    cashPaymentKind: 'Hotovostná platba',
+    cardPaymentKind: 'Platba kartou',
+    longPressToEdit: 'Dlhým podržaním upravíš transakciu.',
+    backAgainToExit: 'Stlač späť ešte raz pre ukončenie',
+    dragSheetHint: 'Potiahni tu',
+    scrollToLatest: 'Späť hore',
+    editKindHint: 'Zmena typu platby upraví, či sa transakcia počíta ako karta, účet alebo hotovosť.'},
   cs: {
     appTitle: 'Bank Tracker',
     overview: 'Přehled',
@@ -7537,7 +8127,20 @@ const I18N = {
     transactionKind: 'Typ platby',
     cardsOnly: 'Karty',
     accountsOnly: 'Účty',
-    cardVsAccountHint: 'Kartové platby se počítají do bankovních benefitů. Účtové platby jsou oddělené.'}
+    cardVsAccountHint: 'Kartové platby se počítají do bankovních benefitů. Účtové platby jsou oddělené.',
+    archiveCardsOnlyHint: 'Měsíční archiv a trend počítají jen karetní platby.',
+    archivePaymentTypeHint: 'Detail banky můžeš filtrovat podle všech plateb, karet nebo účtů.',
+    paymentKindAll: 'Všechny platby',
+    cashOnly: 'Hotovost',
+    manualKindHint: 'Karetní platby se počítají do bankovních benefitů. Účtové a hotovostní platby jsou oddělené.',
+    accountPaymentKind: 'Účtová platba',
+    cashPaymentKind: 'Hotovostní platba',
+    cardPaymentKind: 'Platba kartou',
+    longPressToEdit: 'Dlouhým podržením upravíš transakci.',
+    backAgainToExit: 'Stiskni zpět ještě jednou pro ukončení',
+    dragSheetHint: 'Potáhni zde',
+    scrollToLatest: 'Zpět nahoru',
+    editKindHint: 'Změna typu platby upraví, zda se transakce počítá jako karta, účet nebo hotovost.'}
 };
 
 function getLanguage() {
@@ -7687,6 +8290,7 @@ function extractTxnPayload(tx) {
     month: tx.month || '',
     bank: tx.bank || '',
     rawDate: tx.rawDate || '',
+    paymentKind: tx.paymentKind || getTransactionPaymentKind(tx),
     msgId: tx.msgId || tx.id || ''
   };
 }
@@ -7778,6 +8382,127 @@ function findTransactionById(txId) {
   return allTransactions.find(tx => String(tx.id || tx.msgId || '') === String(txId));
 }
 
+
+function getEditedPaymentMeta(tx, paymentKind, direction, bankKey, bankName) {
+  const kind = paymentKind || 'card';
+  const isIncoming = direction === 'incoming';
+  const previousKind = getTransactionPaymentKind(tx);
+  const existingCard = String(tx?.card || '').trim();
+
+  if (kind === 'cash') {
+    return {
+      card: 'Cash',
+      type: t('cashPaymentKind')
+    };
+  }
+
+  if (kind === 'account') {
+    const customBank = getCustomBanks().find(b => b.id === bankKey);
+    const account = customBank?.account || '';
+
+    return {
+      card: previousKind === 'account' && existingCard ? existingCard : (account || `Účet ${bankName}`),
+      type: isIncoming ? 'príjem na účet' : 'odchod z účtu'
+    };
+  }
+
+  return {
+    card: previousKind === 'card' && existingCard ? existingCard : `Karta ${bankName}`,
+    type: 'platba kartou'
+  };
+}
+
+function hasScrolledPastNthItem(containerSelector, itemSelector, index = 19, rootElement = null) {
+  const container = document.querySelector(containerSelector);
+  if (!container) return false;
+
+  const items = container.querySelectorAll(itemSelector);
+  if (items.length <= index) return false;
+
+  const target = items[index];
+  const targetRect = target.getBoundingClientRect();
+
+  if (rootElement) {
+    const rootRect = rootElement.getBoundingClientRect();
+    return targetRect.top < rootRect.top + 72;
+  }
+
+  return targetRect.top < 110;
+}
+
+function shouldShowScrollToLatestButton() {
+  const archiveSheet = document.querySelector('#archive-bank-detail-sheet.open');
+  if (archiveSheet) {
+    return hasScrolledPastNthItem('#archive-bank-detail-sheet', '[data-archive-tx-id]', 19, archiveSheet);
+  }
+
+  const pageId = getActivePageId ? getActivePageId() : activePageId;
+
+  if (pageId === 'txns') {
+    return hasScrolledPastNthItem('#txn-list', '.tx-item', 19);
+  }
+
+  if (pageId === 'archive') {
+    return hasScrolledPastNthItem('#archive-months-list', '.archive-item', 9);
+  }
+
+  return false;
+}
+
+function updateFloatingUtilityButtons() {
+  const btn = document.getElementById('scroll-top-fab');
+  if (!btn) return;
+
+  btn.classList.toggle('visible', shouldShowScrollToLatestButton());
+}
+
+function scheduleFloatingUtilityUpdate() {
+  if (window.__floatingUtilityUpdateRaf) return;
+
+  window.__floatingUtilityUpdateRaf = requestAnimationFrame(() => {
+    window.__floatingUtilityUpdateRaf = null;
+    updateFloatingUtilityButtons();
+  });
+}
+
+function bindFloatingUtilityScrollWatchers() {
+  if (window.__floatingUtilityScrollWatchersReady) return;
+  window.__floatingUtilityScrollWatchersReady = true;
+
+  window.addEventListener('scroll', scheduleFloatingUtilityUpdate, { passive: true });
+  document.addEventListener('scroll', scheduleFloatingUtilityUpdate, { passive: true, capture: true });
+  window.addEventListener('resize', scheduleFloatingUtilityUpdate, { passive: true });
+
+  if (window.visualViewport) {
+    visualViewport.addEventListener('resize', scheduleFloatingUtilityUpdate, { passive: true });
+    visualViewport.addEventListener('scroll', scheduleFloatingUtilityUpdate, { passive: true });
+  }
+}
+
+function scrollToLatestVisibleTransaction() {
+  const archiveSheet = document.querySelector('#archive-bank-detail-sheet.open');
+  if (archiveSheet) {
+    const firstArchiveTx = archiveSheet.querySelector('[data-archive-tx-id]');
+    const target = firstArchiveTx || archiveSheet.querySelector('#archive-bank-detail-list') || archiveSheet;
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+
+  const pageId = getActivePageId ? getActivePageId() : activePageId;
+
+  if (pageId === 'txns') {
+    const firstTx = document.querySelector('#txn-list .tx-item');
+    const target = firstTx || document.getElementById('txn-list') || document.querySelector('#page-txns .header');
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+
+  if (pageId === 'archive') {
+    const target = document.getElementById('archive-months-list') || document.querySelector('#page-archive .header');
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
 function fillEditTransactionSheet(txId) {
   const tx = findTransactionById(txId);
   if (!tx) return false;
@@ -7805,6 +8530,11 @@ function fillEditTransactionSheet(txId) {
     bankSelect.value = bankKey;
   }
 
+  const kindSelect = document.getElementById('edit-tx-kind');
+  if (kindSelect) {
+    kindSelect.value = getTransactionPaymentKind(tx);
+  }
+
   return true;
 }
 
@@ -7825,20 +8555,24 @@ function saveEditedTransaction() {
   const category = document.getElementById('edit-tx-category')?.value || tx.category || 'Ostatné';
   const merchant = document.getElementById('edit-tx-merchant')?.value.trim() || tx.merchant || '';
   const bankKey = document.getElementById('edit-tx-bank')?.value || getBankKey(tx);
+  const paymentKind = document.getElementById('edit-tx-kind')?.value || getTransactionPaymentKind(tx);
   const finalAmount = direction === 'incoming' ? Math.abs(amountRaw) : -Math.abs(amountRaw);
+  const bankName = getTxEditBankName(bankKey);
+  const paymentMeta = getEditedPaymentMeta(tx, paymentKind, direction, bankKey, bankName);
 
   tx.date = formatDate(parsedDate);
   tx.rawDate = parsedDate.toISOString();
   tx.timestamp = parsedDate.getTime();
-  tx.month = getMonthFromDate(parsedDate);
+  tx.month = getMonthFromDate(parsedDate); // v115 auto archive month after edit
   tx.amount = finalAmount;
   tx.currency = currency;
   tx.category = category;
   tx.merchant = merchant;
   tx.merchantRaw = merchant;
-  tx.bank = getTxEditBankName(bankKey);
-  tx.card = tx.card || getTxEditBankAccount(bankKey);
-  tx.type = direction === 'incoming' ? 'manual income' : 'manual expense';
+  tx.bank = bankName;
+  tx.card = paymentMeta.card;
+  tx.type = paymentMeta.type;
+  tx.paymentKind = paymentKind;
   tx.msgId = tx.msgId || tx.id;
 
   allTransactions = sortTransactionsNewestFirst(allTransactions);
@@ -8048,6 +8782,8 @@ document.addEventListener('DOMContentLoaded', initBottomSheetDragToClose);
 
 document.addEventListener('DOMContentLoaded', initGlobalPullDownControl);
 document.addEventListener('DOMContentLoaded', initTabHistory);
+document.addEventListener('DOMContentLoaded', updateFloatingUtilityButtons);
+document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers);
 </script>
 
 
