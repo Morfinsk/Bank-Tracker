@@ -14,8 +14,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v105 archive daily widget white theme polish -->
-<link rel="manifest" href="./manifest.json?v=105">
+<!-- v111 android back tabs card account filter -->
+<link rel="manifest" href="./manifest.json?v=111">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -3165,6 +3165,358 @@
     color: #334155 !important;
   }
 
+
+  /* v106 transactions filtered totals */
+  .txn-totals-card {
+    margin: 18px 0 10px;
+    background: linear-gradient(180deg, rgba(23,34,56,.98), rgba(15,24,42,.98));
+    border: 1px solid rgba(148,163,184,.18);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: 0 18px 45px rgba(0,0,0,.18);
+  }
+
+  .txn-totals-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .txn-totals-title {
+    color: var(--text);
+    font-weight: 900;
+    font-size: 14px;
+  }
+
+  .txn-totals-count {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-align: right;
+  }
+
+  .txn-totals-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .txn-total-row {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 10px;
+    align-items: start;
+    background: rgba(15,23,42,.58);
+    border: 1px solid rgba(148,163,184,.12);
+    border-radius: 13px;
+    padding: 10px 11px;
+  }
+
+  .txn-total-label {
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding-top: 2px;
+  }
+
+  .txn-total-values {
+    display: grid;
+    gap: 3px;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 900;
+    color: var(--text);
+  }
+
+  .txn-total-values .amount-income {
+    color: var(--ok);
+  }
+
+  .txn-total-values .amount-expense {
+    color: var(--danger);
+  }
+
+  .txn-total-values .amount-neutral {
+    color: var(--text);
+  }
+
+  .txn-totals-hint {
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    margin-top: 10px;
+    line-height: 1.4;
+  }
+
+  html[data-theme="light"] .txn-totals-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+    border-color: rgba(15,23,42,.14) !important;
+    box-shadow: 0 18px 45px rgba(15,23,42,.08) !important;
+  }
+
+  html[data-theme="light"] .txn-total-row {
+    background: #eef6ff !important;
+    border-color: rgba(15,23,42,.12) !important;
+  }
+
+  html[data-theme="light"] .txn-totals-title,
+  html[data-theme="light"] .txn-total-values .amount-neutral {
+    color: #0b1220 !important;
+  }
+
+  html[data-theme="light"] .txn-totals-count,
+  html[data-theme="light"] .txn-total-label,
+  html[data-theme="light"] .txn-totals-hint {
+    color: #334155 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] .txn-total-values .amount-income {
+    color: #15803d !important;
+  }
+
+  html[data-theme="light"] .txn-total-values .amount-expense {
+    color: #be123c !important;
+  }
+
+
+  /* v107 transaction virtual paging / load more */
+  .txn-render-note {
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    margin: 0 0 10px;
+    line-height: 1.45;
+  }
+
+  .txn-list-counter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    margin: 0 0 10px;
+    padding: 0 2px;
+  }
+
+  .txn-list-counter strong {
+    color: #8fdcff;
+  }
+
+  .txn-show-more-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 14px 0 6px;
+  }
+
+  .txn-show-more-btn {
+    width: 100%;
+    border: 1px solid rgba(88,166,255,.32);
+    background: linear-gradient(135deg, rgba(88,166,255,.22), rgba(125,211,252,.12));
+    color: #bfdbfe;
+    border-radius: 16px;
+    padding: 13px 16px;
+    font-family: var(--font-display);
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 12px 28px rgba(88,166,255,.08);
+  }
+
+  .txn-show-more-btn:active {
+    transform: scale(.985);
+  }
+
+  html[data-theme="light"] .txn-list-counter,
+  html[data-theme="light"] .txn-render-note {
+    color: #334155 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] .txn-list-counter strong {
+    color: #1d4ed8 !important;
+  }
+
+  html[data-theme="light"] .txn-show-more-btn {
+    color: #06111f !important;
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+    border-color: rgba(37,99,235,.28) !important;
+  }
+
+
+  /* v108 totals adapt to incoming/outgoing filter */
+  .txn-totals-card.filtered-direction .txn-totals-grid {
+    grid-template-columns: 1fr;
+  }
+
+
+  /* v109 upgrade white contrast + full-sheet drag polish */
+  html[data-theme="light"] #upgrade-sheet,
+  html[data-theme="light"] .upgrade-sheet-wide {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+    color: #0b1220 !important;
+    border-color: rgba(15,23,42,.14) !important;
+  }
+
+  html[data-theme="light"] #upgrade-sheet .sheet-title,
+  html[data-theme="light"] #upgrade-sheet .upgrade-hero h2,
+  html[data-theme="light"] #upgrade-sheet .upgrade-plan-name {
+    color: #0b1220 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] #upgrade-sheet .upgrade-hero p,
+  html[data-theme="light"] #upgrade-sheet .upgrade-price span,
+  html[data-theme="light"] #upgrade-sheet .upgrade-features,
+  html[data-theme="light"] #upgrade-sheet .upgrade-features div {
+    color: #334155 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] #upgrade-sheet .upgrade-card {
+    background: linear-gradient(180deg, #ffffff 0%, #eef6ff 100%) !important;
+    border: 1px solid rgba(15,23,42,.14) !important;
+    box-shadow: 0 14px 34px rgba(15,23,42,.08) !important;
+  }
+
+  html[data-theme="light"] #upgrade-sheet .upgrade-card.premium {
+    border-color: rgba(37,99,235,.48) !important;
+    box-shadow:
+      inset 0 0 0 1px rgba(37,99,235,.16),
+      0 14px 34px rgba(37,99,235,.10) !important;
+  }
+
+  html[data-theme="light"] #upgrade-sheet .upgrade-price {
+    color: #1d4ed8 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] #upgrade-sheet .upgrade-features div::before {
+    color: #1d4ed8 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] #upgrade-sheet .billing-toggle {
+    background: #e8f1fb !important;
+    border: 1px solid rgba(15,23,42,.12) !important;
+  }
+
+  html[data-theme="light"] #upgrade-sheet .billing-toggle button {
+    color: #334155 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-theme="light"] #upgrade-sheet .billing-toggle button.active {
+    background: #1e3a8a !important;
+    color: #ffffff !important;
+  }
+
+  html[data-theme="light"] #upgrade-sheet .popular-badge,
+  html[data-theme="light"] #upgrade-sheet .year-save-badge {
+    color: #06111f !important;
+    background: #7dd3fc !important;
+  }
+
+  html[data-theme="light"] #upgrade-sheet .waitlist-btn {
+    color: #06111f !important;
+    background: linear-gradient(135deg, #7dd3fc, #bfdbfe) !important;
+    border: 1px solid rgba(37,99,235,.20) !important;
+  }
+
+  html[data-theme="light"] #upgrade-sheet .sheet-close {
+    background: #eef6ff !important;
+    color: #0b1220 !important;
+    border-color: rgba(15,23,42,.16) !important;
+  }
+
+  .bottom-sheet {
+    transform: translate3d(-50%, 105%, 0) !important;
+    transition: transform .20s cubic-bezier(.22,.72,.23,1) !important;
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+
+  .bottom-sheet.open {
+    transform: translate3d(-50%, 0, 0) !important;
+  }
+
+  .bottom-sheet.dragging {
+    transition: none !important;
+    cursor: grabbing;
+  }
+
+  .sheet-handle,
+  .sheet-title-row {
+    touch-action: none;
+  }
+
+  .sheet-handle::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 240px;
+    height: 76px;
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+  }
+
+  .sheet-handle {
+    position: relative;
+    cursor: grab;
+  }
+
+  .bottom-sheet.open::before {
+    content: "";
+    position: sticky;
+    top: 0;
+    display: block;
+    height: 1px;
+    margin-top: -1px;
+    pointer-events: none;
+  }
+
+
+  /* v110 true movable bottom sheet */
+  .bottom-sheet.dragging {
+    transition: none !important;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .bottom-sheet.sheet-snapping {
+    transition: transform .22s cubic-bezier(.22,.72,.23,1) !important;
+  }
+
+  .bottom-sheet {
+    will-change: transform;
+  }
+
+
+  /* v111 Android back tab history + card/account filter */
+  .txn-payment-kind-hint {
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    line-height: 1.45;
+    margin: -4px 20px 12px;
+  }
+
+  html[data-theme="light"] .txn-payment-kind-hint {
+    color: #334155 !important;
+    opacity: 1 !important;
+  }
+
 </style>
 </head>
 <body>
@@ -3255,6 +3607,14 @@
     <div class="cat-chip" id="filter-bank-csob-cz" onclick="filterBank('csob_cz')"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/CSOB-CZ.jpg" alt="ČSOB CZ" loading="lazy"><span>ČSOB CZ</span></span></div>
     <div class="cat-chip" id="filter-bank-moneta" onclick="filterBank('moneta')"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Moneta-CZ.png" alt="Moneta" loading="lazy"><span class="moneta-gradient">Moneta</span></span></div>
   </div>
+
+  <div class="filter-group-title" data-i18n="transactionKind">Payment type</div>
+  <div class="cat-grid" id="payment-kind-filters">
+    <div class="txn-filter-pill active" id="filter-kind-all" onclick="filterPaymentKind('all')" data-i18n="all">All</div>
+    <div class="txn-filter-pill" id="filter-kind-card" onclick="filterPaymentKind('card')" data-i18n="cardsOnly">Cards</div>
+    <div class="txn-filter-pill" id="filter-kind-account" onclick="filterPaymentKind('account')" data-i18n="accountsOnly">Accounts</div>
+  </div>
+  <div class="txn-payment-kind-hint" data-i18n="cardVsAccountHint">Card payments count towards bank benefits. Account payments are separated.</div>
 
   <div class="filter-group-title" data-i18n="category">Category</div>
   <div class="cat-grid" id="cat-filters"></div>
@@ -3638,10 +3998,14 @@ let activeCategory = 'všetky';
 let activeBank = 'všetky';
 let activeDirection = 'all';
 let activeSearch = '';
+let activePaymentKind = 'all';
 let activeDateFrom = '';
 let activeDateTo = '';
+const TXN_PAGE_SIZE = 30;
+let txnVisibleLimit = TXN_PAGE_SIZE;
 let autoSyncTimer = null;
 let isSyncing = false;
+let activePageId = 'overview';
 const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minút
 
 function isGoogleSheetsConnected() {
@@ -4464,9 +4828,108 @@ function resetSimFields() {
   fillSimulatorLimitInputs(getSimulatorLimitMonth());
 }
 
-function getTransactionsByBank(monthOnly = true) {
+
+function getTransactionPaymentKind(tx) {
+  const card = String(tx?.card || '');
+  const type = String(tx?.type || '');
+  const category = String(tx?.category || '');
+
+  const cardLower = card.toLowerCase();
+  const typeLower = type.toLowerCase();
+  const categoryLower = category.toLowerCase();
+
+  // Account transfers from ČSOB CZ / Moneta look like 6624/0300 or 4571/0600.
+  if (
+    /^\d{4}\/\d{4}$/.test(card.trim()) ||
+    cardLower.includes('účet') ||
+    cardLower.includes('ucet') ||
+    typeLower.includes('účtu') ||
+    typeLower.includes('uctu') ||
+    categoryLower === 'účet' ||
+    categoryLower === 'ucet'
+  ) {
+    return 'account';
+  }
+
+  // Card payments use Karta / **** mask or explicit card payment type.
+  if (
+    cardLower.includes('karta') ||
+    cardLower.includes('card') ||
+    card.includes('****') ||
+    typeLower.includes('platba kartou') ||
+    typeLower.includes('card')
+  ) {
+    return 'card';
+  }
+
+  // Default to card so older imported card transactions without explicit "Karta"
+  // still count towards bank card limits.
+  return 'card';
+}
+
+function isCardTransaction(tx) {
+  return getTransactionPaymentKind(tx) === 'card';
+}
+
+function isAccountTransaction(tx) {
+  return getTransactionPaymentKind(tx) === 'account';
+}
+
+function updatePaymentKindFilterUi() {
+  document.getElementById('filter-kind-all')?.classList.toggle('active', activePaymentKind === 'all');
+  document.getElementById('filter-kind-card')?.classList.toggle('active', activePaymentKind === 'card');
+  document.getElementById('filter-kind-account')?.classList.toggle('active', activePaymentKind === 'account');
+}
+
+function filterPaymentKind(kind) {
+  activePaymentKind = kind || 'all';
+  resetTxnVisibleLimit();
+  updatePaymentKindFilterUi();
+  updateTxnPage();
+}
+
+function getActivePageId() {
+  const active = document.querySelector('.page.active');
+  if (!active || !active.id) return activePageId || 'overview';
+  return active.id.replace(/^page-/, '');
+}
+
+function initTabHistory() {
+  if (window.__bankTrackerTabHistoryReady) return;
+  window.__bankTrackerTabHistoryReady = true;
+
+  activePageId = getActivePageId() || 'overview';
+
+  try {
+    history.replaceState({ bankTrackerPage: activePageId }, '', location.pathname + location.search + '#' + activePageId);
+  } catch (_) {}
+
+  window.addEventListener('popstate', (event) => {
+    const pageId = event.state && event.state.bankTrackerPage;
+    if (pageId && document.getElementById('page-' + pageId)) {
+      showPage(pageId, { fromHistory: true });
+    }
+    // If there is no bankTrackerPage state, browser/PWA handles back normally and can exit.
+  });
+}
+
+function pushTabHistory(pageId) {
+  if (!window.__bankTrackerTabHistoryReady) return;
+  if (!pageId || activePageId === pageId) return;
+
+  try {
+    history.pushState({ bankTrackerPage: pageId }, '', location.pathname + location.search + '#' + pageId);
+  } catch (_) {}
+}
+
+function getTransactionsByBank(monthOnly = true, cardOnly = false) {
   const month = getAktuálneMonth();
-  const base = allTransactions.filter(t => t.amount < 0 && (!monthOnly || t.month === month));
+  let base = allTransactions.filter(t => t.amount < 0 && (!monthOnly || t.month === month));
+
+  if (cardOnly) {
+    base = base.filter(t => isCardTransaction(t));
+  }
+
   return BANK_ORDER.reduce((acc, key) => {
     acc[key] = base.filter(t => getBankKey(t) === key);
     return acc;
@@ -4655,10 +5118,10 @@ function renderAll() {
 
   renderBudgetStatus();
 
-  const byBankMonth = getTransactionsByBank(true);
+  const byBankMonth = getTransactionsByBank(true, true);
   renderBankCards(byBankMonth);
 
-  const byBankAll = getTransactionsByBank(false);
+  const byBankAll = getTransactionsByBank(false, false);
   renderRecentBankColumns(byBankAll);
 
   updateTxnPage(monthTxns);
@@ -4766,12 +5229,14 @@ function filterTransactionsByDateRange(txns) {
 function handleTransactionDateRange() {
   activeDateFrom = document.getElementById('txn-date-from')?.value || '';
   activeDateTo = document.getElementById('txn-date-to')?.value || '';
+  resetTxnVisibleLimit();
   updateTxnPage();
 }
 
 function clearTransactionDateRange() {
   activeDateFrom = '';
   activeDateTo = '';
+  resetTxnVisibleLimit();
   const from = document.getElementById('txn-date-from');
   const to = document.getElementById('txn-date-to');
   if (from) from.value = '';
@@ -4786,11 +5251,173 @@ function updateTransactionDateInputs() {
   if (to && to.value !== activeDateTo) to.value = activeDateTo || '';
 }
 
+
+function getPreferredCurrencyOrder(currencies) {
+  const preferred = ['CZK', 'EUR', 'USD', 'GBP', 'PLN'];
+  const unique = [...new Set(currencies.map(c => String(c || 'CZK').toUpperCase()))];
+  return unique.sort((a, b) => {
+    const ai = preferred.indexOf(a);
+    const bi = preferred.indexOf(b);
+    if (ai !== -1 || bi !== -1) {
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    }
+    return a.localeCompare(b);
+  });
+}
+
+function buildTransactionTotals(txns) {
+  const totals = {
+    count: txns.length,
+    incoming: {},
+    outgoing: {},
+    net: {}
+  };
+
+  txns.forEach(tx => {
+    const currency = String(tx.currency || 'CZK').toUpperCase();
+    const amount = Number(tx.amount || 0);
+    if (!totals.incoming[currency]) totals.incoming[currency] = 0;
+    if (!totals.outgoing[currency]) totals.outgoing[currency] = 0;
+    if (!totals.net[currency]) totals.net[currency] = 0;
+
+    if (amount > 0) totals.incoming[currency] += amount;
+    if (amount < 0) totals.outgoing[currency] += Math.abs(amount);
+    totals.net[currency] += amount;
+  });
+
+  return totals;
+}
+
+function renderTotalsValueLines(map, mode = 'neutral') {
+  const currencies = getPreferredCurrencyOrder(Object.keys(map || {}));
+  if (!currencies.length) return `<span class="amount-neutral">${t('noTotalValue')} CZK</span>`;
+
+  return currencies.map(currency => {
+    const value = Number(map[currency] || 0);
+    const cls = mode === 'income'
+      ? 'amount-income'
+      : mode === 'expense'
+        ? 'amount-expense'
+        : value < 0
+          ? 'amount-expense'
+          : value > 0
+            ? 'amount-income'
+            : 'amount-neutral';
+
+    const sign = mode === 'income'
+      ? '+'
+      : mode === 'expense'
+        ? '-'
+        : value > 0
+          ? '+'
+          : value < 0
+            ? '-'
+            : '';
+
+    return `<span class="${cls}">${sign}${formatMoney(value, currency)} ${escapeHtml(currency)}</span>`;
+  }).join('');
+}
+
+function renderTransactionTotals(txns) {
+  const totals = buildTransactionTotals(txns);
+  const direction = activeDirection || 'all';
+
+  const rows = [];
+
+  if (direction === 'incoming') {
+    rows.push(`
+      <div class="txn-total-row">
+        <div class="txn-total-label">${t('totalIncoming')}</div>
+        <div class="txn-total-values">${renderTotalsValueLines(totals.incoming, 'income')}</div>
+      </div>
+    `);
+  } else if (direction === 'outgoing') {
+    rows.push(`
+      <div class="txn-total-row">
+        <div class="txn-total-label">${t('totalOutgoing')}</div>
+        <div class="txn-total-values">${renderTotalsValueLines(totals.outgoing, 'expense')}</div>
+      </div>
+    `);
+  } else {
+    rows.push(`
+      <div class="txn-total-row">
+        <div class="txn-total-label">${t('totalIncoming')}</div>
+        <div class="txn-total-values">${renderTotalsValueLines(totals.incoming, 'income')}</div>
+      </div>
+    `);
+
+    rows.push(`
+      <div class="txn-total-row">
+        <div class="txn-total-label">${t('totalOutgoing')}</div>
+        <div class="txn-total-values">${renderTotalsValueLines(totals.outgoing, 'expense')}</div>
+      </div>
+    `);
+
+    rows.push(`
+      <div class="txn-total-row">
+        <div class="txn-total-label">${t('totalNet')}</div>
+        <div class="txn-total-values">${renderTotalsValueLines(totals.net, 'neutral')}</div>
+      </div>
+    `);
+  }
+
+  return `
+    <div class="txn-totals-card ${direction !== 'all' ? 'filtered-direction' : ''}">
+      <div class="txn-totals-head">
+        <div class="txn-totals-title">${t('transactionTotals')}</div>
+        <div class="txn-totals-count">${t('filteredTransactions')}: ${totals.count}</div>
+      </div>
+      <div class="txn-totals-grid">
+        ${rows.join('')}
+      </div>
+      <div class="txn-totals-hint">${t('totalsHint')}</div>
+    </div>
+  `;
+}
+
+
+function resetTxnVisibleLimit() {
+  txnVisibleLimit = TXN_PAGE_SIZE;
+}
+
+function showMoreTransactions() {
+  txnVisibleLimit += TXN_PAGE_SIZE;
+  updateTxnPage();
+}
+
+function renderTransactionPagingInfo(visibleCount, totalCount) {
+  if (totalCount === 0) return '';
+
+  return `
+    <div class="txn-list-counter">
+      <span>${t('showingTransactions')} <strong>${visibleCount}</strong> ${t('ofTransactions')} ${totalCount}</span>
+      <span>${t('transactionsCountLabel')}</span>
+    </div>
+    ${totalCount > TXN_PAGE_SIZE ? `<div class="txn-render-note">${t('renderedForSpeed')}</div>` : ''}
+  `;
+}
+
+function renderShowMoreTransactionsButton(visibleCount, totalCount) {
+  if (visibleCount >= totalCount) return '';
+
+  const remaining = totalCount - visibleCount;
+  const nextCount = Math.min(TXN_PAGE_SIZE, remaining);
+
+  return `
+    <div class="txn-show-more-wrap">
+      <button class="txn-show-more-btn" onclick="showMoreTransactions()">${t('showMore')} +${nextCount}</button>
+    </div>
+  `;
+}
+
 function updateTxnPage(monthTxns) {
   const listDiv = document.getElementById('txn-list');
   if (!listDiv) return;
 
   updateTransactionDateInputs();
+  updatePaymentKindFilterUi();
 
   let filtered = sortTransactionsNewestFirst(allTransactions);
   filtered = filterTransactionsByDateRange(filtered);
@@ -4798,6 +5425,10 @@ function updateTxnPage(monthTxns) {
   if (activeDirection === 'incoming') filtered = filtered.filter(t => Number(t.amount) > 0);
   if (activeDirection === 'outgoing') filtered = filtered.filter(t => Number(t.amount) < 0);
   if (activeBank !== 'všetky') filtered = filtered.filter(t => getBankKey(t) === activeBank);
+
+  if (activePaymentKind === 'card') filtered = filtered.filter(t => isCardTransaction(t));
+  if (activePaymentKind === 'account') filtered = filtered.filter(t => isAccountTransaction(t));
+
   if (activeSearch) filtered = filtered.filter(t => transactionMatchesSearch(t, activeSearch));
 
   const cats = ['všetky', ...new Set(filtered.map(t => t.category).filter(Boolean))];
@@ -4806,11 +5437,13 @@ function updateTxnPage(monthTxns) {
   if (activeCategory !== 'všetky') filtered = filtered.filter(t => t.category === activeCategory);
 
   if (filtered.length === 0) {
-    listDiv.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>${t('noTransactionsForFilters')}</div>`;
+    listDiv.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>${t('noTransactionsForFilters')}</div>${renderTransactionTotals([])}`;
     return;
   }
 
-  listDiv.innerHTML = filtered.map(t => {
+  const visible = filtered.slice(0, txnVisibleLimit);
+
+  const rows = visible.map(t => {
     const bankKey = getBankKey(t);
     const isIncome = Number(t.amount) > 0;
     const sign = isIncome ? '+' : '-';
@@ -4818,6 +5451,12 @@ function updateTxnPage(monthTxns) {
     const txId = typeof getTransactionId === 'function' ? getTransactionId(t) : (t.id || t.msgId || '');
     return `<div class="tx-item" data-tx-id="${escapeAttr(txId)}"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${escapeHtml(t.merchant)}</div><div class="tx-meta">${escapeHtml(t.date)}</div></div></div><div class="tx-right-side"><div class="tx-amount ${amountClass}">${sign}${formatMoney(t.amount, t.currency)} ${escapeHtml(t.currency)}</div>${bankLogoImg(bankKey, 'tx-bank-logo')}</div></div>`;
   }).join('');
+
+  listDiv.innerHTML =
+    renderTransactionPagingInfo(visible.length, filtered.length) +
+    rows +
+    renderShowMoreTransactionsButton(visible.length, filtered.length) +
+    renderTransactionTotals(filtered);
 
   bindTransactionDeleteGestures();
 }
@@ -4984,6 +5623,7 @@ function openBankTransactions(bankKey) {
 
 function filterBank(bank) {
   activeBank = bank;
+  resetTxnVisibleLimit();
   document.getElementById('filter-bank-all').classList.toggle('active', bank === 'všetky');
   document.getElementById('filter-bank-rb').classList.toggle('active', bank === 'rb_cz');
   document.getElementById('filter-bank-csob-sk').classList.toggle('active', bank === 'csob_sk');
@@ -4994,6 +5634,7 @@ function filterBank(bank) {
 
 function filterCategory(cat) {
   activeCategory = cat;
+  resetTxnVisibleLimit();
   updateTxnPage();
 }
 
@@ -5003,15 +5644,18 @@ function filterCategory(cat) {
 function resetTransactionFilters() {
   activeDirection = 'all';
   activeBank = 'všetky';
+  activePaymentKind = 'all';
   activeCategory = 'všetky';
   activeSearch = '';
   activeDateFrom = '';
   activeDateTo = '';
+  resetTxnVisibleLimit();
 
   const search = document.getElementById('txn-search');
   if (search) search.value = '';
 
   updateTransactionDateInputs();
+  updatePaymentKindFilterUi();
 
   document.querySelectorAll('#direction-filters .txn-filter-pill').forEach(el => el.classList.remove('active'));
   document.getElementById('filter-dir-all')?.classList.add('active');
@@ -5020,7 +5664,10 @@ function resetTransactionFilters() {
   document.getElementById('filter-bank-all')?.classList.add('active');
 }
 
-function showPage(pageId) {
+function showPage(pageId, options = {}) {
+  const fromHistory = !!(options && options.fromHistory);
+  const shouldPushHistory = !fromHistory && window.__bankTrackerTabHistoryReady && activePageId !== pageId;
+
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active', 'page-slide-in-right', 'page-slide-in-left', 'swipe-peeking', 'page-tab-fade', 'page-light-switch');
     p.style.transform = '';
@@ -5034,7 +5681,6 @@ function showPage(pageId) {
   if (targetPage) {
     targetPage.classList.add('active');
 
-    // iPhone-safe light off/on tab effect.
     requestAnimationFrame(() => {
       targetPage.classList.add('page-light-switch');
       window.setTimeout(() => {
@@ -5047,6 +5693,11 @@ function showPage(pageId) {
     targetNav.classList.add('active', 'tab-just-activated');
     window.setTimeout(() => targetNav.classList.remove('tab-just-activated'), 260);
   }
+
+  if (shouldPushHistory) {
+    pushTabHistory(pageId);
+  }
+  activePageId = pageId;
 
   if (pageId === 'txns') {
     resetTransactionFilters();
@@ -5349,19 +6000,16 @@ function initGlobalPullDownControl() {
       (document.documentElement.scrollTop || 0) <= 0 &&
       (document.body.scrollTop || 0) <= 0;
 
-    // Global browser pull-to-refresh guard.
+    // Block browser pull-to-refresh.
     if (atTop && pullingDown && event.cancelable) {
       event.preventDefault();
     }
 
     if (!sheetOpen) return;
 
-    // Let the bottom-sheet drag handler own gestures that start inside the sheet.
-    // We only block refresh if sheet content is already at the top.
+    // Let the bottom sheet drag handler own gestures that start inside the sheet.
     if (insideSheet) {
-      if (pullingDown && openSheet.scrollTop <= 0 && event.cancelable) {
-        event.preventDefault();
-      }
+      if (pullingDown && openSheet.scrollTop <= 0 && event.cancelable) event.preventDefault();
       return;
     }
 
@@ -5400,28 +6048,34 @@ function initBottomSheetDragToClose() {
 
     let startY = 0;
     let currentY = 0;
-    let lastY = 0;
-    let lastTime = 0;
-    let velocity = 0;
-    let isDragging = false;
     let pointerId = null;
+    let isTracking = false;
+    let isDragging = false;
     let rafId = null;
     let pendingY = 0;
+    let startScrollTop = 0;
+    let sheetHeight = 0;
+    let startedOnStrongHandle = false;
 
-    const canStartDrag = (event) => {
+    const isInteractiveTarget = (target) => {
+      return !!(target && target.closest && target.closest(
+        'button, input, select, textarea, a, .txn-filter-pill, .cat-chip, .sync-btn, .top-upgrade-btn, .settings-plan-upgrade, .waitlist-btn, .mini-action-btn, .config-save, .date-range-clear-btn, .txn-show-more-btn'
+      ));
+    };
+
+    const canTrack = (event) => {
       if (!sheet.classList.contains('open')) return false;
-      if (event.target.closest && event.target.closest('button, input, select, textarea, a')) return false;
+      if (isInteractiveTarget(event.target)) return false;
+      return true;
+    };
 
-      const rect = sheet.getBoundingClientRect();
-      const yInside = event.clientY - rect.top;
-      const onHandle = event.target.closest && event.target.closest('.sheet-handle, .sheet-title-row');
-
-      return onHandle || (yInside >= 0 && yInside <= 132);
+    const setSheetY = (y) => {
+      sheet.style.setProperty('transform', `translate3d(-50%, ${Math.max(0, y)}px, 0)`, 'important');
     };
 
     const applyTransform = () => {
       rafId = null;
-      sheet.style.transform = `translate3d(-50%, ${pendingY}px, 0)`;
+      setSheetY(pendingY);
     };
 
     const scheduleTransform = (deltaY) => {
@@ -5430,101 +6084,137 @@ function initBottomSheetDragToClose() {
       rafId = requestAnimationFrame(applyTransform);
     };
 
-    const resetDragState = () => {
+    const clearRaf = () => {
       if (rafId) {
         cancelAnimationFrame(rafId);
         rafId = null;
       }
+    };
+
+    const resetState = () => {
+      clearRaf();
+      isTracking = false;
       isDragging = false;
       pointerId = null;
       startY = 0;
       currentY = 0;
-      lastY = 0;
-      lastTime = 0;
-      velocity = 0;
       pendingY = 0;
+      startScrollTop = 0;
+      sheetHeight = 0;
+      startedOnStrongHandle = false;
       sheet.dataset.dragActive = 'false';
-      sheet.classList.remove('dragging');
-      sheet.style.transition = '';
-      sheet.style.transform = '';
+      sheet.classList.remove('dragging', 'sheet-snapping');
+      sheet.style.removeProperty('transform');
+      sheet.style.removeProperty('transition');
     };
 
-    const startDrag = (event) => {
-      if (!canStartDrag(event)) return;
+    const snapOpen = () => {
+      clearRaf();
+      sheet.classList.remove('dragging');
+      sheet.classList.add('sheet-snapping');
+      sheet.style.setProperty('transition', 'transform .22s cubic-bezier(.22,.72,.23,1)', 'important');
+      setSheetY(0);
+
+      window.setTimeout(() => {
+        if (sheet.classList.contains('open')) {
+          sheet.classList.remove('sheet-snapping');
+          sheet.style.removeProperty('transition');
+          sheet.style.removeProperty('transform');
+        }
+        resetState();
+      }, 240);
+    };
+
+    const beginTracking = (event) => {
+      if (!canTrack(event)) return;
+
+      const rect = sheet.getBoundingClientRect();
+      const yInside = event.clientY - rect.top;
 
       startY = event.clientY;
       currentY = startY;
-      lastY = startY;
-      lastTime = performance.now();
-      velocity = 0;
       pointerId = event.pointerId;
-      isDragging = true;
+      isTracking = true;
+      isDragging = false;
+      startScrollTop = sheet.scrollTop || 0;
+      sheetHeight = Math.max(rect.height, 1);
 
+      // Strong zone can always pull the sheet down.
+      // The rest of the sheet can pull down when the sheet content is already at the top.
+      startedOnStrongHandle =
+        !!(event.target.closest && event.target.closest('.sheet-handle, .sheet-title-row')) ||
+        (yInside >= 0 && yInside <= 160);
+    };
+
+    const startDrag = (event) => {
+      isDragging = true;
       sheet.dataset.dragActive = 'true';
+      sheet.classList.remove('sheet-snapping');
       sheet.classList.add('dragging');
-      sheet.style.transition = '';
+      sheet.style.setProperty('transition', 'none', 'important');
 
       try { sheet.setPointerCapture(pointerId); } catch (_) {}
+      if (event && event.cancelable) event.preventDefault();
     };
 
     const moveDrag = (event) => {
-      if (!isDragging || event.pointerId !== pointerId) return;
+      if (!isTracking || event.pointerId !== pointerId) return;
 
       currentY = event.clientY;
-      const now = performance.now();
-      const dy = currentY - lastY;
-      const dt = Math.max(now - lastTime, 1);
-      velocity = dy / dt;
-      lastY = currentY;
-      lastTime = now;
+      const deltaY = currentY - startY;
 
-      const deltaY = Math.max(0, currentY - startY);
+      if (!isDragging) {
+        if (deltaY < -8) {
+          // Let normal scrolling happen upward.
+          resetState();
+          return;
+        }
 
-      if (deltaY > 0) {
-        scheduleTransform(deltaY);
-        if (event.cancelable) event.preventDefault();
+        if (deltaY < 6) return;
+
+        // If user starts in the middle of scrollable content and content is not at top,
+        // do not steal scroll. Once content is at top, whole sheet can be dragged.
+        if (!startedOnStrongHandle && startScrollTop > 0) return;
+
+        startDrag(event);
       }
+
+      const dragY = Math.max(0, deltaY);
+      scheduleTransform(dragY);
+
+      if (event.cancelable) event.preventDefault();
     };
 
     const finishDrag = (event) => {
-      if (!isDragging || (event.pointerId !== undefined && event.pointerId !== pointerId)) return;
+      if (!isTracking || (event && event.pointerId !== undefined && event.pointerId !== pointerId)) return;
 
       const deltaY = Math.max(0, currentY - startY);
+      const closeThreshold = Math.max(120, sheetHeight * 0.5);
 
       try { sheet.releasePointerCapture(pointerId); } catch (_) {}
-      sheet.classList.remove('dragging');
 
-      const shouldClose = deltaY > 82 || (deltaY > 42 && velocity > 0.45);
+      if (!isDragging) {
+        resetState();
+        return;
+      }
 
-      if (shouldClose) {
-        resetDragState();
+      // Exact behavior requested:
+      // beyond half = close down, above half = snap back up.
+      if (deltaY >= closeThreshold) {
+        resetState();
         closeBottomSheets();
       } else {
-        if (rafId) {
-          cancelAnimationFrame(rafId);
-          rafId = null;
-        }
-
-        sheet.style.transition = 'transform .16s cubic-bezier(.22,.72,.23,1)';
-        sheet.style.transform = 'translate3d(-50%, 0, 0)';
-
-        window.setTimeout(() => {
-          if (sheet.classList.contains('open')) {
-            sheet.style.transition = '';
-            sheet.style.transform = '';
-          }
-          resetDragState();
-        }, 170);
+        snapOpen();
       }
     };
 
-    sheet.addEventListener('pointerdown', startDrag);
+    sheet.addEventListener('pointerdown', beginTracking);
     sheet.addEventListener('pointermove', moveDrag, { passive: false });
     sheet.addEventListener('pointerup', finishDrag);
-    sheet.addEventListener('pointercancel', resetDragState);
+    sheet.addEventListener('pointercancel', resetState);
     sheet.addEventListener('lostpointercapture', () => {
-      if (!isDragging) return;
-      resetDragState();
+      if (!isTracking) return;
+      resetState();
     });
   });
 }
@@ -5536,9 +6226,9 @@ function openSheet(id){
   if (backdrop) backdrop.classList.add('open');
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
-    sheet.classList.remove('open', 'dragging');
-    sheet.style.transition = '';
-    sheet.style.transform = '';
+    sheet.classList.remove('open', 'dragging', 'sheet-snapping');
+    sheet.style.removeProperty('transition');
+    sheet.style.removeProperty('transform');
     sheet.dataset.dragActive = 'false';
   });
 
@@ -5560,9 +6250,9 @@ function closeBottomSheets(){
   if (backdrop) backdrop.classList.remove('open');
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
-    sheet.classList.remove('open', 'dragging');
-    sheet.style.transition = '';
-    sheet.style.transform = '';
+    sheet.classList.remove('open', 'dragging', 'sheet-snapping');
+    sheet.style.removeProperty('transition');
+    sheet.style.removeProperty('transform');
     sheet.dataset.dragActive = 'false';
   });
 
@@ -5628,6 +6318,7 @@ function updateCustomBank(bankId) {
 
 function handleTransactionSearch() {
   activeSearch = document.getElementById('txn-search')?.value || '';
+  resetTxnVisibleLimit();
   updateTxnPage();
 }
 
@@ -6058,7 +6749,14 @@ function saveManualTransaction(){
   closeBottomSheets();
   renderAll();
 }
-function filterDirection(direction){activeDirection=direction;document.getElementById('filter-dir-all')?.classList.toggle('active',direction==='all');document.getElementById('filter-dir-incoming')?.classList.toggle('active',direction==='incoming');document.getElementById('filter-dir-outgoing')?.classList.toggle('active',direction==='outgoing');updateTxnPage()}
+function filterDirection(direction){
+  activeDirection=direction;
+  resetTxnVisibleLimit();
+  document.getElementById('filter-dir-all')?.classList.toggle('active',direction==='all');
+  document.getElementById('filter-dir-incoming')?.classList.toggle('active',direction==='incoming');
+  document.getElementById('filter-dir-outgoing')?.classList.toggle('active',direction==='outgoing');
+  updateTxnPage();
+}
 function getArchiveMonthlySeries() {
   const monthly = {};
 
@@ -6432,7 +7130,23 @@ const I18N = {
     dateRange: 'Date range',
     fromDate: 'From',
     toDate: 'To',
-    clearDateFilter: 'Clear date filter'},
+    clearDateFilter: 'Clear date filter',
+    transactionTotals: 'Totals',
+    filteredTransactions: 'Filtered transactions',
+    totalIncoming: 'Incoming',
+    totalOutgoing: 'Outgoing',
+    totalNet: 'Net',
+    noTotalValue: '0.00',
+    totalsHint: 'Calculated from the currently visible filters.',
+    showMore: 'Load more',
+    showingTransactions: 'Showing',
+    ofTransactions: 'of',
+    transactionsCountLabel: 'transactions',
+    renderedForSpeed: 'Only part of the list is rendered for mobile speed. Totals use all filtered transactions.',
+    transactionKind: 'Payment type',
+    cardsOnly: 'Cards',
+    accountsOnly: 'Accounts',
+    cardVsAccountHint: 'Card payments count towards bank benefits. Account payments are separated.'},
   sk: {
     appTitle: 'Bank Tracker',
     overview: 'Prehľad',
@@ -6610,7 +7324,23 @@ const I18N = {
     dateRange: 'Rozsah dátumov',
     fromDate: 'Od',
     toDate: 'Do',
-    clearDateFilter: 'Vymazať dátumový filter'},
+    clearDateFilter: 'Vymazať dátumový filter',
+    transactionTotals: 'Súčty',
+    filteredTransactions: 'Vyfiltrované transakcie',
+    totalIncoming: 'Príjmy',
+    totalOutgoing: 'Výdavky',
+    totalNet: 'Rozdiel',
+    noTotalValue: '0,00',
+    totalsHint: 'Vypočítané podľa aktuálne nastavených filtrov.',
+    showMore: 'Načítať ďalšie',
+    showingTransactions: 'Zobrazené',
+    ofTransactions: 'z',
+    transactionsCountLabel: 'transakcií',
+    renderedForSpeed: 'Kvôli rýchlosti na mobile sa zobrazuje len časť zoznamu. Súčty počítajú všetky vyfiltrované transakcie.',
+    transactionKind: 'Typ platby',
+    cardsOnly: 'Karty',
+    accountsOnly: 'Účty',
+    cardVsAccountHint: 'Kartové platby sa počítajú do bankových benefitov. Účtové platby sú oddelené.'},
   cs: {
     appTitle: 'Bank Tracker',
     overview: 'Přehled',
@@ -6791,7 +7521,23 @@ const I18N = {
     dateRange: 'Rozsah datumů',
     fromDate: 'Od',
     toDate: 'Do',
-    clearDateFilter: 'Smazat datumový filtr'}
+    clearDateFilter: 'Smazat datumový filtr',
+    transactionTotals: 'Součty',
+    filteredTransactions: 'Vyfiltrované transakce',
+    totalIncoming: 'Příjmy',
+    totalOutgoing: 'Výdaje',
+    totalNet: 'Rozdíl',
+    noTotalValue: '0,00',
+    totalsHint: 'Vypočtené podle aktuálně nastavených filtrů.',
+    showMore: 'Načíst další',
+    showingTransactions: 'Zobrazeno',
+    ofTransactions: 'z',
+    transactionsCountLabel: 'transakcí',
+    renderedForSpeed: 'Kvůli rychlosti na mobilu se zobrazuje jen část seznamu. Součty počítají všechny vyfiltrované transakce.',
+    transactionKind: 'Typ platby',
+    cardsOnly: 'Karty',
+    accountsOnly: 'Účty',
+    cardVsAccountHint: 'Kartové platby se počítají do bankovních benefitů. Účtové platby jsou oddělené.'}
 };
 
 function getLanguage() {
@@ -7301,6 +8047,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 document.addEventListener('DOMContentLoaded', initBottomSheetDragToClose);
 
 document.addEventListener('DOMContentLoaded', initGlobalPullDownControl);
+document.addEventListener('DOMContentLoaded', initTabHistory);
 </script>
 
 
