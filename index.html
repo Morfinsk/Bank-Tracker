@@ -3288,6 +3288,12 @@
     font-family: var(--font-mono);
   }
 
+  .txn-cashflow-axis-label {
+    fill: #7f93b1;
+    font-size: 8px;
+    font-family: var(--font-mono);
+  }
+
   html[data-theme="light"] .txn-cashflow-card {
     background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
     border-color: rgba(15,23,42,.14) !important;
@@ -3297,6 +3303,7 @@
   html[data-theme="light"] .txn-cashflow-title { color: #0b1220 !important; }
   html[data-theme="light"] .txn-cashflow-legend { color: #334155 !important; }
   html[data-theme="light"] .txn-cashflow-label { fill: #1e3a8a !important; font-weight: 900; }
+  html[data-theme="light"] .txn-cashflow-axis-label { fill: #64748b !important; }
 
   /* v106 transactions filtered totals */
   .txn-totals-card {
@@ -4132,7 +4139,9 @@
 
   html.android-pwa-perf body[data-active-sheet="add-transaction-sheet"] #add-transaction-sheet,
   html.android-pwa-perf body[data-active-sheet="archive-bank-detail-sheet"] #archive-bank-detail-sheet,
-  html.android-pwa-perf body[data-active-sheet="bank-manager-sheet"] #bank-manager-sheet {
+  html.android-pwa-perf body[data-active-sheet="bank-manager-sheet"] #bank-manager-sheet,
+  html.android-pwa-perf body[data-active-sheet="upgrade-sheet"] #upgrade-sheet {
+
     transition: none !important;
     box-shadow: 0 -8px 24px rgba(0,0,0,.26) !important;
     contain: layout paint style;
@@ -4140,7 +4149,9 @@
 
   html.android-pwa-perf body[data-active-sheet="add-transaction-sheet"] #add-transaction-sheet.sheet-snapping,
   html.android-pwa-perf body[data-active-sheet="archive-bank-detail-sheet"] #archive-bank-detail-sheet.sheet-snapping,
-  html.android-pwa-perf body[data-active-sheet="bank-manager-sheet"] #bank-manager-sheet.sheet-snapping {
+  html.android-pwa-perf body[data-active-sheet="bank-manager-sheet"] #bank-manager-sheet.sheet-snapping,
+  html.android-pwa-perf body[data-active-sheet="upgrade-sheet"] #upgrade-sheet.sheet-snapping {
+
     transition: none !important;
   }
 
@@ -4270,7 +4281,7 @@
 }
 
 
-  /* v7 selective animations restored: light, theme-safe, no pull-down sheet close */
+  /* v8 selective animations restored: light, theme-safe, drag-to-close enabled */
   html {
     scroll-behavior: smooth;
   }
@@ -4299,14 +4310,14 @@
 
   .sheet-handle,
   .sheet-title-row {
-    touch-action: auto !important;
-    cursor: default !important;
+    touch-action: none !important;
+    cursor: grab !important;
   }
 
   .bottom-sheet.dragging,
   .bottom-sheet.dragging .sheet-title-row,
   .bottom-sheet.dragging .sheet-handle {
-    cursor: default !important;
+    cursor: grabbing !important;
   }
 
   .page.active.page-light-switch,
@@ -4357,7 +4368,7 @@
   .trend-line {
     stroke-dasharray: 900;
     stroke-dashoffset: 900;
-    animation: chartLineReveal .42s ease-out forwards;
+    animation: chartLineReveal 1.85s ease-out forwards;
   }
 
   .archive-bank-point,
@@ -4365,8 +4376,8 @@
     opacity: 0;
     transform-box: fill-box;
     transform-origin: center;
-    animation: chartPointPop .22s ease-out forwards;
-    animation-delay: .24s;
+    animation: chartPointPop .55s ease-out forwards;
+    animation-delay: 1.12s;
   }
 
   .daily-bar-income,
@@ -4375,12 +4386,12 @@
   .txn-cashflow-bar-out {
     transform-box: fill-box;
     transform-origin: center bottom;
-    animation: barGrowSoft .28s ease-out both;
+    animation: barGrowSoft 1.35s cubic-bezier(.18,.78,.24,1) both;
   }
 
   .txn-cashflow-bar-out,
   .daily-bar-expense {
-    animation-delay: .035s;
+    animation-delay: .22s;
   }
 
   @keyframes chartLineReveal {
@@ -4421,6 +4432,66 @@
     .txn-cashflow-bar-out {
       animation: none !important;
     }
+  }
+
+
+
+  /* v9 sheet tuning: v4-style sheet movement + safer Upgrade scroll */
+  .bottom-sheet,
+  .bottom-sheet.open,
+  .bottom-sheet.sheet-snapping {
+    transition: transform .20s cubic-bezier(.22,.72,.23,1) !important;
+  }
+
+  #upgrade-sheet {
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    contain: layout paint style !important;
+    box-shadow: 0 -8px 24px rgba(0,0,0,.26) !important;
+  }
+
+  #upgrade-sheet .upgrade-card,
+  #upgrade-sheet .upgrade-card.premium,
+  #upgrade-sheet .upgrade-card.pro {
+    box-shadow: none !important;
+  }
+
+  #upgrade-sheet .sheet-handle,
+  #upgrade-sheet .sheet-title-row,
+  #bank-manager-sheet .sheet-handle,
+  #bank-manager-sheet .sheet-title-row {
+    touch-action: none !important;
+  }
+
+  html.mobile-perf-mode body[data-active-sheet="upgrade-sheet"] #upgrade-sheet,
+  html.android-pwa-perf body[data-active-sheet="upgrade-sheet"] #upgrade-sheet {
+    contain: layout paint style !important;
+    box-shadow: 0 -8px 24px rgba(0,0,0,.24) !important;
+  }
+
+  /* v9 slower visible chart reveal */
+  .archive-bank-line,
+  .trend-line {
+    animation-duration: 1.85s !important;
+  }
+
+  .archive-bank-point,
+  .trend-dot {
+    animation-duration: .55s !important;
+    animation-delay: 1.12s !important;
+  }
+
+  .daily-bar-income,
+  .daily-bar-expense,
+  .txn-cashflow-bar-in,
+  .txn-cashflow-bar-out {
+    animation-duration: 1.35s !important;
+  }
+
+  .txn-cashflow-bar-out,
+  .daily-bar-expense {
+    animation-delay: .22s !important;
   }
 
 </style>
@@ -6526,23 +6597,49 @@ function renderTransactionDailyCashflow(txns) {
   const maxValue = Math.max(1, ...visibleDays.flatMap(day => [byDay[day].incoming, byDay[day].outgoing]));
   const width = 320;
   const height = 142;
-  const top = 16;
+  const top = 12;
   const bottom = 24;
+  const leftPad = 34;
+  const rightPad = 4;
+  const chartW = width - leftPad - rightPad;
   const chartH = height - top - bottom;
-  const step = width / visibleDays.length;
-  const barW = Math.max(14, Math.min(24, step * 0.58));
+  const step = chartW / visibleDays.length;
+  const backBarW = Math.max(10, Math.min(18, step * 0.48));
+  const frontBarW = Math.max(12, Math.min(22, step * 0.58));
   const baseline = top + chartH;
 
+  const compactNumber = (value) => {
+    const n = Number(value || 0);
+    if (n >= 1000000) return `${(n / 1000000).toFixed(n >= 10000000 ? 0 : 1)}m`;
+    if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
+    return String(Math.round(n));
+  };
+
+  const axisLabels = [
+    { value: maxValue, y: top + 7 },
+    { value: maxValue / 2, y: top + chartH / 2 + 3 },
+    { value: 0, y: baseline - 2 }
+  ].map(item => (
+    `<text class="txn-cashflow-axis-label" x="2" y="${item.y.toFixed(1)}">${compactNumber(item.value)}</text>`
+  )).join('');
+
   const bars = visibleDays.map((day, idx) => {
-    const x = idx * step + (step - barW) / 2;
+    const slotX = leftPad + idx * step;
     const incomingH = Math.max(0, (byDay[day].incoming / maxValue) * chartH);
     const outgoingH = Math.max(0, (byDay[day].outgoing / maxValue) * chartH);
+    const backIsIncoming = incomingH <= outgoingH;
     const d = new Date(day + 'T00:00:00');
     const label = String(d.getDate()).padStart(2, '0');
+
+    const incomingRect = `<rect class="txn-cashflow-bar-in" x="${(slotX + step * 0.18).toFixed(1)}" y="${(baseline - incomingH).toFixed(1)}" width="${backBarW.toFixed(1)}" height="${incomingH.toFixed(1)}" rx="3" />`;
+    const outgoingRect = `<rect class="txn-cashflow-bar-out" x="${(slotX + step * 0.34).toFixed(1)}" y="${(baseline - outgoingH).toFixed(1)}" width="${frontBarW.toFixed(1)}" height="${outgoingH.toFixed(1)}" rx="3" />`;
+    const barMarkup = backIsIncoming
+      ? `${incomingRect}${outgoingRect}`
+      : `${outgoingRect}${incomingRect}`;
+
     return `
-      <rect class="txn-cashflow-bar-in" x="${x.toFixed(1)}" y="${(baseline - incomingH).toFixed(1)}" width="${barW.toFixed(1)}" height="${incomingH.toFixed(1)}" rx="3" />
-      <rect class="txn-cashflow-bar-out" x="${x.toFixed(1)}" y="${(baseline - outgoingH).toFixed(1)}" width="${barW.toFixed(1)}" height="${outgoingH.toFixed(1)}" rx="3" />
-      ${visibleDays.length <= 10 || idx % 2 === 0 ? `<text class="txn-cashflow-label" x="${(x + barW / 2).toFixed(1)}" y="${height - 5}" text-anchor="middle">${label}</text>` : ''}
+      ${barMarkup}
+      ${visibleDays.length <= 10 || idx % 2 === 0 ? `<text class="txn-cashflow-label" x="${(slotX + step / 2).toFixed(1)}" y="${height - 5}" text-anchor="middle">${label}</text>` : ''}
     `;
   }).join('');
 
@@ -6556,8 +6653,9 @@ function renderTransactionDailyCashflow(txns) {
         </div>
       </div>
       <svg class="txn-cashflow-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="${t('dailyCashflow')}">
-        <line class="txn-cashflow-grid" x1="0" y1="${baseline}" x2="${width}" y2="${baseline}" />
-        <line class="txn-cashflow-grid" x1="0" y1="${top + chartH / 2}" x2="${width}" y2="${top + chartH / 2}" />
+        <line class="txn-cashflow-grid" x1="${leftPad}" y1="${baseline}" x2="${width}" y2="${baseline}" />
+        <line class="txn-cashflow-grid" x1="${leftPad}" y1="${top + chartH / 2}" x2="${width}" y2="${top + chartH / 2}" />
+        ${axisLabels}
         ${bars}
       </svg>
     </div>
@@ -7378,7 +7476,7 @@ function saveCustomBanks(banks){localStorage.setItem('custom_banks',JSON.stringi
 // ── PREVENT PAGE REFRESH ONLY WHILE BOTTOM SHEET IS OPEN ───
 
 // ── GLOBAL PULL-DOWN CONTROL ───────────────────────────────
-// Pull-to-refresh is disabled. Bottom sheets are NOT closed by pull-down in v7.
+// Pull-to-refresh is disabled. Bottom sheet drag-to-close is handled by pointer events in v8.
 function initGlobalPullDownControl() {
   if (window.__globalPullDownControlBound) return;
   window.__globalPullDownControlBound = true;
@@ -7460,8 +7558,7 @@ function initSheetOpenPullRefreshGuard() {
 
 // ── BOTTOM SHEET DRAG DOWN TO CLOSE — LARGE TOUCH ZONE ─────
 function initBottomSheetDragToClose() {
-  // v7: Drag/pull-down-to-close stays disabled. Sheets close only via X/backdrop/actions.
-  return;
+  // v9: Drag/pull-down-to-close enabled again, using the proven v4 handler.
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
     if (sheet.dataset.dragToCloseBound === 'true') return;
@@ -7672,7 +7769,8 @@ function initBottomSheetDragToClose() {
 
 
 function shouldAnimateBottomSheet(sheetId) {
-  return ['upgrade-sheet', 'quick-add-sheet', 'add-transaction-sheet', 'add-bank-sheet', 'bank-manager-sheet', 'archive-bank-detail-sheet', 'transaction-edit-sheet'].includes(String(sheetId || ''));
+  // v9: match the original v4 sheet animation policy.
+  return ['upgrade-sheet', 'quick-add-sheet', 'bank-manager-sheet'].includes(String(sheetId || ''));
 }
 
 function openSheet(id){
@@ -8504,8 +8602,8 @@ const I18N = {
     addTransactionHint: 'Manually add a new payment or income.',
     addBank: 'Add bank',
     addBankHint: 'Add a new bank, currency, budget and card limit.',
-    completed: 'completed',
-    notCompleted: 'Missing',
+    completed: 'Completed',
+    notCompleted: 'Missed',
     noLimit: 'no limit',
     monthArchive: 'Monthly archive',
     saveChanges: 'Save changes',
@@ -8660,7 +8758,7 @@ const I18N = {
     paymentKindAll: 'All payments',
     cashOnly: 'Cash',
     manualKindHint: 'Cards count towards bank benefits. Account and cash payments are tracked separately.',
-    accountPaymentKind: 'Bankový prevod',
+    accountPaymentKind: 'Bankovní převod',
     cashPaymentKind: 'Cash payment',
     cardPaymentKind: 'Card payment',
     longPressToEdit: 'Long press a transaction to edit it.',
@@ -8878,7 +8976,7 @@ const I18N = {
     paymentKindAll: 'Všetky platby',
     cashOnly: 'Hotovosť',
     manualKindHint: 'Kartové platby sa počítajú do bankových benefitov. Účtové a hotovostné platby sú oddelené.',
-    accountPaymentKind: 'Bankový prevod',
+    accountPaymentKind: 'Bankový převod',
     cashPaymentKind: 'Hotovostná platba',
     cardPaymentKind: 'Platba kartou',
     longPressToEdit: 'Dlhým podržaním upravíš transakciu.',
@@ -9099,7 +9197,7 @@ const I18N = {
     paymentKindAll: 'Všechny platby',
     cashOnly: 'Hotovost',
     manualKindHint: 'Karetní platby se počítají do bankovních benefitů. Účtové a hotovostní platby jsou oddělené.',
-    accountPaymentKind: 'Bankový prevod',
+    accountPaymentKind: 'Bankový převod',
     cashPaymentKind: 'Hotovostní platba',
     cardPaymentKind: 'Platba kartou',
     longPressToEdit: 'Dlouhým podržením upravíš transakci.',
