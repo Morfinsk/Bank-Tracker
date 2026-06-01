@@ -4268,6 +4268,161 @@
     font-size: 16px !important;
   }
 }
+
+
+  /* v7 selective animations restored: light, theme-safe, no pull-down sheet close */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  .bottom-sheet,
+  .bottom-sheet.open,
+  .bottom-sheet.sheet-snapping {
+    transition: transform .18s cubic-bezier(.22,.72,.23,1) !important;
+    animation: none !important;
+    touch-action: pan-y !important;
+  }
+
+  .bottom-sheet.sheet-no-animation,
+  .bottom-sheet.sheet-no-animation.open,
+  .bottom-sheet.sheet-no-animation.sheet-snapping {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .bottom-sheet-backdrop {
+    transition: opacity .16s ease !important;
+    animation: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .sheet-handle,
+  .sheet-title-row {
+    touch-action: auto !important;
+    cursor: default !important;
+  }
+
+  .bottom-sheet.dragging,
+  .bottom-sheet.dragging .sheet-title-row,
+  .bottom-sheet.dragging .sheet-handle {
+    cursor: default !important;
+  }
+
+  .page.active.page-light-switch,
+  .page.active.page-tab-fade {
+    animation-duration: .16s !important;
+    animation-timing-function: ease-out !important;
+  }
+
+  .fab {
+    transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease !important;
+  }
+
+  .fab:active {
+    transform: scale(.96) !important;
+  }
+
+  .scroll-top-fab {
+    transition: opacity .16s ease, transform .16s ease !important;
+  }
+
+  .scroll-top-fab.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .quick-add-animating .mini-action-btn {
+    opacity: 0;
+    transform: translateY(10px) scale(.99);
+    animation: quickAddFadeIn .20s ease-out forwards !important;
+  }
+
+  .quick-add-animating .mini-action-btn:nth-child(2) {
+    animation-delay: .045s !important;
+  }
+
+  #transaction-edit-sheet.open .sheet-grid,
+  #transaction-edit-sheet.open .sheet-grid-2,
+  #transaction-edit-sheet.open .config-save {
+    animation: editSheetSoftIn .16s ease-out both;
+  }
+
+  @keyframes editSheetSoftIn {
+    from { opacity: .72; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .archive-bank-line,
+  .trend-line {
+    stroke-dasharray: 900;
+    stroke-dashoffset: 900;
+    animation: chartLineReveal .42s ease-out forwards;
+  }
+
+  .archive-bank-point,
+  .trend-dot {
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: chartPointPop .22s ease-out forwards;
+    animation-delay: .24s;
+  }
+
+  .daily-bar-income,
+  .daily-bar-expense,
+  .txn-cashflow-bar-in,
+  .txn-cashflow-bar-out {
+    transform-box: fill-box;
+    transform-origin: center bottom;
+    animation: barGrowSoft .28s ease-out both;
+  }
+
+  .txn-cashflow-bar-out,
+  .daily-bar-expense {
+    animation-delay: .035s;
+  }
+
+  @keyframes chartLineReveal {
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes chartPointPop {
+    from { opacity: 0; transform: scale(.74); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes barGrowSoft {
+    from { opacity: .55; transform: scaleY(.16); }
+    to { opacity: 1; transform: scaleY(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .bottom-sheet,
+    .bottom-sheet.open,
+    .bottom-sheet.sheet-snapping,
+    .bottom-sheet-backdrop,
+    .fab,
+    .scroll-top-fab {
+      transition: none !important;
+    }
+    .quick-add-animating .mini-action-btn,
+    #transaction-edit-sheet.open .sheet-grid,
+    #transaction-edit-sheet.open .sheet-grid-2,
+    #transaction-edit-sheet.open .config-save,
+    .archive-bank-line,
+    .trend-line,
+    .archive-bank-point,
+    .trend-dot,
+    .daily-bar-income,
+    .daily-bar-expense,
+    .txn-cashflow-bar-in,
+    .txn-cashflow-bar-out {
+      animation: none !important;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -7223,8 +7378,7 @@ function saveCustomBanks(banks){localStorage.setItem('custom_banks',JSON.stringi
 // ── PREVENT PAGE REFRESH ONLY WHILE BOTTOM SHEET IS OPEN ───
 
 // ── GLOBAL PULL-DOWN CONTROL ───────────────────────────────
-// Pull-to-refresh is disabled. When a bottom sheet is open,
-// pulling down anywhere on the page closes the sheet.
+// Pull-to-refresh is disabled. Bottom sheets are NOT closed by pull-down in v7.
 function initGlobalPullDownControl() {
   if (window.__globalPullDownControlBound) return;
   window.__globalPullDownControlBound = true;
@@ -7283,12 +7437,8 @@ function initGlobalPullDownControl() {
 
     if (startedOnControl) return;
 
-    // Pulling down on the backdrop/background closes the sheet.
-    if (!closedByPull && pullingDown && mostlyVertical && deltaY > 72) {
-      closedByPull = true;
-      if (event.cancelable) event.preventDefault();
-      closeBottomSheets();
-    } else if (pullingDown && event.cancelable) {
+    // v6: Do not close sheets by pull-down. Only block the browser pull gesture.
+    if (pullingDown && mostlyVertical && event.cancelable) {
       event.preventDefault();
     }
   }, { passive: false });
@@ -7310,6 +7460,9 @@ function initSheetOpenPullRefreshGuard() {
 
 // ── BOTTOM SHEET DRAG DOWN TO CLOSE — LARGE TOUCH ZONE ─────
 function initBottomSheetDragToClose() {
+  // v7: Drag/pull-down-to-close stays disabled. Sheets close only via X/backdrop/actions.
+  return;
+
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
     if (sheet.dataset.dragToCloseBound === 'true') return;
     sheet.dataset.dragToCloseBound = 'true';
@@ -7519,7 +7672,7 @@ function initBottomSheetDragToClose() {
 
 
 function shouldAnimateBottomSheet(sheetId) {
-  return ['upgrade-sheet', 'quick-add-sheet', 'bank-manager-sheet'].includes(String(sheetId || ''));
+  return ['upgrade-sheet', 'quick-add-sheet', 'add-transaction-sheet', 'add-bank-sheet', 'bank-manager-sheet', 'archive-bank-detail-sheet', 'transaction-edit-sheet'].includes(String(sheetId || ''));
 }
 
 function openSheet(id){
@@ -7534,6 +7687,7 @@ function openSheet(id){
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
     sheet.classList.remove('open', 'dragging', 'sheet-snapping', 'sheet-no-animation');
     sheet.style.removeProperty('transition');
+    sheet.style.removeProperty('animation');
     sheet.style.removeProperty('transform');
     sheet.dataset.dragActive = 'false';
   });
@@ -7567,8 +7721,9 @@ function closeBottomSheets(){
   if (backdrop) backdrop.classList.remove('open');
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
-    sheet.classList.remove('open', 'dragging', 'sheet-snapping');
+    sheet.classList.remove('open', 'dragging', 'sheet-snapping', 'sheet-no-animation');
     sheet.style.removeProperty('transition');
+    sheet.style.removeProperty('animation');
     sheet.style.removeProperty('transform');
     sheet.dataset.dragActive = 'false';
   });
@@ -8349,8 +8504,8 @@ const I18N = {
     addTransactionHint: 'Manually add a new payment or income.',
     addBank: 'Add bank',
     addBankHint: 'Add a new bank, currency, budget and card limit.',
-    completed: 'Completed',
-    notCompleted: 'Missed',
+    completed: 'completed',
+    notCompleted: 'Missing',
     noLimit: 'no limit',
     monthArchive: 'Monthly archive',
     saveChanges: 'Save changes',
