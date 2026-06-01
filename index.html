@@ -14,8 +14,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v121 clean sheet handle scroll top -->
-<link rel="manifest" href="./manifest.json?v=121">
+<!-- v122 sheet animation policy scroll top animation -->
+<link rel="manifest" href="./manifest.json?v=122">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -4091,6 +4091,33 @@
     box-shadow: 0 0 18px rgba(37,99,235,.18);
   }
 
+
+  /* v122 sheet animation policy + custom smooth scroll */
+  .bottom-sheet.sheet-no-animation,
+  .bottom-sheet.sheet-no-animation.open,
+  .bottom-sheet.sheet-no-animation.sheet-snapping {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  html.android-pwa-perf .bottom-sheet.sheet-no-animation,
+  html.mobile-perf-mode .bottom-sheet.sheet-no-animation {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .scroll-top-fab.visible {
+    transition: opacity .16s ease, transform .16s ease;
+  }
+/* Zamedzenie zoomovania na iOS zariadení vynútením 16px fontu pre inputy */
+@supports (-webkit-touch-callout: none) {
+  .config-input,
+  input[type="number"],
+  input[type="text"],
+  select {
+    font-size: 16px !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -7196,15 +7223,22 @@ function initBottomSheetDragToClose() {
   });
 }
 
+
+function shouldAnimateBottomSheet(sheetId) {
+  return ['upgrade-sheet', 'quick-add-sheet', 'bank-manager-sheet'].includes(String(sheetId || ''));
+}
+
 function openSheet(id){
   document.body.classList.add('sheet-open');
   document.body.dataset.activeSheet = id || '';
+
+  const shouldAnimate = shouldAnimateBottomSheet(id);
 
   const backdrop = document.getElementById('bottom-sheet-backdrop');
   if (backdrop) backdrop.classList.add('open');
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
-    sheet.classList.remove('open', 'dragging', 'sheet-snapping');
+    sheet.classList.remove('open', 'dragging', 'sheet-snapping', 'sheet-no-animation');
     sheet.style.removeProperty('transition');
     sheet.style.removeProperty('transform');
     sheet.dataset.dragActive = 'false';
@@ -7213,11 +7247,18 @@ function openSheet(id){
   const sheet = document.getElementById(id);
   if (sheet) {
     sheet.scrollTop = 0;
-    requestAnimationFrame(() => {
-      sheet.classList.add('open');
+
+    if (!shouldAnimate) {
+      sheet.classList.add('sheet-no-animation', 'open');
       scheduleFloatingUtilityUpdate();
-      window.setTimeout(scheduleFloatingUtilityUpdate, 120);
-    });
+      window.setTimeout(scheduleFloatingUtilityUpdate, 80);
+    } else {
+      requestAnimationFrame(() => {
+        sheet.classList.add('open');
+        scheduleFloatingUtilityUpdate();
+        window.setTimeout(scheduleFloatingUtilityUpdate, 180);
+      });
+    }
   }
 
   initBottomSheetDragToClose();
@@ -8968,40 +9009,75 @@ function bindFloatingUtilityScrollWatchers() {
   }
 }
 
+
+function easeOutCubicScroll(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function getWindowScrollTopValue() {
+  return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+}
+
+function setWindowScrollTopValue(value) {
+  window.scrollTo(0, value);
+  document.documentElement.scrollTop = value;
+  document.body.scrollTop = value;
+}
+
+function smoothScrollContainerToTop(target, duration = 360) {
+  const isWindow = target === window || target === document || target === document.documentElement || target === document.body;
+  const start = isWindow ? getWindowScrollTopValue() : Number(target?.scrollTop || 0);
+
+  if (start <= 1) {
+    if (isWindow) setWindowScrollTopValue(0);
+    else if (target) target.scrollTop = 0;
+    scheduleFloatingUtilityUpdate();
+    return;
+  }
+
+  const startTime = performance.now();
+
+  const step = (now) => {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const next = Math.round(start * (1 - easeOutCubicScroll(progress)));
+
+    if (isWindow) setWindowScrollTopValue(next);
+    else target.scrollTop = next;
+
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      if (isWindow) setWindowScrollTopValue(0);
+      else target.scrollTop = 0;
+      scheduleFloatingUtilityUpdate();
+    }
+  };
+
+  requestAnimationFrame(step);
+}
+
 function scrollToLatestVisibleTransaction() {
   const archiveSheet = document.querySelector('#archive-bank-detail-sheet.open');
   const anyOpenSheet = document.querySelector('.bottom-sheet.open');
 
   if (archiveSheet) {
-    archiveSheet.scrollTo({ top: 0, behavior: 'smooth' });
-    window.setTimeout(scheduleFloatingUtilityUpdate, 260);
+    smoothScrollContainerToTop(archiveSheet, 360);
     return;
   }
 
   if (anyOpenSheet) {
-    anyOpenSheet.scrollTo({ top: 0, behavior: 'smooth' });
-    window.setTimeout(scheduleFloatingUtilityUpdate, 260);
+    smoothScrollContainerToTop(anyOpenSheet, 360);
     return;
   }
 
   const pageId = getActivePageId ? getActivePageId() : activePageId;
+  const activePage = document.getElementById('page-' + pageId);
 
-  // In every page case this goes to the absolute top of the current document.
-  // That is faster and clearer than jumping only to the first transaction row.
-  try {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } catch (_) {
-    window.scrollTo(0, 0);
+  if (activePage && activePage.scrollTop > 2) {
+    smoothScrollContainerToTop(activePage, 360);
   }
 
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
-
-  // Safety: if a page container ever becomes scrollable, reset it too.
-  const activePage = document.getElementById('page-' + pageId);
-  if (activePage) activePage.scrollTop = 0;
-
-  window.setTimeout(scheduleFloatingUtilityUpdate, 260);
+  smoothScrollContainerToTop(window, 380);
 }
 
 function fillEditTransactionSheet(txId) {
