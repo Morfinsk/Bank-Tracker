@@ -664,6 +664,34 @@
     margin-top: 4px;
   }
 
+  .quick-add-animating .mini-action-btn {
+    opacity: 0;
+    transform: translateY(12px) scale(.985);
+    animation: quickAddFadeIn .24s ease-out forwards;
+  }
+
+  .quick-add-animating .mini-action-btn:nth-child(2) {
+    animation-delay: .06s;
+  }
+
+  @keyframes quickAddFadeIn {
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .fab.utility-dim,
+  .scroll-top-fab.utility-dim {
+    opacity: .18 !important;
+    pointer-events: auto;
+  }
+
+  .fab.utility-dim:active,
+  .scroll-top-fab.utility-dim:active {
+    opacity: .42 !important;
+  }
+
 
   /* v34 plan UX */
   .top-upgrade-btn {
@@ -2885,6 +2913,8 @@
 
   .date-range-clear-wrap {
     padding: 0 20px 14px;
+    display: flex;
+    align-items: center;
   }
 
   .date-range-clear-btn {
@@ -3183,6 +3213,90 @@
     color: #334155 !important;
   }
 
+
+
+
+  /* v123 transaction daily cashflow graph */
+  .txn-cashflow-card {
+    margin: 18px 0 10px;
+    background: linear-gradient(180deg, rgba(23,34,56,.98), rgba(15,24,42,.98));
+    border: 1px solid rgba(148,163,184,.18);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: 0 18px 45px rgba(0,0,0,.18);
+  }
+
+  .txn-cashflow-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .txn-cashflow-title {
+    color: var(--text);
+    font-weight: 900;
+    font-size: 14px;
+  }
+
+  .txn-cashflow-legend {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+  }
+
+  .txn-cashflow-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .txn-cashflow-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    display: inline-block;
+  }
+
+  .txn-cashflow-svg {
+    width: 100%;
+    height: 142px;
+    display: block;
+    overflow: visible;
+  }
+
+  .txn-cashflow-grid {
+    stroke: rgba(148,163,184,.12);
+    stroke-width: 1;
+  }
+
+  .txn-cashflow-bar-in {
+    fill: var(--ok);
+  }
+
+  .txn-cashflow-bar-out {
+    fill: #ff3b43;
+  }
+
+  .txn-cashflow-label {
+    fill: #8fa6c7;
+    font-size: 8px;
+    font-family: var(--font-mono);
+  }
+
+  html[data-theme="light"] .txn-cashflow-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+    border-color: rgba(15,23,42,.14) !important;
+    box-shadow: 0 18px 45px rgba(15,23,42,.08) !important;
+  }
+
+  html[data-theme="light"] .txn-cashflow-title { color: #0b1220 !important; }
+  html[data-theme="light"] .txn-cashflow-legend { color: #334155 !important; }
+  html[data-theme="light"] .txn-cashflow-label { fill: #1e3a8a !important; font-weight: 900; }
 
   /* v106 transactions filtered totals */
   .txn-totals-card {
@@ -4109,116 +4223,6 @@
   .scroll-top-fab.visible {
     transition: opacity .16s ease, transform .16s ease;
   }
-
-
-  /* v124 transaction daily cashflow chart */
-  .txn-cashflow-card {
-    margin: 16px 0 12px;
-    background: linear-gradient(180deg, rgba(23,34,56,.98), rgba(15,24,42,.98));
-    border: 1px solid rgba(148,163,184,.18);
-    border-radius: 18px;
-    padding: 14px;
-    box-shadow: 0 18px 45px rgba(0,0,0,.16);
-    overflow: hidden;
-  }
-
-  .txn-cashflow-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 8px;
-  }
-
-  .txn-cashflow-title {
-    color: var(--text);
-    font-weight: 900;
-    font-size: 14px;
-  }
-
-  .txn-cashflow-sub {
-    color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    text-align: right;
-  }
-
-  .txn-cashflow-legend {
-    display: flex;
-    gap: 14px;
-    align-items: center;
-    margin: 0 0 8px;
-    color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: 10px;
-  }
-
-  .txn-cashflow-legend span {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .txn-cashflow-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    display: inline-block;
-  }
-
-  .txn-cashflow-svg {
-    width: 100%;
-    height: 164px;
-    display: block;
-    overflow: visible;
-  }
-
-  .txn-cashflow-grid-line {
-    stroke: rgba(148,163,184,.12);
-    stroke-width: 1;
-  }
-
-  .txn-cashflow-axis-label {
-    fill: #8fa6c7;
-    font-size: 9px;
-    font-family: var(--font-mono);
-    font-weight: 800;
-  }
-
-  .txn-cashflow-bar-incoming {
-    fill: var(--ok);
-    opacity: .95;
-  }
-
-  .txn-cashflow-bar-outgoing {
-    fill: #ff3b3b;
-    opacity: .96;
-    filter: drop-shadow(0 0 5px rgba(255,59,59,.22));
-  }
-
-  html[data-theme="light"] .txn-cashflow-card {
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
-    border-color: rgba(15,23,42,.14) !important;
-    box-shadow: 0 18px 45px rgba(15,23,42,.08) !important;
-  }
-
-  html[data-theme="light"] .txn-cashflow-title {
-    color: #0b1220 !important;
-  }
-
-  html[data-theme="light"] .txn-cashflow-sub,
-  html[data-theme="light"] .txn-cashflow-legend {
-    color: #334155 !important;
-  }
-
-  html[data-theme="light"] .txn-cashflow-axis-label {
-    fill: #1e3a8a !important;
-  }
-
-  html[data-theme="light"] .txn-cashflow-grid-line {
-    stroke: rgba(15,23,42,.12) !important;
-  }
-
 /* Zamedzenie zoomovania na iOS zariadení vynútením 16px fontu pre inputy */
 @supports (-webkit-touch-callout: none) {
   .config-input,
@@ -4330,7 +4334,7 @@
   <div class="filter-group-title" data-i18n="category">Category</div>
   <div class="cat-grid" id="cat-filters"></div>
   
-  <div class="txn-edit-hint" data-i18n="doubleTapToEdit">Double tap / double click to edit.</div>
+  <div class="txn-edit-hint" data-i18n="doubleTapToEdit">Mobile: long press to edit. PC: double click to edit.</div>
   <div id="txn-list" style="margin: 0 20px;"></div>
 </div>
 
@@ -4653,7 +4657,7 @@
     <input type="hidden" id="edit-tx-id" />
 
     <label data-i18n="date">Date</label>
-    <input class="config-input" id="edit-tx-date" type="text" placeholder="DD.MM.YYYY HH:mm" />
+    <input class="config-input" id="edit-tx-date" type="date" />
 
     <label data-i18n="merchantDescription">Merchant / description</label>
     <input class="config-input" id="edit-tx-merchant" />
@@ -6177,7 +6181,7 @@ function parseDateInputForFilter(value, endOfDay = false) {
 }
 
 function filterTransactionsByMonthFilter(txns) {
-  // Month dropdown was removed. Archive month clicks use the real From/To date range inputs.
+  // Month dropdown was removed from Transactions. Month navigation now uses date range when needed.
   return txns;
 }
 
@@ -6205,10 +6209,8 @@ function handleTransactionDateRange() {
 }
 
 function handleTransactionMonthFilter() {
-  // Removed by design. Use the From/To date range inputs instead.
+  // No-op kept for old cached markup. The month dropdown is intentionally removed.
   activeMonthFilter = '';
-  activeTxnHistoryScope = hasActiveTransactionDateRange() ? 'all' : 'current';
-  resetTxnVisibleLimit();
   updateTxnPage();
 }
 
@@ -6226,12 +6228,11 @@ function clearTransactionDateRange() {
 }
 
 function getTransactionMonthOptions() {
-  const months = [...new Set(allTransactions.map(tx => normalizeMonthStr(tx?.month || '')).filter(Boolean))];
-  return months.sort((a, b) => monthSortValue(b) - monthSortValue(a));
+  return [];
 }
 
 function populateTransactionMonthDropdown() {
-  // Removed from the Transactions tab. Kept as a no-op for older cached calls.
+  // Month dropdown removed from Transactions.
 }
 
 function updateTransactionDateInputs() {
@@ -6311,9 +6312,8 @@ function renderTotalsValueLines(map, mode = 'neutral') {
   }).join('');
 }
 
-
-function getTransactionDayKey(tx) {
-  const parsed = parseCustomDateStr(tx?.rawDate || tx?.date || '');
+function getTxnDateKey(tx) {
+  const parsed = parseCustomDateStr(tx?.rawDate || tx?.date);
   if (!parsed || isNaN(parsed.getTime())) return '';
   const yyyy = parsed.getFullYear();
   const mm = String(parsed.getMonth() + 1).padStart(2, '0');
@@ -6321,88 +6321,59 @@ function getTransactionDayKey(tx) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function formatTransactionDayLabel(dayKey) {
-  const parts = String(dayKey || '').split('-');
-  if (parts.length !== 3) return dayKey || '';
-  return `${parts[2]}.${parts[1]}`;
-}
+function renderTransactionDailyCashflow(txns) {
+  if (!txns || !txns.length) return '';
 
-function renderTransactionCashflowChart(txns) {
-  const dailyMap = {};
-
-  (txns || []).forEach(tx => {
-    const key = getTransactionDayKey(tx);
+  const byDay = {};
+  txns.forEach(tx => {
+    const key = getTxnDateKey(tx);
     if (!key) return;
-    const currency = String(tx.currency || 'CZK').toUpperCase();
+    if (!byDay[key]) byDay[key] = { incoming: 0, outgoing: 0 };
     const amount = Number(tx.amount || 0);
-    const value = currency === 'CZK' ? Math.abs(amount) : convertTransactionAmount(tx, 'CZK');
-
-    if (!dailyMap[key]) dailyMap[key] = { key, incoming: 0, outgoing: 0 };
-    if (amount > 0) dailyMap[key].incoming += value;
-    if (amount < 0) dailyMap[key].outgoing += value;
+    if (amount > 0) byDay[key].incoming += amount;
+    if (amount < 0) byDay[key].outgoing += Math.abs(amount);
   });
 
-  let days = Object.values(dailyMap).sort((a, b) => a.key.localeCompare(b.key));
+  const days = Object.keys(byDay).sort();
   if (!days.length) return '';
 
-  const originalCount = days.length;
-  if (days.length > 31) days = days.slice(-31);
+  const visibleDays = days.slice(-14);
+  const maxValue = Math.max(1, ...visibleDays.flatMap(day => [byDay[day].incoming, byDay[day].outgoing]));
+  const width = 320;
+  const height = 142;
+  const top = 16;
+  const bottom = 24;
+  const chartH = height - top - bottom;
+  const step = width / visibleDays.length;
+  const barW = Math.max(14, Math.min(24, step * 0.58));
+  const baseline = top + chartH;
 
-  const w = 360;
-  const h = 176;
-  const padL = 34;
-  const padR = 12;
-  const padT = 14;
-  const axisY = 126;
-  const plotW = w - padL - padR;
-  const step = days.length === 1 ? plotW : plotW / (days.length - 1);
-  const max = Math.max(1, ...days.map(d => Math.max(d.incoming, d.outgoing)));
-  const niceMax = max >= 1000 ? Math.ceil(max / 1000) * 1000 : Math.ceil(max / 100) * 100 || max;
-  const totalIncoming = days.reduce((sum, d) => sum + d.incoming, 0);
-  const totalOutgoing = days.reduce((sum, d) => sum + d.outgoing, 0);
-  const maxBar = Math.max(12, Math.min(20, plotW / Math.max(days.length, 1) * 0.78));
-  const barW = days.length === 1 ? 28 : maxBar;
-
-  const bars = days.map((d, index) => {
-    const xCenter = days.length === 1 ? padL + plotW / 2 : padL + index * step;
-    const incomingH = Math.max(d.incoming > 0 ? 3 : 0, (d.incoming / niceMax) * (axisY - padT - 10));
-    const outgoingH = Math.max(d.outgoing > 0 ? 3 : 0, (d.outgoing / niceMax) * (axisY - padT - 10));
-    const incomingX = xCenter - barW * 0.55;
-    const outgoingX = xCenter - barW * 0.20;
+  const bars = visibleDays.map((day, idx) => {
+    const x = idx * step + (step - barW) / 2;
+    const incomingH = Math.max(0, (byDay[day].incoming / maxValue) * chartH);
+    const outgoingH = Math.max(0, (byDay[day].outgoing / maxValue) * chartH);
+    const d = new Date(day + 'T00:00:00');
+    const label = String(d.getDate()).padStart(2, '0');
     return `
-      <rect class="txn-cashflow-bar-incoming" x="${incomingX}" y="${axisY - incomingH}" width="${barW}" height="${incomingH}" rx="3"></rect>
-      <rect class="txn-cashflow-bar-outgoing" x="${outgoingX}" y="${axisY - outgoingH}" width="${barW}" height="${outgoingH}" rx="3"></rect>
+      <rect class="txn-cashflow-bar-in" x="${x.toFixed(1)}" y="${(baseline - incomingH).toFixed(1)}" width="${barW.toFixed(1)}" height="${incomingH.toFixed(1)}" rx="3" />
+      <rect class="txn-cashflow-bar-out" x="${x.toFixed(1)}" y="${(baseline - outgoingH).toFixed(1)}" width="${barW.toFixed(1)}" height="${outgoingH.toFixed(1)}" rx="3" />
+      ${visibleDays.length <= 10 || idx % 2 === 0 ? `<text class="txn-cashflow-label" x="${(x + barW / 2).toFixed(1)}" y="${height - 5}" text-anchor="middle">${label}</text>` : ''}
     `;
   }).join('');
-
-  const labelEvery = days.length <= 8 ? 1 : days.length <= 16 ? 2 : 4;
-  const labels = days.map((d, index) => {
-    if (index !== 0 && index !== days.length - 1 && index % labelEvery !== 0) return '';
-    const x = days.length === 1 ? padL + plotW / 2 : padL + index * step;
-    return `<text class="txn-cashflow-axis-label" x="${x - 12}" y="${axisY + 24}">${formatTransactionDayLabel(d.key)}</text>`;
-  }).join('');
-
-  const subtitle = originalCount > days.length ? `${t('lastDaysShown') || 'Last days'}: ${days.length}/${originalCount}` : `${t('filteredTransactions')}: ${(txns || []).length}`;
 
   return `
     <div class="txn-cashflow-card">
       <div class="txn-cashflow-head">
         <div class="txn-cashflow-title">${t('dailyCashflow')}</div>
-        <div class="txn-cashflow-sub">${subtitle}</div>
+        <div class="txn-cashflow-legend">
+          <span><i class="txn-cashflow-dot" style="background: var(--ok)"></i>${t('incoming')}</span>
+          <span><i class="txn-cashflow-dot" style="background: #ff3b43"></i>${t('spent')}</span>
+        </div>
       </div>
-      <div class="txn-cashflow-legend">
-        <span><i class="txn-cashflow-dot" style="background:var(--ok);"></i>${t('incoming')}: ${Math.round(totalIncoming).toLocaleString('cs-CZ')} CZK</span>
-        <span><i class="txn-cashflow-dot" style="background:#ff3b3b;"></i>${t('spent')}: ${Math.round(totalOutgoing).toLocaleString('cs-CZ')} CZK</span>
-      </div>
-      <svg class="txn-cashflow-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-        <line class="txn-cashflow-grid-line" x1="${padL}" y1="${axisY}" x2="${w - padR}" y2="${axisY}"></line>
-        <line class="txn-cashflow-grid-line" x1="${padL}" y1="${Math.round(axisY / 2)}" x2="${w - padR}" y2="${Math.round(axisY / 2)}"></line>
-        <line class="txn-cashflow-grid-line" x1="${padL}" y1="${padT}" x2="${w - padR}" y2="${padT}"></line>
-        <text class="txn-cashflow-axis-label" x="2" y="${padT + 4}">${formatCompactAmount(niceMax)}</text>
-        <text class="txn-cashflow-axis-label" x="2" y="${Math.round(axisY / 2) + 4}">${formatCompactAmount(niceMax / 2)}</text>
-        <text class="txn-cashflow-axis-label" x="2" y="${axisY + 4}">0</text>
+      <svg class="txn-cashflow-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="${t('dailyCashflow')}">
+        <line class="txn-cashflow-grid" x1="0" y1="${baseline}" x2="${width}" y2="${baseline}" />
+        <line class="txn-cashflow-grid" x1="0" y1="${top + chartH / 2}" x2="${width}" y2="${top + chartH / 2}" />
         ${bars}
-        ${labels}
       </svg>
     </div>
   `;
@@ -6506,7 +6477,7 @@ function hasActiveTransactionDateRange() {
 }
 
 function hasActiveTransactionMonthFilter() {
-  return !!activeMonthFilter;
+  return false;
 }
 
 function isCurrentTransactionMonth(tx) {
@@ -6589,7 +6560,6 @@ function updateTxnPage(monthTxns) {
       renderTransactionHistoryNote() +
       `<div class="empty-state"><div class="empty-icon">📭</div>${t('noTransactionsForFilters')}</div>` +
       renderLoadOlderTransactionsButton(olderCount) +
-      renderTransactionCashflowChart([]) +
       renderTransactionTotals([]);
     scheduleFloatingUtilityUpdate();
     return;
@@ -6612,7 +6582,7 @@ function updateTxnPage(monthTxns) {
     rows +
     renderShowMoreTransactionsButton(visible.length, scoped.length) +
     renderLoadOlderTransactionsButton(olderCount) +
-    renderTransactionCashflowChart(scoped) +
+    renderTransactionDailyCashflow(scoped) +
     renderTransactionTotals(scoped);
 
   bindTransactionDeleteGestures();
@@ -6792,29 +6762,40 @@ function openBankCardTransactions(bankKey) {
   filterBank(bankKey);
 }
 
-function getMonthDateRangeForInput(monthStr) {
+function setTransactionDateRangeFromMonth(monthStr) {
   const normalized = normalizeMonthStr(monthStr || '');
   const match = normalized.match(/^(\d{2})\/(\d{4})$/);
-  if (!match) return { from: '', to: '' };
+  if (!match) {
+    activeDateFrom = '';
+    activeDateTo = '';
+    return;
+  }
   const month = Number(match[1]);
   const year = Number(match[2]);
-  if (!month || !year) return { from: '', to: '' };
   const lastDay = new Date(year, month, 0).getDate();
-  const mm = String(month).padStart(2, '0');
-  return {
-    from: `${year}-${mm}-01`,
-    to: `${year}-${mm}-${String(lastDay).padStart(2, '0')}`
-  };
+  activeDateFrom = `${year}-${String(month).padStart(2, '0')}-01`;
+  activeDateTo = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+}
+
+function openBankTransactions(bankKey, paymentKind = 'card') {
+  showPage('txns');
+  activeCategory = 'všetky';
+  activePaymentKind = paymentKind || 'all';
+  activeDateFrom = '';
+  activeDateTo = '';
+  activeMonthFilter = '';
+  activeTxnHistoryScope = 'all';
+  updatePaymentKindFilterUi();
+  updateTransactionDateInputs();
+  filterBank(bankKey);
 }
 
 function openBankMonthTransactions(bankKey, monthStr, paymentKind = 'card') {
   showPage('txns');
   activeCategory = 'všetky';
   activePaymentKind = paymentKind || 'all';
-  const range = getMonthDateRangeForInput(monthStr);
-  activeDateFrom = range.from;
-  activeDateTo = range.to;
   activeMonthFilter = '';
+  setTransactionDateRangeFromMonth(monthStr);
   activeTxnHistoryScope = 'all';
   updatePaymentKindFilterUi();
   updateTransactionDateInputs();
@@ -7720,7 +7701,7 @@ function renderTransactionManager() {
 
         <div class="managed-tx-form">
           <label>${t('date')}</label>
-          <input class="config-input" data-field="date" type="text" placeholder="DD.MM.YYYY HH:mm" value="${escapeAttr(tx.date || '')}" />
+          <input class="config-input" data-field="date" value="${escapeAttr(tx.date || '')}" />
 
           <label>${t('merchantDescription')}</label>
           <input class="config-input" data-field="merchant" value="${escapeAttr(tx.merchant || '')}" />
@@ -7759,14 +7740,6 @@ function renderTransactionManager() {
             ${getAllBankOptions(bankKey)}
           </select>
 
-          <label>${t('transactionKind')}</label>
-          <select class="config-input" data-field="kind">
-            <option value="card" ${getTransactionPaymentKind(tx) === 'card' ? 'selected' : ''}>${t('cardPaymentKind')}</option>
-            <option value="account" ${getTransactionPaymentKind(tx) === 'account' ? 'selected' : ''}>${t('accountPaymentKind')}</option>
-            <option value="cash" ${getTransactionPaymentKind(tx) === 'cash' ? 'selected' : ''}>${t('cashPaymentKind')}</option>
-          </select>
-          <div class="budget-status-note">${t('editKindHint')}</div>
-
           <button class="config-save" onclick="updateManagedTransactionFromButton(this)">${t('saveTransaction')}</button>
           <button class="manager-danger-btn" onclick="deleteManagedTransactionFromButton(this)">${t('deleteTransaction')}</button>
         </div>
@@ -7793,12 +7766,9 @@ function updateManagedTransactionFromButton(button) {
   const category = getField('category')?.value || tx.category || 'Ostatné';
   const merchant = getField('merchant')?.value.trim() || tx.merchant || '';
   const bankKey = getField('bank')?.value || getBankKey(tx);
-  const paymentKind = getField('kind')?.value || getTransactionPaymentKind(tx);
 
   const parsedDate = parseCustomDateStr(dateValue);
   const finalAmount = direction === 'incoming' ? Math.abs(amountValue) : -Math.abs(amountValue);
-  const bankName = getTxEditBankName(bankKey);
-  const paymentMeta = getEditedPaymentMeta(tx, paymentKind, direction, bankKey, bankName);
 
   tx.date = formatDate(parsedDate);
   tx.rawDate = parsedDate.toISOString();
@@ -7809,10 +7779,9 @@ function updateManagedTransactionFromButton(button) {
   tx.category = category;
   tx.merchant = merchant;
   tx.merchantRaw = merchant;
-  tx.bank = bankName;
-  tx.card = paymentMeta.card;
-  tx.type = paymentMeta.type;
-  tx.paymentKind = paymentKind;
+  tx.bank = getBankNameFromOption(bankKey);
+  tx.card = tx.card || getBankAccountFromOption(bankKey);
+  tx.type = direction === 'incoming' ? 'manual income' : 'manual expense';
   tx.msgId = tx.msgId || tx.id;
 
   allTransactions = sortTransactionsNewestFirst(allTransactions);
@@ -7851,7 +7820,10 @@ function deleteCustomBank(bankId) {
 }
 
 function openQuickAddSheet() {
+  const sheet = document.getElementById('quick-add-sheet');
+  sheet?.classList.remove('quick-add-animating');
   openSheet('quick-add-sheet');
+  requestAnimationFrame(() => sheet?.classList.add('quick-add-animating'));
 }
 
 function openAddTransactionFromQuick() {
@@ -8248,7 +8220,7 @@ function renderArchiveTrendChart() {
   const legend = BANK_ORDER.map(bankKey => {
     const bank = getBankInfo(bankKey);
     const defaultMonth = months[months.length - 1] || getAktuálneMonth();
-    return `<span class="archive-bank-legend-item" onclick="openBankCardTransactions('${bankKey}')" title="${t('transactions')}"><span class="archive-bank-legend-dot" style="background:${bank.color};"></span>${plainBankName(bankKey)}</span>`;
+    return `<span class="archive-bank-legend-item" onclick="openBankTransactions('${bankKey}','card')" title="${t('transactions')}"><span class="archive-bank-legend-dot" style="background:${bank.color};"></span>${plainBankName(bankKey)}</span>`;
   }).join('');
 
   const lines = BANK_ORDER.map(bankKey => {
@@ -8486,7 +8458,7 @@ const I18N = {
     selectArchiveDate: 'Select date to place this transaction into the correct archive month.',
     editTransaction: 'Edit transaction',
     transactionDeleted: 'Transaction deleted.',
-    doubleTapToEdit: 'Double tap / double click to edit.',
+    doubleTapToEdit: 'Mobile: long press to edit. PC: double click to edit.',
     appearance: 'Appearance',
     themeMode: 'Theme mode',
     darkTheme: 'Dark',
@@ -9283,11 +9255,29 @@ function shouldShowScrollToLatestButton() {
   return false;
 }
 
+function isTransactionBottomContentVisible() {
+  const pageId = getActivePageId ? getActivePageId() : activePageId;
+  if (pageId !== 'txns') return false;
+  const totals = document.querySelector('#txn-list .txn-totals-card');
+  const lastTx = [...document.querySelectorAll('#txn-list .tx-item')].pop();
+  const target = totals || lastTx;
+  if (!target) return false;
+  const rect = target.getBoundingClientRect();
+  const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+  return rect.top < vh - 90;
+}
+
 function updateFloatingUtilityButtons() {
   const btn = document.getElementById('scroll-top-fab');
-  if (!btn) return;
+  const fab = document.getElementById('global-fab');
+  const showScroll = shouldShowScrollToLatestButton();
+  const dimUtilities = isTransactionBottomContentVisible();
 
-  btn.classList.toggle('visible', shouldShowScrollToLatestButton());
+  if (btn) {
+    btn.classList.toggle('visible', showScroll);
+    btn.classList.toggle('utility-dim', dimUtilities);
+  }
+  if (fab) fab.classList.toggle('utility-dim', dimUtilities);
 }
 
 function scheduleFloatingUtilityUpdate() {
@@ -9393,7 +9383,7 @@ function fillEditTransactionSheet(txId) {
   const bankKey = getBankKey(tx);
 
   document.getElementById('edit-tx-id').value = getTransactionId(tx);
-  document.getElementById('edit-tx-date').value = tx.date || formatDate(parsed);
+  document.getElementById('edit-tx-date').value = toDateInputValue(parsed);
   document.getElementById('edit-tx-merchant').value = tx.merchant || '';
   document.getElementById('edit-tx-amount').value = Math.abs(amount);
   document.getElementById('edit-tx-direction').value = amount >= 0 ? 'incoming' : 'outgoing';
@@ -9429,7 +9419,7 @@ function saveEditedTransaction() {
   const tx = findTransactionById(txId);
   if (!tx) return;
 
-  const parsedDate = parseCustomDateStr(document.getElementById('edit-tx-date')?.value || tx.date || tx.rawDate || '');
+  const parsedDate = parseManualDateInput(document.getElementById('edit-tx-date')?.value || '');
   const amountRaw = parseFloat(document.getElementById('edit-tx-amount')?.value || '0') || 0;
   const direction = document.getElementById('edit-tx-direction')?.value || 'outgoing';
   const currency = document.getElementById('edit-tx-currency')?.value || tx.currency || 'CZK';
@@ -9476,41 +9466,36 @@ function deleteEditedTransaction() {
   alert(t('transactionDeleted'));
 }
 
+function isTouchLikeDevice() {
+  return !!(window.matchMedia && window.matchMedia('(hover: none), (pointer: coarse)').matches) || ('ontouchstart' in window);
+}
+
 function bindTransactionDeleteGestures() {
   document.querySelectorAll('[data-tx-id]').forEach(el => {
     if (el.dataset.deleteBound === 'true') return;
     el.dataset.deleteBound = 'true';
     el.classList.add('long-press-ready');
 
-    let lastTapAt = 0;
-
     el.addEventListener('touchstart', (event) => {
       if (event.target.closest && event.target.closest('button')) return;
       txLongPressTargetId = el.dataset.txId;
       txLongPressTimer = setTimeout(() => {
-        el.classList.add('delete-hint');
+        el.classList.add('tx-open-hint');
         navigator.vibrate?.(35);
-        askDeleteTransaction(txLongPressTargetId);
-        setTimeout(() => el.classList.remove('delete-hint'), 500);
+        openTransactionEditSheet(txLongPressTargetId);
+        setTimeout(() => el.classList.remove('tx-open-hint'), 500);
       }, 650);
     }, { passive: true });
 
-    el.addEventListener('touchend', (event) => {
+    el.addEventListener('touchend', () => {
       clearTimeout(txLongPressTimer);
       txLongPressTimer = null;
+    }, { passive: true });
 
-      if (event.target.closest && event.target.closest('button')) return;
-
-      const now = Date.now();
-      if (now - lastTapAt < 320) {
-        event.preventDefault?.();
-        el.classList.add('tx-open-hint');
-        navigator.vibrate?.(18);
-        setTimeout(() => el.classList.remove('tx-open-hint'), 220);
-        openTransactionEditSheet(el.dataset.txId);
-      }
-      lastTapAt = now;
-    }, { passive: false });
+    el.addEventListener('touchcancel', () => {
+      clearTimeout(txLongPressTimer);
+      txLongPressTimer = null;
+    }, { passive: true });
 
     el.addEventListener('touchmove', () => {
       clearTimeout(txLongPressTimer);
@@ -9518,6 +9503,7 @@ function bindTransactionDeleteGestures() {
     }, { passive: true });
 
     el.addEventListener('dblclick', (e) => {
+      if (isTouchLikeDevice()) return;
       if (e.target.closest && e.target.closest('button')) return;
       e.preventDefault();
       el.classList.add('tx-open-hint');
@@ -9526,7 +9512,6 @@ function bindTransactionDeleteGestures() {
     });
   });
 }
-
 
 // ── CARD-LIKE PAGE SWIPE NAVIGATION — MOBILE OPTIMIZED ─────
 const PAGE_SWIPE_ORDER = ['overview', 'txns', 'archive', 'settings'];
