@@ -4109,6 +4109,116 @@
   .scroll-top-fab.visible {
     transition: opacity .16s ease, transform .16s ease;
   }
+
+
+  /* v124 transaction daily cashflow chart */
+  .txn-cashflow-card {
+    margin: 16px 0 12px;
+    background: linear-gradient(180deg, rgba(23,34,56,.98), rgba(15,24,42,.98));
+    border: 1px solid rgba(148,163,184,.18);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: 0 18px 45px rgba(0,0,0,.16);
+    overflow: hidden;
+  }
+
+  .txn-cashflow-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .txn-cashflow-title {
+    color: var(--text);
+    font-weight: 900;
+    font-size: 14px;
+  }
+
+  .txn-cashflow-sub {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-align: right;
+  }
+
+  .txn-cashflow-legend {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    margin: 0 0 8px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+
+  .txn-cashflow-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .txn-cashflow-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    display: inline-block;
+  }
+
+  .txn-cashflow-svg {
+    width: 100%;
+    height: 164px;
+    display: block;
+    overflow: visible;
+  }
+
+  .txn-cashflow-grid-line {
+    stroke: rgba(148,163,184,.12);
+    stroke-width: 1;
+  }
+
+  .txn-cashflow-axis-label {
+    fill: #8fa6c7;
+    font-size: 9px;
+    font-family: var(--font-mono);
+    font-weight: 800;
+  }
+
+  .txn-cashflow-bar-incoming {
+    fill: var(--ok);
+    opacity: .95;
+  }
+
+  .txn-cashflow-bar-outgoing {
+    fill: #ff3b3b;
+    opacity: .96;
+    filter: drop-shadow(0 0 5px rgba(255,59,59,.22));
+  }
+
+  html[data-theme="light"] .txn-cashflow-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+    border-color: rgba(15,23,42,.14) !important;
+    box-shadow: 0 18px 45px rgba(15,23,42,.08) !important;
+  }
+
+  html[data-theme="light"] .txn-cashflow-title {
+    color: #0b1220 !important;
+  }
+
+  html[data-theme="light"] .txn-cashflow-sub,
+  html[data-theme="light"] .txn-cashflow-legend {
+    color: #334155 !important;
+  }
+
+  html[data-theme="light"] .txn-cashflow-axis-label {
+    fill: #1e3a8a !important;
+  }
+
+  html[data-theme="light"] .txn-cashflow-grid-line {
+    stroke: rgba(15,23,42,.12) !important;
+  }
+
 /* Zamedzenie zoomovania na iOS zariadení vynútením 16px fontu pre inputy */
 @supports (-webkit-touch-callout: none) {
   .config-input,
@@ -4543,7 +4653,7 @@
     <input type="hidden" id="edit-tx-id" />
 
     <label data-i18n="date">Date</label>
-    <input class="config-input" id="edit-tx-date" type="date" />
+    <input class="config-input" id="edit-tx-date" type="text" placeholder="DD.MM.YYYY HH:mm" />
 
     <label data-i18n="merchantDescription">Merchant / description</label>
     <input class="config-input" id="edit-tx-merchant" />
@@ -4627,6 +4737,7 @@ let activeSearch = '';
 let activePaymentKind = 'all';
 let activeDateFrom = '';
 let activeDateTo = '';
+let activeMonthFilter = '';
 let activeTxnHistoryScope = 'current';
 const TXN_PAGE_SIZE = 30;
 let txnVisibleLimit = TXN_PAGE_SIZE;
@@ -6013,7 +6124,7 @@ function renderBankCard(bankKey, txns) {
       : `<span style="color: var(--ok);">${t('cardPayments')} - ${t('limitReached')}</span>`);
 
   return `
-  <div class="card-widget bank-card-clickable" onclick="openBankTransactions('${bankKey}')" style="margin-top:${bankKey === 'rb_cz' ? '0' : '14px'};">
+  <div class="card-widget bank-card-clickable" onclick="openBankCardTransactions('${bankKey}')" style="margin-top:${bankKey === 'rb_cz' ? '0' : '14px'};">
     <div class="card-header" style="background: linear-gradient(135deg, #1a1a1a, #111);">
       <div><div class="card-name" style="color:${bank.color}; font-weight: 700;">${bankLabelWithLogo(bankKey)}</div><div class="card-number">${cardNum}</div></div>
       <div class="card-count"><div class="card-count-big" style="color:${barColor};">${used}<span style="font-size:16px;opacity:.5;color:var(--muted);">/${limit}</span></div><div class="card-count-sub">${t('usedThisMonth')}</div></div>
@@ -6065,6 +6176,11 @@ function parseDateInputForFilter(value, endOfDay = false) {
   return parsed;
 }
 
+function filterTransactionsByMonthFilter(txns) {
+  // Month dropdown was removed. Archive month clicks use the real From/To date range inputs.
+  return txns;
+}
+
 function filterTransactionsByDateRange(txns) {
   const from = parseDateInputForFilter(activeDateFrom, false);
   const to = parseDateInputForFilter(activeDateTo, true);
@@ -6082,6 +6198,15 @@ function filterTransactionsByDateRange(txns) {
 function handleTransactionDateRange() {
   activeDateFrom = document.getElementById('txn-date-from')?.value || '';
   activeDateTo = document.getElementById('txn-date-to')?.value || '';
+  if (activeDateFrom || activeDateTo) activeMonthFilter = '';
+  activeTxnHistoryScope = (hasActiveTransactionDateRange() || activeMonthFilter) ? 'all' : 'current';
+  resetTxnVisibleLimit();
+  updateTxnPage();
+}
+
+function handleTransactionMonthFilter() {
+  // Removed by design. Use the From/To date range inputs instead.
+  activeMonthFilter = '';
   activeTxnHistoryScope = hasActiveTransactionDateRange() ? 'all' : 'current';
   resetTxnVisibleLimit();
   updateTxnPage();
@@ -6090,6 +6215,7 @@ function handleTransactionDateRange() {
 function clearTransactionDateRange() {
   activeDateFrom = '';
   activeDateTo = '';
+  activeMonthFilter = '';
   activeTxnHistoryScope = 'current';
   resetTxnVisibleLimit();
   const from = document.getElementById('txn-date-from');
@@ -6099,11 +6225,21 @@ function clearTransactionDateRange() {
   updateTxnPage();
 }
 
+function getTransactionMonthOptions() {
+  const months = [...new Set(allTransactions.map(tx => normalizeMonthStr(tx?.month || '')).filter(Boolean))];
+  return months.sort((a, b) => monthSortValue(b) - monthSortValue(a));
+}
+
+function populateTransactionMonthDropdown() {
+  // Removed from the Transactions tab. Kept as a no-op for older cached calls.
+}
+
 function updateTransactionDateInputs() {
   const from = document.getElementById('txn-date-from');
   const to = document.getElementById('txn-date-to');
   if (from && from.value !== activeDateFrom) from.value = activeDateFrom || '';
   if (to && to.value !== activeDateTo) to.value = activeDateTo || '';
+  populateTransactionMonthDropdown();
 }
 
 
@@ -6173,6 +6309,103 @@ function renderTotalsValueLines(map, mode = 'neutral') {
 
     return `<span class="${cls}">${sign}${formatMoney(value, currency)} ${escapeHtml(currency)}</span>`;
   }).join('');
+}
+
+
+function getTransactionDayKey(tx) {
+  const parsed = parseCustomDateStr(tx?.rawDate || tx?.date || '');
+  if (!parsed || isNaN(parsed.getTime())) return '';
+  const yyyy = parsed.getFullYear();
+  const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+  const dd = String(parsed.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function formatTransactionDayLabel(dayKey) {
+  const parts = String(dayKey || '').split('-');
+  if (parts.length !== 3) return dayKey || '';
+  return `${parts[2]}.${parts[1]}`;
+}
+
+function renderTransactionCashflowChart(txns) {
+  const dailyMap = {};
+
+  (txns || []).forEach(tx => {
+    const key = getTransactionDayKey(tx);
+    if (!key) return;
+    const currency = String(tx.currency || 'CZK').toUpperCase();
+    const amount = Number(tx.amount || 0);
+    const value = currency === 'CZK' ? Math.abs(amount) : convertTransactionAmount(tx, 'CZK');
+
+    if (!dailyMap[key]) dailyMap[key] = { key, incoming: 0, outgoing: 0 };
+    if (amount > 0) dailyMap[key].incoming += value;
+    if (amount < 0) dailyMap[key].outgoing += value;
+  });
+
+  let days = Object.values(dailyMap).sort((a, b) => a.key.localeCompare(b.key));
+  if (!days.length) return '';
+
+  const originalCount = days.length;
+  if (days.length > 31) days = days.slice(-31);
+
+  const w = 360;
+  const h = 176;
+  const padL = 34;
+  const padR = 12;
+  const padT = 14;
+  const axisY = 126;
+  const plotW = w - padL - padR;
+  const step = days.length === 1 ? plotW : plotW / (days.length - 1);
+  const max = Math.max(1, ...days.map(d => Math.max(d.incoming, d.outgoing)));
+  const niceMax = max >= 1000 ? Math.ceil(max / 1000) * 1000 : Math.ceil(max / 100) * 100 || max;
+  const totalIncoming = days.reduce((sum, d) => sum + d.incoming, 0);
+  const totalOutgoing = days.reduce((sum, d) => sum + d.outgoing, 0);
+  const maxBar = Math.max(12, Math.min(20, plotW / Math.max(days.length, 1) * 0.78));
+  const barW = days.length === 1 ? 28 : maxBar;
+
+  const bars = days.map((d, index) => {
+    const xCenter = days.length === 1 ? padL + plotW / 2 : padL + index * step;
+    const incomingH = Math.max(d.incoming > 0 ? 3 : 0, (d.incoming / niceMax) * (axisY - padT - 10));
+    const outgoingH = Math.max(d.outgoing > 0 ? 3 : 0, (d.outgoing / niceMax) * (axisY - padT - 10));
+    const incomingX = xCenter - barW * 0.55;
+    const outgoingX = xCenter - barW * 0.20;
+    return `
+      <rect class="txn-cashflow-bar-incoming" x="${incomingX}" y="${axisY - incomingH}" width="${barW}" height="${incomingH}" rx="3"></rect>
+      <rect class="txn-cashflow-bar-outgoing" x="${outgoingX}" y="${axisY - outgoingH}" width="${barW}" height="${outgoingH}" rx="3"></rect>
+    `;
+  }).join('');
+
+  const labelEvery = days.length <= 8 ? 1 : days.length <= 16 ? 2 : 4;
+  const labels = days.map((d, index) => {
+    if (index !== 0 && index !== days.length - 1 && index % labelEvery !== 0) return '';
+    const x = days.length === 1 ? padL + plotW / 2 : padL + index * step;
+    return `<text class="txn-cashflow-axis-label" x="${x - 12}" y="${axisY + 24}">${formatTransactionDayLabel(d.key)}</text>`;
+  }).join('');
+
+  const subtitle = originalCount > days.length ? `${t('lastDaysShown') || 'Last days'}: ${days.length}/${originalCount}` : `${t('filteredTransactions')}: ${(txns || []).length}`;
+
+  return `
+    <div class="txn-cashflow-card">
+      <div class="txn-cashflow-head">
+        <div class="txn-cashflow-title">${t('dailyCashflow')}</div>
+        <div class="txn-cashflow-sub">${subtitle}</div>
+      </div>
+      <div class="txn-cashflow-legend">
+        <span><i class="txn-cashflow-dot" style="background:var(--ok);"></i>${t('incoming')}: ${Math.round(totalIncoming).toLocaleString('cs-CZ')} CZK</span>
+        <span><i class="txn-cashflow-dot" style="background:#ff3b3b;"></i>${t('spent')}: ${Math.round(totalOutgoing).toLocaleString('cs-CZ')} CZK</span>
+      </div>
+      <svg class="txn-cashflow-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+        <line class="txn-cashflow-grid-line" x1="${padL}" y1="${axisY}" x2="${w - padR}" y2="${axisY}"></line>
+        <line class="txn-cashflow-grid-line" x1="${padL}" y1="${Math.round(axisY / 2)}" x2="${w - padR}" y2="${Math.round(axisY / 2)}"></line>
+        <line class="txn-cashflow-grid-line" x1="${padL}" y1="${padT}" x2="${w - padR}" y2="${padT}"></line>
+        <text class="txn-cashflow-axis-label" x="2" y="${padT + 4}">${formatCompactAmount(niceMax)}</text>
+        <text class="txn-cashflow-axis-label" x="2" y="${Math.round(axisY / 2) + 4}">${formatCompactAmount(niceMax / 2)}</text>
+        <text class="txn-cashflow-axis-label" x="2" y="${axisY + 4}">0</text>
+        ${bars}
+        ${labels}
+      </svg>
+    </div>
+  `;
 }
 
 function renderTransactionTotals(txns) {
@@ -6272,12 +6505,16 @@ function hasActiveTransactionDateRange() {
   return !!(activeDateFrom || activeDateTo);
 }
 
+function hasActiveTransactionMonthFilter() {
+  return !!activeMonthFilter;
+}
+
 function isCurrentTransactionMonth(tx) {
   return normalizeMonthStr(tx?.month || '') === normalizeMonthStr(getAktuálneMonth());
 }
 
 function filterTransactionsByHistoryScope(txns) {
-  if (hasActiveTransactionDateRange()) return txns;
+  if (hasActiveTransactionDateRange() || hasActiveTransactionMonthFilter()) return txns;
   if (activeTxnHistoryScope === 'all') return txns;
   return txns.filter(isCurrentTransactionMonth);
 }
@@ -6289,7 +6526,7 @@ function loadOlderTransactions() {
 }
 
 function renderTransactionHistoryNote() {
-  if (hasActiveTransactionDateRange()) {
+  if (hasActiveTransactionDateRange() || hasActiveTransactionMonthFilter()) {
     return `<div class="txn-history-note">${t('dateRangeOverridesMonth')}</div>`;
   }
 
@@ -6301,7 +6538,7 @@ function renderTransactionHistoryNote() {
 }
 
 function renderLoadOlderTransactionsButton(olderCount) {
-  if (hasActiveTransactionDateRange()) return '';
+  if (hasActiveTransactionDateRange() || hasActiveTransactionMonthFilter()) return '';
   if (activeTxnHistoryScope === 'all') return '';
   if (!olderCount) return '';
 
@@ -6320,6 +6557,7 @@ function updateTxnPage(monthTxns) {
   updatePaymentKindFilterUi();
 
   let base = sortTransactionsNewestFirst(allTransactions);
+  base = filterTransactionsByMonthFilter(base);
   base = filterTransactionsByDateRange(base);
 
   if (activeDirection === 'incoming') base = base.filter(t => Number(t.amount) > 0);
@@ -6342,7 +6580,7 @@ function updateTxnPage(monthTxns) {
     scoped = filterTransactionsByHistoryScope(base);
   }
 
-  const olderCount = !hasActiveTransactionDateRange() && activeTxnHistoryScope !== 'all'
+  const olderCount = !hasActiveTransactionDateRange() && !hasActiveTransactionMonthFilter() && activeTxnHistoryScope !== 'all'
     ? base.filter(t => !isCurrentTransactionMonth(t)).length
     : 0;
 
@@ -6351,6 +6589,7 @@ function updateTxnPage(monthTxns) {
       renderTransactionHistoryNote() +
       `<div class="empty-state"><div class="empty-icon">📭</div>${t('noTransactionsForFilters')}</div>` +
       renderLoadOlderTransactionsButton(olderCount) +
+      renderTransactionCashflowChart([]) +
       renderTransactionTotals([]);
     scheduleFloatingUtilityUpdate();
     return;
@@ -6373,6 +6612,7 @@ function updateTxnPage(monthTxns) {
     rows +
     renderShowMoreTransactionsButton(visible.length, scoped.length) +
     renderLoadOlderTransactionsButton(olderCount) +
+    renderTransactionCashflowChart(scoped) +
     renderTransactionTotals(scoped);
 
   bindTransactionDeleteGestures();
@@ -6539,6 +6779,48 @@ function openBankTransactions(bankKey) {
   filterBank(bankKey);
 }
 
+function openBankCardTransactions(bankKey) {
+  showPage('txns');
+  activeCategory = 'všetky';
+  activePaymentKind = 'card';
+  activeDateFrom = '';
+  activeDateTo = '';
+  activeMonthFilter = '';
+  activeTxnHistoryScope = 'current';
+  updatePaymentKindFilterUi();
+  updateTransactionDateInputs();
+  filterBank(bankKey);
+}
+
+function getMonthDateRangeForInput(monthStr) {
+  const normalized = normalizeMonthStr(monthStr || '');
+  const match = normalized.match(/^(\d{2})\/(\d{4})$/);
+  if (!match) return { from: '', to: '' };
+  const month = Number(match[1]);
+  const year = Number(match[2]);
+  if (!month || !year) return { from: '', to: '' };
+  const lastDay = new Date(year, month, 0).getDate();
+  const mm = String(month).padStart(2, '0');
+  return {
+    from: `${year}-${mm}-01`,
+    to: `${year}-${mm}-${String(lastDay).padStart(2, '0')}`
+  };
+}
+
+function openBankMonthTransactions(bankKey, monthStr, paymentKind = 'card') {
+  showPage('txns');
+  activeCategory = 'všetky';
+  activePaymentKind = paymentKind || 'all';
+  const range = getMonthDateRangeForInput(monthStr);
+  activeDateFrom = range.from;
+  activeDateTo = range.to;
+  activeMonthFilter = '';
+  activeTxnHistoryScope = 'all';
+  updatePaymentKindFilterUi();
+  updateTransactionDateInputs();
+  filterBank(bankKey);
+}
+
 function filterBank(bank) {
   activeBank = bank;
   resetTxnVisibleLimit();
@@ -6567,6 +6849,7 @@ function resetTransactionFilters() {
   activeSearch = '';
   activeDateFrom = '';
   activeDateTo = '';
+  activeMonthFilter = '';
   activeTxnHistoryScope = 'current';
   resetTxnVisibleLimit();
 
@@ -7437,7 +7720,7 @@ function renderTransactionManager() {
 
         <div class="managed-tx-form">
           <label>${t('date')}</label>
-          <input class="config-input" data-field="date" value="${escapeAttr(tx.date || '')}" />
+          <input class="config-input" data-field="date" type="text" placeholder="DD.MM.YYYY HH:mm" value="${escapeAttr(tx.date || '')}" />
 
           <label>${t('merchantDescription')}</label>
           <input class="config-input" data-field="merchant" value="${escapeAttr(tx.merchant || '')}" />
@@ -7476,6 +7759,14 @@ function renderTransactionManager() {
             ${getAllBankOptions(bankKey)}
           </select>
 
+          <label>${t('transactionKind')}</label>
+          <select class="config-input" data-field="kind">
+            <option value="card" ${getTransactionPaymentKind(tx) === 'card' ? 'selected' : ''}>${t('cardPaymentKind')}</option>
+            <option value="account" ${getTransactionPaymentKind(tx) === 'account' ? 'selected' : ''}>${t('accountPaymentKind')}</option>
+            <option value="cash" ${getTransactionPaymentKind(tx) === 'cash' ? 'selected' : ''}>${t('cashPaymentKind')}</option>
+          </select>
+          <div class="budget-status-note">${t('editKindHint')}</div>
+
           <button class="config-save" onclick="updateManagedTransactionFromButton(this)">${t('saveTransaction')}</button>
           <button class="manager-danger-btn" onclick="deleteManagedTransactionFromButton(this)">${t('deleteTransaction')}</button>
         </div>
@@ -7502,9 +7793,12 @@ function updateManagedTransactionFromButton(button) {
   const category = getField('category')?.value || tx.category || 'Ostatné';
   const merchant = getField('merchant')?.value.trim() || tx.merchant || '';
   const bankKey = getField('bank')?.value || getBankKey(tx);
+  const paymentKind = getField('kind')?.value || getTransactionPaymentKind(tx);
 
   const parsedDate = parseCustomDateStr(dateValue);
   const finalAmount = direction === 'incoming' ? Math.abs(amountValue) : -Math.abs(amountValue);
+  const bankName = getTxEditBankName(bankKey);
+  const paymentMeta = getEditedPaymentMeta(tx, paymentKind, direction, bankKey, bankName);
 
   tx.date = formatDate(parsedDate);
   tx.rawDate = parsedDate.toISOString();
@@ -7515,9 +7809,10 @@ function updateManagedTransactionFromButton(button) {
   tx.category = category;
   tx.merchant = merchant;
   tx.merchantRaw = merchant;
-  tx.bank = getBankNameFromOption(bankKey);
-  tx.card = tx.card || getBankAccountFromOption(bankKey);
-  tx.type = direction === 'incoming' ? 'manual income' : 'manual expense';
+  tx.bank = bankName;
+  tx.card = paymentMeta.card;
+  tx.type = paymentMeta.type;
+  tx.paymentKind = paymentKind;
   tx.msgId = tx.msgId || tx.id;
 
   allTransactions = sortTransactionsNewestFirst(allTransactions);
@@ -7881,6 +8176,14 @@ function formatCompactAmount(value) {
   return String(n);
 }
 
+
+function shortArchiveMonthLabel(monthStr) {
+  const m = normalizeMonthStr(monthStr);
+  const idx = parseInt(m.slice(0, 2), 10) - 1;
+  const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'];
+  return labels[idx] || m;
+}
+
 function renderArchiveTrendChart() {
   const wrap = document.getElementById('archive-trend-chart');
   if (!wrap) return;
@@ -7940,14 +8243,12 @@ function renderArchiveTrendChart() {
     return `${p.x},${p.y}`;
   }).join(' ');
 
-  const monthLabel = (mStr) => {
-    return normalizeMonthStr(mStr);
-  };
+  const monthLabel = (mStr) => shortArchiveMonthLabel(mStr);
 
   const legend = BANK_ORDER.map(bankKey => {
     const bank = getBankInfo(bankKey);
     const defaultMonth = months[months.length - 1] || getAktuálneMonth();
-    return `<span class="archive-bank-legend-item" onclick="openArchiveBankDetail('${bankKey}','${defaultMonth}')" title="${t('dailyArchive')}"><span class="archive-bank-legend-dot" style="background:${bank.color};"></span>${plainBankName(bankKey)}</span>`;
+    return `<span class="archive-bank-legend-item" onclick="openBankCardTransactions('${bankKey}')" title="${t('transactions')}"><span class="archive-bank-legend-dot" style="background:${bank.color};"></span>${plainBankName(bankKey)}</span>`;
   }).join('');
 
   const lines = BANK_ORDER.map(bankKey => {
@@ -8001,7 +8302,7 @@ function renderArchive() {
       const bank = getBankInfo(bankKey);
       const count = txns.filter(t => getBankKey(t) === bankKey).length;
       const limit = hist[bank.limitKey] ?? bank.defaultLimit;
-      return `<div class="archive-bank-col" onclick="openArchiveBankDetail('${bankKey}','${mStr}')" title="${t('dailyArchive')}"><span class="archive-bank-title" style="color:${bank.color};"><span class="bank-inline-logo">${bankLogoImg(bankKey)}<span>${count}/${limit}</span></span></span>${getBankStatusText(count, limit)}</div>`;
+      return `<div class="archive-bank-col" onclick="openBankMonthTransactions('${bankKey}','${mStr}','card')" title="${t('transactions')}"><span class="archive-bank-title" style="color:${bank.color};"><span class="bank-inline-logo">${bankLogoImg(bankKey)}<span>${count}/${limit}</span></span></span>${getBankStatusText(count, limit)}</div>`;
     }).join('');
     return `<div class="archive-item"><div class="archive-month-left"><div class="archive-month-name">${formatMonthString(mStr)}</div></div><div class="archive-stats-grid" style="grid-template-columns: repeat(4, auto); gap: 10px;">${cols}</div></div>`;
   }).join('');
@@ -8065,8 +8366,8 @@ const I18N = {
     addTransactionHint: 'Manually add a new payment or income.',
     addBank: 'Add bank',
     addBankHint: 'Add a new bank, currency, budget and card limit.',
-    completed: 'completed',
-    notCompleted: 'Missing',
+    completed: 'Completed',
+    notCompleted: 'Missed',
     noLimit: 'no limit',
     monthArchive: 'Monthly archive',
     saveChanges: 'Save changes',
@@ -8198,6 +8499,7 @@ const I18N = {
     fromDate: 'From',
     toDate: 'To',
     clearDateFilter: 'Clear date filter',
+    allMonths: 'All months',
     transactionTotals: 'Totals',
     filteredTransactions: 'Filtered transactions',
     totalIncoming: 'Incoming',
@@ -8414,6 +8716,7 @@ const I18N = {
     fromDate: 'Od',
     toDate: 'Do',
     clearDateFilter: 'Vymazať dátumový filter',
+    allMonths: 'Všetky mesiace',
     transactionTotals: 'Súčty',
     filteredTransactions: 'Vyfiltrované transakcie',
     totalIncoming: 'Príjmy',
@@ -8633,6 +8936,7 @@ const I18N = {
     fromDate: 'Od',
     toDate: 'Do',
     clearDateFilter: 'Smazat datumový filtr',
+    allMonths: 'Všechny měsíce',
     transactionTotals: 'Součty',
     filteredTransactions: 'Vyfiltrované transakce',
     totalIncoming: 'Příjmy',
@@ -9089,7 +9393,7 @@ function fillEditTransactionSheet(txId) {
   const bankKey = getBankKey(tx);
 
   document.getElementById('edit-tx-id').value = getTransactionId(tx);
-  document.getElementById('edit-tx-date').value = toDateInputValue(parsed);
+  document.getElementById('edit-tx-date').value = tx.date || formatDate(parsed);
   document.getElementById('edit-tx-merchant').value = tx.merchant || '';
   document.getElementById('edit-tx-amount').value = Math.abs(amount);
   document.getElementById('edit-tx-direction').value = amount >= 0 ? 'incoming' : 'outgoing';
@@ -9125,7 +9429,7 @@ function saveEditedTransaction() {
   const tx = findTransactionById(txId);
   if (!tx) return;
 
-  const parsedDate = parseManualDateInput(document.getElementById('edit-tx-date')?.value || '');
+  const parsedDate = parseCustomDateStr(document.getElementById('edit-tx-date')?.value || tx.date || tx.rawDate || '');
   const amountRaw = parseFloat(document.getElementById('edit-tx-amount')?.value || '0') || 0;
   const direction = document.getElementById('edit-tx-direction')?.value || 'outgoing';
   const currency = document.getElementById('edit-tx-currency')?.value || tx.currency || 'CZK';
