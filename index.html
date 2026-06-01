@@ -3867,45 +3867,77 @@
   }
 
 
-  /* v115 edit payment type + scroll-to-latest button */
+  /* v3 subtle centered scroll-to-latest button */
   .scroll-top-fab {
     position: fixed;
-    right: 24px;
-    bottom: calc(156px + env(safe-area-inset-bottom));
-    width: 48px;
-    height: 48px;
+    left: 50%;
+    right: auto;
+    bottom: calc(108px + env(safe-area-inset-bottom));
+    width: 42px;
+    height: 42px;
     border-radius: 999px;
-    border: 1px solid rgba(88,166,255,.30);
-    background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(30,41,59,.96));
-    color: #8fdcff;
-    font-size: 23px;
+    border: none !important;
+    outline: none !important;
+    background: linear-gradient(135deg, rgba(88,166,255,.58), rgba(125,211,252,.38));
+    color: rgba(6,17,31,.78);
+    font-size: 0;
     font-weight: 900;
-    box-shadow: 0 14px 30px rgba(0,0,0,.28);
+    box-shadow: 0 10px 22px rgba(88,166,255,.12);
     z-index: 321;
     cursor: pointer;
     display: none;
     align-items: center;
     justify-content: center;
+    transform: translateX(-50%);
+    opacity: 1 !important;
+  }
+
+  .scroll-top-fab::before,
+  .scroll-top-fab::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    width: 11px;
+    height: 11px;
+    border-left: 3px solid currentColor;
+    border-top: 3px solid currentColor;
+    border-radius: 2px 0 0 0;
+    transform: translateX(-50%) rotate(45deg);
+  }
+
+  .scroll-top-fab::before {
+    top: 11px;
+  }
+
+  .scroll-top-fab::after {
+    top: 20px;
   }
 
   .scroll-top-fab.visible {
     display: flex;
+    opacity: 1 !important;
+  }
+
+  .scroll-top-fab.utility-dim {
+    opacity: 1 !important;
   }
 
   .scroll-top-fab:active {
-    transform: scale(.96);
+    transform: translateX(-50%) scale(.94);
+    background: linear-gradient(135deg, rgba(88,166,255,.68), rgba(125,211,252,.48));
   }
 
   html[data-theme="light"] .scroll-top-fab {
-    background: linear-gradient(135deg, #ffffff, #eef6ff) !important;
-    color: #1d4ed8 !important;
-    border-color: rgba(37,99,235,.28) !important;
-    box-shadow: 0 14px 30px rgba(15,23,42,.14);
+    background: linear-gradient(135deg, rgba(96,165,250,.50), rgba(191,219,254,.42)) !important;
+    color: rgba(6,17,31,.66) !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: 0 10px 20px rgba(37,99,235,.10) !important;
   }
 
   @supports (-webkit-touch-callout: none) {
     .scroll-top-fab {
-      bottom: calc(190px + env(safe-area-inset-bottom));
+      bottom: calc(124px + env(safe-area-inset-bottom));
     }
   }
 
@@ -3913,14 +3945,14 @@
   /* v116 scroll-to-latest smart visibility + mobile sheet performance */
   .scroll-top-fab {
     opacity: 0;
-    transform: translateY(10px) scale(.94);
+    transform: translateX(-50%) translateY(10px) scale(.94);
     pointer-events: none;
     transition: opacity .16s ease, transform .16s ease;
   }
 
   .scroll-top-fab.visible {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateX(-50%) translateY(0) scale(1);
     pointer-events: auto;
   }
 
@@ -4221,7 +4253,11 @@
   }
 
   .scroll-top-fab.visible {
-    transition: opacity .16s ease, transform .16s ease;
+    transition: transform .14s ease;
+  }
+
+  .scroll-top-fab.utility-dim {
+    opacity: 1 !important;
   }
 /* Zamedzenie zoomovania na iOS zariadení vynútením 16px fontu pre inputy */
 @supports (-webkit-touch-callout: none) {
@@ -4408,8 +4444,8 @@
     <button class="sim-submit" onclick="copyNotificationToken()" style="margin-top:10px; border-color: rgba(74,222,128,0.45); color: var(--ok);" data-i18n="copyFcmToken">Copy FCM token</button>
   </div>
 
-  <div class="section-title" data-i18n="manageBanksTransactions">Manage banks and transactions</div>
-  <div class="primary-action-row"><button class="add-bank-btn" onclick="openBankManagerSheet()" data-i18n="manageBanksTransactions">Manage banks and transactions</button></div>
+  <div class="section-title" data-i18n="manageBanks">Manage banks</div>
+  <div class="primary-action-row"><button class="add-bank-btn" onclick="openBankManagerSheet()" data-i18n="manageBanks">Manage banks</button></div>
 
   <div class="config-banner">
     <h3 data-i18n="googleSheetsConnection">Google Sheets connection</h3>
@@ -4440,7 +4476,7 @@
   <div class="section-title" data-i18n="aboutApp">about app</div>
 <div class="app-info-card">
   <div class="app-info-title" data-i18n="appTitle">Bank Tracker</div>
-  <div class="app-info-sub" data-i18n="appInfoSub">Version 3.0.2 · bank overview, budgets, archive and push notifications ⚙️🔥</div>
+  <div class="app-info-sub" data-i18n="appInfoSub">Version v2 · bank overview, budgets, archive and push notifications ⚙️🔥</div>
 
   <div class="app-info-grid">
     <div>
@@ -4514,21 +4550,15 @@
 <div id="bank-manager-sheet" class="bottom-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title-row">
-    <div class="sheet-title" data-i18n="manageBanksTransactions">Manage banks and transactions</div>
+    <div class="sheet-title" data-i18n="manageBanks">Manage banks</div>
     <button class="sheet-close" onclick="closeBottomSheets()">×</button>
   </div>
 
   <div class="search-wrap manager-search-wrap">
-    <input class="config-input search-input" id="manager-search" data-i18n-placeholder="searchBanksTransactions" placeholder="Search banks or transactions" oninput="handleManagerSearch()" />
-  </div>
-
-  <div class="manager-tabs">
-    <button id="manager-tab-banks" class="manager-tab active" onclick="switchManagementTab('banks')" data-i18n="banksTab">Banks</button>
-    <button id="manager-tab-transactions" class="manager-tab" onclick="switchManagementTab('transactions')" data-i18n="transactionsTab">Transactions</button>
+    <input class="config-input search-input" id="manager-search" data-i18n-placeholder="searchBanks" placeholder="Search banks" oninput="handleManagerSearch()" />
   </div>
 
   <div id="bank-manager-list"></div>
-  <div id="transaction-manager-list" style="display:none;"></div>
 </div>
 
 
@@ -4670,8 +4700,8 @@
       <div>
         <label data-i18n="direction">Direction</label>
         <select class="config-input" id="edit-tx-direction">
-          <option value="outgoing">Outgoing (-)</option>
-          <option value="incoming">Incoming (+)</option>
+          <option value="outgoing" data-i18n="outgoingOption">Výdaj (-)</option>
+          <option value="incoming" data-i18n="incomingOption">Príjem (+)</option>
         </select>
       </div>
     </div>
@@ -7615,11 +7645,7 @@ function getManagerSearchTerm() {
 }
 
 function handleManagerSearch() {
-  const txList = document.getElementById('transaction-manager-list');
-  const isTransactions = txList && txList.style.display !== 'none';
-
-  if (isTransactions) renderTransactionManager();
-  else renderBankManager();
+  renderBankManager();
 }
 
 
@@ -7628,34 +7654,19 @@ function resetManagerFilters() {
   if (search) search.value = '';
 
   const bankList = document.getElementById('bank-manager-list');
-  const txList = document.getElementById('transaction-manager-list');
-  const bankTab = document.getElementById('manager-tab-banks');
-  const txTab = document.getElementById('manager-tab-transactions');
-
   if (bankList) bankList.style.display = 'block';
-  if (txList) txList.style.display = 'none';
 
-  if (bankTab) bankTab.classList.add('active');
-  if (txTab) txTab.classList.remove('active');
-
-  document.querySelectorAll('.managed-bank-row.open, .managed-tx-row.open').forEach(row => row.classList.remove('open'));
+  document.querySelectorAll('.managed-bank-row.open').forEach(row => row.classList.remove('open'));
 }
 
 function switchManagementTab(tab) {
   const bankList = document.getElementById('bank-manager-list');
-  const txList = document.getElementById('transaction-manager-list');
-  const bankTab = document.getElementById('manager-tab-banks');
-  const txTab = document.getElementById('manager-tab-transactions');
+  const search = document.getElementById('manager-search');
 
-  if (bankList) bankList.style.display = tab === 'banks' ? 'block' : 'none';
-  if (txList) txList.style.display = tab === 'transactions' ? 'block' : 'none';
+  if (bankList) bankList.style.display = 'block';
+  if (search) search.setAttribute('placeholder', t('searchBanks'));
 
-  if (bankTab) bankTab.classList.toggle('active', tab === 'banks');
-  if (txTab) txTab.classList.toggle('active', tab === 'transactions');
-
-  if (tab === 'banks') renderBankManager();
-  if (tab === 'transactions') renderTransactionManager();
-
+  renderBankManager();
   applyLanguage();
 }
 
@@ -7714,8 +7725,8 @@ function renderTransactionManager() {
             <div>
               <label>${t('direction')}</label>
               <select class="config-input" data-field="direction">
-                <option value="outgoing" ${direction === 'outgoing' ? 'selected' : ''}>${t('outgoing')}</option>
-                <option value="incoming" ${direction === 'incoming' ? 'selected' : ''}>${t('incoming')}</option>
+                <option value="outgoing" ${direction === 'outgoing' ? 'selected' : ''}>${t('outgoingOption')}</option>
+                <option value="incoming" ${direction === 'incoming' ? 'selected' : ''}>${t('incomingOption')}</option>
               </select>
             </div>
           </div>
@@ -7880,7 +7891,7 @@ function openAddTransactionSheet(){
     }, document.documentElement.classList.contains('android-pwa-perf') ? 80 : 20);
   });
 }
-function openBankManagerSheet(){switchManagementTab('banks');renderBankManager();renderTransactionManager();openSheet('bank-manager-sheet')}
+function openBankManagerSheet(){switchManagementTab('banks');renderBankManager();openSheet('bank-manager-sheet')}
 function saveNewBank(){const name=document.getElementById('new-bank-name')?.value.trim();if(!name){alert('Zadaj názov banky.');return}const banks=getCustomBanks();banks.push({id:'custom_'+Date.now(),name,currency:document.getElementById('new-bank-currency')?.value||'CZK',type:document.getElementById('new-bank-type')?.value||'card',account:normalizeAccountMask(document.getElementById('new-bank-account')?.value||''),budget:parseFloat(document.getElementById('new-bank-budget')?.value||'0')||0,warning:parseFloat(document.getElementById('new-bank-warning')?.value||'0')||0,cardLimit:parseInt(document.getElementById('new-bank-card-limit')?.value||'0',10)||0});saveCustomBanks(banks);postToBankTrackerEndpoint('saveBank', { bank: banks[banks.length - 1] });alert('Banka bola uložená lokálne a odoslaná do Google Sheets endpointu, ak je Web App URL nastavená.');closeBottomSheets();renderAll()}
 
 function getBankDisplayOverride(bankKey) {
@@ -8328,7 +8339,7 @@ const I18N = {
     manageBanks: 'Manage banks',
     googleSheetsConnection: 'Google Sheets connection',
     aboutApp: 'about app',
-    appInfoSub: 'Version 3.0.2 · bank overview, budgets, archive and push notifications ⚙️🔥',
+    appInfoSub: 'Version v2 · bank overview, budgets, archive and push notifications ⚙️🔥',
     sync: 'Sync',
     syncValue: 'Auto every 5 min',
     mode: 'Mode',
@@ -8419,6 +8430,7 @@ const I18N = {
     planSavedAlertSuffix: 'is saved locally for now. Payments/upgrades will be connected later.',
     searchTransactions: 'Search transactions',
     searchBanksTransactions: 'Search banks or transactions',
+    searchBanks: 'Search banks',
     manageBanksTransactions: 'Manage banks and transactions',
     banksTab: 'Banks',
     transactionsTab: 'Transactions',
@@ -8493,7 +8505,7 @@ const I18N = {
     paymentKindAll: 'All payments',
     cashOnly: 'Cash',
     manualKindHint: 'Cards count towards bank benefits. Account and cash payments are tracked separately.',
-    accountPaymentKind: 'Account payment',
+    accountPaymentKind: 'Bankový prevod',
     cashPaymentKind: 'Cash payment',
     cardPaymentKind: 'Card payment',
     longPressToEdit: 'Long press a transaction to edit it.',
@@ -8636,6 +8648,7 @@ const I18N = {
     planSavedAlertSuffix: 'je zatiaľ uložený len lokálne. Platby/upgrade napojíme neskôr.',
     searchTransactions: 'Hľadať transakcie',
     searchBanksTransactions: 'Hľadať banky alebo transakcie',
+    searchBanks: 'Hľadať banky',
     manageBanksTransactions: 'Spravovať banky a transakcie',
     banksTab: 'Banky',
     transactionsTab: 'Transakcie',
@@ -8710,7 +8723,7 @@ const I18N = {
     paymentKindAll: 'Všetky platby',
     cashOnly: 'Hotovosť',
     manualKindHint: 'Kartové platby sa počítajú do bankových benefitov. Účtové a hotovostné platby sú oddelené.',
-    accountPaymentKind: 'Účtová platba',
+    accountPaymentKind: 'Bankový prevod',
     cashPaymentKind: 'Hotovostná platba',
     cardPaymentKind: 'Platba kartou',
     longPressToEdit: 'Dlhým podržaním upravíš transakciu.',
@@ -8856,6 +8869,7 @@ const I18N = {
     planSavedAlertSuffix: 'je zatím uložený jen lokálně. Platby/upgrade napojíme později.',
     searchTransactions: 'Hledat transakce',
     searchBanksTransactions: 'Hledat banky nebo transakce',
+    searchBanks: 'Hledat banky',
     manageBanksTransactions: 'Spravovat banky a transakce',
     banksTab: 'Banky',
     transactionsTab: 'Transakce',
@@ -8930,7 +8944,7 @@ const I18N = {
     paymentKindAll: 'Všechny platby',
     cashOnly: 'Hotovost',
     manualKindHint: 'Karetní platby se počítají do bankovních benefitů. Účtové a hotovostní platby jsou oddělené.',
-    accountPaymentKind: 'Účtová platba',
+    accountPaymentKind: 'Bankový prevod',
     cashPaymentKind: 'Hotovostní platba',
     cardPaymentKind: 'Platba kartou',
     longPressToEdit: 'Dlouhým podržením upravíš transakci.',
@@ -8967,7 +8981,7 @@ function setLanguage(lang) {
 
   setBillingMode(document.getElementById('billing-yearly')?.classList.contains('active') ? 'yearly' : 'monthly');
 
-  if (document.getElementById('bank-manager-sheet')?.classList.contains('open')) { renderBankManager(); renderTransactionManager(); }
+  if (document.getElementById('bank-manager-sheet')?.classList.contains('open')) { renderBankManager(); }
 
   translateManualCategoryDropdown();
 }
@@ -9275,7 +9289,6 @@ function updateFloatingUtilityButtons() {
 
   if (btn) {
     btn.classList.toggle('visible', showScroll);
-    btn.classList.toggle('utility-dim', dimUtilities);
   }
   if (fab) fab.classList.toggle('utility-dim', dimUtilities);
 }
