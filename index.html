@@ -14,8 +14,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
-<!-- v116 smart scroll button mobile sheet performance -->
-<link rel="manifest" href="./manifest.json?v=116">
+<!-- v119 mobile full header sheet drag zone -->
+<link rel="manifest" href="./manifest.json?v=119">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -3834,6 +3834,129 @@
     }
   }
 
+
+  /* v118 Transactions current month + older data button */
+  .txn-history-note {
+    color: var(--muted);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    line-height: 1.45;
+    margin: 0 0 10px;
+    padding: 9px 11px;
+    border: 1px solid rgba(148,163,184,.12);
+    background: rgba(15,23,42,.38);
+    border-radius: 12px;
+  }
+
+  .txn-load-older-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 14px 0 8px;
+  }
+
+  .txn-load-older-btn {
+    width: 100%;
+    border: 1px solid rgba(148,163,184,.22);
+    background: linear-gradient(135deg, rgba(15,23,42,.88), rgba(30,41,59,.78));
+    color: #8fdcff;
+    border-radius: 16px;
+    padding: 13px 16px;
+    font-family: var(--font-display);
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 12px 28px rgba(0,0,0,.12);
+  }
+
+  .txn-load-older-btn:active {
+    transform: scale(.985);
+  }
+
+  html[data-theme="light"] .txn-history-note {
+    color: #334155 !important;
+    background: #eef6ff !important;
+    border-color: rgba(15,23,42,.12) !important;
+  }
+
+  html[data-theme="light"] .txn-load-older-btn {
+    color: #1d4ed8 !important;
+    background: linear-gradient(135deg, #ffffff, #dbeafe) !important;
+    border-color: rgba(37,99,235,.24) !important;
+  }
+
+
+  /* v119 mobile full-width bottom-sheet drag zone */
+  .bottom-sheet {
+    isolation: isolate;
+  }
+
+  .bottom-sheet::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: 8px;
+    height: 108px;
+    border-radius: 22px;
+    background:
+      linear-gradient(180deg, rgba(88,166,255,.105), rgba(88,166,255,.025)),
+      radial-gradient(circle at 50% 0%, rgba(125,211,252,.20), transparent 56%);
+    border: 1px solid rgba(88,166,255,.18);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bottom-sheet > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .sheet-handle {
+    margin-top: 4px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .sheet-title-row {
+    min-height: 46px;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .bottom-sheet.dragging .sheet-title-row,
+  .bottom-sheet.dragging .sheet-handle {
+    cursor: grabbing;
+  }
+
+  @media (hover: none), (pointer: coarse), (max-width: 700px) {
+    .bottom-sheet::after {
+      left: 10px;
+      right: 10px;
+      top: 6px;
+      height: 122px;
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(88,166,255,.16), rgba(88,166,255,.04)),
+        radial-gradient(circle at 50% 0%, rgba(125,211,252,.25), transparent 62%);
+      border-color: rgba(88,166,255,.22);
+    }
+
+    .bottom-sheet .sheet-handle::before {
+      width: min(390px, 96vw) !important;
+      height: 132px !important;
+    }
+
+    .bottom-sheet .sheet-title-row {
+      padding-top: 2px;
+      padding-bottom: 14px;
+    }
+  }
+
+  html[data-theme="light"] .bottom-sheet::after {
+    background:
+      linear-gradient(180deg, rgba(37,99,235,.12), rgba(37,99,235,.035)),
+      radial-gradient(circle at 50% 0%, rgba(14,165,233,.22), transparent 58%);
+    border-color: rgba(37,99,235,.20);
+  }
+
 </style>
 </head>
 <body>
@@ -3853,7 +3976,7 @@
   <div class="summary">
     <div class="summary-item">
       <div class="summary-val" id="sum-txns">0</div>
-      <div class="summary-label" data-i18n="payments">payments</div>
+      <div class="summary-label" data-i18n="cardPayments">card payments</div>
     </div>
     <div class="summary-divider"></div>
     <div class="summary-item">
@@ -3884,7 +4007,6 @@
   <div class="header">
     <div>
       <div class="header-title" data-i18n="transactions">Transactions</div>
-      <div class="header-month" id="txn-month">05/2026</div>
     </div>
   </div>
   
@@ -4344,6 +4466,7 @@ let activeSearch = '';
 let activePaymentKind = 'all';
 let activeDateFrom = '';
 let activeDateTo = '';
+let activeTxnHistoryScope = 'current';
 const TXN_PAGE_SIZE = 30;
 let txnVisibleLimit = TXN_PAGE_SIZE;
 let autoSyncTimer = null;
@@ -5442,10 +5565,13 @@ function getTransactionsByBank(monthOnly = true, cardOnly = false) {
 
 function getAktuálneMonthCzkSpent(bankKey = null) {
   const month = getAktuálneMonth();
+
+  // Bank budget must include every outgoing payment kind:
+  // card payments, account payments and manual cash payments.
   return allTransactions
-    .filter(t => t.month === month && t.amount < 0 && String(t.currency || '').toUpperCase() === 'CZK')
+    .filter(t => t.month === month && Number(t.amount) < 0)
     .filter(t => !bankKey || getBankKey(t) === bankKey)
-    .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+    .reduce((sum, t) => sum + Math.abs(convertTransactionAmount(t, 'CZK')), 0);
 }
 
 function getBudgetStorageKey(bankKey, type) {
@@ -5578,6 +5704,7 @@ function renderBudgetStatus() {
 
   wrap.innerHTML = `
     <div class="budget-status-title">${t('budgetStatusTitle')}</div>
+    <div class="budget-status-note" style="margin:-4px 0 10px;">${t('budgetAllPaymentsHint')}</div>
     ${rows}
   `;
 }
@@ -5601,27 +5728,46 @@ function maybeSendBudgetLocalNotification(bankKey, bankLabel, spent, budget, rem
   }
 }
 
+
+function getCurrentMonthOutgoingTransactions() {
+  const month = getAktuálneMonth();
+  return allTransactions.filter(t => t.month === month && Number(t.amount) < 0);
+}
+
+function getCurrentMonthCardTransactions() {
+  return getCurrentMonthOutgoingTransactions().filter(t => isCardTransaction(t));
+}
+
+function getTransactionsCzkEquivalentTotal(txns) {
+  return txns.reduce((sum, tx) => {
+    return sum + Math.abs(convertTransactionAmount(tx, 'CZK'));
+  }, 0);
+}
+
 function renderAll() {
   allTransactions = sortTransactionsNewestFirst(allTransactions);
   localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
+
   const month = getAktuálneMonth();
-  const monthTxns = allTransactions.filter(t => t.month === month && t.amount < 0);
+  const monthTxns = getCurrentMonthOutgoingTransactions();
+  const monthCardTxns = getCurrentMonthCardTransactions();
 
   document.getElementById('header-month').textContent = getMonthLabel();
-  document.getElementById('txn-month').textContent = getMonthLabel();
+  const txnMonthLabel = document.getElementById('txn-month');
+  if (txnMonthLabel) txnMonthLabel.textContent = getMonthLabel();
   const txnAktuálneDate = document.getElementById('txn-current-date');
   if (txnAktuálneDate) txnAktuálneDate.textContent = `${t('todayPrefix')}: ${formatDate(new Date())}`;
 
-  const totalAmt = Math.abs(monthTxns.reduce((s,t) => {
-    const isEur = String(t.currency).toUpperCase() === 'EUR';
-    return s + (isEur ? t.amount * 25 : t.amount);
-  }, 0));
-  document.getElementById('sum-txns').textContent = monthTxns.length;
-  document.getElementById('sum-amount').textContent = Math.round(totalAmt).toLocaleString('cs');
+  // Overview headline numbers are tied to used card payments / bank benefits.
+  const totalCardAmt = getTransactionsCzkEquivalentTotal(monthCardTxns);
+  document.getElementById('sum-txns').textContent = monthCardTxns.length;
+  document.getElementById('sum-amount').textContent = Math.round(totalCardAmt).toLocaleString('cs');
   document.getElementById('sum-days').textContent = getDaysRemaining();
 
+  // Bank budget intentionally includes every payment kind: cards, account payments and cash.
   renderBudgetStatus();
 
+  // Bank card limits intentionally use card-only transactions.
   const byBankMonth = getTransactionsByBank(true, true);
   renderBankCards(byBankMonth);
 
@@ -5733,6 +5879,7 @@ function filterTransactionsByDateRange(txns) {
 function handleTransactionDateRange() {
   activeDateFrom = document.getElementById('txn-date-from')?.value || '';
   activeDateTo = document.getElementById('txn-date-to')?.value || '';
+  activeTxnHistoryScope = hasActiveTransactionDateRange() ? 'all' : 'current';
   resetTxnVisibleLimit();
   updateTxnPage();
 }
@@ -5740,6 +5887,7 @@ function handleTransactionDateRange() {
 function clearTransactionDateRange() {
   activeDateFrom = '';
   activeDateTo = '';
+  activeTxnHistoryScope = 'current';
   resetTxnVisibleLimit();
   const from = document.getElementById('txn-date-from');
   const to = document.getElementById('txn-date-to');
@@ -5916,6 +6064,51 @@ function renderShowMoreTransactionsButton(visibleCount, totalCount) {
   `;
 }
 
+
+function hasActiveTransactionDateRange() {
+  return !!(activeDateFrom || activeDateTo);
+}
+
+function isCurrentTransactionMonth(tx) {
+  return normalizeMonthStr(tx?.month || '') === normalizeMonthStr(getAktuálneMonth());
+}
+
+function filterTransactionsByHistoryScope(txns) {
+  if (hasActiveTransactionDateRange()) return txns;
+  if (activeTxnHistoryScope === 'all') return txns;
+  return txns.filter(isCurrentTransactionMonth);
+}
+
+function loadOlderTransactions() {
+  activeTxnHistoryScope = 'all';
+  resetTxnVisibleLimit();
+  updateTxnPage();
+}
+
+function renderTransactionHistoryNote() {
+  if (hasActiveTransactionDateRange()) {
+    return `<div class="txn-history-note">${t('dateRangeOverridesMonth')}</div>`;
+  }
+
+  if (activeTxnHistoryScope === 'all') {
+    return `<div class="txn-history-note">${t('olderDataLoaded')}</div>`;
+  }
+
+  return `<div class="txn-history-note">${t('currentMonthOnly')} ${t('olderDataHint')}</div>`;
+}
+
+function renderLoadOlderTransactionsButton(olderCount) {
+  if (hasActiveTransactionDateRange()) return '';
+  if (activeTxnHistoryScope === 'all') return '';
+  if (!olderCount) return '';
+
+  return `
+    <div class="txn-load-older-wrap">
+      <button class="txn-load-older-btn" onclick="loadOlderTransactions()">${t('loadOlderData')} (${olderCount})</button>
+    </div>
+  `;
+}
+
 function updateTxnPage(monthTxns) {
   const listDiv = document.getElementById('txn-list');
   if (!listDiv) return;
@@ -5923,30 +6116,44 @@ function updateTxnPage(monthTxns) {
   updateTransactionDateInputs();
   updatePaymentKindFilterUi();
 
-  let filtered = sortTransactionsNewestFirst(allTransactions);
-  filtered = filterTransactionsByDateRange(filtered);
+  let base = sortTransactionsNewestFirst(allTransactions);
+  base = filterTransactionsByDateRange(base);
 
-  if (activeDirection === 'incoming') filtered = filtered.filter(t => Number(t.amount) > 0);
-  if (activeDirection === 'outgoing') filtered = filtered.filter(t => Number(t.amount) < 0);
-  if (activeBank !== 'všetky') filtered = filtered.filter(t => getBankKey(t) === activeBank);
+  if (activeDirection === 'incoming') base = base.filter(t => Number(t.amount) > 0);
+  if (activeDirection === 'outgoing') base = base.filter(t => Number(t.amount) < 0);
+  if (activeBank !== 'všetky') base = base.filter(t => getBankKey(t) === activeBank);
 
-  if (activePaymentKind === 'card') filtered = filtered.filter(t => isCardTransaction(t));
-  if (activePaymentKind === 'account') filtered = filtered.filter(t => isAccountTransaction(t));
-  if (activePaymentKind === 'cash') filtered = filtered.filter(t => isCashTransaction(t));
+  if (activePaymentKind === 'card') base = base.filter(t => isCardTransaction(t));
+  if (activePaymentKind === 'account') base = base.filter(t => isAccountTransaction(t));
+  if (activePaymentKind === 'cash') base = base.filter(t => isCashTransaction(t));
 
-  if (activeSearch) filtered = filtered.filter(t => transactionMatchesSearch(t, activeSearch));
+  if (activeSearch) base = base.filter(t => transactionMatchesSearch(t, activeSearch));
 
-  const cats = ['všetky', ...new Set(filtered.map(t => t.category).filter(Boolean))];
+  let scoped = filterTransactionsByHistoryScope(base);
+
+  const cats = ['všetky', ...new Set(scoped.map(t => t.category).filter(Boolean))];
   renderCategoryFilters(cats);
 
-  if (activeCategory !== 'všetky') filtered = filtered.filter(t => t.category === activeCategory);
+  if (activeCategory !== 'všetky') {
+    base = base.filter(t => t.category === activeCategory);
+    scoped = filterTransactionsByHistoryScope(base);
+  }
 
-  if (filtered.length === 0) {
-    listDiv.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>${t('noTransactionsForFilters')}</div>${renderTransactionTotals([])}`;
+  const olderCount = !hasActiveTransactionDateRange() && activeTxnHistoryScope !== 'all'
+    ? base.filter(t => !isCurrentTransactionMonth(t)).length
+    : 0;
+
+  if (scoped.length === 0) {
+    listDiv.innerHTML =
+      renderTransactionHistoryNote() +
+      `<div class="empty-state"><div class="empty-icon">📭</div>${t('noTransactionsForFilters')}</div>` +
+      renderLoadOlderTransactionsButton(olderCount) +
+      renderTransactionTotals([]);
+    scheduleFloatingUtilityUpdate();
     return;
   }
 
-  const visible = filtered.slice(0, txnVisibleLimit);
+  const visible = scoped.slice(0, txnVisibleLimit);
 
   const rows = visible.map(t => {
     const bankKey = getBankKey(t);
@@ -5958,10 +6165,12 @@ function updateTxnPage(monthTxns) {
   }).join('');
 
   listDiv.innerHTML =
-    renderTransactionPagingInfo(visible.length, filtered.length) +
+    renderTransactionHistoryNote() +
+    renderTransactionPagingInfo(visible.length, scoped.length) +
     rows +
-    renderShowMoreTransactionsButton(visible.length, filtered.length) +
-    renderTransactionTotals(filtered);
+    renderShowMoreTransactionsButton(visible.length, scoped.length) +
+    renderLoadOlderTransactionsButton(olderCount) +
+    renderTransactionTotals(scoped);
 
   bindTransactionDeleteGestures();
   scheduleFloatingUtilityUpdate();
@@ -6155,6 +6364,7 @@ function resetTransactionFilters() {
   activeSearch = '';
   activeDateFrom = '';
   activeDateTo = '';
+  activeTxnHistoryScope = 'current';
   resetTxnVisibleLimit();
 
   const search = document.getElementById('txn-search');
@@ -6587,6 +6797,34 @@ function initBottomSheetDragToClose() {
       ));
     };
 
+    const getYInsideSheet = (event) => {
+      const rect = sheet.getBoundingClientRect();
+      return {
+        rect,
+        yInside: event.clientY - rect.top
+      };
+    };
+
+    const getDragZoneHeight = () => {
+      const rect = sheet.getBoundingClientRect();
+      const titleRow = sheet.querySelector('.sheet-title-row');
+      const handle = sheet.querySelector('.sheet-handle');
+
+      let height = 138;
+
+      if (titleRow) {
+        const titleBottom = titleRow.getBoundingClientRect().bottom - rect.top;
+        height = Math.max(height, titleBottom + 22);
+      }
+
+      if (handle) {
+        const handleBottom = handle.getBoundingClientRect().bottom - rect.top;
+        height = Math.max(height, handleBottom + 82);
+      }
+
+      return Math.min(Math.max(height, 132), 220);
+    };
+
     const canTrack = (event) => {
       if (!sheet.classList.contains('open')) return false;
       if (isInteractiveTarget(event.target)) return false;
@@ -6636,7 +6874,7 @@ function initBottomSheetDragToClose() {
       clearRaf();
       sheet.classList.remove('dragging');
       sheet.classList.add('sheet-snapping');
-      sheet.style.setProperty('transition', 'transform .22s cubic-bezier(.22,.72,.23,1)', 'important');
+      sheet.style.setProperty('transition', 'transform .20s cubic-bezier(.22,.72,.23,1)', 'important');
       setSheetY(0);
 
       window.setTimeout(() => {
@@ -6646,14 +6884,14 @@ function initBottomSheetDragToClose() {
           sheet.style.removeProperty('transform');
         }
         resetState();
-      }, 240);
+      }, 220);
     };
 
     const beginTracking = (event) => {
       if (!canTrack(event)) return;
 
-      const rect = sheet.getBoundingClientRect();
-      const yInside = event.clientY - rect.top;
+      const { rect, yInside } = getYInsideSheet(event);
+      const dragZoneHeight = getDragZoneHeight();
 
       startY = event.clientY;
       currentY = startY;
@@ -6663,11 +6901,16 @@ function initBottomSheetDragToClose() {
       startScrollTop = sheet.scrollTop || 0;
       sheetHeight = Math.max(rect.height, 1);
 
-      // Strong zone can always pull the sheet down.
-      // The rest of the sheet can pull down when the sheet content is already at the top.
+      // FULL MOBILE TOUCH ZONE:
+      // Everything from the top edge through the title/header area is a strong drag surface.
       startedOnStrongHandle =
-        !!(event.target.closest && event.target.closest('.sheet-handle, .sheet-title-row')) ||
-        (yInside >= 0 && yInside <= 160);
+        yInside >= 0 &&
+        yInside <= dragZoneHeight;
+
+      if (startedOnStrongHandle) {
+        try { sheet.setPointerCapture(pointerId); } catch (_) {}
+        if (event.cancelable) event.preventDefault();
+      }
     };
 
     const startDrag = (event) => {
@@ -6689,15 +6932,14 @@ function initBottomSheetDragToClose() {
 
       if (!isDragging) {
         if (deltaY < -8) {
-          // Let normal scrolling happen upward.
           resetState();
           return;
         }
 
-        if (deltaY < 6) return;
+        if (deltaY < 5) return;
 
-        // If user starts in the middle of scrollable content and content is not at top,
-        // do not steal scroll. Once content is at top, whole sheet can be dragged.
+        // Top/header zone can always drag down.
+        // Below header, only drag when sheet content was already at top.
         if (!startedOnStrongHandle && startScrollTop > 0) return;
 
         startDrag(event);
@@ -6722,8 +6964,6 @@ function initBottomSheetDragToClose() {
         return;
       }
 
-      // Exact behavior requested:
-      // beyond half = close down, above half = snap back up.
       if (deltaY >= closeThreshold) {
         resetState();
         closeBottomSheets();
@@ -7723,7 +7963,13 @@ const I18N = {
     backAgainToExit: 'Press Back again to exit',
     dragSheetHint: 'Drag here',
     scrollToLatest: 'Back to latest',
-    editKindHint: 'Changing payment type also updates whether the transaction counts as card, account or cash.'},
+    editKindHint: 'Changing payment type also updates whether the transaction counts as card, account or cash.',
+    budgetAllPaymentsHint: 'Bank budget includes cards, account payments and cash.',
+    loadOlderData: 'Load older data',
+    currentMonthOnly: 'Showing current month only.',
+    olderDataHint: 'Older transactions are hidden by default for speed.',
+    olderDataLoaded: 'Older data loaded',
+    dateRangeOverridesMonth: 'Date range filter can show older months.'},
   sk: {
     appTitle: 'Bank Tracker',
     overview: 'Prehľad',
@@ -7930,7 +8176,13 @@ const I18N = {
     backAgainToExit: 'Stlač späť ešte raz pre ukončenie',
     dragSheetHint: 'Potiahni tu',
     scrollToLatest: 'Späť hore',
-    editKindHint: 'Zmena typu platby upraví, či sa transakcia počíta ako karta, účet alebo hotovosť.'},
+    editKindHint: 'Zmena typu platby upraví, či sa transakcia počíta ako karta, účet alebo hotovosť.',
+    budgetAllPaymentsHint: 'Bankový budget počíta karty, účtové platby aj hotovosť.',
+    loadOlderData: 'Načítať staršie dáta',
+    currentMonthOnly: 'Zobrazuje sa iba aktuálny mesiac.',
+    olderDataHint: 'Staršie transakcie sú kvôli rýchlosti skryté.',
+    olderDataLoaded: 'Staršie dáta načítané',
+    dateRangeOverridesMonth: 'Dátumový filter môže zobraziť aj staršie mesiace.'},
   cs: {
     appTitle: 'Bank Tracker',
     overview: 'Přehled',
@@ -8140,7 +8392,13 @@ const I18N = {
     backAgainToExit: 'Stiskni zpět ještě jednou pro ukončení',
     dragSheetHint: 'Potáhni zde',
     scrollToLatest: 'Zpět nahoru',
-    editKindHint: 'Změna typu platby upraví, zda se transakce počítá jako karta, účet nebo hotovost.'}
+    editKindHint: 'Změna typu platby upraví, zda se transakce počítá jako karta, účet nebo hotovost.',
+    budgetAllPaymentsHint: 'Bankovní budget počítá karty, účtové platby i hotovost.',
+    loadOlderData: 'Načíst starší data',
+    currentMonthOnly: 'Zobrazuje se jen aktuální měsíc.',
+    olderDataHint: 'Starší transakce jsou kvůli rychlosti skryté.',
+    olderDataLoaded: 'Starší data načtena',
+    dateRangeOverridesMonth: 'Datumový filtr může zobrazit i starší měsíce.'}
 };
 
 function getLanguage() {
