@@ -438,6 +438,111 @@
   }
   .cat-chip.active { background: rgba(119, 224, 243, 0.12); border-color: var(--accent); color: var(--accent); }
 
+  .txn-category-extra {
+    display: none;
+    padding-top: 0;
+    margin-top: -8px;
+  }
+
+  .cat-more-chip {
+    min-width: 38px;
+    text-align: center;
+    font-weight: 900;
+  }
+
+  .txn-cashflow-slot {
+    margin: 0 20px 12px;
+  }
+
+  .txn-cashflow-slot .txn-cashflow-card {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+
+  /* v13 transactions filter layout */
+  .txn-filter-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    padding: 0 20px;
+    margin-bottom: 14px;
+  }
+
+  .txn-filter-card {
+    min-width: 0;
+    background: rgba(15,23,42,.42);
+    border: 1px solid rgba(148,163,184,.13);
+    border-radius: 16px;
+    padding: 11px 10px 10px;
+  }
+
+  .txn-filter-card-title {
+    font-size: 10px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    margin: 0 0 8px;
+    font-family: var(--font-mono);
+    font-weight: 900;
+  }
+
+  .txn-filter-card .cat-grid {
+    padding: 0;
+    margin: 0;
+    gap: 6px;
+  }
+
+  .txn-filter-card .cat-chip,
+  .txn-filter-card .txn-filter-pill {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+
+  .txn-filter-card-full {
+    grid-column: 1 / -1;
+    display: none;
+  }
+
+  .txn-filter-card-full.open {
+    display: block;
+  }
+
+  .cat-more-chip {
+    min-width: 38px;
+    text-align: center;
+    font-weight: 900;
+  }
+
+  .txn-cashflow-slot {
+    margin: 0 20px 12px;
+  }
+
+  .txn-cashflow-slot .txn-cashflow-card {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  html[data-theme="light"] .txn-filter-card {
+    background: rgba(238,246,255,.78) !important;
+    border-color: rgba(15,23,42,.12) !important;
+  }
+
+  @media (max-width: 380px) {
+    .txn-filter-layout {
+      gap: 10px;
+      padding: 0 14px;
+    }
+    .txn-filter-card {
+      padding: 10px 8px;
+    }
+    .txn-filter-card .cat-chip,
+    .txn-filter-card .txn-filter-pill {
+      font-size: 10px;
+      padding: 6px 8px;
+    }
+  }
+
   /* Tranzakcie list item */
   .tx-item {
     display: flex;
@@ -4494,6 +4599,82 @@
     animation-delay: .22s !important;
   }
 
+
+  /* v11 cleanup + mobile scroll stability */
+  .scroll-top-fab,
+  .scroll-top-fab.visible,
+  .scroll-top-fab.utility-dim {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    opacity: 1 !important;
+  }
+
+  .scroll-top-fab:active {
+    transform: translateX(-50%) scale(.94) !important;
+  }
+
+  .txn-payment-kind-hint,
+  .txn-edit-hint,
+  .txn-history-note {
+    display: none !important;
+  }
+
+  #upgrade-sheet {
+    max-height: 92vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    contain: layout paint !important;
+  }
+
+  #upgrade-sheet .upgrade-card,
+  #upgrade-sheet .upgrade-card.premium,
+  #upgrade-sheet .upgrade-card.pro,
+  #upgrade-sheet .upgrade-hero,
+  #upgrade-sheet .billing-toggle {
+    box-shadow: none !important;
+    filter: none !important;
+    text-shadow: none !important;
+  }
+
+  #upgrade-sheet .upgrade-card {
+    content-visibility: auto;
+    contain-intrinsic-size: 220px;
+    contain: layout paint style;
+  }
+
+  #upgrade-sheet * {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+
+  /* v13 slower graph loading */
+  .archive-bank-line,
+  .trend-line {
+    animation-duration: 2.85s !important;
+  }
+
+  .archive-bank-point,
+  .trend-dot {
+    animation-duration: .75s !important;
+    animation-delay: 1.95s !important;
+  }
+
+  .daily-bar-income,
+  .daily-bar-expense,
+  .txn-cashflow-bar-in,
+  .txn-cashflow-bar-out {
+    animation-duration: 2.25s !important;
+  }
+
+  .txn-cashflow-bar-out,
+  .daily-bar-expense {
+    animation-delay: .42s !important;
+  }
+
 </style>
 </head>
 <body>
@@ -4591,16 +4772,15 @@
     <div class="txn-filter-pill" id="filter-kind-account" onclick="filterPaymentKind('account')" data-i18n="accountsOnly">Accounts</div>
     <div class="txn-filter-pill" id="filter-kind-cash" onclick="filterPaymentKind('cash')" data-i18n="cashOnly">Cash</div>
   </div>
-  <div class="txn-payment-kind-hint" data-i18n="cardVsAccountHint">Card payments count towards bank benefits. Account payments are separated.</div>
 
   <div class="filter-group-title" data-i18n="category">Category</div>
   <div class="cat-grid" id="cat-filters"></div>
-  
-  <div class="txn-edit-hint" data-i18n="doubleTapToEdit">Mobile: long press to edit. PC: double click to edit.</div>
+  <div class="cat-grid txn-category-extra" id="cat-filters-extra"></div>
+  <div id="cat-filters-extra-card" style="display:none;"></div>
+
+  <div id="txn-cashflow-slot" class="txn-cashflow-slot"></div>
   <div id="txn-list" style="margin: 0 20px;"></div>
 </div>
-
-
 
 <div id="page-archive" class="page">
   <div class="header">
@@ -4991,6 +5171,7 @@ let limitsHistory = JSON.parse(localStorage.getItem('limits_history') || '{}');
 // ── STATE ───────────────────────────────────────────────────
 let allTransactions = [];
 let activeCategory = 'všetky';
+let txnCategoryFiltersExpanded = false;
 let activeBank = 'všetky';
 let activeDirection = 'all';
 let activeSearch = '';
@@ -6366,6 +6547,54 @@ function renderBankCards(byBank) {
   extra.innerHTML = BANK_ORDER.filter(k => k !== 'rb_cz').map(k => renderBankCard(k, byBank[k] || [])).join('');
 }
 
+
+function getBankCardDisplayLabel(bankKey, txns) {
+  const fallbackCards = {
+    rb_cz: ['3684'],
+    csob_sk: ['5612'],
+    csob_cz: [],
+    moneta: []
+  };
+
+  const numbers = [];
+  const names = [];
+
+  (txns || []).forEach(tx => {
+    const raw = String(tx?.card || '').replace(/\*/g, '').trim();
+    if (!raw || /^cash$/i.test(raw) || /^účet\b/i.test(raw) || /^ucet\b/i.test(raw)) return;
+
+    const digitGroups = raw.match(/\d{3,}/g);
+    if (digitGroups && digitGroups.length) {
+      const last = digitGroups[digitGroups.length - 1].slice(-4);
+      if (last && !numbers.includes(last)) numbers.push(last);
+      return;
+    }
+
+    const cleaned = raw.replace(/^karta\s*/i, '').trim();
+    if (cleaned && !names.includes(cleaned)) names.push(cleaned);
+  });
+
+  (fallbackCards[bankKey] || []).forEach(cardNo => {
+    if (!numbers.includes(cardNo)) numbers.push(cardNo);
+  });
+
+  if (numbers.length) {
+    const list = numbers.length === 1
+      ? numbers[0]
+      : `${numbers.slice(0, -1).join(', ')} a ${numbers[numbers.length - 1]}`;
+    return `Karta ${list}`;
+  }
+
+  if (names.length) {
+    const list = names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(', ')} a ${names[names.length - 1]}`;
+    return `Karta ${list}`;
+  }
+
+  return 'Karta';
+}
+
 function renderBankCard(bankKey, txns) {
   const bank = getBankInfo(bankKey);
   const limits = getLimitsForMonth(getAktuálneMonth());
@@ -6373,8 +6602,7 @@ function renderBankCard(bankKey, txns) {
   const used = txns.length;
   const fillPct = limit > 0 ? Math.min(used / limit, 1) : 0;
   const barColor = getCardColor(used, limit);
-  let cardNum = txns[0]?.card || bank.label;
-  cardNum = String(cardNum).replace(/\*/g, '').trim() || bank.label;
+  const cardNum = getBankCardDisplayLabel(bankKey, txns);
   const delta = Math.max(limit - used, 0);
 
   const warnStatusText = limit <= 0
@@ -6805,6 +7033,7 @@ function renderLoadOlderTransactionsButton(olderCount) {
 
 function updateTxnPage(monthTxns) {
   const listDiv = document.getElementById('txn-list');
+  const cashflowSlot = document.getElementById('txn-cashflow-slot');
   if (!listDiv) return;
 
   updateTransactionDateInputs();
@@ -6827,7 +7056,7 @@ function updateTxnPage(monthTxns) {
   let scoped = filterTransactionsByHistoryScope(base);
 
   const cats = ['všetky', ...new Set(scoped.map(t => t.category).filter(Boolean))];
-  renderCategoryFilters(cats);
+  renderCategoryFilters(cats, scoped);
 
   if (activeCategory !== 'všetky') {
     base = base.filter(t => t.category === activeCategory);
@@ -6839,6 +7068,7 @@ function updateTxnPage(monthTxns) {
     : 0;
 
   if (scoped.length === 0) {
+    if (cashflowSlot) cashflowSlot.innerHTML = '';
     listDiv.innerHTML =
       renderTransactionHistoryNote() +
       `<div class="empty-state"><div class="empty-icon">📭</div>${t('noTransactionsForFilters')}</div>` +
@@ -6859,13 +7089,14 @@ function updateTxnPage(monthTxns) {
     return `<div class="tx-item" data-tx-id="${escapeAttr(txId)}"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${escapeHtml(t.merchant)}</div><div class="tx-meta">${escapeHtml(t.date)}</div></div></div><div class="tx-right-side"><div class="tx-amount ${amountClass}">${sign}${formatMoney(t.amount, t.currency)} ${escapeHtml(t.currency)}</div>${bankLogoImg(bankKey, 'tx-bank-logo')}</div></div>`;
   }).join('');
 
+  if (cashflowSlot) cashflowSlot.innerHTML = renderTransactionDailyCashflow(scoped);
+
   listDiv.innerHTML =
     renderTransactionHistoryNote() +
     renderTransactionPagingInfo(visible.length, scoped.length) +
     rows +
     renderShowMoreTransactionsButton(visible.length, scoped.length) +
     renderLoadOlderTransactionsButton(olderCount) +
-    renderTransactionDailyCashflow(scoped) +
     renderTransactionTotals(scoped);
 
   bindTransactionDeleteGestures();
@@ -7004,13 +7235,52 @@ function translateCategory(category) {
   return dict[lower] || dict[normalized] || original;
 }
 
-function renderCategoryFilters(cats) {
+function renderCategoryFilters(cats, scopedTxns = []) {
   const wrap = document.getElementById('cat-filters');
+  const extraWrap = document.getElementById('cat-filters-extra');
+  const extraCard = document.getElementById('cat-filters-extra-card');
   if (!wrap) return;
-  wrap.innerHTML = cats.map(c => {
+
+  const counts = {};
+  scopedTxns.forEach(tx => {
+    const category = tx?.category || '';
+    if (category) counts[category] = (counts[category] || 0) + 1;
+  });
+
+  const uniqueCats = [...new Set((cats || []).filter(Boolean))];
+  const allToken = uniqueCats.includes('všetky') ? ['všetky'] : [];
+  const categoryCats = uniqueCats
+    .filter(c => c !== 'všetky')
+    .sort((a, b) => (counts[b] || 0) - (counts[a] || 0) || String(a).localeCompare(String(b)));
+
+  const primaryLimit = 4;
+  const primaryCats = [...allToken, ...categoryCats.slice(0, primaryLimit)];
+  const extraCats = categoryCats.slice(primaryLimit);
+
+  const chipHtml = (c) => {
     const label = c === 'všetky' ? t('all') : `${catIcon(c)} ${translateCategory(c)}`;
-    return `<div class="cat-chip ${activeCategory === c ? 'active' : ''}" onclick="filterCategory('${c}')">${label}</div>`;
-  }).join('');
+    return `<div class="cat-chip ${activeCategory === c ? 'active' : ''}" data-category="${escapeAttr(c)}" onclick="filterCategoryFromChip(this)">${label}</div>`;
+  };
+
+  wrap.innerHTML = primaryCats.map(chipHtml).join('') + (extraCats.length
+    ? `<div class="cat-chip cat-more-chip ${txnCategoryFiltersExpanded ? 'active' : ''}" onclick="toggleCategoryFilters()">…</div>`
+    : '');
+
+  if (extraWrap) {
+    extraWrap.innerHTML = extraCats.map(chipHtml).join('');
+    extraWrap.style.display = (!!extraCats.length && txnCategoryFiltersExpanded) ? 'flex' : 'none';
+  }
+  if (extraCard) extraCard.style.display = 'none';
+}
+
+function filterCategoryFromChip(el) {
+  if (!el) return;
+  filterCategory(el.getAttribute('data-category') || 'všetky');
+}
+
+function toggleCategoryFilters() {
+  txnCategoryFiltersExpanded = !txnCategoryFiltersExpanded;
+  updateTxnPage();
 }
 
 
@@ -7612,6 +7882,13 @@ function initBottomSheetDragToClose() {
     const canTrack = (event) => {
       if (!sheet.classList.contains('open')) return false;
       if (isInteractiveTarget(event.target)) return false;
+
+      // v11: Upgrade has heavy scrollable content. Keep drag-to-close enabled,
+      // but only from the handle/header so normal scrolling cannot fight the sheet drag.
+      if (sheet.id === 'upgrade-sheet') {
+        return !!(event.target && event.target.closest && event.target.closest('.sheet-handle, .sheet-title-row'));
+      }
+
       return true;
     };
 
@@ -8758,7 +9035,7 @@ const I18N = {
     paymentKindAll: 'All payments',
     cashOnly: 'Cash',
     manualKindHint: 'Cards count towards bank benefits. Account and cash payments are tracked separately.',
-    accountPaymentKind: 'Bankovní převod',
+    accountPaymentKind: 'Bank transfer',
     cashPaymentKind: 'Cash payment',
     cardPaymentKind: 'Card payment',
     longPressToEdit: 'Long press a transaction to edit it.',
@@ -8976,7 +9253,7 @@ const I18N = {
     paymentKindAll: 'Všetky platby',
     cashOnly: 'Hotovosť',
     manualKindHint: 'Kartové platby sa počítajú do bankových benefitov. Účtové a hotovostné platby sú oddelené.',
-    accountPaymentKind: 'Bankový převod',
+    accountPaymentKind: 'Bankový prevod',
     cashPaymentKind: 'Hotovostná platba',
     cardPaymentKind: 'Platba kartou',
     longPressToEdit: 'Dlhým podržaním upravíš transakciu.',
@@ -9197,7 +9474,7 @@ const I18N = {
     paymentKindAll: 'Všechny platby',
     cashOnly: 'Hotovost',
     manualKindHint: 'Karetní platby se počítají do bankovních benefitů. Účtové a hotovostní platby jsou oddělené.',
-    accountPaymentKind: 'Bankový převod',
+    accountPaymentKind: 'Bankovní převod',
     cashPaymentKind: 'Hotovostní platba',
     cardPaymentKind: 'Platba kartou',
     longPressToEdit: 'Dlouhým podržením upravíš transakci.',
