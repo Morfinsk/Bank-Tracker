@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Bank Tracker index_v57: v56 runtime restore + CSOB credit rollup -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -685,6 +686,24 @@
   .account-balance-fx-badge.show {
     display: inline-flex;
   }
+  .account-balance-rollup-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 1px solid rgba(88,166,255,.30);
+    background: rgba(88,166,255,.10);
+    color: var(--accent);
+    display: inline-grid;
+    place-items: center;
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    flex: 0 0 22px;
+  }
+  .account-balance-rollup-btn:active { transform: scale(.94); }
+
 
   html[data-theme="light"] .account-balance-fx-badge {
     color: #475569 !important;
@@ -3509,6 +3528,230 @@
   html[data-theme="light"] .txn-cashflow-label { fill: #1e3a8a !important; font-weight: 900; }
   html[data-theme="light"] .txn-cashflow-axis-label { fill: #64748b !important; }
 
+
+
+  /* v51 total account balance + transaction chart toggle */
+  .account-balance-total-row {
+    margin: 8px 0 0;
+    padding: 14px 0 4px !important;
+    border-top: 1px solid rgba(88,166,255,.28) !important;
+    border-bottom: none !important;
+    cursor: default !important;
+  }
+
+  .account-balance-total-row .account-balance-name,
+  .account-balance-total-row .account-balance-value {
+    font-size: 16px !important;
+    font-weight: 950 !important;
+  }
+
+  .account-balance-total-row .account-balance-value {
+    color: var(--ok) !important;
+  }
+
+
+  /* v55 ČSOB CZ credit-card outstanding balance child row */
+  .account-balance-sub-row {
+    margin-left: 24px;
+    padding-left: 14px !important;
+    position: relative;
+    border-left: 1px solid rgba(148,163,184,.28);
+  }
+
+  .account-balance-sub-row::before {
+    content: "";
+    position: absolute;
+    left: -1px;
+    top: 24px;
+    width: 13px;
+    height: 1px;
+    background: rgba(148,163,184,.42);
+  }
+
+  .account-balance-sub-row .account-balance-name {
+    font-size: 13px !important;
+    color: var(--accent);
+    font-weight: 800;
+  }
+
+  .credit-balance-hint {
+    color: var(--muted);
+  }
+
+  .txn-cashflow-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .txn-chart-toggle-btn {
+    border: 1px solid rgba(148,163,184,.22);
+    background: rgba(15,23,42,.70);
+    color: var(--text);
+    border-radius: 999px;
+    width: 34px;
+    height: 28px;
+    display: inline-grid;
+    place-items: center;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .txn-chart-toggle-btn:active {
+    transform: scale(.94);
+  }
+
+  .txn-chart-toggle-icon {
+    width: 17px;
+    height: 17px;
+    border-radius: 999px;
+    display: block;
+    background: conic-gradient(var(--ok) 0 45%, #ff3b43 45% 100%);
+    box-shadow: inset 0 0 0 2px rgba(15,23,42,.92);
+  }
+
+  .txn-chart-toggle-icon.bar {
+    border-radius: 3px;
+    background:
+      linear-gradient(to top, var(--ok) 0 75%, transparent 75%) 1px 0/5px 17px no-repeat,
+      linear-gradient(to top, #ff3b43 0 48%, transparent 48%) 7px 0/5px 17px no-repeat,
+      linear-gradient(to top, var(--ok) 0 60%, transparent 60%) 13px 0/5px 17px no-repeat;
+    box-shadow: none;
+  }
+
+  .txn-cashflow-pie-wrap {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 14px;
+    align-items: center;
+    padding-top: 4px;
+  }
+
+  .txn-cashflow-pie-svg {
+    width: 112px;
+    height: 112px;
+    overflow: visible;
+  }
+
+  .txn-cashflow-pie-bg {
+    fill: rgba(148,163,184,.10);
+  }
+
+  .txn-cashflow-pie-hole {
+    fill: rgba(15,23,42,.96);
+    stroke: rgba(255,255,255,.08);
+    stroke-width: 1;
+  }
+
+  .txn-cashflow-pie-label {
+    fill: #f8fafc;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    font-weight: 750;
+    letter-spacing: -0.04em;
+    dominant-baseline: middle;
+    paint-order: stroke;
+    stroke: rgba(2,6,23,.55);
+    stroke-width: .7px;
+  }
+
+  .txn-cashflow-pie-stats {
+    display: grid;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  .txn-cashflow-pie-stat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: rgba(15,23,42,.48);
+    border: 1px solid rgba(148,163,184,.12);
+    border-radius: 12px;
+    padding: 8px 10px;
+  }
+
+  .txn-cashflow-pie-stat strong {
+    color: var(--text);
+  }
+
+  html[data-theme="light"] .txn-chart-toggle-btn,
+  html[data-theme="light"] .txn-cashflow-pie-stat {
+    background: #eef4fb !important;
+    border-color: rgba(15,23,42,.12) !important;
+  }
+
+  html[data-theme="light"] .txn-cashflow-pie-hole {
+    fill: #ffffff;
+    stroke: rgba(15,23,42,.10);
+  }
+
+  html[data-theme="light"] .txn-cashflow-pie-label {
+    fill: #0f172a !important;
+    stroke: rgba(255,255,255,.80);
+    stroke-width: .6px;
+  }
+
+  .archive-bank-line,
+  .archive-bank-line-hit {
+    cursor: pointer;
+  }
+
+  .archive-bank-line-hit {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 16;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: stroke;
+  }
+
+
+  /* v52 archive trend style toggle */
+  .archive-trend-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .archive-trend-head .section-title {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .archive-trend-bars-svg {
+    width: 100%;
+    height: 190px;
+    display: block;
+    overflow: visible;
+  }
+
+  .archive-trend-bar-segment {
+    rx: 3;
+    cursor: pointer;
+    transition: opacity .12s ease, transform .12s ease;
+    transform-box: fill-box;
+    transform-origin: center bottom;
+  }
+
+  .archive-trend-bar-segment:hover {
+    opacity: .88;
+    transform: scaleY(1.03);
+  }
+
+  .archive-trend-bar-total {
+    fill: var(--text);
+    font-size: 8.5px;
+    font-family: var(--font-mono);
+    font-weight: 900;
+  }
+
+
   /* v106 transactions filtered totals */
   .txn-totals-card {
     margin: 18px 0 10px;
@@ -5037,7 +5280,14 @@
 }
 #filter-bank-all {
   min-width: 0;
+  min-height: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  line-height: 1;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 .txn-filter-toggle-btn {
   width: 100%;
@@ -5358,6 +5608,7 @@ html[data-theme="light"] .txn-day-header {
         <div class="cat-chip" id="filter-bank-csob-sk" onclick="filterBank('csob_sk')"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/CSOB-SK.png" alt="ČSOB SK" loading="lazy"><span>ČSOB SK</span></span></div>
         <div class="cat-chip" id="filter-bank-csob-cz" onclick="filterBank('csob_cz')"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/CSOB-CZ.jpg" alt="ČSOB CZ" loading="lazy"><span>ČSOB CZ</span></span></div>
         <div class="cat-chip" id="filter-bank-moneta" onclick="filterBank('moneta')"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Moneta-CZ.png" alt="Moneta" loading="lazy"><span class="moneta-gradient">Moneta</span></span></div>
+        <div class="cat-chip" id="filter-bank-air-bank-cz" onclick="filterBank('air_bank_cz')"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Airbank.jpg" alt="Air Bank" loading="lazy"><span>Air Bank</span></span></div>
       </div>
     </div>
   </div>
@@ -5413,7 +5664,12 @@ html[data-theme="light"] .txn-day-header {
     </div>
   </div>
   <div class="archive-trend-card">
-    <div class="section-title" style="padding:0;margin-bottom:12px;" data-i18n="spendingTrend">Spending trend</div>
+    <div class="archive-trend-head">
+      <div class="section-title" data-i18n="spendingTrend">Spending trend</div>
+      <button type="button" class="txn-chart-toggle-btn" onclick="toggleArchiveTrendChartType()" id="archive-trend-toggle" title="Switch chart style" aria-label="Switch chart style">
+        <span class="txn-chart-toggle-icon bar" id="archive-trend-toggle-icon"></span>
+      </button>
+    </div>
     <div id="archive-trend-chart"></div>
   </div>
   <div class="section-title" style="margin-top:8px;" data-i18n="monthlyArchive">Monthly archive</div>
@@ -5598,6 +5854,7 @@ html[data-theme="light"] .txn-day-header {
   <div class="search-wrap manager-search-wrap">
     <input class="config-input search-input" id="manager-search" data-i18n-placeholder="searchBanks" placeholder="Search banks" oninput="handleManagerSearch()" />
   </div>
+  <button class="config-save" style="margin: 0 20px 12px; width: calc(100% - 40px);" onclick="syncDetectedBanksToSheets()" data-i18n="syncDetectedBanks">Sync detected banks</button>
 
   <div id="bank-manager-list"></div>
 </div>
@@ -5816,10 +6073,13 @@ let activeBank = 'všetky';
 let activeDirection = 'all';
 let activeSearch = '';
 let activePaymentKind = 'all';
+let activeCardLast4 = '';
 let activeDateFrom = '';
 let activeDateTo = '';
 let activeMonthFilter = '';
 let activeTxnHistoryScope = 'current';
+let txnCashflowChartType = localStorage.getItem('txn_cashflow_chart_type') || 'bar';
+let archiveTrendChartType = localStorage.getItem('archive_trend_chart_type') || 'line';
 const TXN_PAGE_SIZE = 30;
 let txnVisibleLimit = TXN_PAGE_SIZE;
 let autoSyncTimer = null;
@@ -5986,16 +6246,18 @@ function formatMonthString(monthYearStr) {
 }
 
 const BANKS = {
-  rb_cz: { label: 'RB CZ', short: 'RB', color: 'var(--rb-color)', limitKey: 'rbCz', defaultLimit: 10, primaryCurrency: 'CZK', aliases: ['rb cz','raiffeisen','raiffeisen cz','3684'] },
-  csob_sk: { label: 'ČSOB SK', short: 'ČSOB SK', color: 'var(--csob-color)', limitKey: 'csobSk', defaultLimit: 5, primaryCurrency: 'EUR', aliases: ['csob sk','čsob sk','csob slov','čsob slov','5612'] ,
+  rb_cz: { label: 'RB CZ', short: 'RB', color: 'var(--rb-color)', limitKey: 'rbCz', defaultLimit: 10, primaryCurrency: 'CZK', primaryType: 'card', account: '', cards: '3684,1398', aliases: ['rb cz','raiffeisen','raiffeisen cz','3684','1398'] },
+  csob_sk: { label: 'ČSOB SK', short: 'ČSOB SK', color: 'var(--csob-color)', limitKey: 'csobSk', defaultLimit: 5, primaryCurrency: 'EUR', primaryType: 'card', account: '7882', cards: '5612', aliases: ['csob sk','čsob sk','csob slov','čsob slov','5612','7882','9375'] ,
     googleSheetsToggleTitle: 'Google Sheets sync',
     googleSheetsToggleSubOn: 'Zapnuté — appka načíta reálne transakcie zo Sheets.',
-    googleSheetsToggleSubOff: 'Vypnuté — appka používa iba lokálne/demo dáta.',
+    googleSheetsToggleSubOff: 'Vypnuté — appka používa iba lokálnu cache.',
     googleSheetsLocalStatus: 'Google Sheets connection is saved locally. Apps Script URL will be used to save limits, budgets and tokens.'},
-  csob_cz: { label: 'ČSOB CZ', short: 'ČSOB CZ', color: '#8fbfff', limitKey: 'csobCz', defaultLimit: 5, primaryCurrency: 'CZK', aliases: ['csob cz','čsob cz','csob česk','čsob česk'] },
-  moneta: { label: '<span class="moneta-gradient">Moneta</span>', short: '<span class="moneta-gradient">Moneta</span>', color: 'var(--moneta-color)', limitKey: 'moneta', defaultLimit: 0, primaryCurrency: 'CZK', aliases: ['moneta','moneta money','moneta bank'] }
+  csob_cz: { label: 'ČSOB CZ', short: 'ČSOB CZ', color: '#8fbfff', limitKey: 'csobCz', defaultLimit: 5, primaryCurrency: 'CZK', primaryType: 'card', account: '', cards: '8615,9344', aliases: ['csob cz','čsob cz','csob česk','čsob česk','8615','9344'] },
+  csob_cz_credit: { label: 'CSOB CZ credit card', short: 'CSOB credit card', color: '#8fbfff', limitKey: null, defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'credit', parentId: 'csob_cz', isBalanceSubaccount: true, aliases: ['csob cz kreditka','čsob cz kreditka','kreditní karta čsob','kreditna karta csob'] },
+  moneta: { label: '<span class="moneta-gradient">Moneta</span>', short: '<span class="moneta-gradient">Moneta</span>', color: 'var(--moneta-color)', limitKey: 'moneta', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'card', aliases: ['moneta','moneta money','moneta bank'] },
+  air_bank_cz: { label: 'Air Bank', short: 'Air Bank', color: '#b8ff2f', limitKey: 'airBankCz', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'account', account: '????/3030', aliases: ['air bank','airbank','air bank cz','3030'] }
 };
-const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','moneta'];
+const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','moneta','air_bank_cz'];
 
 const BANK_LOGOS = {
   rb_cz: {
@@ -6010,9 +6272,17 @@ const BANK_LOGOS = {
     src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/CSOB-CZ.jpg',
     alt: 'ČSOB CZ'
   },
+  csob_cz_credit: {
+    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/CSOB-CZ.jpg',
+    alt: 'CSOB CZ credit card'
+  },
   moneta: {
     src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Moneta-CZ.png',
     alt: 'Moneta'
+  },
+  air_bank_cz: {
+    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Airbank.jpg',
+    alt: 'Air Bank'
   }
 };
 
@@ -6037,7 +6307,9 @@ function plainBankName(bankKey) {
     rb_cz: 'RB CZ',
     csob_sk: 'ČSOB SK',
     csob_cz: 'ČSOB CZ',
-    moneta: 'Moneta'
+    csob_cz_credit: 'CSOB CZ credit card',
+    moneta: 'Moneta',
+    air_bank_cz: 'Air Bank'
   };
   return names[bankKey] || 'Banka';
 }
@@ -6049,7 +6321,8 @@ function getLimitsForMonth(monthStr) {
     rbCz: saved.rbCz ?? saved.rb ?? RB_LIMIT,
     csobSk: saved.csobSk ?? saved.csob ?? CSOB_LIMIT,
     csobCz: saved.csobCz ?? 5,
-    moneta: saved.moneta ?? 0
+    moneta: saved.moneta ?? 0,
+    airBankCz: saved.airBankCz ?? 0
   };
 }
 
@@ -6063,7 +6336,8 @@ function ensureLimitHistoryForMonth(monthStr) {
     rbCz: existing.rbCz ?? existing.rb ?? RB_LIMIT,
     csobSk: existing.csobSk ?? existing.csob ?? CSOB_LIMIT,
     csobCz: existing.csobCz ?? 5,
-    moneta: existing.moneta ?? 0
+    moneta: existing.moneta ?? 0,
+    airBankCz: existing.airBankCz ?? 0
   };
   return limitsHistory[monthStr];
 }
@@ -6212,7 +6486,8 @@ function saveLimitsForMonth(monthStr, limits) {
     rbCz: Number.isFinite(limits.rbCz) ? limits.rbCz : existing.rbCz,
     csobSk: Number.isFinite(limits.csobSk) ? limits.csobSk : existing.csobSk,
     csobCz: Number.isFinite(limits.csobCz) ? limits.csobCz : existing.csobCz,
-    moneta: Number.isFinite(limits.moneta) ? limits.moneta : existing.moneta
+    moneta: Number.isFinite(limits.moneta) ? limits.moneta : existing.moneta,
+    airBankCz: Number.isFinite(limits.airBankCz) ? limits.airBankCz : existing.airBankCz
   };
   localStorage.setItem('limits_history', JSON.stringify(limitsHistory));
 }
@@ -6246,15 +6521,29 @@ function applySimulatorLimitsForMonth(monthStr) {
   }
 }
 
+
+function isAirBankLikeValue(value) {
+  const text = String(value || '').toLowerCase();
+  return text.includes('air bank') || text.includes('airbank') || text.includes('3030');
+}
+
+function canonicalBankIdFromSheetRow(id, name, account) {
+  const rawId = String(id || '').trim();
+  if (rawId === 'csob_cz_credit') return 'csob_cz_credit';
+  if (rawId === 'air_bank_cz' || isAirBankLikeValue(name) || isAirBankLikeValue(account)) return 'air_bank_cz';
+  return rawId;
+}
+
 function getBankKey(t) {
   const cardLower = String(t.card || '').toLowerCase();
   const bankLower = String(t.bank || t.banka || '').toLowerCase();
   const merchantLower = String(t.merchant || '').toLowerCase();
   const combined = `${bankLower} ${cardLower} ${merchantLower}`;
-  if (combined.includes('csob cz') || combined.includes('čsob cz') || combined.includes('csob česk') || combined.includes('čsob česk')) return 'csob_cz';
+  if (combined.includes('air bank') || combined.includes('airbank') || cardLower.includes('3030')) return 'air_bank_cz';
+  if (combined.includes('csob cz') || combined.includes('čsob cz') || combined.includes('csob česk') || combined.includes('čsob česk') || cardLower.includes('9344') || cardLower.includes('8615')) return 'csob_cz';
   if (combined.includes('moneta')) return 'moneta';
   if (combined.includes('csob sk') || combined.includes('čsob sk') || combined.includes('csob slov') || combined.includes('čsob slov') || cardLower.includes('5612')) return 'csob_sk';
-  if (combined.includes('raiffeisen') || combined.includes('rb cz') || cardLower.includes('3684')) return 'rb_cz';
+  if (combined.includes('raiffeisen') || combined.includes('rb cz') || cardLower.includes('3684') || cardLower.includes('1398')) return 'rb_cz';
   if (merchantLower.includes('sup. maj')) return 'csob_sk';
   return 'rb_cz';
 }
@@ -6265,7 +6554,7 @@ function getBankInfo(key) {
 
 function isCsobTransaction(t) { return getBankKey(t) === 'csob_sk'; }
 
-function getBankStatusText(count, limit) {
+function getBankStatusText(count, limit, monthStr) {
   const dict = I18N[getLanguage()] || I18N.en;
 
   if (!limit || limit <= 0) {
@@ -6276,7 +6565,13 @@ function getBankStatusText(count, limit) {
     return `<span class="archive-bank-status" style="color:var(--ok);">${dict.completed}</span>`;
   }
 
-  return `<span class="archive-bank-status" style="color:var(--danger);">${dict.notCompleted}</span>`;
+  const normalizedMonth = normalizeMonthStr(monthStr || '');
+  const currentMonth = normalizeMonthStr(getAktuálneMonth());
+  const label = normalizedMonth && normalizedMonth === currentMonth
+    ? (dict.missingCurrent || 'Missing')
+    : (dict.notCompleted || 'Missed');
+
+  return `<span class="archive-bank-status" style="color:var(--danger);">${label}</span>`;
 }
 
 function getDaysRemaining() {
@@ -6349,6 +6644,43 @@ function sortTransactionsNewestFirst(txns) {
   return txns
     .map(recalculateTransactionDateFields)
     .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+}
+
+
+
+function dedupeTransactionsForCloud(txns) {
+  const seen = new Set();
+  const out = [];
+  (txns || []).forEach((tx, index) => {
+    if (!tx) return;
+    const id = String(tx.msgId || tx.emailId || tx['Email ID'] || tx.id || '').trim();
+    const fallbackKey = [tx.date || tx.rawDate || '', tx.amount || 0, tx.currency || '', tx.merchant || '', tx.card || '', tx.bank || ''].join('|');
+    const key = id && !/^demo/i.test(id) ? 'id:' + id : 'fb:' + fallbackKey;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ ...tx, id: id || tx.id || ('cloud_' + index), msgId: id || tx.msgId || tx.id || '' });
+  });
+  return out;
+}
+
+function clearDemoTransactionsCacheIfNeeded() {
+  // Cloud-first build: demo/local transaction caches are not a data source anymore.
+  try {
+    localStorage.removeItem('cached_txns');
+    localStorage.removeItem('demo_txns');
+    localStorage.removeItem('test_txns');
+    localStorage.removeItem('manual_demo_txns');
+  } catch (e) {}
+}
+
+function clearCloudFirstLocalData() {
+  // Keep user configuration such as URLs/theme/language, but never keep transactions as local master data.
+  try {
+    localStorage.removeItem('cached_txns');
+    localStorage.removeItem('demo_txns');
+    localStorage.removeItem('test_txns');
+    localStorage.removeItem('manual_demo_txns');
+  } catch (e) {}
 }
 
 function formatDate(d) {
@@ -6455,6 +6787,10 @@ function parseSheetData(raw) {
   let index = 0;
   for (const row of rows) {
     if (!row.c || !row.c[0]) continue;
+    const firstCell = String(row.c[0]?.v ?? row.c[0]?.f ?? '').trim().toLowerCase();
+    const merchantCell = String(row.c[3]?.v ?? row.c[3]?.f ?? '').trim().toLowerCase();
+    const currencyCell = String(row.c[2]?.v ?? row.c[2]?.f ?? '').trim().toLowerCase();
+    if (firstCell === 'dátum' || firstCell === 'datum' || merchantCell === 'obchodník' || merchantCell === 'obchodnik' || currencyCell === 'mena') continue;
     const txDate = parseGSheetDate(row.c[0]?.v);
     const dateStr = txDate ? formatDate(txDate) : String(row.c[0]?.f || '');
     const monthStr = txDate ? `${String(txDate.getMonth()+1).padStart(2,'0')}/${txDate.getFullYear()}` : String(row.c[7]?.v || '');
@@ -6539,32 +6875,58 @@ async function syncFxRatesFromSheets(spreadsheetId) {
   }
 }
 
+
+async function fetchSheetTransactions(spreadsheetId, sheetName) {
+  const gvizUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+  const res = await fetch(gvizUrl);
+  if (!res.ok) throw new Error(`${sheetName} fetch failed`);
+  const raw = await res.text();
+  return parseSheetData(raw);
+}
+
+async function syncArchivedTransactionsFromSheets(spreadsheetId) {
+  try {
+    if (!spreadsheetId) return [];
+    const txns = await fetchSheetTransactions(spreadsheetId, 'Archiv_Transakcie');
+    return txns.map(tx => ({ ...tx, archived: true }));
+  } catch (e) {
+    console.warn('Archiv_Transakcie sync skipped:', e);
+    return [];
+  }
+}
+
 async function syncData() {
+  clearCloudFirstLocalData();
   if (!isGoogleSheetsEnabled()) {
-    console.log('Google Sheets disabled — using local/demo data.');
-    loadCachedOrDemoData();
+    console.log('Google Sheets disabled — cloud-first build shows no local/demo transactions.');
+    allTransactions = [];
     renderAll();
     applyLanguage();
     updateGoogleSheetsToggleUi();
     return;
   }
 
-  if (!SHEETS_URL || isSyncing) return;
+  if (!SHEETS_URL || isSyncing) {
+    allTransactions = [];
+    renderAll();
+    applyLanguage();
+    return;
+  }
   isSyncing = true;
   const btn = document.getElementById('sync-btn');
   if (btn) btn.classList.add('spinning');
   try {
     const match = SHEETS_URL.match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (!match) throw new Error('Neplatné URL');
-    const gvizUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:json&sheet=Transakcie`;
-    const res = await fetch(gvizUrl);
-    const raw = await res.text();
-    allTransactions = parseSheetData(raw);
-    localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
+    await syncBanksFromSheets(match[1]);
     await syncFxRatesFromSheets(match[1]);
+    await syncBankSettingsFromSheets(match[1]);
+    const activeTxns = await fetchSheetTransactions(match[1], 'Transakcie');
+    const archivedTxns = await syncArchivedTransactionsFromSheets(match[1]);
+    allTransactions = sortTransactionsNewestFirst(dedupeTransactionsForCloud([...activeTxns, ...archivedTxns]));
   } catch(e) {
-    const cached = localStorage.getItem('cached_txns');
-    if (cached) allTransactions = sortTransactionsNewestFirst(JSON.parse(cached));
+    console.error('Google Sheets transaction sync failed:', e);
+    allTransactions = [];
   }
   if (btn) btn.classList.remove('spinning');
   isSyncing = false;
@@ -6573,30 +6935,9 @@ async function syncData() {
 }
 
 function loadDemoData() {
-  const current = getAktuálneMonth();
-  allTransactions = [
-    { id: 'demo-1', date:'18.05.2026 14:20', amount:-12.50, currency:'EUR', merchant:'Billa SK', category:'Potraviny', card:'ČSOB SK', month: current, timestamp: new Date(2026, 4, 18, 14, 20).getTime() },
-    { id: 'demo-2', date:'15.05.2026 08:30', amount:-4.20, currency:'EUR', merchant:'Starbucks SK', category:'Káva', card:'ČSOB SK', month: current, timestamp: new Date(2026, 4, 15, 8, 30).getTime() },
-    { id: 'demo-3', date:'13.05.2026 16:08', amount:-553, currency:'CZK', merchant:'Alza.cz', category:'Elektronika', card:'**** 3684', month: current, timestamp: new Date(2026, 4, 13, 16, 8).getTime() },
-    { id: 'demo-4', date:'11.05.2026 09:15', amount:-320, currency:'CZK', merchant:'Shell', category:'Pohonné hmoty', card:'**** 3684', month: current, timestamp: new Date(2026, 4, 11, 9, 15).getTime() },
-
-    ...Array.from({length: 11}, (_, i) => ({ id: `demo-apr-rb-${i}`, date:`25.04.2026 10:${i}`, amount:-100, currency:'CZK', merchant:'Albert', category:'Potraviny', card:'**** 3684', month: '04/2026', timestamp: 1000 + i })),
-    ...Array.from({length: 5}, (_, i) => ({ id: `demo-apr-csob-${i}`, date:`24.04.2026 14:${i}`, amount:-10, currency:'EUR', merchant:'Tesco SK', category:'Potraviny', card:'ČSOB SK', month: '04/2026', timestamp: 2000 + i })),
-
-    ...Array.from({length: 10}, (_, i) => ({ id: `demo-mar-rb-${i}`, date:`25.03.2026 11:${i}`, amount:-150, currency:'CZK', merchant:'Lidl', category:'Potraviny', card:'**** 3684', month: '03/2026', timestamp: 3000 + i })),
-    ...Array.from({length: 4}, (_, i) => ({ id: `demo-mar-csob-${i}`, date:`23.03.2026 09:${i}`, amount:-5, currency:'EUR', merchant:'Kaviareň', category:'Káva', card:'ČSOB SK', month: '03/2026', timestamp: 4000 + i }))
-  ];
-
-  if (Object.keys(limitsHistory).length === 0) {
-    limitsHistory['04/2026'] = { rb: 10, csob: 5 };
-    limitsHistory['03/2026'] = { rb: 10, csob: 5 };
-    limitsHistory['02/2026'] = { rb: 10, csob: 5 };
-    localStorage.setItem('limits_history', JSON.stringify(limitsHistory));
-  }
-
-  allTransactions = sortTransactionsNewestFirst(allTransactions);
+  // Cloud-first production build: no demo/test transactions.
+  allTransactions = [];
 }
-
 
 
 
@@ -6936,7 +7277,6 @@ function deleteSingleTransaction(txId) {
   if (!txId) return;
 
   allTransactions = allTransactions.filter(t => String(t.id || t.msgId || '') !== String(txId));
-  localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
 
   postToBankTrackerEndpoint('deleteTransaction', { id: String(txId) });
 
@@ -6953,7 +7293,6 @@ function deleteArchiveMonth(monthStr) {
 
   // Odstráni všetky platby patriace pod vymazaný mesiac
   allTransactions = allTransactions.filter(t => t.month !== monthStr);
-  localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
 
   if (limitsHistory[monthStr]) {
     delete limitsHistory[monthStr];
@@ -7053,6 +7392,7 @@ function updateDirectionFilterUi() {
 
 function filterPaymentKind(kind) {
   activePaymentKind = kind || 'all';
+  activeCardLast4 = '';
   resetTxnVisibleLimit();
   updatePaymentKindFilterUi();
   updateTxnPage();
@@ -7371,7 +7711,49 @@ function getBankBalanceCurrency(bankKey) {
     return bank?.currency || 'CZK';
   }
   const bank = getBankInfo(bankKey);
-  return localStorage.getItem('bank_currency_' + bankKey) || bank.primaryCurrency || 'CZK';
+  const saved = localStorage.getItem('bank_currency_' + bankKey);
+  if (bankKey === 'csob_sk' && (!saved || saved === 'CZK')) return 'EUR';
+  return saved || bank.primaryCurrency || 'CZK';
+}
+
+const CREDIT_BALANCE_SUBACCOUNTS = [
+  { id: 'csob_cz_credit', parentId: 'csob_cz', nameKey: 'csobCzCreditOutstandingName', currency: 'CZK', cardLast4: '9344', liability: true }
+];
+
+function getCreditBalanceSubaccount(id) {
+  return CREDIT_BALANCE_SUBACCOUNTS.find(item => item.id === id) || null;
+}
+
+function getCreditBalanceSubaccountsForParent(parentId) {
+  return CREDIT_BALANCE_SUBACCOUNTS.filter(item => item.parentId === parentId);
+}
+
+function getCreditSubaccountExpandedKey(id) {
+  return 'credit_subaccount_expanded_' + id;
+}
+
+function isCreditSubaccountExpanded(id) {
+  const saved = localStorage.getItem(getCreditSubaccountExpandedKey(id));
+  return saved === null ? true : saved === 'true';
+}
+
+function toggleCreditSubaccount(id) {
+  const next = !isCreditSubaccountExpanded(id);
+  localStorage.setItem(getCreditSubaccountExpandedKey(id), String(next));
+  renderAccountBalanceWidget();
+}
+
+function getCreditOutstandingBalance(id) {
+  return Number(localStorage.getItem(getAccountBalanceStorageKey(id)) || '0') || 0;
+}
+
+function setCreditOutstandingBalance(id, value) {
+  localStorage.setItem(getAccountBalanceStorageKey(id), String(Number(value || 0) || 0));
+}
+
+function getCreditOutstandingCurrency(id) {
+  const config = getCreditBalanceSubaccount(id);
+  return config?.currency || 'CZK';
 }
 
 function getAllManagedBanksForBalance() {
@@ -7396,16 +7778,53 @@ function renderAccountBalanceWidget() {
   updateAccountBalanceFxBadge();
   const wrap = document.getElementById('account-balance-widget');
   if (!wrap) return;
-  const rows = getAllManagedBanksForBalance().map(bank => {
-    const currency = bank.currency || 'CZK';
-    const value = formatCurrencyAmount(bank.balance || 0, currency);
-    const czkEquivalent = getCzkEquivalentText(bank.balance || 0, currency);
-    return `
-      <div class="budget-bank-row account-balance-row" onclick="openBankTransactions('${bank.id}', 'all')" title="${t('filteredTransactions')}" style="padding:10px 0;border-bottom:1px solid var(--border);">
+
+  const banks = getAllManagedBanksForBalance();
+  const targetCurrency = getAppCurrency();
+  const visibleSubaccounts = CREDIT_BALANCE_SUBACCOUNTS
+    .filter(item => isCreditSubaccountExpanded(item.id))
+    .map(item => ({
+      id: item.id,
+      parentId: item.parentId,
+      name: t(item.nameKey),
+      currency: item.currency || 'CZK',
+      balance: getCreditOutstandingBalance(item.id),
+      isSubaccount: true,
+      liability: item.liability !== false,
+      cardLast4: item.cardLast4 || ''
+    }));
+
+  const bankTotal = banks.reduce((sum, bank) => {
+    return sum + convertAmountCurrency(bank.balance || 0, bank.currency || targetCurrency, targetCurrency);
+  }, 0);
+  const creditImpact = visibleSubaccounts.reduce((sum, item) => {
+    const value = convertAmountCurrency(item.balance || 0, item.currency || targetCurrency, targetCurrency);
+    return sum + (item.liability ? -value : value);
+  }, 0);
+  const totalBalance = bankTotal + creditImpact;
+
+  const totalRow = banks.length ? `
+      <div class="budget-bank-row account-balance-row account-balance-total-row" title="${escapeAttr(t('accountBalanceTotal'))}">
         <div class="budget-status-main">
           <div class="account-balance-name-wrap">
-            <div class="budget-status-value account-balance-name" style="font-size:15px;">${bank.logo} ${escapeHtml(bank.name)}</div>
-            <div class="budget-status-note">${t('accountBalanceManageHint')}</div>
+            <div class="budget-status-value account-balance-name">Σ ${escapeHtml(t('accountBalanceTotal'))}</div>
+            <div class="budget-status-note">${escapeHtml(t('accountBalanceTotalHint'))}</div>
+          </div>
+          <div class="account-balance-value-wrap">
+            <div class="budget-status-value account-balance-value">${escapeHtml(formatCurrencyAmount(totalBalance, targetCurrency))}</div>
+          </div>
+        </div>
+      </div>` : '';
+
+  const renderSubaccountRow = (item) => {
+    const currency = item.currency || 'CZK';
+    const value = formatCurrencyAmount(item.balance || 0, currency);
+    const czkEquivalent = getCzkEquivalentText(item.balance || 0, currency);
+    return `
+      <div class="budget-bank-row account-balance-row account-balance-sub-row" onclick="openCreditCardTransactions('${escapeAttr(item.cardLast4 || '')}')" title="${escapeAttr(t('filteredTransactions'))}" style="padding:9px 0 9px 18px;border-bottom:1px solid var(--border);cursor:pointer;">
+        <div class="budget-status-main">
+          <div class="account-balance-name-wrap">
+            <div class="budget-status-value account-balance-name" style="color:var(--accent);font-size:14px;">└ ${escapeHtml(item.name)}</div>
           </div>
           <div class="account-balance-value-wrap">
             <div class="budget-status-value account-balance-value" style="color:var(--accent);">${escapeHtml(value)}</div>
@@ -7413,13 +7832,52 @@ function renderAccountBalanceWidget() {
           </div>
         </div>
       </div>`;
+  };
+
+  const rows = banks.map(bank => {
+    const currency = bank.currency || 'CZK';
+    const value = formatCurrencyAmount(bank.balance || 0, currency);
+    const czkEquivalent = getCzkEquivalentText(bank.balance || 0, currency);
+    const children = getCreditBalanceSubaccountsForParent(bank.id);
+    const hasChildren = children.length > 0;
+    const firstChildId = children[0]?.id || '';
+    const expanded = hasChildren ? isCreditSubaccountExpanded(firstChildId) : false;
+    const childRows = children
+      .filter(item => isCreditSubaccountExpanded(item.id))
+      .map(item => renderSubaccountRow({
+        id: item.id,
+        parentId: item.parentId,
+        name: t(item.nameKey),
+        currency: item.currency || 'CZK',
+        balance: getCreditOutstandingBalance(item.id),
+        isSubaccount: true,
+        liability: item.liability !== false,
+        cardLast4: item.cardLast4 || ''
+      })).join('');
+    const rollButton = hasChildren ? `<button class="account-balance-rollup-btn" onclick="event.stopPropagation(); toggleCreditSubaccount('${escapeAttr(firstChildId)}')" title="${escapeAttr(expanded ? 'Collapse' : 'Expand')}" aria-label="${escapeAttr(expanded ? 'Collapse' : 'Expand')}">${expanded ? '⌄' : '›'}</button>` : '';
+    return `
+      <div class="budget-bank-row account-balance-row" onclick="openBankTransactions('${bank.id}', 'all')" title="${t('filteredTransactions')}" style="padding:10px 0;border-bottom:1px solid var(--border);">
+        <div class="budget-status-main">
+          <div class="account-balance-name-wrap">
+            <div class="budget-status-value account-balance-name" style="font-size:15px;display:flex;align-items:center;gap:7px;">${bank.logo} <span>${escapeHtml(bank.name)}</span>${rollButton}</div>
+            <div class="budget-status-note">${t('accountBalanceManageHint')}</div>
+          </div>
+          <div class="account-balance-value-wrap">
+            <div class="budget-status-value account-balance-value" style="color:var(--accent);">${escapeHtml(value)}</div>
+            ${czkEquivalent ? `<div class="budget-status-note account-balance-equivalent">${escapeHtml(czkEquivalent)}</div>` : ''}
+          </div>
+        </div>
+      </div>${childRows}`;
   }).join('');
-  wrap.innerHTML = rows || `<div class="budget-status-note">${t('noBanksAdded')}</div>`;
+  wrap.innerHTML = banks.length ? (rows + totalRow) : `<div class="budget-status-note">${t('noBanksAdded')}</div>`;
 }
+
+
 
 function openBankBudgetTransactions(bankKey) {
   showPage('txns');
   activeCategory = 'všetky';
+  activeCardLast4 = '';
   activePaymentKind = 'all';
   activeDirection = 'all';
   activeMonthFilter = '';
@@ -7452,7 +7910,6 @@ function maybeSendBudgetLocalNotification(bankKey, bankLabel, spent, budget, rem
   }
 }
 
-
 function getCurrentMonthOutgoingTransactions() {
   const month = getAktuálneMonth();
   return allTransactions.filter(t => t.month === month && Number(t.amount) < 0);
@@ -7470,7 +7927,6 @@ function getTransactionsCzkEquivalentTotal(txns) {
 
 function renderAll() {
   allTransactions = sortTransactionsNewestFirst(allTransactions);
-  localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
 
   const month = getAktuálneMonth();
   const monthTxns = getCurrentMonthOutgoingTransactions();
@@ -7522,7 +7978,7 @@ function renderBankCards(byBank) {
 
 function getBankCardDisplayLabel(bankKey, txns) {
   const fallbackCards = {
-    rb_cz: ['3684'],
+    rb_cz: ['3684','1398'],
     csob_sk: ['5612'],
     csob_cz: [],
     moneta: []
@@ -7777,6 +8233,13 @@ function getTxnDateKey(tx) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+
+function toggleTxnCashflowChartType() {
+  txnCashflowChartType = txnCashflowChartType === 'pie' ? 'bar' : 'pie';
+  localStorage.setItem('txn_cashflow_chart_type', txnCashflowChartType);
+  updateTxnPage();
+}
+
 function renderTransactionDailyCashflow(txns) {
   if (!txns || !txns.length) return '';
 
@@ -7794,6 +8257,72 @@ function renderTransactionDailyCashflow(txns) {
   if (!days.length) return '';
 
   const visibleDays = days.slice(-14);
+  const totalIncoming = visibleDays.reduce((s, day) => s + (byDay[day].incoming || 0), 0);
+  const totalOutgoing = visibleDays.reduce((s, day) => s + (byDay[day].outgoing || 0), 0);
+  const totalCashflow = totalIncoming + totalOutgoing;
+  const chartType = txnCashflowChartType === 'pie' ? 'pie' : 'bar';
+  const toggleTitle = chartType === 'pie' ? t('switchToBarChart') : t('switchToPieChart');
+  const toggleIconClass = chartType === 'pie' ? 'bar' : 'pie';
+
+  const head = `
+      <div class="txn-cashflow-head">
+        <div class="txn-cashflow-title">${t('dailyCashflow')}</div>
+        <div class="txn-cashflow-actions">
+          <div class="txn-cashflow-legend">
+            <span><i class="txn-cashflow-dot" style="background: var(--ok)"></i>${t('incoming')}</span>
+            <span><i class="txn-cashflow-dot" style="background: #ff3b43"></i>${t('spent')}</span>
+          </div>
+          <button type="button" class="txn-chart-toggle-btn" onclick="toggleTxnCashflowChartType()" title="${escapeAttr(toggleTitle)}" aria-label="${escapeAttr(toggleTitle)}">
+            <span class="txn-chart-toggle-icon ${toggleIconClass}"></span>
+          </button>
+        </div>
+      </div>`;
+
+  if (chartType === 'pie') {
+    const incomingPct = totalCashflow > 0 ? totalIncoming / totalCashflow : 0;
+    const outgoingPct = totalCashflow > 0 ? totalOutgoing / totalCashflow : 0;
+    const incomingDeg = Math.max(0, Math.min(360, incomingPct * 360));
+    const r = 44;
+    const cx = 56;
+    const cy = 56;
+    const polar = (angleDeg) => {
+      const a = (angleDeg - 90) * Math.PI / 180;
+      return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+    };
+    const wedge = (start, end, cls) => {
+      if (end - start >= 359.99) {
+        return `<circle cx="${cx}" cy="${cy}" r="${r}" class="${cls}"></circle>`;
+      }
+      if (end <= start) return '';
+      const p1 = polar(start);
+      const p2 = polar(end);
+      const large = end - start > 180 ? 1 : 0;
+      return `<path class="${cls}" d="M ${cx} ${cy} L ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)} Z"></path>`;
+    };
+    const incomingWedge = wedge(0, incomingDeg, 'txn-cashflow-bar-in');
+    const outgoingWedge = wedge(incomingDeg, 360, 'txn-cashflow-bar-out');
+    const net = totalIncoming - totalOutgoing;
+    const netClass = net >= 0 ? 'amount-income' : 'amount-expense';
+    return `
+    <div class="txn-cashflow-card">
+      ${head}
+      <div class="txn-cashflow-pie-wrap">
+        <svg class="txn-cashflow-pie-svg" viewBox="0 0 112 112" aria-label="${t('pieChart')}">
+          <circle class="txn-cashflow-pie-bg" cx="56" cy="56" r="48"></circle>
+          ${outgoingWedge}${incomingWedge}
+          <circle class="txn-cashflow-pie-hole" cx="56" cy="56" r="22"></circle>
+          <text class="txn-cashflow-pie-label" x="56" y="55" text-anchor="middle">${Math.round(outgoingPct * 100)}%</text>
+          <text class="txn-cashflow-axis-label" x="56" y="68" text-anchor="middle">${t('spent')}</text>
+        </svg>
+        <div class="txn-cashflow-pie-stats">
+          <div class="txn-cashflow-pie-stat"><span>${t('incoming')}</span><strong class="amount-income">+${formatMoney(totalIncoming, getAppCurrency())}</strong></div>
+          <div class="txn-cashflow-pie-stat"><span>${t('spent')}</span><strong class="amount-expense">-${formatMoney(totalOutgoing, getAppCurrency())}</strong></div>
+          <div class="txn-cashflow-pie-stat"><span>${t('totalNet')}</span><strong class="${netClass}">${net >= 0 ? '+' : '-'}${formatMoney(Math.abs(net), getAppCurrency())}</strong></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
   const maxValue = Math.max(1, ...visibleDays.flatMap(day => [byDay[day].incoming, byDay[day].outgoing]));
   const width = 320;
   const height = 142;
@@ -7845,13 +8374,7 @@ function renderTransactionDailyCashflow(txns) {
 
   return `
     <div class="txn-cashflow-card">
-      <div class="txn-cashflow-head">
-        <div class="txn-cashflow-title">${t('dailyCashflow')}</div>
-        <div class="txn-cashflow-legend">
-          <span><i class="txn-cashflow-dot" style="background: var(--ok)"></i>${t('incoming')}</span>
-          <span><i class="txn-cashflow-dot" style="background: #ff3b43"></i>${t('spent')}</span>
-        </div>
-      </div>
+      ${head}
       <svg class="txn-cashflow-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="${t('dailyCashflow')}">
         <line class="txn-cashflow-grid" x1="${leftPad}" y1="${baseline}" x2="${width}" y2="${baseline}" />
         <line class="txn-cashflow-grid" x1="${leftPad}" y1="${top + chartH / 2}" x2="${width}" y2="${top + chartH / 2}" />
@@ -8011,6 +8534,11 @@ function toggleTransactionFilterPanel() {
   updateTransactionFilterPanelUi();
 }
 
+function collapseTransactionFilterPanel() {
+  txnFilterPanelOpen = false;
+  updateTransactionFilterPanelUi();
+}
+
 function updateTransactionFilterPanelUi() {
   const panel = document.getElementById('txn-advanced-filters');
   if (panel) panel.classList.toggle('open', !!txnFilterPanelOpen);
@@ -8042,6 +8570,7 @@ function updateTransactionFilterSummary() {
   if (activeDateFrom || activeDateTo) chips.push(activeDateFrom && activeDateTo ? `${activeDateFrom}–${activeDateTo}` : (activeDateFrom || activeDateTo));
   if (activeDirection && activeDirection !== 'all') chips.push(getDirectionFilterLabel(activeDirection));
   if (activePaymentKind && activePaymentKind !== 'all') chips.push(getPaymentKindFilterLabel(activePaymentKind));
+  if (activeCardLast4) chips.push(getCardSourceLabelByLast4(activeCardLast4) || ('****' + activeCardLast4));
   if (activeCategory && activeCategory !== 'všetky') chips.push(translateCategory(activeCategory));
   wrap.innerHTML = chips.slice(0, 4).map(label => `<span class="txn-filter-summary-chip">${escapeHtml(label)}</span>`).join('');
 }
@@ -8064,13 +8593,44 @@ function getTxnTimeDisplay(tx) {
   return `${String(parsed.getHours()).padStart(2,'0')}:${String(parsed.getMinutes()).padStart(2,'0')}`;
 }
 
+function getCardSourceLabelByLast4(last4) {
+  const labels = {
+    '9344': 'CSOB CZ credit card',
+    '8615': 'CSOB CZ debit card',
+    '3684': 'RB CZ Mastercard',
+    '1398': 'RB CZ Visa',
+    '5612': 'CSOB SK card'
+  };
+  return labels[String(last4 || '')] || '';
+}
+
 function getPaymentSourceMasked(tx) {
   const raw = String(tx?.card || '').trim();
   if (!raw) return '';
   if (/cash/i.test(raw)) return raw;
   const digits = raw.replace(/\D/g, '');
-  if (digits.length >= 4) return '****' + digits.slice(-4);
+  if (digits.length >= 4) {
+    const last4 = digits.slice(-4);
+    const label = getCardSourceLabelByLast4(last4);
+    return label ? `${label} ****${last4}` : '****' + last4;
+  }
   return raw.replace(/^Karta\s*/i, '').replace(/^Účet\s*/i, '').trim() || raw;
+}
+
+function transactionMatchesCardLast4(tx, last4) {
+  const target = String(last4 || '').replace(/\D/g, '').slice(-4);
+  if (!target) return true;
+  const cardText = String(tx?.card || '').toLowerCase();
+  const typeText = String(tx?.type || '').toLowerCase();
+  const merchantText = String(tx?.merchant || '').toLowerCase();
+  const bankText = String(tx?.bank || tx?.banka || '').toLowerCase();
+  const digits = cardText.replace(/\D/g, '');
+  if (digits.endsWith(target) || cardText.includes(target)) return true;
+  if (target === '9344') {
+    const combined = `${cardText} ${typeText} ${merchantText} ${bankText}`;
+    return combined.includes('csob cz credit card') || combined.includes('splátka kredit') || combined.includes('splatka kredit') || combined.includes('kreditní kart') || combined.includes('kreditni kart');
+  }
+  return false;
 }
 
 function togglePaymentSourceDetail(el) {
@@ -8098,6 +8658,7 @@ function updateTxnPage(monthTxns) {
   if (activeDirection === 'incoming') base = base.filter(t => Number(t.amount) > 0);
   if (activeDirection === 'outgoing') base = base.filter(t => Number(t.amount) < 0);
   if (activeBank !== 'všetky') base = base.filter(t => getBankKey(t) === activeBank);
+  if (activeCardLast4) base = base.filter(t => transactionMatchesCardLast4(t, activeCardLast4));
 
   if (activePaymentKind === 'card') base = base.filter(t => isCardTransaction(t));
   if (activePaymentKind === 'account') base = base.filter(t => isAccountTransaction(t));
@@ -8450,9 +9011,30 @@ function setTransactionDateRangeFromBankMonth(bankKey, monthStr, paymentKind = '
   activeDateTo = '';
 }
 
+function openCreditCardTransactions(cardLast4 = '9344') {
+  showPage('txns', { preserveFilters: true });
+  activeCategory = 'všetky';
+  activeBank = 'csob_cz';
+  activePaymentKind = 'all';
+  activeDirection = 'all';
+  activeCardLast4 = String(cardLast4 || '9344').replace(/\D/g, '').slice(-4);
+  activeDateFrom = '';
+  activeDateTo = '';
+  activeMonthFilter = '';
+  activeTxnHistoryScope = 'all';
+  activeSearch = '';
+  const search = document.getElementById('txn-search');
+  if (search) search.value = '';
+  updatePaymentKindFilterUi();
+  updateDirectionFilterUi();
+  updateTransactionDateInputs();
+  filterBank('csob_cz');
+}
+
 function openBankTransactions(bankKey, paymentKind = 'card') {
   showPage('txns');
   activeCategory = 'všetky';
+  activeCardLast4 = '';
   activePaymentKind = paymentKind || 'all';
   activeDateFrom = '';
   activeDateTo = '';
@@ -8512,6 +9094,7 @@ function openBankMonthTransactions(bankKey, monthStr, paymentKind = 'card') {
 }
 
 function filterBank(bank) {
+  if (bank !== 'csob_cz') activeCardLast4 = '';
   activeBank = bank;
   resetTxnVisibleLimit();
   document.getElementById('filter-bank-all').classList.toggle('active', bank === 'všetky');
@@ -8523,6 +9106,7 @@ function filterBank(bank) {
 }
 
 function filterCategory(cat) {
+  activeCardLast4 = '';
   activeCategory = cat;
   resetTxnVisibleLimit();
   updateTxnPage();
@@ -8535,6 +9119,7 @@ function resetTransactionFilters() {
   activeDirection = 'all';
   activeBank = 'všetky';
   activePaymentKind = 'all';
+  activeCardLast4 = '';
   activeCategory = 'všetky';
   activeSearch = '';
   activeDateFrom = '';
@@ -8592,7 +9177,15 @@ function showPage(pageId, options = {}) {
   activePageId = pageId;
 
   if (pageId === 'txns') {
-    if (!options.preserveFilters) resetTransactionFilters();
+    if (!options.preserveFilters) {
+      resetTransactionFilters();
+      collapseTransactionFilterPanel();
+      const search = document.getElementById('txn-search');
+      if (search) search.value = '';
+      const page = document.getElementById('page-txns');
+      if (page) page.scrollTop = 0;
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
     updateTxnPage();
   }
 
@@ -8628,9 +9221,21 @@ async function saveConfig() {
   if (typeof updateGoogleSheetsToggleUi === 'function') updateGoogleSheetsToggleUi();
   localStorage.setItem('limits_webapp_url', LIMITS_WEBAPP_URL);
 
-  alert(isLocalEditMode()
+  if (LIMITS_WEBAPP_URL && !isValidAppsScriptExecUrl(LIMITS_WEBAPP_URL)) {
+    showInvalidWebAppUrlWarning();
+  }
+
+  let bankSyncMessage = '';
+  if (LIMITS_WEBAPP_URL) {
+    const sentCount = await syncAllBanksAndSettingsToEndpoint();
+    bankSyncMessage = sentCount
+      ? `\nBanky + Bank_Settings odoslané: ${sentCount} záznamov.`
+      : '\nWeb App URL je uložená, ale nebolo čo odoslať.';
+  }
+
+  alert((isLocalEditMode()
     ? 'Konfigurácia uložená. Offline/test režim je aktívny.'
-    : 'Konfigurácia uložená. Google Sheets režim je aktívny, lokálne pridávanie a mazanie platieb je vypnuté.');
+    : 'Konfigurácia uložená. Google Sheets režim je aktívny, lokálne pridávanie a mazanie platieb je vypnuté.') + bankSyncMessage);
 
   renderAll();
   showPage('overview');
@@ -8647,12 +9252,8 @@ function ensureLimitsHistoryForLoadedTransactions() {
 }
 
 function loadCachedOrDemoData() {
-  const cached = localStorage.getItem('cached_txns');
-  if (cached) {
-    allTransactions = sortTransactionsNewestFirst(JSON.parse(cached));
-  } else {
-    loadDemoData(); // Načíta vzorové dáta iba na prvýkrát
-  }
+  clearDemoTransactionsCacheIfNeeded();
+  allTransactions = [];
 }
 
 function prepareUiAfterDataLoad() {
@@ -9308,7 +9909,7 @@ function toggleBankEdit(bankId) {
   if (row) row.classList.toggle('open');
 }
 
-function updateCustomBank(bankId) {
+async function updateCustomBank(bankId) {
   const banks = getCustomBanks();
   const bank = banks.find(b => b.id === bankId);
   if (!bank) return;
@@ -9324,10 +9925,13 @@ function updateCustomBank(bankId) {
   setBudgetSettingsForBank(bankId, bank.budget, bank.warning, budgetMonth);
 
   saveCustomBanks(banks);
-  postToBankTrackerEndpoint('saveBank', { bank });
+  // v50 hotfix: saveBank must only update the Banky tab.
+  // Limits, budgets and balances are saved only via saveBankSettingsEndpoint below.
+  const bankOk = await postToBankTrackerEndpoint('saveBank', { bank: getEndpointBankPayload(bankId, bank) });
+  const settingsOk = await saveBankSettingsEndpoint(bankId, budgetMonth, bank.cardLimit, bank.budget, bank.warning, bank.balance);
   renderBankManager();
   renderAll();
-  alert(t('saveChanges'));
+  alert(bankOk && settingsOk ? 'Zmeny boli uložené v Google Sheets.' : 'Zmeny ostali lokálne. Google Sheets zápis neprebehol - skontroluj Web App /exec URL a Apps Script Executions.');
 }
 
 
@@ -9493,7 +10097,6 @@ function updateManagedTransactionFromButton(button) {
   tx.msgId = tx.msgId || tx.id;
 
   allTransactions = sortTransactionsNewestFirst(allTransactions);
-  localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
 
   postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
 
@@ -9520,7 +10123,7 @@ function deleteCustomBank(bankId) {
   if (!confirm(t('deleteBankConfirm'))) return;
 
   saveCustomBanks(banks.filter(b => b.id !== bankId));
-  postToBankTrackerEndpoint('saveBank', { bank: { ...bank, active: false } });
+  postToBankTrackerEndpoint('deleteBank', { bankId });
 
   renderBankManager();
   renderAll();
@@ -9589,7 +10192,35 @@ function openAddTransactionSheet(){
   });
 }
 function openBankManagerSheet(){switchManagementTab('banks');renderBankManager();openSheet('bank-manager-sheet')}
-function saveNewBank(){const name=document.getElementById('new-bank-name')?.value.trim();if(!name){alert('Zadaj názov banky.');return}const banks=getCustomBanks();banks.push({id:'custom_'+Date.now(),name,currency:document.getElementById('new-bank-currency')?.value||'CZK',type:document.getElementById('new-bank-type')?.value||'card',account:normalizeAccountMask(document.getElementById('new-bank-account')?.value||''),budget:parseFloat(document.getElementById('new-bank-budget')?.value||'0')||0,warning:parseFloat(document.getElementById('new-bank-warning')?.value||'0')||0,cardLimit:parseInt(document.getElementById('new-bank-card-limit')?.value||'0',10)||0,balance:0});saveCustomBanks(banks);postToBankTrackerEndpoint('saveBank', { bank: banks[banks.length - 1] });alert('Banka bola uložená lokálne a odoslaná do Google Sheets endpointu, ak je Web App URL nastavená.');closeBottomSheets();renderAll()}
+
+async function saveNewBank(){
+  const name=document.getElementById('new-bank-name')?.value.trim();
+  if(!name){alert('Zadaj názov banky.');return}
+  const banks=getCustomBanks();
+  const bank={
+    id:'custom_'+Date.now(),
+    name,
+    currency:document.getElementById('new-bank-currency')?.value||'CZK',
+    type:document.getElementById('new-bank-type')?.value||'card',
+    account:normalizeAccountMask(document.getElementById('new-bank-account')?.value||''),
+    budget:parseFloat(document.getElementById('new-bank-budget')?.value||'0')||0,
+    warning:parseFloat(document.getElementById('new-bank-warning')?.value||'0')||0,
+    cardLimit:parseInt(document.getElementById('new-bank-card-limit')?.value||'0',10)||0,
+    balance:0,
+    budgetMonth:getAktuálneMonth()
+  };
+  banks.push(bank);
+  saveCustomBanks(banks);
+  // v50 hotfix: send a clean Banky payload only.
+  // Do not send budget/warning/cardLimit/balance through saveBank.
+  const bankOk = await postToBankTrackerEndpoint('saveBank', { bank: getEndpointBankPayload(bank.id, bank) });
+  const settingsOk = await saveBankSettingsEndpoint(bank.id, bank.budgetMonth, bank.cardLimit, bank.budget, bank.warning, bank.balance);
+  alert(bankOk || settingsOk
+    ? 'Banka bola uložená lokálne a odoslaná do Google Sheets endpointu.'
+    : 'Banka bola uložená lokálne, ale Google Sheets zápis neprebehol. Skontroluj Web App /exec URL.');
+  closeBottomSheets();
+  renderAll();
+}
 
 function getBankDisplayOverride(bankKey) {
   return localStorage.getItem('bank_display_name_' + bankKey) || plainBankName(bankKey);
@@ -9646,7 +10277,7 @@ function renderBankManager(){
       name:getBankDisplayOverride(k),
       originalName: plainBankName(k),
       logo:bankLogoImg(k),
-      currency:localStorage.getItem('bank_currency_' + k) || bank.primaryCurrency,
+      currency:getBankBalanceCurrency(k),
       cardLimit: currentLimits[bank.limitKey] ?? bank.defaultLimit,
       budget: budgetSettings.budget || 0,
       warning: budgetSettings.warning || 0,
@@ -9683,7 +10314,7 @@ function renderBankManager(){
           <div class="managed-bank-icon">${b.logo}</div>
           <div style="min-width:0;">
             <div class="managed-bank-name">${escapeHtml(b.name)}</div>
-            <div class="managed-bank-sub">${escapeHtml(b.currency)} · ${t('cardLimitShort')} ${b.cardLimit || 0} · ${t('budgetLabel')} ${formatMoney(b.budget || 0, 'CZK')} CZK · ${t('accountBalanceTitle')} ${escapeHtml(formatCurrencyAmount(b.balance || 0, b.currency || 'CZK'))}${getCzkEquivalentText(b.balance || 0, b.currency || 'CZK') ? ` · ${escapeHtml(getCzkEquivalentText(b.balance || 0, b.currency || 'CZK'))}` : ''}</div>
+            <div class="managed-bank-sub">${escapeHtml(b.currency)} · ${t('cardLimitShort')} ${b.cardLimit || 0} · ${t('budgetLabel')} ${formatMoney(b.budget || 0, 'CZK')} CZK · ${t('accountBalanceTitle')} ${escapeHtml(formatCurrencyAmount(b.balance || 0, b.currency || 'CZK'))}${getCzkEquivalentText(b.balance || 0, b.currency || 'CZK') ? ` · ${escapeHtml(getCzkEquivalentText(b.balance || 0, b.currency || 'CZK'))}` : ''}${b.id === 'csob_cz' ? ` · ${escapeHtml(t('csobCzCreditOutstandingShort'))} ${escapeHtml(formatCurrencyAmount(getCreditOutstandingBalance('csob_cz_credit'), 'CZK'))}` : ''}</div>
           </div>
         </div>
         <div class="managed-bank-actions">
@@ -9720,6 +10351,11 @@ function renderBankManager(){
         <label>${t('accountBalanceTitle')}</label>
         <input class="config-input" id="edit-balance-${b.id}" type="number" step="0.01" value="${b.balance||0}" placeholder="0" />
 
+        ${b.id === 'csob_cz' ? `
+        <label>${t('csobCzCreditOutstandingName')}</label>
+        <input class="config-input" id="edit-credit-balance-csob_cz" type="number" step="0.01" value="${getCreditOutstandingBalance('csob_cz_credit') || 0}" placeholder="0" />
+` : ''}
+
         <button class="config-save" onclick="${b.system ? `updateSystemBankSettings('${b.id}')` : `updateCustomBank('${b.id}')`}">${t('saveChanges')}</button>
         ${b.system ? `<div class="budget-status-note">${t('defaultBankCannotDelete')}</div>` : `<button class="manager-danger-btn" onclick="deleteCustomBank('${b.id}')">${t('deleteBank')}</button>`}
       </div>
@@ -9729,7 +10365,7 @@ function renderBankManager(){
   wrap.innerHTML = allBanks.map(row).join('') || `<div class="empty-state">${t('noBanksAdded')}</div>`;
 }
 
-function updateSystemBankSettings(bankKey) {
+async function updateSystemBankSettings(bankKey) {
   const monthStr = getAktuálneMonth();
   const bank = getBankInfo(bankKey);
   const limits = getLimitsForMonth(monthStr);
@@ -9751,9 +10387,28 @@ function updateSystemBankSettings(bankKey) {
   setBudgetSettingsForBank(bankKey, newBudget, newWarning, budgetMonth);
   setAccountBalance(bankKey, newBalance);
 
+  let creditSettingsOk = false;
+  if (bankKey === 'csob_cz') {
+    const creditBalance = parseFloat(document.getElementById('edit-credit-balance-csob_cz')?.value || '0') || 0;
+    setCreditOutstandingBalance('csob_cz_credit', creditBalance);
+    creditSettingsOk = await saveBankSettingsEndpoint('csob_cz_credit', budgetMonth, 0, 0, 0, creditBalance);
+  }
+
+  const bankOk = await postToBankTrackerEndpoint('saveBank', {
+    bank: {
+      id: bankKey,
+      name: newName,
+      currency: newCurrency,
+      type: bank?.primaryType || 'card',
+      account: bank?.account || '',
+      active: true
+    }
+  });
+  const settingsOk = await saveBankSettingsEndpoint(bankKey, budgetMonth, newLimit, newBudget, newWarning, newBalance);
+
   renderBankManager();
   renderAll();
-  alert('Nastavenia banky boli uložené lokálne.');
+  alert(bankOk || settingsOk || creditSettingsOk ? 'Nastavenia banky boli uložené lokálne a odoslané do Google Sheets.' : 'Nastavenia banky boli uložené lokálne, ale Google Sheets zápis neprebehol. Skontroluj Web App /exec URL.');
 }
 
 function fillManualTransactionBanks(){const select=document.getElementById('manual-tx-bank');if(!select)return;select.innerHTML=BANK_ORDER.map(k=>`<option value="${k}">${plainBankName(k)}</option>`).join('')+getCustomBanks().map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}
@@ -9913,6 +10568,12 @@ function shortArchiveMonthLabel(monthStr) {
   return labels[idx] || m;
 }
 
+function toggleArchiveTrendChartType() {
+  archiveTrendChartType = archiveTrendChartType === 'bars' ? 'line' : 'bars';
+  localStorage.setItem('archive_trend_chart_type', archiveTrendChartType);
+  renderArchiveTrendChart();
+}
+
 function renderArchiveTrendChart() {
   const wrap = document.getElementById('archive-trend-chart');
   if (!wrap) return;
@@ -9938,6 +10599,76 @@ function renderArchiveTrendChart() {
 
   if (months.length === 0) {
     wrap.innerHTML = `<div class="empty-state" style="padding:22px 0;">${t('noTrendData')}</div>`;
+    return;
+  }
+
+  const chartType = archiveTrendChartType === 'bars' ? 'bars' : 'line';
+  const toggle = document.getElementById('archive-trend-toggle');
+  const toggleIcon = document.getElementById('archive-trend-toggle-icon');
+  const toggleTitle = chartType === 'bars' ? t('switchToLineChart', 'Switch to line chart') : t('switchToStackedBarChart', 'Switch to stacked bar chart');
+  if (toggle) {
+    toggle.title = toggleTitle;
+    toggle.setAttribute('aria-label', toggleTitle);
+  }
+  if (toggleIcon) {
+    toggleIcon.className = chartType === 'bars' ? 'txn-chart-toggle-icon' : 'txn-chart-toggle-icon bar';
+  }
+
+  const monthLabel = (mStr) => shortArchiveMonthLabel(mStr);
+  const legend = BANK_ORDER.map(bankKey => {
+    const bank = getBankInfo(bankKey);
+    return `<span class="archive-bank-legend-item" onclick="openBankTransactions('${bankKey}','card')" title="${t('transactions')}"><span class="archive-bank-legend-dot" style="background:${bank.color};"></span>${plainBankName(bankKey)}</span>`;
+  }).join('');
+
+  if (chartType === 'bars') {
+    const w = 360;
+    const h = 190;
+    const padL = 36;
+    const padR = 12;
+    const padT = 16;
+    const axisY = 136;
+    const chartH = axisY - padT - 10;
+    const step = (w - padL - padR) / Math.max(1, months.length);
+    const barW = Math.max(18, Math.min(30, step * 0.46));
+    let maxTotal = 1;
+    const totals = {};
+    months.forEach(month => {
+      totals[month] = BANK_ORDER.reduce((sum, bankKey) => sum + (monthly[month][bankKey] || 0), 0);
+      maxTotal = Math.max(maxTotal, totals[month]);
+    });
+    const niceMax = Math.ceil(maxTotal / 1000) * 1000 || maxTotal;
+    const halfLabel = formatCompactAmount(niceMax / 2);
+    const maxLabel = formatCompactAmount(niceMax);
+
+    const bars = months.map((month, idx) => {
+      const x = padL + idx * step + (step - barW) / 2;
+      let currentY = axisY;
+      const segments = BANK_ORDER.map(bankKey => {
+        const bank = getBankInfo(bankKey);
+        const value = monthly[month][bankKey] || 0;
+        if (value <= 0) return '';
+        const segH = Math.max(2, (value / niceMax) * chartH);
+        currentY -= segH;
+        return `<rect class="archive-trend-bar-segment" x="${x.toFixed(1)}" y="${currentY.toFixed(1)}" width="${barW.toFixed(1)}" height="${segH.toFixed(1)}" style="fill:${bank.color};" onclick="openBankMonthTransactions('${bankKey}','${month}','card')"></rect>`;
+      }).join('');
+      const totalLabel = totals[month] > 0 ? `<text class="archive-trend-bar-total" x="${(x + barW / 2).toFixed(1)}" y="${Math.max(10, currentY - 5).toFixed(1)}" text-anchor="middle">${formatCompactAmount(totals[month])}</text>` : '';
+      return `${segments}${totalLabel}<text class="archive-axis-label" x="${(x + barW / 2).toFixed(1)}" y="${axisY + 24}" text-anchor="middle">${monthLabel(month)}</text>`;
+    }).join('');
+
+    wrap.innerHTML = `
+      <div class="archive-bank-legend">${legend}</div>
+      <div class="archive-chart-note">${t('trendCurrencyNote')} · ${t('cardsOnly')} · ${t('stackedByBank', 'stacked by bank')}</div>
+      <svg class="archive-trend-bars-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+        <line class="archive-grid-line" x1="${padL}" y1="${axisY}" x2="${w - padR}" y2="${axisY}"></line>
+        <line class="archive-grid-line" x1="${padL}" y1="${Math.round(axisY / 2)}" x2="${w - padR}" y2="${Math.round(axisY / 2)}"></line>
+        <line class="archive-grid-line" x1="${padL}" y1="${padT}" x2="${w - padR}" y2="${padT}"></line>
+        <text class="archive-y-label" x="2" y="${padT + 4}">${maxLabel}</text>
+        <text class="archive-y-label" x="2" y="${Math.round(axisY / 2) + 4}">${halfLabel}</text>
+        <text class="archive-y-label" x="2" y="${axisY + 4}">0</text>
+        <text class="archive-axis-unit" x="${padL}" y="${h - 6}">${t('czkEquivalent')}</text>
+        ${bars}
+      </svg>
+    `;
     return;
   }
 
@@ -9972,20 +10703,13 @@ function renderArchiveTrendChart() {
     return `${p.x},${p.y}`;
   }).join(' ');
 
-  const monthLabel = (mStr) => shortArchiveMonthLabel(mStr);
-
-  const legend = BANK_ORDER.map(bankKey => {
-    const bank = getBankInfo(bankKey);
-    const defaultMonth = months[months.length - 1] || getAktuálneMonth();
-    return `<span class="archive-bank-legend-item" onclick="openBankTransactions('${bankKey}','card')" title="${t('transactions')}"><span class="archive-bank-legend-dot" style="background:${bank.color};"></span>${plainBankName(bankKey)}</span>`;
-  }).join('');
-
   const lines = BANK_ORDER.map(bankKey => {
     const bank = getBankInfo(bankKey);
     const points = months.map((m, i) => getPoint(m, bankKey, i));
     return `
-      <polyline class="archive-bank-line" style="stroke:${bank.color};" points="${linePoints(bankKey)}"></polyline>
-      ${points.map(p => p.value > 0 ? `<circle class="archive-bank-point" cx="${p.x}" cy="${p.y}" r="3.2" style="fill:${bank.color};"></circle>` : '').join('')}
+      <polyline class="archive-bank-line" style="stroke:${bank.color};" points="${linePoints(bankKey)}" onclick="openBankTransactions('${bankKey}','card')" title="${escapeAttr(plainBankName(bankKey))} · ${escapeAttr(t('cardsOnly'))}"></polyline>
+      <polyline class="archive-bank-line-hit" points="${linePoints(bankKey)}" onclick="openBankTransactions('${bankKey}','card')" title="${escapeAttr(plainBankName(bankKey))} · ${escapeAttr(t('cardsOnly'))}"></polyline>
+      ${points.map((p, i) => p.value > 0 ? `<circle class="archive-bank-point" cx="${p.x}" cy="${p.y}" r="3.2" style="fill:${bank.color};" onclick="openBankMonthTransactions('${bankKey}','${months[i]}','card')"></circle>` : '').join('')}
     `;
   }).join('');
 
@@ -10031,7 +10755,7 @@ function renderArchive() {
       const bank = getBankInfo(bankKey);
       const count = txns.filter(t => getBankKey(t) === bankKey).length;
       const limit = hist[bank.limitKey] ?? bank.defaultLimit;
-      return `<div class="archive-bank-col" onclick="openBankMonthTransactions('${bankKey}','${mStr}','card')" title="${t('transactions')}"><span class="archive-bank-title" style="color:${bank.color};"><span class="bank-inline-logo">${bankLogoImg(bankKey)}<span>${count}/${limit}</span></span></span>${getBankStatusText(count, limit)}</div>`;
+      return `<div class="archive-bank-col" onclick="openBankMonthTransactions('${bankKey}','${mStr}','card')" title="${t('transactions')}"><span class="archive-bank-title" style="color:${bank.color};"><span class="bank-inline-logo">${bankLogoImg(bankKey)}<span>${count}/${limit}</span></span></span>${getBankStatusText(count, limit, mStr)}</div>`;
     }).join('');
     return `<div class="archive-item"><div class="archive-month-left"><div class="archive-month-name">${formatMonthString(mStr)}</div></div><div class="archive-stats-grid" style="grid-template-columns: repeat(4, auto); gap: 10px;">${cols}</div></div>`;
   }).join('');
@@ -10092,6 +10816,7 @@ const I18N = {
     copyFcmToken: 'Copy FCM token',
     myBanks: 'My banks',
     manageBanks: 'Manage banks',
+    syncDetectedBanks: 'Sync detected banks',
     googleSheetsConnection: 'Google Sheets connection',
     aboutApp: 'about app',
     appInfoSub: 'Version v2 · bank overview, budgets, archive and push notifications ⚙️🔥',
@@ -10106,6 +10831,10 @@ const I18N = {
     addBankHint: 'Add a new bank, currency, budget and card limit.',
     completed: 'Completed',
     notCompleted: 'Missed',
+    missingCurrent: 'Missing',
+    switchToStackedBarChart: 'Switch to stacked bar chart',
+    switchToLineChart: 'Switch to line chart',
+    stackedByBank: 'stacked by bank',
     noLimit: 'no limit',
     monthArchive: 'Monthly archive',
     saveChanges: 'Save changes',
@@ -10128,7 +10857,7 @@ const I18N = {
   ,
     googleSheetsToggleTitle: 'Google Sheets sync',
     googleSheetsToggleSubOn: 'Enabled — app loads real transactions from Sheets.',
-    googleSheetsToggleSubOff: 'Disabled — app uses local/demo data only.',
+    googleSheetsToggleSubOff: 'Disabled — app uses local cache only.',
     bankBudgetTitle: 'Bank budget',
     progress: 'progress',
     usedThisMonth: 'used this month',
@@ -10141,6 +10870,15 @@ const I18N = {
     budgetStatusTitle: 'Bank budget',
     accountBalanceTitle: 'Account balance',
     accountBalanceManageHint: 'Edit balance in Settings · Manage banks',
+    accountBalanceTotal: 'Total',
+    accountBalanceTotalHint: 'Converted using app FX rates',
+    csobCzCreditOutstandingName: 'CSOB CZ credit card',
+    csobCzCreditOutstandingShort: 'credit card',
+    csobCzCreditOutstandingHint: '',
+    csobCzCreditOutstandingManageHint: 'This appears as an L-shaped subaccount under ČSOB CZ in Account balance. Use negative value if you want Total to reduce your cash balance.',
+    switchToPieChart: 'Switch to pie chart',
+    switchToBarChart: 'Switch to bar chart',
+    pieChart: 'Pie chart',
     remaining: 'remaining',
     overBudget: 'over budget',
     nearLimit: 'near limit',
@@ -10324,6 +11062,7 @@ const I18N = {
     copyFcmToken: 'Copy FCM token',
     myBanks: 'Moje banky',
     manageBanks: 'Spravovať banky',
+    syncDetectedBanks: 'Synchronizovať nájdené banky',
     googleSheetsConnection: 'Pripojenie k Google Sheets',
     aboutApp: 'o appke',
     appInfoSub: 'Verzia 3.0.2 · bankové prehľady, budgety, archív a push notifikácie ⚙️🔥',
@@ -10338,6 +11077,10 @@ const I18N = {
     addBankHint: 'Pridaj novú banku, menu, budget a limit karty.',
     completed: 'splnené',
     notCompleted: 'nesplnené',
+    missingCurrent: 'chýba',
+    switchToStackedBarChart: 'Prepnúť na stĺpcový skladaný graf',
+    switchToLineChart: 'Prepnúť na čiarový graf',
+    stackedByBank: 'podľa banky',
     noLimit: 'bez limitu',
     monthArchive: 'Archív mesiacov',
     saveChanges: 'Uložiť zmeny',
@@ -10370,6 +11113,15 @@ const I18N = {
     budgetStatusTitle: 'Bankový budget',
     accountBalanceTitle: 'Zostatok na účte',
     accountBalanceManageHint: 'Zostatok upravíš v Nastavenia · Spravovať banky',
+    accountBalanceTotal: 'Spolu',
+    accountBalanceTotalHint: 'Prepočítané cez FX kurzy v appke',
+    csobCzCreditOutstandingName: 'CSOB CZ credit card',
+    csobCzCreditOutstandingShort: 'credit card',
+    csobCzCreditOutstandingHint: '',
+    csobCzCreditOutstandingManageHint: 'Zobrazí sa ako L-podúčet pod ČSOB CZ v Account balance. Ak chceš, aby Total znížil hotovosť, zadaj hodnotu mínusom.',
+    switchToPieChart: 'Prepnúť na koláčový graf',
+    switchToBarChart: 'Prepnúť na stĺpcový graf',
+    pieChart: 'Koláčový graf',
     remaining: 'zostáva',
     overBudget: 'prekročený',
     nearLimit: 'blízko limitu',
@@ -10551,6 +11303,7 @@ const I18N = {
     copyFcmToken: 'Kopírovat FCM token',
     myBanks: 'Moje banky',
     manageBanks: 'Spravovat banky',
+    syncDetectedBanks: 'Synchronizovat nalezené banky',
     googleSheetsConnection: 'Připojení ke Google Sheets',
     aboutApp: 'o aplikaci',
     appInfoSub: 'Verze 3.0.2 · bankovní přehledy, budgety, archiv a push notifikace ⚙️🔥',
@@ -10565,6 +11318,10 @@ const I18N = {
     addBankHint: 'Přidej novou banku, měnu, budget a limit karty.',
     completed: 'splněno',
     notCompleted: 'nesplněno',
+    missingCurrent: 'chybí',
+    switchToStackedBarChart: 'Přepnout na skládaný sloupcový graf',
+    switchToLineChart: 'Přepnout na čárový graf',
+    stackedByBank: 'podle banky',
     noLimit: 'bez limitu',
     monthArchive: 'Archiv měsíců',
     saveChanges: 'Uložit změny',
@@ -10587,7 +11344,7 @@ const I18N = {
   ,
     googleSheetsToggleTitle: 'Google Sheets sync',
     googleSheetsToggleSubOn: 'Zapnuto — appka načítá reálné transakce ze Sheets.',
-    googleSheetsToggleSubOff: 'Vypnuto — appka používá jen lokální/demo data.',
+    googleSheetsToggleSubOff: 'Vypnuto — appka používá jen lokální cache.',
     bankBudgetTitle: 'Budget podle banky',
     progress: 'pokrok',
     usedThisMonth: 'použito tento měsíc',
@@ -10600,6 +11357,15 @@ const I18N = {
     budgetStatusTitle: 'Bankovní budget',
     accountBalanceTitle: 'Zůstatek na účtu',
     accountBalanceManageHint: 'Zůstatek upravíš v Nastavení · Spravovat banky',
+    accountBalanceTotal: 'Celkem',
+    accountBalanceTotalHint: 'Přepočteno přes FX kurzy v appce',
+    csobCzCreditOutstandingName: 'CSOB CZ credit card',
+    csobCzCreditOutstandingShort: 'credit card',
+    csobCzCreditOutstandingHint: '',
+    csobCzCreditOutstandingManageHint: 'Zobrazí se jako L-podúčet pod ČSOB CZ v Account balance. Pokud chceš, aby Total snížil hotovost, zadej hodnotu mínusem.',
+    switchToPieChart: 'Přepnout na koláčový graf',
+    switchToBarChart: 'Přepnout na sloupcový graf',
+    pieChart: 'Koláčový graf',
     remaining: 'zbývá',
     overBudget: 'překročený',
     nearLimit: 'blízko limitu',
@@ -10832,7 +11598,7 @@ function updateGoogleSheetsToggleUi() {
     sub.setAttribute('data-i18n', enabled ? 'googleSheetsToggleSubOn' : 'googleSheetsToggleSubOff');
     sub.textContent = enabled
       ? (dict.googleSheetsToggleSubOn || 'Enabled — app loads real transactions from Sheets.')
-      : (dict.googleSheetsToggleSubOff || 'Disabled — app uses local/demo data only.');
+      : (dict.googleSheetsToggleSubOff || 'Disabled — app uses local cache only.');
   }
 
   const input = document.getElementById('sheets-url');
@@ -10852,27 +11618,423 @@ function ensureDefaultConfig() {
 
 
 
+
+function getBankSettingsPayload(bankId, monthStr, cardLimit, budget, warning, accountBalance) {
+  return {
+    bankId,
+    month: normalizeMonthStr(monthStr || getAktuálneMonth()),
+    cardLimit: Number(cardLimit || 0) || 0,
+    budget: Number(budget || 0) || 0,
+    warning: Number(warning || 0) || 0,
+    accountBalance: Number(accountBalance || 0) || 0
+  };
+}
+
+async function saveBankSettingsEndpoint(bankId, monthStr, cardLimit, budget, warning, accountBalance) {
+  const payload = getBankSettingsPayload(bankId, monthStr, cardLimit, budget, warning, accountBalance);
+  return postToBankTrackerEndpoint('saveBankSettings', { ...payload, settings: payload });
+}
+
+
+
+function cleanBankAccountValue(value) {
+  let text = String(value || '').trim();
+  text = text.replace(/^(karta|card)\s*/i, '').trim();
+  text = text.replace(/^(účet|ucet|account)\s*/i, '').trim();
+  const ibanMatch = text.match(/[A-Z]{2}\d{2}[A-Z0-9]{8,}/i);
+  if (ibanMatch) return ibanMatch[0].slice(-4);
+  const slashMatch = text.match(/(\d{4})\s*\/\s*(\d{4})/);
+  if (slashMatch) return slashMatch[1];
+  const digits = text.replace(/\D/g, '');
+  if (digits.length >= 4) return digits.slice(-4);
+  return text;
+}
+
+function cleanBankCardsValue(value) {
+  const text = String(value || '').replace(/^(karta|card|cards?)\s*/i, '').trim();
+  const matches = text.match(/\d{4}/g) || [];
+  return [...new Set(matches.map(v => v.slice(-4)))].join(',');
+}
+
+function getEndpointBankPayload(bankId, bankData = {}) {
+  const info = BANKS[bankId] || null;
+  const isCustom = String(bankId || '').startsWith('custom_');
+  const name = bankData.name || (isCustom ? bankData.name : getBankDisplayOverride(bankId)) || plainBankName(bankId);
+  const savedCurrency = localStorage.getItem('bank_currency_' + bankId);
+  let currency = bankData.currency || savedCurrency || info?.primaryCurrency || 'CZK';
+  if (bankId === 'csob_sk') currency = 'EUR';
+  const type = bankData.type || info?.primaryType || (isCustom ? 'account' : 'card');
+  const account = cleanBankAccountValue(bankData.account || localStorage.getItem('bank_account_' + bankId) || info?.account || '');
+  const cards = cleanBankCardsValue(bankData.cards || localStorage.getItem('bank_cards_' + bankId) || info?.cards || '');
+
+  return {
+    id: bankId,
+    name: String(name || '').replace(/<[^>]+>/g, '').trim(),
+    currency,
+    type,
+    account,
+    cards,
+    active: bankData.active === false ? false : true
+  };
+}
+
+async function syncAllBanksAndSettingsToEndpoint() {
+  if (!LIMITS_WEBAPP_URL) return 0;
+
+  const month = getAktuálneMonth();
+  const currentLimits = getLimitsForMonth(month);
+  const jobs = [];
+
+  BANK_ORDER.forEach(bankId => {
+    const info = getBankInfo(bankId);
+    const settings = getBudgetSettingsForBank(bankId, month);
+    const cardLimit = Number(currentLimits[info.limitKey] ?? info.defaultLimit ?? 0) || 0;
+    const budget = Number(settings.budget || 0) || 0;
+    const warning = Number(settings.warning || 0) || 0;
+    const balance = Number(getAccountBalance(bankId) || 0) || 0;
+
+    jobs.push({
+      bankId,
+      month,
+      bank: getEndpointBankPayload(bankId),
+      cardLimit,
+      budget,
+      warning,
+      balance
+    });
+  });
+
+  CREDIT_BALANCE_SUBACCOUNTS.forEach(item => {
+    jobs.push({
+      bankId: item.id,
+      month,
+      bank: null,
+      cardLimit: 0,
+      budget: 0,
+      warning: 0,
+      balance: Number(getCreditOutstandingBalance(item.id) || 0) || 0
+    });
+  });
+
+  getCustomBanks().forEach(bank => {
+    const bankId = bank.id;
+    const settingsMonth = normalizeMonthStr(bank.budgetMonth || month);
+    const settings = getBudgetSettingsForBank(bankId, settingsMonth);
+    jobs.push({
+      bankId,
+      month: settingsMonth,
+      bank: getEndpointBankPayload(bankId, bank),
+      cardLimit: Number(bank.cardLimit || 0) || 0,
+      budget: Number(settings.budget || bank.budget || 0) || 0,
+      warning: Number(settings.warning || bank.warning || 0) || 0,
+      balance: Number(bank.balance || getAccountBalance(bankId) || 0) || 0
+    });
+  });
+
+  let sent = 0;
+  for (const job of jobs) {
+    const bankOk = job.bank ? await postToBankTrackerEndpoint('saveBank', { bank: job.bank }) : false;
+    const settingsOk = await saveBankSettingsEndpoint(job.bankId, job.month, job.cardLimit, job.budget, job.warning, job.balance);
+    if (bankOk || settingsOk) sent++;
+  }
+  return sent;
+}
+
+
+function isValidCurrencyCode(code) {
+  return /^[A-Z]{3}$/.test(String(code || '').trim().toUpperCase());
+}
+
+function parseBanksSheetData(raw) {
+  const data = parseGvizJson(raw);
+  const rows = data?.table?.rows || [];
+  const cols = data?.table?.cols || [];
+  const headerFromCols = cols.map(col => String(col?.label || '').trim());
+  const firstRowHeaders = rows[0]?.c?.map(cell => String(cell?.v || cell?.f || '').trim()) || [];
+  const looksLikeHeaderRow = firstRowHeaders.some(h => /bank id|currency|account|cards|active/i.test(h));
+  const headers = (headerFromCols.some(Boolean) ? headerFromCols : firstRowHeaders).map(h => String(h || '').trim());
+  const dataRows = looksLikeHeaderRow ? rows.slice(1) : rows;
+  const headerIndex = (names, fallback) => {
+    const list = Array.isArray(names) ? names : [names];
+    for (const name of list) {
+      const idx = headers.findIndex(h => h.toLowerCase() === String(name).toLowerCase());
+      if (idx >= 0) return idx;
+    }
+    return fallback;
+  };
+  const idx = {
+    id: headerIndex(['Bank ID','BankID'], 0),
+    name: headerIndex('Name', 1),
+    currency: headerIndex('Currency', 2),
+    type: headerIndex('Type', 3),
+    account: headerIndex(['Account','Account last 4','IBAN / Account','Account / Card last 4 digits'], 4),
+    cards: headerIndex(['Cards','Card','Card last 4 digits'], 5),
+    active: headerIndex('Active', headers.includes('Cards') ? 6 : 5)
+  };
+  const custom = [];
+  const existingCustom = getCustomBanks();
+  const existingById = Object.fromEntries(existingCustom.map(b => [b.id, b]));
+
+  dataRows.forEach(row => {
+    const c = row.c || [];
+    const cell = (i) => String(c[i]?.v ?? c[i]?.f ?? '').trim();
+    const id = cell(idx.id);
+    const name = cell(idx.name);
+    const rawCurrency = cell(idx.currency).toUpperCase();
+    const type = cell(idx.type).toLowerCase() || 'account';
+    let account = cleanBankAccountValue(cell(idx.account));
+    let cards = cleanBankCardsValue(cell(idx.cards));
+    const legacyAccountCards = cell(headerIndex('Account / Card last 4 digits', -1));
+    if (!cards && /^\s*(karta|card)\b/i.test(legacyAccountCards)) cards = cleanBankCardsValue(legacyAccountCards);
+    if (!account && !/^\s*(karta|card)\b/i.test(legacyAccountCards)) account = cleanBankAccountValue(legacyAccountCards);
+    const activeRaw = String(c[idx.active]?.v ?? c[idx.active]?.f ?? 'TRUE').trim().toLowerCase();
+    const active = !(activeRaw === 'false' || activeRaw === '0' || activeRaw === 'no');
+    if (!id || !active) return;
+    const canonicalId = canonicalBankIdFromSheetRow(id, name, [account, cards].filter(Boolean).join(' '));
+    let currency = isValidCurrencyCode(rawCurrency) ? rawCurrency : '';
+    if (canonicalId === 'csob_sk') currency = 'EUR';
+    if (canonicalId === 'csob_sk') {
+      if (!account) account = '7882';
+      if (!cards) cards = '5612';
+    }
+
+    if (BANK_ORDER.includes(canonicalId)) {
+      if (name) setBankDisplayOverride(canonicalId, name);
+      if (currency) localStorage.setItem('bank_currency_' + canonicalId, currency);
+      if (account) localStorage.setItem('bank_account_' + canonicalId, account);
+      if (cards) localStorage.setItem('bank_cards_' + canonicalId, cards);
+      return;
+    }
+
+    const old = existingById[id] || existingById[canonicalId] || {};
+    custom.push({
+      ...old,
+      id: canonicalId,
+      name: name || old.name || canonicalId,
+      currency: currency || old.currency || 'CZK',
+      type: type === 'card' ? 'card' : 'account',
+      account: account || old.account || '',
+      cards: cards || old.cards || '',
+      active: true
+    });
+  });
+
+  saveCustomBanks(custom);
+  return custom.length;
+}
+
+async function syncBanksFromSheets(spreadsheetId) {
+  try {
+    if (!spreadsheetId) return false;
+    saveCustomBanks([]);
+    const gvizUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=Banky`;
+    const res = await fetch(gvizUrl);
+    if (!res.ok) throw new Error('Banky fetch failed');
+    const raw = await res.text();
+    parseBanksSheetData(raw);
+    return true;
+  } catch (e) {
+    console.warn('Banky sync skipped:', e);
+    return false;
+  }
+}
+
+function parseBankSettingsSheetData(raw) {
+  const data = parseGvizJson(raw);
+  const rows = data?.table?.rows || [];
+  let count = 0;
+  rows.forEach(row => {
+    const c = row.c || [];
+    const month = normalizeMonthStr(c[0]?.v || c[0]?.f || '');
+    const rawBankId = String(c[1]?.v || c[1]?.f || '').trim();
+    const relatedCustom = getCustomBanks().find(b => b.id === rawBankId) || {};
+    const bankId = canonicalBankIdFromSheetRow(rawBankId, relatedCustom.name, relatedCustom.account);
+    if (!bankId || !month) return;
+    const cardLimit = Number(c[2]?.v ?? c[2]?.f ?? 0) || 0;
+    const budget = Number(c[3]?.v ?? c[3]?.f ?? 0) || 0;
+    const warning = Number(c[4]?.v ?? c[4]?.f ?? 0) || 0;
+    const balance = Number(c[5]?.v ?? c[5]?.f ?? 0) || 0;
+    localStorage.setItem(getBudgetStorageKey(bankId, 'limit', month), String(budget));
+    localStorage.setItem(getBudgetStorageKey(bankId, 'warn', month), String(warning));
+    if (balance || localStorage.getItem(getAccountBalanceStorageKey(bankId)) === null) setAccountBalance(bankId, balance);
+
+    const limits = getLimitsForMonth(month);
+    const info = getBankInfo(bankId);
+    if (BANK_ORDER.includes(bankId) && info?.limitKey) {
+      limits[info.limitKey] = cardLimit;
+      saveLimitsForMonth(month, limits);
+    }
+
+    const banks = getCustomBanks();
+    const custom = banks.find(b => b.id === bankId);
+    if (custom) {
+      custom.cardLimit = cardLimit;
+      custom.budget = budget;
+      custom.warning = warning;
+      custom.balance = balance;
+      custom.budgetMonth = month;
+      saveCustomBanks(banks);
+    }
+    count++;
+  });
+  return count;
+}
+
+async function syncBankSettingsFromSheets(spreadsheetId) {
+  try {
+    if (!spreadsheetId) return false;
+    const gvizUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=Bank_Settings`;
+    const res = await fetch(gvizUrl);
+    if (!res.ok) throw new Error('Bank_Settings fetch failed');
+    const raw = await res.text();
+    parseBankSettingsSheetData(raw);
+    return true;
+  } catch (e) {
+    console.warn('Bank_Settings sync skipped:', e);
+    return false;
+  }
+}
+
+
+function isValidAppsScriptExecUrl(url) {
+  return /^https:\/\/script\.google\.com\/macros\/s\/[^\s]+\/exec(?:\?.*)?$/i.test(String(url || '').trim());
+}
+
+function showInvalidWebAppUrlWarning() {
+  alert('Používaš Google Apps Script editor URL, nie Web App URL. Potrebuješ Deploy → New deployment → Web app → skopírovať /exec URL. Editor URL typu script.google.com/home/projects/.../edit nebude zapisovať do Sheets.');
+}
+
+async function syncDetectedBanksToSheets() {
+  LIMITS_WEBAPP_URL = localStorage.getItem('limits_webapp_url') || LIMITS_WEBAPP_URL || '';
+  if (!LIMITS_WEBAPP_URL || !isValidAppsScriptExecUrl(LIMITS_WEBAPP_URL)) {
+    showInvalidWebAppUrlWarning();
+    return false;
+  }
+  const ok = await postToBankTrackerEndpoint('syncDetectedBanks', { month: getAktuálneMonth() });
+  alert(ok
+    ? 'Sync detected banks odoslaný. Skontroluj Google Sheets taby Banky a Bank_Settings.'
+    : 'Sync sa nepodarilo odoslať. Skontroluj Web App URL a deployment access.');
+  return ok;
+}
+
+
+function getCurrentWebAppUrl() {
+  const inputUrl = document.getElementById('limits-webapp-url')?.value?.trim() || '';
+  const storedUrl = localStorage.getItem('limits_webapp_url') || '';
+  LIMITS_WEBAPP_URL = (inputUrl || storedUrl || LIMITS_WEBAPP_URL || '').trim();
+  if (LIMITS_WEBAPP_URL) localStorage.setItem('limits_webapp_url', LIMITS_WEBAPP_URL);
+  return LIMITS_WEBAPP_URL;
+}
+
+function flattenEndpointPayload(action, payload = {}) {
+  const flat = { action };
+  const add = (key, value) => {
+    if (value === undefined || value === null) return;
+    if (typeof value === 'object') return;
+    flat[key] = String(value);
+  };
+
+  Object.keys(payload || {}).forEach(key => add(key, payload[key]));
+
+  if (payload.bank) {
+    add('bankId', payload.bank.id || payload.bank.bankId);
+    add('id', payload.bank.id || payload.bank.bankId);
+    add('name', payload.bank.name);
+    add('currency', payload.bank.currency);
+    add('type', payload.bank.type);
+    add('account', payload.bank.account);
+    add('active', payload.bank.active === false ? 'false' : 'true');
+  }
+
+  if (payload.settings) {
+    add('bankId', payload.settings.bankId);
+    add('month', payload.settings.month);
+    add('cardLimit', payload.settings.cardLimit);
+    add('budget', payload.settings.budget);
+    add('warning', payload.settings.warning);
+    add('accountBalance', payload.settings.accountBalance);
+  }
+
+  if (payload.transaction) {
+    add('txId', payload.transaction.id || payload.transaction.msgId);
+    add('msgId', payload.transaction.msgId || payload.transaction.id);
+    add('date', payload.transaction.date);
+    add('amount', payload.transaction.amount);
+    add('currency', payload.transaction.currency);
+    add('merchant', payload.transaction.merchant);
+    add('category', payload.transaction.category);
+    add('card', payload.transaction.card);
+    add('txType', payload.transaction.type);
+    add('month', payload.transaction.month);
+    add('bank', payload.transaction.bank);
+    add('paymentKind', payload.transaction.paymentKind);
+  }
+
+  return flat;
+}
+
+function buildEndpointMutationUrl(action, payload = {}, callbackName = '') {
+  const url = getCurrentWebAppUrl();
+  const params = new URLSearchParams();
+  const flat = flattenEndpointPayload(action, payload);
+  Object.keys(flat).forEach(key => params.set(key, flat[key]));
+  if (callbackName) params.set('callback', callbackName);
+  params.set('_ts', String(Date.now()));
+  return `${url}?${params.toString()}`;
+}
+
+function jsonpEndpointRequest(action, payload = {}, timeoutMs = 15000) {
+  return new Promise((resolve) => {
+    const callbackName = `__btCloudCb_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement('script');
+    let done = false;
+    const cleanup = () => {
+      try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
+      if (script.parentNode) script.parentNode.removeChild(script);
+    };
+    const finish = (ok, data) => {
+      if (done) return;
+      done = true;
+      cleanup();
+      resolve({ ok, data: data || null });
+    };
+    window[callbackName] = (data) => {
+      const ok = !!data && (data.status === 'success' || data.status === 'ok');
+      finish(ok, data);
+    };
+    script.onerror = () => finish(false, { status: 'error', message: 'JSONP script load failed' });
+    script.src = buildEndpointMutationUrl(action, payload, callbackName);
+    document.head.appendChild(script);
+    window.setTimeout(() => finish(false, { status: 'timeout', message: 'Google Sheets endpoint timeout' }), timeoutMs);
+  });
+}
+
 async function postToBankTrackerEndpoint(action, payload = {}) {
-  if (!LIMITS_WEBAPP_URL) {
+  const url = getCurrentWebAppUrl();
+  const status = document.getElementById('limits-sync-status');
+
+  if (!url) {
     console.warn('Apps Script Web App URL is not configured.');
+    if (status) status.textContent = 'Web App URL nie je nastavená. Dáta sú uložené iba lokálne.';
+    return false;
+  }
+  if (!isValidAppsScriptExecUrl(url)) {
+    console.warn('Invalid Apps Script Web App URL. Use /exec deployment URL, not editor URL.');
+    if (status) status.textContent = 'Používaš nesprávnu Apps Script URL. Potrebuješ Web App /exec URL.';
     return false;
   }
 
-  try {
-    await fetch(LIMITS_WEBAPP_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action,
-        ...payload
-      })
-    });
+  if (status) status.textContent = 'Ukladám do Google Sheets...';
+  const result = await jsonpEndpointRequest(action, payload);
+  if (result.ok) {
+    if (status) status.textContent = `Uložené v Google Sheets: ${action}`;
+    console.log('Google Sheets save OK:', action, result.data);
     return true;
-  } catch (err) {
-    console.error('Endpoint POST failed:', action, err);
-    return false;
   }
+
+  console.error('Google Sheets save failed:', action, JSON.stringify(result.data || {}));
+  if (status) status.textContent = `Google Sheets zápis zlyhal: ${action}. Skontroluj deployment /exec a Executions.`;
+  return false;
 }
 
 function extractTxnPayload(tx) {
@@ -11238,7 +12400,6 @@ function saveEditedTransaction() {
   tx.msgId = tx.msgId || tx.id;
 
   allTransactions = sortTransactionsNewestFirst(allTransactions);
-  localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
 
   postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
 
@@ -11420,15 +12581,15 @@ function setAppTheme(theme) {
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   applyAppTheme(getAppTheme());
-  // Najprv zobrazíme cache/demo dáta, aby appka nebola prázdna.
-  loadCachedOrDemoData();
-  prepareUiAfterDataLoad();
+  clearDemoTransactionsCacheIfNeeded();
   applyLanguage();
   updateGoogleSheetsToggleUi();
 
-  // Ak je nastavené Google Sheets URL, pri každom otvorení/refreshi stránky
-  // sa automaticky natiahnu najnovšie dáta z Google Sheets.
-  if (SHEETS_URL) {
+  // Cloud-first: Google Sheets is the only master data source.
+  clearCloudFirstLocalData();
+  allTransactions = [];
+  prepareUiAfterDataLoad();
+  if (SHEETS_URL && isGoogleSheetsEnabled()) {
     await syncData();
     prepareUiAfterDataLoad();
     startAutoSync();
