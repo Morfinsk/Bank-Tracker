@@ -6449,37 +6449,13 @@ function readSettingsLimitInputs() {
 }
 
 async function syncLimitsToGoogleSheets(monthStr, limits) {
+  // Deprecated: Limity tab is no longer used.
+  // Card limits are written only via saveBankSettingsEndpoint from Manage banks / Add bank.
   const status = document.getElementById('limits-sync-status');
-  if (!LIMITS_WEBAPP_URL) {
-    if (status) status.textContent = 'Limity uložené lokálne. Pre zápis do Google Sheets doplň Apps Script Web App URL.';
-    return false;
-  }
-
-  const payload = {
-    action: 'saveLimits',
-    month: monthStr,
-    rbCzLimit: limits.rbCz,
-    csobSkLimit: limits.csobSk,
-    csobCzLimit: limits.csobCz,
-    monetaCzLimit: limits.moneta
-  };
-
-  try {
-    if (status) status.textContent = 'Ukladám limity do Google Sheets...';
-    const res = await fetch(LIMITS_WEBAPP_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    });
-    if (status) status.textContent = `Limity pre ${getMonthDisplayShort(monthStr)} odoslané do Google Sheets.`;
-    return true;
-  } catch (err) {
-    console.error('Limit sync failed:', err);
-    if (status) status.textContent = 'Limity sú uložené lokálne, ale zápis do Google Sheets zlyhal. Skontroluj Web App URL.';
-    return false;
-  }
+  if (status) status.textContent = 'Limity sa už neposielajú do starého tabu. Zdroj pravdy je Bank_Settings.';
+  return false;
 }
+
 
 function saveLimitsForMonth(monthStr, limits) {
   const existing = ensureLimitHistoryForMonth(monthStr);
@@ -7603,37 +7579,13 @@ function readBudgetSettingsInputs() {
 }
 
 async function syncBudgetToGoogleSheets(monthStr, budgetValues) {
+  // Deprecated: Budgety/Budget tab is no longer used.
+  // Budgets and warnings are written only via saveBankSettingsEndpoint from Manage banks / Add bank.
   const status = document.getElementById('budget-sync-status');
-
-  if (!LIMITS_WEBAPP_URL) {
-    if (status) status.textContent = 'Budgety uložené lokálne. Pre zápis do Google Sheets doplň Apps Script Web App URL.';
-    return false;
-  }
-
-  const payload = {
-    action: 'saveBudgets',
-    month: monthStr,
-    ...budgetValues
-  };
-
-  try {
-    if (status) status.textContent = 'Ukladám budgety do Google Sheets...';
-
-    await fetch(LIMITS_WEBAPP_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    });
-
-    if (status) status.textContent = `Budgety pre ${getMonthDisplayShort(monthStr)} odoslané do Google Sheets.`;
-    return true;
-  } catch (err) {
-    console.error('Budget sync failed:', err);
-    if (status) status.textContent = 'Budgety sú uložené lokálne, ale zápis do Google Sheets zlyhal. Skontroluj Web App URL.';
-    return false;
-  }
+  if (status) status.textContent = 'Budgety sa už neposielajú do starého tabu. Zdroj pravdy je Bank_Settings.';
+  return false;
 }
+
 
 async function saveBudgetSettings() {
   try {
@@ -11713,65 +11665,10 @@ function getEndpointBankPayload(bankId, bankData = {}) {
 }
 
 async function syncAllBanksAndSettingsToEndpoint() {
-  if (!LIMITS_WEBAPP_URL) return 0;
-
-  const month = getAktuálneMonth();
-  const currentLimits = getLimitsForMonth(month);
-  const jobs = [];
-
-  BANK_ORDER.forEach(bankId => {
-    const info = getBankInfo(bankId);
-    const settings = getBudgetSettingsForBank(bankId, month);
-    const cardLimit = Number(currentLimits[info.limitKey] ?? info.defaultLimit ?? 0) || 0;
-    const budget = Number(settings.budget || 0) || 0;
-    const warning = Number(settings.warning || 0) || 0;
-    const balance = Number(getAccountBalance(bankId) || 0) || 0;
-
-    jobs.push({
-      bankId,
-      month,
-      bank: getEndpointBankPayload(bankId),
-      cardLimit,
-      budget,
-      warning,
-      balance
-    });
-  });
-
-  CREDIT_BALANCE_SUBACCOUNTS.forEach(item => {
-    jobs.push({
-      bankId: item.id,
-      month,
-      bank: null,
-      cardLimit: 0,
-      budget: 0,
-      warning: 0,
-      balance: Number(getCreditOutstandingBalance(item.id) || 0) || 0
-    });
-  });
-
-  getCustomBanks().forEach(bank => {
-    const bankId = bank.id;
-    const settingsMonth = normalizeMonthStr(bank.budgetMonth || month);
-    const settings = getBudgetSettingsForBank(bankId, settingsMonth);
-    jobs.push({
-      bankId,
-      month: settingsMonth,
-      bank: getEndpointBankPayload(bankId, bank),
-      cardLimit: Number(bank.cardLimit || 0) || 0,
-      budget: Number(settings.budget || bank.budget || 0) || 0,
-      warning: Number(settings.warning || bank.warning || 0) || 0,
-      balance: Number(bank.balance || getAccountBalance(bankId) || 0) || 0
-    });
-  });
-
-  let sent = 0;
-  for (const job of jobs) {
-    const bankOk = job.bank ? await postToBankTrackerEndpoint('saveBank', { bank: job.bank }) : false;
-    const settingsOk = await saveBankSettingsEndpoint(job.bankId, job.month, job.cardLimit, job.budget, job.warning, job.balance);
-    if (bankOk || settingsOk) sent++;
-  }
-  return sent;
+  // Deprecated safety no-op.
+  // This used to push local cached bank settings to Google Sheets and could overwrite
+  // Bank_Settings with zeros after cookies/site-data reset. Do not use for refresh/config save.
+  return 0;
 }
 
 
@@ -11946,7 +11843,7 @@ async function syncDetectedBanksToSheets() {
   }
   const ok = await postToBankTrackerEndpoint('syncDetectedBanks', { month: getAktuálneMonth() });
   alert(ok
-    ? 'Sync detected banks odoslaný. Skontroluj Google Sheets taby Banky a Bank_Settings.'
+    ? 'Sync detected banks dokončený. Aktualizovaný bol iba tab Banky; Bank_Settings sa nemenil.'
     : 'Sync sa nepodarilo odoslať. Skontroluj Web App URL a deployment access.');
   return ok;
 }
