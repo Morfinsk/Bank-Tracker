@@ -6256,7 +6256,7 @@ const BANKS = {
   csob_cz: { label: 'ČSOB CZ', short: 'ČSOB CZ', color: '#8fbfff', limitKey: 'csobCz', defaultLimit: 5, primaryCurrency: 'CZK', primaryType: 'card', account: '', cards: '8615,9344', aliases: ['csob cz','čsob cz','csob česk','čsob česk','8615','9344'] },
   csob_cz_credit: { label: 'CSOB CZ credit card', short: 'CSOB credit card', color: '#8fbfff', limitKey: null, defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'credit', parentId: 'csob_cz', isBalanceSubaccount: true, aliases: ['csob cz kreditka','čsob cz kreditka','kreditní karta čsob','kreditna karta csob'] },
   moneta: { label: '<span class="moneta-gradient">Moneta</span>', short: '<span class="moneta-gradient">Moneta</span>', color: 'var(--moneta-color)', limitKey: 'moneta', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'card', aliases: ['moneta','moneta money','moneta bank'] },
-  air_bank_cz: { label: 'Air Bank', short: 'Air Bank', color: '#b8ff2f', limitKey: 'airBankCz', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'account', account: '????/3030', aliases: ['air bank','airbank','air bank cz','3030'] }
+  air_bank_cz: { label: 'Air Bank', short: 'Air Bank', color: '#b8ff2f', limitKey: 'airBankCz', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'account', account: '3030', cards: '', aliases: ['air bank','airbank','air bank cz','3030'] }
 };
 const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','moneta','air_bank_cz'];
 
@@ -6822,6 +6822,33 @@ function parseGvizJson(raw) {
   return JSON.parse(json);
 }
 
+function parseSheetNumber(value, formatted = '') {
+  if (typeof value === 'number' && isFinite(value)) return value;
+  const raw = value !== undefined && value !== null && value !== '' ? value : formatted;
+  const text = String(raw || '')
+    .replace(/\u00a0/g, '')
+    .replace(/\s+/g, '')
+    .replace(/,/g, '.');
+  const n = Number(text);
+  return isNaN(n) ? 0 : n;
+}
+
+
+function buildGvizUrl(spreadsheetId, sheetName) {
+  const cacheBust = String(Date.now()) + '_' + Math.random().toString(36).slice(2);
+  return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json;reqId=${cacheBust}&headers=1&sheet=${encodeURIComponent(sheetName)}&tq=${encodeURIComponent('select *')}&cacheBust=${cacheBust}`;
+}
+
+async function fetchNoStore(url) {
+  return fetch(url, {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    }
+  });
+}
+
 function normalizeFxSheetDate(value, formatted) {
   if (formatted) return String(formatted).substring(0, 10);
   if (value instanceof Date) return value.toISOString().substring(0, 10);
@@ -6865,8 +6892,8 @@ function parseFxRatesSheetData(raw) {
 async function syncFxRatesFromSheets(spreadsheetId) {
   try {
     if (!spreadsheetId) return false;
-    const gvizUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=FX_Rates`;
-    const res = await fetch(gvizUrl);
+    const gvizUrl = buildGvizUrl(spreadsheetId, 'FX_Rates');
+    const res = await fetchNoStore(gvizUrl);
     if (!res.ok) throw new Error('FX_Rates fetch failed');
     const raw = await res.text();
     return parseFxRatesSheetData(raw);
@@ -6878,8 +6905,8 @@ async function syncFxRatesFromSheets(spreadsheetId) {
 
 
 async function fetchSheetTransactions(spreadsheetId, sheetName) {
-  const gvizUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
-  const res = await fetch(gvizUrl);
+  const gvizUrl = buildGvizUrl(spreadsheetId, sheetName);
+  const res = await fetchNoStore(gvizUrl);
   if (!res.ok) throw new Error(`${sheetName} fetch failed`);
   const raw = await res.text();
   return parseSheetData(raw);
@@ -11644,6 +11671,7 @@ async function saveBankSettingsEndpoint(bankId, monthStr, cardLimit, budget, war
 
 function cleanBankAccountValue(value) {
   let text = String(value || '').trim();
+  if (/^(true|false|null|undefined)$/i.test(text)) return '';
   text = text.replace(/^(karta|card)\s*/i, '').trim();
   text = text.replace(/^(účet|ucet|account)\s*/i, '').trim();
   const ibanMatch = text.match(/[A-Z]{2}\d{2}[A-Z0-9]{8,}/i);
@@ -11657,6 +11685,7 @@ function cleanBankAccountValue(value) {
 
 function cleanBankCardsValue(value) {
   const text = String(value || '').replace(/^(karta|card|cards?)\s*/i, '').trim();
+  if (/^(true|false|null|undefined)$/i.test(text)) return '';
   const matches = text.match(/\d{4}/g) || [];
   return [...new Set(matches.map(v => v.slice(-4)))].join(',');
 }
@@ -11832,8 +11861,8 @@ async function syncBanksFromSheets(spreadsheetId) {
   try {
     if (!spreadsheetId) return false;
     saveCustomBanks([]);
-    const gvizUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=Banky`;
-    const res = await fetch(gvizUrl);
+    const gvizUrl = buildGvizUrl(spreadsheetId, 'Banky');
+    const res = await fetchNoStore(gvizUrl);
     if (!res.ok) throw new Error('Banky fetch failed');
     const raw = await res.text();
     parseBanksSheetData(raw);
@@ -11855,10 +11884,10 @@ function parseBankSettingsSheetData(raw) {
     const relatedCustom = getCustomBanks().find(b => b.id === rawBankId) || {};
     const bankId = canonicalBankIdFromSheetRow(rawBankId, relatedCustom.name, relatedCustom.account);
     if (!bankId || !month) return;
-    const cardLimit = Number(c[2]?.v ?? c[2]?.f ?? 0) || 0;
-    const budget = Number(c[3]?.v ?? c[3]?.f ?? 0) || 0;
-    const warning = Number(c[4]?.v ?? c[4]?.f ?? 0) || 0;
-    const balance = Number(c[5]?.v ?? c[5]?.f ?? 0) || 0;
+    const cardLimit = parseSheetNumber(c[2]?.v, c[2]?.f);
+    const budget = parseSheetNumber(c[3]?.v, c[3]?.f);
+    const warning = parseSheetNumber(c[4]?.v, c[4]?.f);
+    const balance = parseSheetNumber(c[5]?.v, c[5]?.f);
     localStorage.setItem(getBudgetStorageKey(bankId, 'limit', month), String(budget));
     localStorage.setItem(getBudgetStorageKey(bankId, 'warn', month), String(warning));
     if (balance || localStorage.getItem(getAccountBalanceStorageKey(bankId)) === null) setAccountBalance(bankId, balance);
@@ -11888,8 +11917,8 @@ function parseBankSettingsSheetData(raw) {
 async function syncBankSettingsFromSheets(spreadsheetId) {
   try {
     if (!spreadsheetId) return false;
-    const gvizUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=Bank_Settings`;
-    const res = await fetch(gvizUrl);
+    const gvizUrl = buildGvizUrl(spreadsheetId, 'Bank_Settings');
+    const res = await fetchNoStore(gvizUrl);
     if (!res.ok) throw new Error('Bank_Settings fetch failed');
     const raw = await res.text();
     parseBankSettingsSheetData(raw);
