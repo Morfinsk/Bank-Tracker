@@ -7956,17 +7956,39 @@ function openBankBudgetTransactions(bankKey) {
 function maybeSendBudgetLocalNotification(bankKey, bankLabel, spent, budget, remaining, warning) {
   if (!budget || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
   const month = getAktuálneMonth();
+
+  // Bezpečná funkcia na odoslanie notifikácie, ktorá nezabije appku na Androide
+  const sendSafeNotification = (bodyText) => {
+    try {
+      if (navigator.serviceWorker) {
+        navigator.serviceWorker.getRegistration().then(reg => {
+          if (reg && reg.showNotification) {
+            reg.showNotification('Bank Tracker', { body: bodyText, icon: '/icon.png' });
+          } else {
+            new Notification('Bank Tracker', { body: bodyText });
+          }
+        }).catch(() => {
+          new Notification('Bank Tracker', { body: bodyText });
+        });
+      } else {
+        new Notification('Bank Tracker', { body: bodyText });
+      }
+    } catch (e) {
+      console.warn("Local notification skipped:", e);
+    }
+  };
+
   if (warning && remaining > 0 && remaining <= warning) {
     const key = `budget_warn_${bankKey}_${month}_${budget}_${warning}`;
     if (localStorage.getItem(key) !== 'sent') {
-      new Notification('Bank Tracker', { body: `${bankLabel}: minuté ${formatMoney(spent, 'CZK')} CZK. Ostáva ${formatMoney(remaining, 'CZK')} CZK do konca mesačného budgetu.` });
+      sendSafeNotification(`${bankLabel}: minuté ${formatMoney(spent, 'CZK')} CZK. Ostáva ${formatMoney(remaining, 'CZK')} CZK do konca mesačného budgetu.`);
       localStorage.setItem(key, 'sent');
     }
   }
   if (remaining <= 0) {
     const key = `budget_over_${bankKey}_${month}_${budget}`;
     if (localStorage.getItem(key) !== 'sent') {
-      new Notification('Bank Tracker', { body: `${bankLabel}: mesačný budget ${formatMoney(budget, 'CZK')} CZK bol prekročený.` });
+      sendSafeNotification(`${bankLabel}: mesačný budget ${formatMoney(budget, 'CZK')} CZK bol prekročený.`);
       localStorage.setItem(key, 'sent');
     }
   }
