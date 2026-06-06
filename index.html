@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Bank Tracker">
 <title>Bank Tracker</title>
 <!-- v122 sheet animation policy scroll top animation -->
-<link rel="manifest" href="./manifest.json?v=165">
+<link rel="manifest" href="./manifest.json?v=166">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -12652,322 +12652,364 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
 </script>
 
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getMessaging, getToken, deleteToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging.js";
+<script>
+// v66 Android-safe push module
+// Important: Firebase is NOT imported during app startup.
+// The app renders first; push is loaded only when the user taps Enable notifications.
+(function () {
+  const firebaseConfig = {
+    apiKey: "AIzaSyDZtbXCeF1MTmsfnobMrj9KlOQTqYVmOOw",
+    authDomain: "bank-card-tracker.firebaseapp.com",
+    projectId: "bank-card-tracker",
+    storageBucket: "bank-card-tracker.appspot.com",
+    messagingSenderId: "768194565850",
+    appId: "1:768194565850:web:cc22f9f9357f7f22ac37e3"
+  };
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDZtbXCeF1MTmsfnobMrj9KlOQTqYVmOOw",
-  authDomain: "bank-card-tracker.firebaseapp.com",
-  projectId: "bank-card-tracker",
-  storageBucket: "bank-card-tracker.appspot.com",
-  messagingSenderId: "768194565850",
-  appId: "1:768194565850:web:cc22f9f9357f7f22ac37e3"
-};
+  const VAPID_KEY = "BOuZLAPr4rKvSZ1HgwaCe15DtuCehgP9pHbvAwafyh2jtQONBkeqAxVNv7Y9wS8y32Pac-ieF0p8u-DQP2qvDaw";
 
-const VAPID_KEY = "BOuZLAPr4rKvSZ1HgwaCe15DtuCehgP9pHbvAwafyh2jtQONBkeqAxVNv7Y9wS8y32Pac-ieF0p8u-DQP2qvDaw";
+  let firebaseApp = null;
+  let messaging = null;
+  let firebaseFns = null;
+  let pushModuleReady = false;
+  let lastPushSetupError = null;
+  let pushImportPromise = null;
 
-let firebaseApp = null;
-let messaging = null;
-let pushModuleReady = false;
-let lastPushSetupError = null;
-
-function isAndroidDevice() {
-  return /Android/i.test(navigator.userAgent || "");
-}
-
-function getPushDebugMessage(err) {
-  const code = err?.code ? `Kód: ${err.code}` : "";
-  const message = err?.message ? `Detail: ${err.message}` : "";
-  return [code, message].filter(Boolean).join("\n");
-}
-
-function setPushStatusMessage(message, className = "edit-mode-notice") {
-  const status = document.getElementById("push-status");
-  if (!status) return;
-  status.className = className;
-  status.textContent = message;
-}
-
-function updateAndroidResetButtonVisibility() {
-  const btn = document.getElementById("android-push-reset-btn");
-  if (!btn) return;
-  btn.style.display = isAndroidDevice() ? "block" : "none";
-}
-
-function initPushModuleSafely() {
-  try {
-    firebaseApp = initializeApp(firebaseConfig);
-    messaging = getMessaging(firebaseApp);
-    pushModuleReady = true;
-    lastPushSetupError = null;
-  } catch (err) {
-    pushModuleReady = false;
-    lastPushSetupError = err;
-    console.error("Firebase messaging init failed:", err);
-  }
-}
-
-async function verifyServiceWorkerFile() {
-  const swUrl = new URL("./firebase-messaging-sw.js", window.location.href);
-  const response = await fetch(swUrl.href, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Súbor firebase-messaging-sw.js sa nenašiel na adrese: ${swUrl.href}`);
-  }
-  return swUrl.href;
-}
-
-async function getServiceWorkerRegistration() {
-  if (!("serviceWorker" in navigator)) {
-    throw new Error("Service Worker nie je v tomto prehliadači podporovaný.");
+  function isAndroidDevice() {
+    return /Android/i.test(navigator.userAgent || "");
   }
 
-  await verifyServiceWorkerFile();
-
-  const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js", {
-    scope: "./",
-    updateViaCache: "none"
-  });
-
-  await registration.update();
-  await navigator.serviceWorker.ready;
-
-  console.log("Service Worker registrovaný:", registration);
-  return registration;
-}
-
-async function clearNotificationCaches() {
-  if (!("caches" in window)) return 0;
-  const names = await caches.keys();
-  await Promise.all(names.map((name) => caches.delete(name)));
-  return names.length;
-}
-
-async function unregisterFirebaseServiceWorkers() {
-  if (!("serviceWorker" in navigator)) return 0;
-  const registrations = await navigator.serviceWorker.getRegistrations();
-  let count = 0;
-  await Promise.all(registrations.map(async (registration) => {
-    const scriptUrl = registration.active?.scriptURL || registration.installing?.scriptURL || registration.waiting?.scriptURL || "";
-    const scope = registration.scope || "";
-    const isBankTrackerWorker =
-      scriptUrl.indexOf("firebase-messaging-sw.js") !== -1 ||
-      scope === new URL("./", window.location.href).href;
-    if (!isBankTrackerWorker) return;
-    try {
-      const ok = await registration.unregister();
-      if (ok) count += 1;
-    } catch (err) {
-      console.warn("Service worker unregister failed:", err);
-    }
-  }));
-  return count;
-}
-
-function clearPushLocalState() {
-  const knownKeys = [
-    "fcm_token",
-    "push_enabled",
-    "push_token",
-    "pushToken",
-    "firebase_token",
-    "notification_token",
-    "notification_permission_seen"
-  ];
-  knownKeys.forEach((key) => {
-    try { localStorage.removeItem(key); } catch (_) {}
-  });
-}
-
-window.updatePushStatus = function () {
-  updateAndroidResetButtonVisibility();
-
-  const status = document.getElementById("push-status");
-  if (!status) return;
-
-  const token = localStorage.getItem("fcm_token");
-  const permission = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
-
-  const pushEnabled = localStorage.getItem("push_enabled") === "true";
-  const toggle = document.getElementById("push-toggle");
-  const preview = document.getElementById("push-token-preview");
-  if (toggle) toggle.classList.toggle("on", permission === "granted" && token && pushEnabled);
-  if (preview) {
-    preview.style.display = token ? "block" : "none";
-    preview.textContent = token || "";
+  function getPushDebugMessage(err) {
+    const code = err && err.code ? `Kód: ${err.code}` : "";
+    const message = err && err.message ? `Detail: ${err.message}` : "";
+    return [code, message].filter(Boolean).join("\n");
   }
 
-  if (!pushModuleReady && lastPushSetupError) {
-    status.className = "edit-mode-notice online";
-    status.textContent = "Push modul sa nenačítal bezpečne. Appka ostáva funkčná; skús Reset Android notifications alebo refresh.";
-  } else if (permission === "granted" && token && pushEnabled) {
-    status.className = "edit-mode-notice offline";
-    status.innerHTML = "Push notifikácie sú zapnuté ✅<br><span style='color:var(--muted);'>FCM token je uložený lokálne v tomto zariadení.</span>";
-  } else if (permission === "denied") {
-    status.className = "edit-mode-notice online";
-    status.textContent = "Notifikácie sú v prehliadači zablokované. Povoľ ich v nastaveniach stránky/appky.";
-  } else if (!window.isSecureContext) {
-    status.className = "edit-mode-notice online";
-    status.textContent = "Push notifikácie vyžadujú HTTPS alebo localhost. Testuj cez GitHub Pages alebo localhost.";
-  } else if (isAndroidDevice()) {
-    status.className = "edit-mode-notice";
-    status.textContent = "Push notifications are not enabled yet. Ak Android PWA padá, použi Reset Android notifications.";
-  } else {
-    status.className = "edit-mode-notice";
-    status.textContent = "Push notifications are not enabled yet.";
-  }
-};
-
-window.enableNotifications = async function () {
-  try {
-    setPushStatusMessage("Zapínam push notifikácie...", "edit-mode-notice online");
-
-    if (!("Notification" in window)) {
-      alert("Tento prehliadač nepodporuje notifikácie.");
-      updatePushStatus();
-      return;
-    }
-
-    if (!window.isSecureContext) {
-      alert("Push notifikácie fungujú iba cez HTTPS alebo localhost. Použi GitHub Pages URL alebo localhost.");
-      updatePushStatus();
-      return;
-    }
-
-    if (!pushModuleReady || !messaging) {
-      const detail = getPushDebugMessage(lastPushSetupError);
-      updatePushStatus();
-      alert("Push modul nie je pripravený. Appka beží ďalej.\n\n" + (detail || "Skús refresh alebo Reset Android notifications."));
-      return;
-    }
-
-    const swRegistration = await getServiceWorkerRegistration();
-
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      updatePushStatus();
-      alert("Notifikácie neboli povolené.");
-      return;
-    }
-
-    const token = await getToken(messaging, {
-      vapidKey: VAPID_KEY,
-      serviceWorkerRegistration: swRegistration
-    });
-
-    if (!token) {
-      updatePushStatus();
-      alert("Token sa nepodarilo vytvoriť. Skús refresh appky a znova zapnúť notifikácie.");
-      return;
-    }
-
-    localStorage.setItem("fcm_token", token);
-    localStorage.setItem("push_enabled", "true");
-    try {
-      await postToBankTrackerEndpoint("saveToken", {
-        token,
-        deviceName: navigator.userAgent || "Unknown device",
-        platform: isAndroidDevice() ? "android-pwa" : (navigator.platform || "web"),
-        active: true
-      });
-    } catch (endpointErr) {
-      console.warn("Token saved locally but Google Sheets token save failed:", endpointErr);
-    }
-    console.log("FCM TOKEN:", token);
-    updatePushStatus();
-    alert("Push notifikácie boli úspešne zapnuté 🔔");
-  } catch (err) {
-    lastPushSetupError = err;
-    console.error("Push notification setup error:", err);
-    updatePushStatus();
-    const detail = getPushDebugMessage(err);
-    alert("Chyba pri aktivácii notifikácií. Appka ostáva funkčná.\n\n" + (detail || "Skontroluj console log a firebase-messaging-sw.js."));
-  }
-};
-
-window.resetAndroidNotifications = async function () {
-  if (!isAndroidDevice()) {
-    alert("Tento reset je určený hlavne pre Android/PWA. Na tomto zariadení ho väčšinou netreba.");
+  function setPushStatusMessage(message, className) {
+    const status = document.getElementById("push-status");
+    if (!status) return;
+    status.className = className || "edit-mode-notice";
+    status.textContent = message;
   }
 
-  const confirmed = confirm(
-    "Resetujem iba Android push/cache/service-worker časť.\n\n" +
-    "Bankové dáta, Google Sheets URL, bank settings a transakcie zostanú zachované. Pokračovať?"
-  );
-  if (!confirmed) return;
-
-  const existingToken = localStorage.getItem("fcm_token");
-  setPushStatusMessage("Resetujem Android notifications...", "edit-mode-notice online");
-
-  try {
-    if (existingToken && pushModuleReady && messaging) {
-      try { await deleteToken(messaging); } catch (err) { console.warn("FCM deleteToken failed:", err); }
-      try { await postToBankTrackerEndpoint("disableToken", { token: existingToken }); } catch (err) { console.warn("Disable token endpoint failed:", err); }
-    }
-
-    clearPushLocalState();
-    const swCount = await unregisterFirebaseServiceWorkers();
-    const cacheCount = await clearNotificationCaches();
-
-    updatePushStatus();
-    alert(
-      "Android notifications reset hotový ✅\n\n" +
-      "Odregistrované service workers: " + swCount + "\n" +
-      "Vymazané cache: " + cacheCount + "\n\n" +
-      "Teraz appku zavri/otvor alebo daj refresh a potom znova zapni notifikácie."
-    );
-  } catch (err) {
-    console.error("Android notification reset failed:", err);
-    const detail = getPushDebugMessage(err);
-    updatePushStatus();
-    alert("Reset Android notifications zlyhal.\n\n" + (detail || String(err)));
-  }
-};
-
-window.copyNotificationToken = async function () {
-  const token = localStorage.getItem("fcm_token");
-  if (!token) {
-    alert("FCM token ešte neexistuje. Najprv klikni na Zapnúť push notifikácie.");
-    return;
+  function updateAndroidResetButtonVisibility() {
+    const btn = document.getElementById("android-push-reset-btn");
+    if (!btn) return;
+    btn.style.display = isAndroidDevice() ? "block" : "none";
   }
 
-  try {
-    await navigator.clipboard.writeText(token);
-    alert("FCM token bol skopírovaný.");
-  } catch (err) {
-    console.log("FCM TOKEN:", token);
-    alert("Token sa nepodarilo skopírovať automaticky. Nájdeš ho v konzole ako FCM TOKEN.");
-  }
-};
+  async function loadFirebasePushOnDemand() {
+    if (pushModuleReady && messaging && firebaseFns) return { messaging, fns: firebaseFns };
+    if (pushImportPromise) return pushImportPromise;
 
-initPushModuleSafely();
+    pushImportPromise = (async function () {
+      try {
+        setPushStatusMessage("Načítavam push modul...", "edit-mode-notice online");
 
-if (pushModuleReady && messaging) {
-  try {
-    onMessage(messaging, (payload) => {
-      const title = payload.notification?.title || payload.data?.title || "Bank Tracker";
-      const body = payload.notification?.body || payload.data?.body || "Máš novú notifikáciu.";
+        const appMod = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
+        const msgMod = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging.js");
 
-      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-        navigator.serviceWorker.getRegistration("./").then((registration) => {
-          if (registration) {
-            registration.showNotification(title, {
-              body,
-              tag: "bank-tracker-foreground",
-              renotify: true
-            });
-          }
-        }).catch((err) => console.warn("Foreground notification failed:", err));
+        firebaseFns = {
+          initializeApp: appMod.initializeApp,
+          getMessaging: msgMod.getMessaging,
+          getToken: msgMod.getToken,
+          deleteToken: msgMod.deleteToken,
+          onMessage: msgMod.onMessage
+        };
+
+        firebaseApp = firebaseApp || firebaseFns.initializeApp(firebaseConfig);
+        messaging = messaging || firebaseFns.getMessaging(firebaseApp);
+        pushModuleReady = true;
+        lastPushSetupError = null;
+        attachForegroundMessageHandlerSafely();
+        return { messaging, fns: firebaseFns };
+      } catch (err) {
+        pushModuleReady = false;
+        lastPushSetupError = err;
+        pushImportPromise = null;
+        console.error("Firebase messaging dynamic import/init failed:", err);
+        throw err;
       }
-    });
-  } catch (err) {
-    console.warn("onMessage registration failed:", err);
-  }
-}
+    })();
 
-window.addEventListener("DOMContentLoaded", () => {
-  updatePushStatus();
-});
+    return pushImportPromise;
+  }
+
+  async function verifyServiceWorkerFile() {
+    const swUrl = new URL("./firebase-messaging-sw.js", window.location.href);
+    const response = await fetch(swUrl.href + (swUrl.href.indexOf("?") === -1 ? "?" : "&") + "v=" + Date.now(), { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Súbor firebase-messaging-sw.js sa nenašiel na adrese: ${swUrl.href}`);
+    }
+    return swUrl.href;
+  }
+
+  async function getServiceWorkerRegistration() {
+    if (!("serviceWorker" in navigator)) {
+      throw new Error("Service Worker nie je v tomto prehliadači podporovaný.");
+    }
+
+    await verifyServiceWorkerFile();
+
+    const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js", {
+      scope: "./",
+      updateViaCache: "none"
+    });
+
+    try { await registration.update(); } catch (e) { console.warn("SW update failed:", e); }
+    try { await navigator.serviceWorker.ready; } catch (e) { console.warn("SW ready failed:", e); }
+
+    console.log("Service Worker registrovaný:", registration);
+    return registration;
+  }
+
+  async function clearNotificationCaches() {
+    if (!("caches" in window)) return 0;
+    const names = await caches.keys();
+    await Promise.all(names.map((name) => caches.delete(name)));
+    return names.length;
+  }
+
+  async function unregisterFirebaseServiceWorkers() {
+    if (!("serviceWorker" in navigator)) return 0;
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    let count = 0;
+    await Promise.all(registrations.map(async (registration) => {
+      const scriptUrl = (registration.active && registration.active.scriptURL) ||
+        (registration.installing && registration.installing.scriptURL) ||
+        (registration.waiting && registration.waiting.scriptURL) || "";
+      const scope = registration.scope || "";
+      const expectedScope = new URL("./", window.location.href).href;
+      const isBankTrackerWorker =
+        scriptUrl.indexOf("firebase-messaging-sw.js") !== -1 ||
+        scope === expectedScope;
+      if (!isBankTrackerWorker) return;
+      try {
+        const ok = await registration.unregister();
+        if (ok) count += 1;
+      } catch (err) {
+        console.warn("Service worker unregister failed:", err);
+      }
+    }));
+    return count;
+  }
+
+  function clearPushLocalState() {
+    const knownKeys = [
+      "fcm_token",
+      "push_enabled",
+      "push_token",
+      "pushToken",
+      "firebase_token",
+      "notification_token",
+      "notification_permission_seen"
+    ];
+    knownKeys.forEach((key) => {
+      try { localStorage.removeItem(key); } catch (_) {}
+    });
+  }
+
+  window.updatePushStatus = function () {
+    updateAndroidResetButtonVisibility();
+
+    const status = document.getElementById("push-status");
+    if (!status) return;
+
+    const token = localStorage.getItem("fcm_token");
+    const permission = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
+    const pushEnabled = localStorage.getItem("push_enabled") === "true";
+    const toggle = document.getElementById("push-toggle");
+    const preview = document.getElementById("push-token-preview");
+
+    if (toggle) toggle.classList.toggle("on", permission === "granted" && !!token && pushEnabled);
+    if (preview) {
+      preview.style.display = token ? "block" : "none";
+      preview.textContent = token || "";
+    }
+
+    if (permission === "granted" && token && pushEnabled) {
+      status.className = "edit-mode-notice offline";
+      status.innerHTML = "Push notifikácie sú zapnuté ✅<br><span style='color:var(--muted);'>FCM token je uložený lokálne v tomto zariadení.</span>";
+    } else if (permission === "denied") {
+      status.className = "edit-mode-notice online";
+      status.textContent = "Notifikácie sú v prehliadači zablokované. Povoľ ich v nastaveniach stránky/appky.";
+    } else if (!window.isSecureContext) {
+      status.className = "edit-mode-notice online";
+      status.textContent = "Push notifikácie vyžadujú HTTPS alebo localhost. Testuj cez GitHub Pages alebo localhost.";
+    } else if (lastPushSetupError) {
+      status.className = "edit-mode-notice online";
+      status.textContent = "Push modul mal chybu, ale appka ostáva funkčná. Skús Reset Android notifications.";
+    } else if (isAndroidDevice()) {
+      status.className = "edit-mode-notice";
+      status.textContent = "Push notifications are not enabled yet. Android push sa načíta až po kliknutí na Zapnúť.";
+    } else {
+      status.className = "edit-mode-notice";
+      status.textContent = "Push notifications are not enabled yet.";
+    }
+  };
+
+  window.enableNotifications = async function () {
+    try {
+      setPushStatusMessage("Zapínam push notifikácie...", "edit-mode-notice online");
+
+      if (!("Notification" in window)) {
+        alert("Tento prehliadač nepodporuje notifikácie.");
+        updatePushStatus();
+        return;
+      }
+
+      if (!window.isSecureContext) {
+        alert("Push notifikácie fungujú iba cez HTTPS alebo localhost. Použi GitHub Pages URL alebo localhost.");
+        updatePushStatus();
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        updatePushStatus();
+        alert("Notifikácie neboli povolené.");
+        return;
+      }
+
+      const loaded = await loadFirebasePushOnDemand();
+      const swRegistration = await getServiceWorkerRegistration();
+
+      const token = await loaded.fns.getToken(loaded.messaging, {
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: swRegistration
+      });
+
+      if (!token) {
+        updatePushStatus();
+        alert("Token sa nepodarilo vytvoriť. Skús refresh appky a znova zapnúť notifikácie.");
+        return;
+      }
+
+      localStorage.setItem("fcm_token", token);
+      localStorage.setItem("push_enabled", "true");
+
+      try {
+        await postToBankTrackerEndpoint("saveToken", {
+          token: token,
+          deviceName: navigator.userAgent || "Unknown device",
+          platform: isAndroidDevice() ? "android-pwa" : (navigator.platform || "web"),
+          active: true
+        });
+      } catch (endpointErr) {
+        console.warn("Token saved locally but Google Sheets token save failed:", endpointErr);
+      }
+
+      console.log("FCM TOKEN:", token);
+      updatePushStatus();
+      alert("Push notifikácie boli úspešne zapnuté 🔔");
+    } catch (err) {
+      lastPushSetupError = err;
+      console.error("Push notification setup error:", err);
+      updatePushStatus();
+      const detail = getPushDebugMessage(err);
+      alert("Chyba pri aktivácii notifikácií. Appka ostáva funkčná.\n\n" + (detail || "Skontroluj console log a firebase-messaging-sw.js."));
+    }
+  };
+
+  window.resetAndroidNotifications = async function () {
+    if (!isAndroidDevice()) {
+      alert("Tento reset je určený hlavne pre Android/PWA. Na tomto zariadení ho väčšinou netreba.");
+    }
+
+    const confirmed = confirm(
+      "Resetujem iba Android push/cache/service-worker časť.\n\n" +
+      "Bankové dáta, Google Sheets URL, bank settings a transakcie zostanú zachované. Pokračovať?"
+    );
+    if (!confirmed) return;
+
+    const existingToken = localStorage.getItem("fcm_token");
+    setPushStatusMessage("Resetujem Android notifications...", "edit-mode-notice online");
+
+    try {
+      if (existingToken) {
+        try {
+          const loaded = await loadFirebasePushOnDemand();
+          await loaded.fns.deleteToken(loaded.messaging);
+        } catch (err) {
+          console.warn("FCM deleteToken skipped/failed:", err);
+        }
+        try { await postToBankTrackerEndpoint("disableToken", { token: existingToken }); } catch (err) { console.warn("Disable token endpoint failed:", err); }
+      }
+
+      clearPushLocalState();
+      const swCount = await unregisterFirebaseServiceWorkers();
+      const cacheCount = await clearNotificationCaches();
+
+      pushModuleReady = false;
+      messaging = null;
+      firebaseApp = null;
+      firebaseFns = null;
+      pushImportPromise = null;
+      lastPushSetupError = null;
+
+      updatePushStatus();
+      alert(
+        "Android notifications reset hotový ✅\n\n" +
+        "Odregistrované service workers: " + swCount + "\n" +
+        "Vymazané cache: " + cacheCount + "\n\n" +
+        "Teraz appku zavri/otvor alebo daj refresh a potom znova zapni notifikácie."
+      );
+    } catch (err) {
+      console.error("Android notification reset failed:", err);
+      const detail = getPushDebugMessage(err);
+      updatePushStatus();
+      alert("Reset Android notifications zlyhal.\n\n" + (detail || String(err)));
+    }
+  };
+
+  window.copyNotificationToken = async function () {
+    const token = localStorage.getItem("fcm_token");
+    if (!token) {
+      alert("FCM token ešte neexistuje. Najprv klikni na Zapnúť push notifikácie.");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(token);
+      alert("FCM token bol skopírovaný.");
+    } catch (err) {
+      console.log("FCM TOKEN:", token);
+      alert("Token sa nepodarilo skopírovať automaticky. Nájdeš ho v konzole ako FCM TOKEN.");
+    }
+  };
+
+  let foregroundHandlerAttached = false;
+  function attachForegroundMessageHandlerSafely() {
+    if (foregroundHandlerAttached || !firebaseFns || !messaging) return;
+    foregroundHandlerAttached = true;
+    try {
+      firebaseFns.onMessage(messaging, (payload) => {
+        const title = (payload.notification && payload.notification.title) || (payload.data && payload.data.title) || "Bank Tracker";
+        const body = (payload.notification && payload.notification.body) || (payload.data && payload.data.body) || "Máš novú notifikáciu.";
+
+        if (typeof Notification !== "undefined" && Notification.permission === "granted" && navigator.serviceWorker) {
+          navigator.serviceWorker.getRegistration("./").then((registration) => {
+            if (registration) {
+              registration.showNotification(title, {
+                body: body,
+                tag: "bank-tracker-foreground",
+                renotify: true
+              });
+            }
+          }).catch((err) => console.warn("Foreground notification failed:", err));
+        }
+      });
+    } catch (err) {
+      foregroundHandlerAttached = false;
+      console.warn("onMessage registration failed:", err);
+    }
+  }
+
+  window.addEventListener("DOMContentLoaded", function () {
+    // Do not load Firebase here. Only update UI.
+    try { updatePushStatus(); } catch (e) { console.warn("updatePushStatus failed:", e); }
+  });
+})();
 </script>
 
 </body>
