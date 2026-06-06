@@ -6914,6 +6914,8 @@ async function syncData() {
     return;
   }
   isSyncing = true;
+  const loadStatus = document.getElementById('limits-sync-status');
+  if (loadStatus) loadStatus.textContent = 'Načítavam dáta z Google Sheets...';
   const btn = document.getElementById('sync-btn');
   if (btn) btn.classList.add('spinning');
   try {
@@ -6925,8 +6927,10 @@ async function syncData() {
     const activeTxns = await fetchSheetTransactions(match[1], 'Transakcie');
     const archivedTxns = await syncArchivedTransactionsFromSheets(match[1]);
     allTransactions = sortTransactionsNewestFirst(dedupeTransactionsForCloud([...activeTxns, ...archivedTxns]));
+    if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa načítali správne.';
   } catch(e) {
     console.error('Google Sheets transaction sync failed:', e);
+    if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa nepodarilo načítať. Skontroluj Spreadsheet URL.';
     allTransactions = [];
   }
   if (btn) btn.classList.remove('spinning');
@@ -11984,6 +11988,42 @@ function buildEndpointMutationUrl(action, payload = {}, callbackName = '') {
   return `${url}?${params.toString()}`;
 }
 
+function getEndpointStatusMessage(action, state) {
+  const labels = {
+    saveToken: {
+      pending: 'Ukladám push token do Google Sheets...',
+      success: 'Push token bol uložený do Google Sheets.',
+      error: 'Push token ostal iba lokálne. Google Sheets zápis zlyhal.'
+    },
+    disableToken: {
+      pending: 'Vypínam starý push token...',
+      success: 'Starý push token bol označený ako neaktívny.',
+      error: 'Starý push token sa nepodarilo označiť ako neaktívny.'
+    },
+    saveBank: {
+      pending: 'Ukladám banku do Google Sheets...',
+      success: 'Banka bola uložená do Google Sheets.',
+      error: 'Banka ostala lokálne. Google Sheets zápis zlyhal.'
+    },
+    saveBankSettings: {
+      pending: 'Ukladám nastavenia banky do Google Sheets...',
+      success: 'Nastavenia banky boli uložené do Google Sheets.',
+      error: 'Nastavenia banky ostali lokálne. Google Sheets zápis zlyhal.'
+    },
+    syncDetectedBanks: {
+      pending: 'Synchronizujem zistené banky...',
+      success: 'Zistené banky boli zosynchronizované.',
+      error: 'Synchronizácia zistených bánk zlyhala.'
+    }
+  };
+  const fallback = {
+    pending: 'Ukladám zmenu do Google Sheets...',
+    success: 'Zmena bola uložená do Google Sheets.',
+    error: 'Google Sheets zápis zlyhal. Skontroluj deployment /exec a Executions.'
+  };
+  return (labels[action] && labels[action][state]) || fallback[state] || '';
+}
+
 function jsonpEndpointRequest(action, payload = {}, timeoutMs = 15000) {
   return new Promise((resolve) => {
     const callbackName = `__btCloudCb_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -12025,16 +12065,16 @@ async function postToBankTrackerEndpoint(action, payload = {}) {
     return false;
   }
 
-  if (status) status.textContent = 'Ukladám do Google Sheets...';
+  if (status) status.textContent = getEndpointStatusMessage(action, 'pending');
   const result = await jsonpEndpointRequest(action, payload);
   if (result.ok) {
-    if (status) status.textContent = `Uložené v Google Sheets: ${action}`;
+    if (status) status.textContent = getEndpointStatusMessage(action, 'success');
     console.log('Google Sheets save OK:', action, result.data);
     return true;
   }
 
   console.error('Google Sheets save failed:', action, JSON.stringify(result.data || {}));
-  if (status) status.textContent = `Google Sheets zápis zlyhal: ${action}. Skontroluj deployment /exec a Executions.`;
+  if (status) status.textContent = getEndpointStatusMessage(action, 'error');
   return false;
 }
 
@@ -12633,8 +12673,7 @@ function isAndroidDevice() {
 function getPushDebugMessage(err) {
   const code = err?.code ? `Kód: ${err.code}` : "";
   const message = err?.message ? `Detail: ${err.message}` : "";
-  return [code, message].filter(Boolean).join("
-");
+  return [code, message].filter(Boolean).join("\n");
 }
 
 function setPushStatusMessage(message, className = "edit-mode-notice") {
@@ -12775,22 +12814,24 @@ window.updatePushStatus = function () {
 
 window.enableNotifications = async function () {
   try {
+    setPushStatusMessage("Zapínam push notifikácie...", "edit-mode-notice online");
+
     if (!("Notification" in window)) {
       alert("Tento prehliadač nepodporuje notifikácie.");
+      updatePushStatus();
       return;
     }
 
     if (!window.isSecureContext) {
       alert("Push notifikácie fungujú iba cez HTTPS alebo localhost. Použi GitHub Pages URL alebo localhost.");
+      updatePushStatus();
       return;
     }
 
     if (!pushModuleReady || !messaging) {
       const detail = getPushDebugMessage(lastPushSetupError);
       updatePushStatus();
-      alert("Push modul nie je pripravený. Appka beží ďalej.
-
-" + (detail || "Skús refresh alebo Reset Android notifications."));
+      alert("Push modul nie je pripravený. Appka beží ďalej.\n\n" + (detail || "Skús refresh alebo Reset Android notifications."));
       return;
     }
 
@@ -12809,6 +12850,7 @@ window.enableNotifications = async function () {
     });
 
     if (!token) {
+      updatePushStatus();
       alert("Token sa nepodarilo vytvoriť. Skús refresh appky a znova zapnúť notifikácie.");
       return;
     }
@@ -12833,9 +12875,7 @@ window.enableNotifications = async function () {
     console.error("Push notification setup error:", err);
     updatePushStatus();
     const detail = getPushDebugMessage(err);
-    alert("Chyba pri aktivácii notifikácií. Appka ostáva funkčná.
-
-" + (detail || "Skontroluj console log a firebase-messaging-sw.js."));
+    alert("Chyba pri aktivácii notifikácií. Appka ostáva funkčná.\n\n" + (detail || "Skontroluj console log a firebase-messaging-sw.js."));
   }
 };
 
@@ -12845,9 +12885,7 @@ window.resetAndroidNotifications = async function () {
   }
 
   const confirmed = confirm(
-    "Resetujem iba Android push/cache/service-worker časť.
-
-" +
+    "Resetujem iba Android push/cache/service-worker časť.\n\n" +
     "Bankové dáta, Google Sheets URL, bank settings a transakcie zostanú zachované. Pokračovať?"
   );
   if (!confirmed) return;
@@ -12867,23 +12905,16 @@ window.resetAndroidNotifications = async function () {
 
     updatePushStatus();
     alert(
-      "Android notifications reset hotový ✅
-
-" +
-      "Odregistrované service workers: " + swCount + "
-" +
-      "Vymazané cache: " + cacheCount + "
-
-" +
+      "Android notifications reset hotový ✅\n\n" +
+      "Odregistrované service workers: " + swCount + "\n" +
+      "Vymazané cache: " + cacheCount + "\n\n" +
       "Teraz appku zavri/otvor alebo daj refresh a potom znova zapni notifikácie."
     );
   } catch (err) {
     console.error("Android notification reset failed:", err);
     const detail = getPushDebugMessage(err);
     updatePushStatus();
-    alert("Reset Android notifications zlyhal.
-
-" + (detail || String(err)));
+    alert("Reset Android notifications zlyhal.\n\n" + (detail || String(err)));
   }
 };
 
