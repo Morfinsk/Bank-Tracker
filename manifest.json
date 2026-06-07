@@ -8,14 +8,6 @@
   "display": "standalone",
   "background_color": "#0f1923",
   "theme_color": "#0f1923",
-  "user_preferences": {
-    "color_scheme": {
-      "dark": {
-        "background_color": "#0d1117",
-        "theme_color": "#0d1117"
-      }
-    }
-  },
   "orientation": "portrait",
   "icons": [
     {
