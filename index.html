@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<!-- Bank Tracker index_v61: dynamic archive columns + SVG privacy eye + hide FAB while sheets open -->
+<!-- Bank Tracker index_v111: transaction balance sync + manual/delete balance fixes -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1923">
+<meta name="theme-color" content="#0d1117">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0d1117">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1117">
 <meta name="msapplication-navbutton-color" content="#0d1117">
 <meta name="color-scheme" content="dark">
 <meta name="supported-color-schemes" content="dark">
@@ -18,17 +19,17 @@
 
 <style>
   :root {
-    color-scheme: dark light;
+    color-scheme: dark;
   }
   body {
-    background-color: #0f1923 !important;
+    background-color: #0d1117 !important;
     color: #ffffff;
     margin: 0;
     min-height: 100vh;
   }
 </style>
 
-<link rel="manifest" href="./manifest.json?v=167">
+<link rel="manifest" href="./manifest.json?v=169">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -332,6 +333,51 @@
     margin-bottom: 8px;
   }
   .config-input:focus { border-color: var(--accent); }
+  .save-field-wrap {
+    position: relative;
+  }
+  .save-field-wrap .config-input {
+    padding-right: 38px;
+  }
+  .field-save-check {
+    position: absolute;
+    right: 11px;
+    top: 50%;
+    transform: translateY(-50%) scale(.86);
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    display: none;
+    place-items: center;
+    background: rgba(74, 222, 128, .16);
+    border: 1px solid rgba(74, 222, 128, .38);
+    color: var(--ok);
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .field-save-check.show {
+    display: grid;
+    animation: fieldSavedPop .22s ease-out both;
+  }
+  .field-save-check.saving {
+    display: grid;
+    color: var(--muted);
+    background: rgba(148, 163, 184, .12);
+    border-color: rgba(148, 163, 184, .24);
+  }
+  .field-save-check.error {
+    display: grid;
+    color: var(--danger);
+    background: rgba(251, 113, 133, .12);
+    border-color: rgba(251, 113, 133, .30);
+  }
+  @keyframes fieldSavedPop {
+    from { opacity: .35; transform: translateY(-50%) scale(.72); }
+    to { opacity: 1; transform: translateY(-50%) scale(1); }
+  }
+
   .config-save {
     width: 100%;
     background: var(--accent);
@@ -6340,12 +6386,12 @@ const BANKS = {
     googleSheetsToggleSubOn: 'Zapnuté — appka načíta reálne transakcie zo Sheets.',
     googleSheetsToggleSubOff: 'Vypnuté — appka používa iba lokálnu cache.',
     googleSheetsLocalStatus: 'Google Sheets connection is saved locally. Apps Script URL will be used to save limits, budgets and tokens.'},
-  csob_cz: { label: 'ČSOB CZ', short: 'ČSOB CZ', color: '#8fbfff', limitKey: 'csobCz', defaultLimit: 5, primaryCurrency: 'CZK', primaryType: 'card', account: '6624/0300', cards: '8615,9344', aliases: ['csob cz','čsob cz','csob česk','čsob česk','8615','9344','6624','6624/0300'] },
-  csob_cz_credit: { label: 'ČSOB CZ credit ****9344', short: 'Credit ****9344', color: '#8fbfff', limitKey: null, defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'credit', parentId: 'csob_cz', isBalanceSubaccount: true, cardLast4: '9344', aliases: ['csob cz kreditka','čsob cz kreditka','kreditní karta čsob','kreditna karta csob','9344'] },
+  csob_cz: { label: 'ČSOB CZ', short: 'ČSOB CZ', color: '#8fbfff', limitKey: 'csobCz', defaultLimit: 5, primaryCurrency: 'CZK', primaryType: 'card', account: '6624/0300', cards: '8615', aliases: ['csob cz','čsob cz','csob česk','čsob česk','8615','6624','6624/0300'] },
+  csob_cz_credit: { label: 'ČSOB CZ credit card', short: 'Credit card', color: '#8fbfff', limitKey: null, defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'credit', account: '', cards: '9344', cardLast4: '9344', aliases: ['csob cz credit card','csob cz kreditka','čsob cz kreditka','kreditní karta čsob','kreditna karta csob','9344'] },
   moneta: { label: '<span class="moneta-gradient">Moneta</span>', short: '<span class="moneta-gradient">Moneta</span>', color: 'var(--moneta-color)', limitKey: 'moneta', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'card', aliases: ['moneta','moneta money','moneta bank'] },
   air_bank_cz: { label: 'Air Bank', short: 'Air Bank', color: '#b8ff2f', limitKey: 'airBankCz', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'account', account: '3030', cards: '', aliases: ['air bank','airbank','air bank cz','3030'] }
 };
-const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','moneta','air_bank_cz'];
+const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','csob_cz_credit','moneta','air_bank_cz'];
 
 const BANK_LOGOS = {
   rb_cz: {
@@ -6604,7 +6650,8 @@ function getBankKey(t) {
   const merchantLower = String(t.merchant || '').toLowerCase();
   const combined = `${bankLower} ${cardLower} ${merchantLower}`;
   if (combined.includes('air bank') || combined.includes('airbank') || cardLower.includes('3030')) return 'air_bank_cz';
-  if (combined.includes('csob cz') || combined.includes('čsob cz') || combined.includes('csob česk') || combined.includes('čsob česk') || cardLower.includes('9344') || cardLower.includes('8615')) return 'csob_cz';
+  if (combined.includes('csob cz credit card') || combined.includes('kredit') || cardLower.includes('9344')) return 'csob_cz_credit';
+  if (combined.includes('csob cz') || combined.includes('čsob cz') || combined.includes('csob česk') || combined.includes('čsob česk') || cardLower.includes('8615')) return 'csob_cz';
   if (combined.includes('moneta')) return 'moneta';
   if (combined.includes('csob sk') || combined.includes('čsob sk') || combined.includes('csob slov') || combined.includes('čsob slov') || cardLower.includes('5612')) return 'csob_sk';
   if (combined.includes('raiffeisen') || combined.includes('rb cz') || cardLower.includes('3684') || cardLower.includes('1398')) return 'rb_cz';
@@ -7371,9 +7418,14 @@ function bindArchiveTransactionEditGestures() {
 function deleteSingleTransaction(txId) {
   if (!txId) return;
 
-  allTransactions = allTransactions.filter(t => String(t.id || t.msgId || '') !== String(txId));
+  const targetId = String(txId);
+  const tx = allTransactions.find(t => String(t.id || t.msgId || '') === targetId);
+  if (tx) applyLocalAccountBalanceFromTransaction(tx, -1);
 
-  postToBankTrackerEndpoint('deleteTransaction', { id: String(txId) });
+  allTransactions = allTransactions.filter(t => String(t.id || t.msgId || '') !== targetId);
+  localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
+
+  postToBankTrackerEndpoint('deleteTransaction', { id: targetId });
 
   renderAll();
 }
@@ -7789,6 +7841,54 @@ function setAccountBalance(bankKey, value, monthStr = getAktuálneMonth()) {
   }
 }
 
+
+function canApplyBalanceDeltaForTx(bankKey, tx) {
+  const txCurrency = String(tx?.currency || '').toUpperCase();
+  const bankCurrency = String(getBankBalanceCurrency(bankKey) || '').toUpperCase();
+  return !txCurrency || !bankCurrency || txCurrency === bankCurrency;
+}
+
+function isCsobCzCreditCardRepaymentTx(tx) {
+  const text = [tx?.merchant, tx?.merchantRaw, tx?.category, tx?.card, tx?.type, tx?.paymentKind, tx?.bank].join(' ').toLowerCase();
+  const isCsobCz = text.includes('csob cz') || text.includes('čsob cz');
+  const isRepayment = /splátka\s+kreditní\s+karty/i.test(text) || /splatka\s+kreditni\s+karty/i.test(text) || /credit\s*card\s*repayment/i.test(text) || (/kredit/i.test(text) && /splátka|splatka|repayment/i.test(text));
+  return isCsobCz && isRepayment;
+}
+
+function isCsobCzCreditCardBalanceTx(tx) {
+  const text = [tx?.bank, tx?.card, tx?.type, tx?.category, tx?.merchant, tx?.merchantRaw].join(' ').toLowerCase();
+  return (text.includes('csob cz') || text.includes('čsob cz') || text.includes('9344') || text.includes('kredit')) && (text.includes('9344') || text.includes('credit card') || text.includes('kredit'));
+}
+
+function adjustLocalAccountBalance(bankKey, monthStr, delta, tx) {
+  const amount = Number(delta || 0);
+  if (!bankKey || !isFinite(amount) || amount === 0) return false;
+  if (!canApplyBalanceDeltaForTx(bankKey, tx)) return false;
+  const month = normalizeMonthStr(monthStr || tx?.month || getAktuálneMonth());
+  const current = getAccountBalance(bankKey, month);
+  const next = Math.round((current + amount) * 100) / 100;
+  setAccountBalance(bankKey, next, month);
+  return true;
+}
+
+function applyLocalAccountBalanceFromTransaction(tx, multiplier = 1) {
+  const amount = Number(tx?.amount || 0) * Number(multiplier || 1);
+  if (!tx || !isFinite(amount) || amount === 0) return false;
+  const month = normalizeMonthStr(tx.month || getAktuálneMonth());
+
+  if (isCsobCzCreditCardRepaymentTx(tx)) {
+    const changedCurrent = adjustLocalAccountBalance('csob_cz', month, amount, tx);
+    const changedCredit = adjustLocalAccountBalance('csob_cz_credit', month, amount, tx);
+    return changedCurrent || changedCredit;
+  }
+
+  if (isCsobCzCreditCardBalanceTx(tx)) {
+    return adjustLocalAccountBalance('csob_cz_credit', month, -amount, tx);
+  }
+
+  return adjustLocalAccountBalance(getBankKey(tx), month, amount, tx);
+}
+
 function getBankBalanceCurrency(bankKey) {
   if (String(bankKey || '').startsWith('custom_')) {
     const bank = getCustomBanks().find(b => b.id === bankKey);
@@ -7898,21 +7998,29 @@ function getCreditOutstandingCurrency(id) {
 }
 
 function getAllManagedBanksForBalance() {
-  const system = BANK_ORDER.map(k => ({
-    id: k,
-    name: getBankDisplayOverride(k),
-    logo: bankLogoImg(k),
-    currency: getBankBalanceCurrency(k),
-    balance: getAccountBalance(k)
-  }));
+  const system = BANK_ORDER.map(k => {
+    const info = getBankInfo(k);
+    return {
+      id: k,
+      name: getBankDisplayOverride(k),
+      logo: bankLogoImg(k),
+      currency: getBankBalanceCurrency(k),
+      balance: getAccountBalance(k),
+      type: info?.primaryType || 'account',
+      liability: info?.primaryType === 'credit' || k === 'csob_cz_credit'
+    };
+  });
+  const systemIds = new Set(BANK_ORDER);
   const custom = getCustomBanks()
-    .filter(b => b && b.id !== 'csob_cz_credit')
+    .filter(b => b && b.active !== false && !systemIds.has(b.id))
     .map(b => ({
       id: b.id,
       name: b.name,
       logo: '🏦',
       currency: b.currency || 'CZK',
-      balance: Number(b.balance || 0) || 0
+      balance: getAccountBalance(b.id),
+      type: b.type || 'account',
+      liability: b.type === 'credit' || b.id === 'csob_cz_credit'
     }));
   return [...system, ...custom];
 }
@@ -7925,28 +8033,10 @@ function renderAccountBalanceWidget() {
 
   const banks = getAllManagedBanksForBalance();
   const targetCurrency = getAppCurrency();
-  const visibleSubaccounts = CREDIT_BALANCE_SUBACCOUNTS
-    .map(item => getCreditBalanceSubaccountData(item))
-    .filter(item => isCreditSubaccountExpanded(item.id))
-    .map(item => ({
-      id: item.id,
-      parentId: item.parentId,
-      name: item.name || t(item.nameKey),
-      currency: item.currency || 'CZK',
-      balance: getCreditOutstandingBalance(item.id),
-      isSubaccount: true,
-      liability: item.liability !== false,
-      cardLast4: item.cardLast4 || ''
-    }));
-
-  const bankTotal = banks.reduce((sum, bank) => {
-    return sum + convertAmountCurrency(bank.balance || 0, bank.currency || targetCurrency, targetCurrency);
+  const totalBalance = banks.reduce((sum, bank) => {
+    const value = convertAmountCurrency(bank.balance || 0, bank.currency || targetCurrency, targetCurrency);
+    return sum + (bank.liability ? -value : value);
   }, 0);
-  const creditImpact = visibleSubaccounts.reduce((sum, item) => {
-    const value = convertAmountCurrency(item.balance || 0, item.currency || targetCurrency, targetCurrency);
-    return sum + (item.liability ? -value : value);
-  }, 0);
-  const totalBalance = bankTotal + creditImpact;
 
   const totalRow = banks.length ? `
       <div class="budget-bank-row account-balance-row account-balance-total-row" title="${escapeAttr(t('accountBalanceTotal'))}">
@@ -7983,35 +8073,19 @@ function renderAccountBalanceWidget() {
     const currency = bank.currency || 'CZK';
     const value = formatCurrencyAmount(bank.balance || 0, currency);
     const czkEquivalent = getCzkEquivalentText(bank.balance || 0, currency);
-    const children = getCreditBalanceSubaccountsForParent(bank.id);
-    const hasChildren = children.length > 0;
-    const firstChildId = children[0]?.id || '';
-    const expanded = hasChildren ? isCreditSubaccountExpanded(firstChildId) : false;
-    const childRows = children
-      .filter(item => isCreditSubaccountExpanded(item.id))
-      .map(item => renderSubaccountRow({
-        id: item.id,
-        parentId: item.parentId,
-        name: item.name || t(item.nameKey),
-        currency: item.currency || 'CZK',
-        balance: getCreditOutstandingBalance(item.id),
-        isSubaccount: true,
-        liability: item.liability !== false,
-        cardLast4: item.cardLast4 || ''
-      })).join('');
-    const rollButton = hasChildren ? `<button class="account-balance-rollup-btn ${expanded ? 'is-expanded' : ''}" onclick="event.stopPropagation(); toggleCreditSubaccount('${escapeAttr(firstChildId)}')" title="${escapeAttr(expanded ? 'Collapse' : 'Expand')}" aria-label="${escapeAttr(expanded ? 'Collapse' : 'Expand')}">${expanded ? '⌄' : '›'}</button>` : '';
+    const liabilityNote = bank.liability ? ` · ${escapeHtml(t('csobCzCreditOutstandingShort'))}` : '';
     return `
       <div class="budget-bank-row account-balance-row" onclick="openBankTransactions('${bank.id}', 'all')" title="${t('filteredTransactions')}" style="padding:10px 0;border-bottom:1px solid var(--border);">
         <div class="budget-status-main">
           <div class="account-balance-name-wrap">
-            <div class="budget-status-value account-balance-name" style="font-size:15px;display:flex;align-items:center;gap:7px;">${bank.logo} <span>${escapeHtml(bank.name)}</span>${rollButton}</div>
+            <div class="budget-status-value account-balance-name" style="font-size:15px;display:flex;align-items:center;gap:7px;">${bank.logo} <span>${escapeHtml(bank.name)}</span>${liabilityNote}</div>
           </div>
           <div class="account-balance-value-wrap">
             <div class="budget-status-value account-balance-value" style="color:var(--accent);">${escapeHtml(maskAccountBalanceValue(value))}</div>
             ${maskAccountBalanceNote(czkEquivalent) ? `<div class="budget-status-note account-balance-equivalent">${escapeHtml(czkEquivalent)}</div>` : ''}
           </div>
         </div>
-      </div>${childRows}`;
+      </div>`;
   }).join('');
   wrap.innerHTML = banks.length ? (rows + totalRow) : `<div class="budget-status-note">${t('noBanksAdded')}</div>`;
 }
@@ -10106,15 +10180,18 @@ async function updateCustomBank(bankId) {
   bank.warning = parseFloat(document.getElementById('edit-warning-' + bankId)?.value || '0') || 0;
   bank.cardLimit = parseInt(document.getElementById('edit-card-limit-' + bankId)?.value || '0', 10) || 0;
   bank.balance = parseFloat(document.getElementById('edit-balance-' + bankId)?.value || '0') || 0;
+  bank.incomingAlert = parseFloat(document.getElementById('edit-incoming-alert-' + bankId)?.value || '0') || 0;
+  bank.outgoingAlert = parseFloat(document.getElementById('edit-outgoing-alert-' + bankId)?.value || '0') || 0;
   localStorage.setItem(`bank_card_limit_${bankId}_${normalizeMonthStr(budgetMonth)}`, String(bank.cardLimit));
   setBudgetSettingsForBank(bankId, bank.budget, bank.warning, budgetMonth);
   setAccountBalance(bankId, bank.balance, budgetMonth);
+  setTransactionAlertSettingsForBank(bankId, bank.incomingAlert, bank.outgoingAlert, budgetMonth);
 
   saveCustomBanks(banks);
   // v50 hotfix: saveBank must only update the Banky tab.
   // Limits, budgets and balances are saved only via saveBankSettingsEndpoint below.
   const bankOk = await postToBankTrackerEndpoint('saveBank', { bank: getEndpointBankPayload(bankId, bank) });
-  const settingsOk = await saveBankSettingsEndpoint(bankId, budgetMonth, bank.cardLimit, bank.budget, bank.warning, bank.balance);
+  const settingsOk = await saveBankSettingsEndpoint(bankId, budgetMonth, bank.cardLimit, bank.budget, bank.warning, bank.balance, bank.incomingAlert, bank.outgoingAlert);
   renderBankManager();
   renderAll();
   alert(bankOk && settingsOk ? 'Zmeny boli uložené v Google Sheets.' : 'Zmeny ostali lokálne. Google Sheets zápis neprebehol - skontroluj Web App /exec URL a Apps Script Executions.');
@@ -10255,6 +10332,7 @@ function getManagedTxFromButton(button) {
 function updateManagedTransactionFromButton(button) {
   const { row, tx } = getManagedTxFromButton(button);
   if (!row || !tx) return;
+  const oldTxSnapshot = { ...tx };
 
   const getField = (name) => row.querySelector(`[data-field="${name}"]`);
   const dateValue = getField('date')?.value || tx.date;
@@ -10283,6 +10361,9 @@ function updateManagedTransactionFromButton(button) {
   tx.msgId = tx.msgId || tx.id;
 
   allTransactions = sortTransactionsNewestFirst(allTransactions);
+  applyLocalAccountBalanceFromTransaction(oldTxSnapshot, -1);
+  applyLocalAccountBalanceFromTransaction(tx, 1);
+  localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
 
   postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
 
@@ -10394,6 +10475,8 @@ async function saveNewBank(){
     warning:parseFloat(document.getElementById('new-bank-warning')?.value||'0')||0,
     cardLimit:parseInt(document.getElementById('new-bank-card-limit')?.value||'0',10)||0,
     balance:0,
+    incomingAlert:0,
+    outgoingAlert:0,
     budgetMonth:getAktuálneMonth()
   };
   banks.push(bank);
@@ -10401,7 +10484,7 @@ async function saveNewBank(){
   // v50 hotfix: send a clean Banky payload only.
   // Do not send budget/warning/cardLimit/balance through saveBank.
   const bankOk = await postToBankTrackerEndpoint('saveBank', { bank: getEndpointBankPayload(bank.id, bank) });
-  const settingsOk = await saveBankSettingsEndpoint(bank.id, bank.budgetMonth, bank.cardLimit, bank.budget, bank.warning, bank.balance);
+  const settingsOk = await saveBankSettingsEndpoint(bank.id, bank.budgetMonth, bank.cardLimit, bank.budget, bank.warning, bank.balance, bank.incomingAlert, bank.outgoingAlert);
   alert(bankOk || settingsOk
     ? 'Banka bola uložená lokálne a odoslaná do Google Sheets endpointu.'
     : 'Banka bola uložená lokálne, ale Google Sheets zápis neprebehol. Skontroluj Web App /exec URL.');
@@ -10440,10 +10523,15 @@ function updateManagedBankBudgetFields(bankId) {
   const warnEl = document.getElementById('edit-warning-' + bankId);
   const limitEl = document.getElementById('edit-card-limit-' + bankId);
   const balanceEl = document.getElementById('edit-balance-' + bankId);
+  const incomingEl = document.getElementById('edit-incoming-alert-' + bankId);
+  const outgoingEl = document.getElementById('edit-outgoing-alert-' + bankId);
+  const alerts = getTransactionAlertSettingsForBank(bankId, month);
   if (budgetEl) budgetEl.value = settings.budget || 0;
   if (warnEl) warnEl.value = settings.warning || 0;
   if (limitEl) limitEl.value = getArchiveCardLimitForMonth(bankId, month) || 0;
   if (balanceEl) balanceEl.value = getAccountBalance(bankId, month) || 0;
+  if (incomingEl) incomingEl.value = alerts.incoming || 0;
+  if (outgoingEl) outgoingEl.value = alerts.outgoing || 0;
   if (monthlyBox) monthlyBox.classList.add('open');
 }
 
@@ -10482,6 +10570,8 @@ function renderBankManager(){
       warning: budgetSettings.warning || 0,
       budgetMonth: currentMonth,
       balance: getAccountBalance(k, currentMonth),
+      incomingAlert: getTransactionAlertSettingsForBank(k, currentMonth).incoming,
+      outgoingAlert: getTransactionAlertSettingsForBank(k, currentMonth).outgoing,
       system:true
     };
   });
@@ -10498,12 +10588,14 @@ function renderBankManager(){
     warning:(getBudgetSettingsForBank(b.id, currentMonth).warning || b.warning || 0),
     budgetMonth: currentMonth,
     balance:getAccountBalance(b.id, currentMonth),
+    incomingAlert:getTransactionAlertSettingsForBank(b.id, currentMonth).incoming || b.incomingAlert || 0,
+    outgoingAlert:getTransactionAlertSettingsForBank(b.id, currentMonth).outgoing || b.outgoingAlert || 0,
     system:false
   }));
 
   const allBanks = [...system, ...custom].filter(b => {
     if (!query) return true;
-    return [b.name, b.currency, b.account, b.cardLimit, b.budget].some(v => matchesSearch(v, query));
+    return [b.name, b.currency, b.account, b.cardLimit, b.budget, b.incomingAlert, b.outgoingAlert].some(v => matchesSearch(v, query));
   });
 
   const row = (b) => `
@@ -10513,7 +10605,7 @@ function renderBankManager(){
           <div class="managed-bank-icon">${b.logo}</div>
           <div style="min-width:0;">
             <div class="managed-bank-name">${escapeHtml(b.name)}</div>
-            <div class="managed-bank-sub">${escapeHtml(b.currency)}${b.account ? ` · Účty ${escapeHtml(b.account)}` : ''}${b.cards ? ` · Karty ${escapeHtml(b.cards.split(',').map(v => '****' + v.trim().replace(/\D/g,'').slice(-4)).filter(v => v !== '****').join(', '))}` : ''} · ${t('cardLimitShort')} ${b.cardLimit || 0} · ${t('budgetLabel')} ${formatMoney(b.budget || 0, 'CZK')} CZK · ${t('accountBalanceTitle')} ${escapeHtml(formatCurrencyAmount(b.balance || 0, b.currency || 'CZK'))}${getCzkEquivalentText(b.balance || 0, b.currency || 'CZK') ? ` · ${escapeHtml(getCzkEquivalentText(b.balance || 0, b.currency || 'CZK'))}` : ''}${b.id === 'csob_cz' ? ` · ${escapeHtml(t('csobCzCreditOutstandingShort'))} ${escapeHtml(formatCurrencyAmount(getCreditOutstandingBalance('csob_cz_credit'), 'CZK'))}` : ''}</div>
+            <div class="managed-bank-sub">${escapeHtml(b.currency)}${b.account ? ` · Účty ${escapeHtml(b.account)}` : ''}${b.cards ? ` · Karty ${escapeHtml(b.cards.split(',').map(v => '****' + v.trim().replace(/\D/g,'').slice(-4)).filter(v => v !== '****').join(', '))}` : ''} · ${t('cardLimitShort')} ${b.cardLimit || 0} · ${t('budgetLabel')} ${formatMoney(b.budget || 0, 'CZK')} CZK · ${t('accountBalanceTitle')} ${escapeHtml(formatCurrencyAmount(b.balance || 0, b.currency || 'CZK'))}${getCzkEquivalentText(b.balance || 0, b.currency || 'CZK') ? ` · ${escapeHtml(getCzkEquivalentText(b.balance || 0, b.currency || 'CZK'))}` : ''} · ${escapeHtml(t('incomingAlertShort'))} ${formatMoney(b.incomingAlert || 0, b.currency || 'CZK')} · ${escapeHtml(t('outgoingAlertShort'))} ${formatMoney(b.outgoingAlert || 0, b.currency || 'CZK')}</div>
           </div>
         </div>
         <div class="managed-bank-actions">
@@ -10524,56 +10616,213 @@ function renderBankManager(){
 
       <div class="managed-bank-form">
         <label>${t('bankName')}</label>
-        <input class="config-input" id="edit-name-${b.id}" value="${escapeAttr(b.name)}" placeholder="${t('bankName')}" />
+        <div class="save-field-wrap">
+          <input class="config-input" id="edit-name-${b.id}" value="${escapeAttr(b.name)}" placeholder="${t('bankName')}" oninput="scheduleManagedBankDetailAutoSave('${b.id}', 'name')" onchange="scheduleManagedBankDetailAutoSave('${b.id}', 'name', true)" />
+          <span class="field-save-check" id="save-check-name-${b.id}">✓</span>
+        </div>
 
         <div class="sheet-grid-2">
           <div>
             <label>Accounts</label>
-            <input class="config-input" id="edit-account-${b.id}" value="${escapeAttr(b.account||'')}" placeholder="4760/5500" />
+            <div class="save-field-wrap">
+              <input class="config-input" id="edit-account-${b.id}" value="${escapeAttr(b.account||'')}" placeholder="4760/5500" oninput="scheduleManagedBankDetailAutoSave('${b.id}', 'account')" onchange="scheduleManagedBankDetailAutoSave('${b.id}', 'account', true)" />
+              <span class="field-save-check" id="save-check-account-${b.id}">✓</span>
+            </div>
           </div>
           <div>
             <label>Cards</label>
-            <input class="config-input" id="edit-cards-${b.id}" value="${escapeAttr(b.cards||'')}" placeholder="3684,1398" />
+            <div class="save-field-wrap">
+              <input class="config-input" id="edit-cards-${b.id}" value="${escapeAttr(b.cards||'')}" placeholder="3684,1398" oninput="scheduleManagedBankDetailAutoSave('${b.id}', 'cards')" onchange="scheduleManagedBankDetailAutoSave('${b.id}', 'cards', true)" />
+              <span class="field-save-check" id="save-check-cards-${b.id}">✓</span>
+            </div>
           </div>
         </div>
 
         <label>${t('currency')}</label>
-        <select class="config-input" id="edit-currency-${b.id}">
-          ${getCurrencyOptionsHtml(b.currency)}
-        </select>
+        <div class="save-field-wrap">
+          <select class="config-input" id="edit-currency-${b.id}" onchange="scheduleManagedBankDetailAutoSave('${b.id}', 'currency', true)">
+            ${getCurrencyOptionsHtml(b.currency)}
+          </select>
+          <span class="field-save-check" id="save-check-currency-${b.id}">✓</span>
+        </div>
 
         <label>${t('monthLabel', 'Mesiac')}</label>
-        <select class="config-input" id="edit-budget-month-${b.id}" onchange="updateManagedBankBudgetFields('${b.id}')">
-          <option value="" selected disabled>${t('chooseMonth', 'Vyber mesiac')}</option>
-          ${getBudgetMonthOptionsHtml(b.budgetMonth || getAktuálneMonth()).replace(/\sselected/g, '')}
+        <select class="config-input" id="edit-budget-month-${b.id}" onchange="updateManagedBankBudgetFields('${b.id}'); autoSaveManagedBankMonthlyField('${b.id}', 'month')">
+          ${getBudgetMonthOptionsHtml(b.budgetMonth || getAktuálneMonth())}
         </select>
 
-        <div class="managed-bank-monthly-settings" id="edit-monthly-settings-${b.id}">
+        <div class="managed-bank-monthly-settings open" id="edit-monthly-settings-${b.id}">
           <label>${t('monthlyCardLimit')}</label>
-          <input class="config-input" id="edit-card-limit-${b.id}" type="number" value="${b.cardLimit||0}" placeholder="10" />
+          <div class="save-field-wrap">
+            <input class="config-input" id="edit-card-limit-${b.id}" type="number" value="${b.cardLimit||0}" placeholder="10" oninput="scheduleManagedBankAutoSave('${b.id}', 'card-limit')" onchange="scheduleManagedBankAutoSave('${b.id}', 'card-limit', true)" />
+            <span class="field-save-check" id="save-check-card-limit-${b.id}">✓</span>
+          </div>
 
           <label>${t('budgetLabel')}</label>
           <div class="sheet-grid-2">
-            <input class="config-input" id="edit-budget-${b.id}" type="number" value="${b.budget||0}" placeholder="${t('monthlyBudget')}" />
-            <input class="config-input" id="edit-warning-${b.id}" type="number" value="${b.warning||0}" placeholder="${t('warnWhenRemaining')}" />
+            <div class="save-field-wrap">
+              <input class="config-input" id="edit-budget-${b.id}" type="number" value="${b.budget||0}" placeholder="${t('monthlyBudget')}" oninput="scheduleManagedBankAutoSave('${b.id}', 'budget')" onchange="scheduleManagedBankAutoSave('${b.id}', 'budget', true)" />
+              <span class="field-save-check" id="save-check-budget-${b.id}">✓</span>
+            </div>
+            <div class="save-field-wrap">
+              <input class="config-input" id="edit-warning-${b.id}" type="number" value="${b.warning||0}" placeholder="${t('warnWhenRemaining')}" oninput="scheduleManagedBankAutoSave('${b.id}', 'warning')" onchange="scheduleManagedBankAutoSave('${b.id}', 'warning', true)" />
+              <span class="field-save-check" id="save-check-warning-${b.id}">✓</span>
+            </div>
           </div>
 
           <label>${t('accountBalanceTitle')}</label>
-          <input class="config-input" id="edit-balance-${b.id}" type="number" step="0.01" value="${b.balance||0}" placeholder="0" />
+          <div class="save-field-wrap">
+            <input class="config-input" id="edit-balance-${b.id}" type="number" step="0.01" value="${b.balance||0}" placeholder="0" oninput="scheduleManagedBankAutoSave('${b.id}', 'balance')" onchange="scheduleManagedBankAutoSave('${b.id}', 'balance', true)" />
+            <span class="field-save-check" id="save-check-balance-${b.id}">✓</span>
+          </div>
+
+          <label>${t('largeMovementAlerts')}</label>
+          <div class="budget-status-note">${t('largeMovementAlertsHint')}</div>
+          <div class="sheet-grid-2">
+            <div>
+              <label>Incoming alert</label>
+              <div class="save-field-wrap">
+                <input class="config-input" id="edit-incoming-alert-${b.id}" type="number" step="0.01" value="${b.incomingAlert||0}" placeholder="${t('incomingAlertPlaceholder')}" oninput="scheduleManagedBankAutoSave('${b.id}', 'incoming-alert')" onchange="scheduleManagedBankAutoSave('${b.id}', 'incoming-alert', true)" />
+                <span class="field-save-check" id="save-check-incoming-alert-${b.id}">✓</span>
+              </div>
+            </div>
+            <div>
+              <label>Outgoing alert</label>
+              <div class="save-field-wrap">
+                <input class="config-input" id="edit-outgoing-alert-${b.id}" type="number" step="0.01" value="${b.outgoingAlert||0}" placeholder="${t('outgoingAlertPlaceholder')}" oninput="scheduleManagedBankAutoSave('${b.id}', 'outgoing-alert')" onchange="scheduleManagedBankAutoSave('${b.id}', 'outgoing-alert', true)" />
+                <span class="field-save-check" id="save-check-outgoing-alert-${b.id}">✓</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        ${b.id === 'csob_cz' ? `
-        <label>${t('csobCzCreditOutstandingName')}</label>
-        <input class="config-input" id="edit-credit-balance-csob_cz" type="number" step="0.01" value="${getCreditOutstandingBalance('csob_cz_credit') || 0}" placeholder="0" />
-` : ''}
 
-        <button class="config-save" onclick="${b.system ? `updateSystemBankSettings('${b.id}')` : `updateCustomBank('${b.id}')`}">${t('saveChanges')}</button>
+        <div class="budget-status-note">${t('autosaveHint')}</div>
         ${b.system ? `<div class="budget-status-note">${t('defaultBankCannotDelete')}</div>` : `<button class="manager-danger-btn" onclick="deleteCustomBank('${b.id}')">${t('deleteBank')}</button>`}
       </div>
     </div>
   `;
 
   wrap.innerHTML = allBanks.map(row).join('') || `<div class="empty-state">${t('noBanksAdded')}</div>`;
+}
+
+
+const managedBankAutoSaveTimers = {};
+
+function getManagedBankMonthlyValues(bankKey) {
+  const budgetMonth = document.getElementById('edit-budget-month-' + bankKey)?.value || getAktuálneMonth();
+  return {
+    month: normalizeMonthStr(budgetMonth),
+    cardLimit: parseInt(document.getElementById('edit-card-limit-' + bankKey)?.value || '0', 10) || 0,
+    budget: parseFloat(document.getElementById('edit-budget-' + bankKey)?.value || '0') || 0,
+    warning: parseFloat(document.getElementById('edit-warning-' + bankKey)?.value || '0') || 0,
+    balance: parseFloat(document.getElementById('edit-balance-' + bankKey)?.value || '0') || 0,
+    incomingAlert: parseFloat(document.getElementById('edit-incoming-alert-' + bankKey)?.value || '0') || 0,
+    outgoingAlert: parseFloat(document.getElementById('edit-outgoing-alert-' + bankKey)?.value || '0') || 0
+  };
+}
+
+function setManagedSaveCheck(bankKey, fieldKey, state) {
+  const el = document.getElementById(`save-check-${fieldKey}-${bankKey}`);
+  if (!el) return;
+  el.classList.remove('show', 'saving', 'error');
+  if (state === 'saving') {
+    el.textContent = '…';
+    el.classList.add('saving');
+    return;
+  }
+  if (state === 'error') {
+    el.textContent = '!';
+    el.classList.add('error');
+    return;
+  }
+  if (state === 'saved') {
+    el.textContent = '✓';
+    el.classList.add('show');
+    window.setTimeout(() => el.classList.remove('show'), 1800);
+  }
+}
+
+function scheduleManagedBankAutoSave(bankKey, fieldKey, immediate = false) {
+  const key = `${bankKey}:${fieldKey}`;
+  window.clearTimeout(managedBankAutoSaveTimers[key]);
+  setManagedSaveCheck(bankKey, fieldKey, 'saving');
+  managedBankAutoSaveTimers[key] = window.setTimeout(() => {
+    autoSaveManagedBankMonthlyField(bankKey, fieldKey);
+  }, immediate ? 80 : 700);
+}
+
+function scheduleManagedBankDetailAutoSave(bankKey, fieldKey, immediate = false) {
+  const key = `${bankKey}:detail:${fieldKey}`;
+  window.clearTimeout(managedBankAutoSaveTimers[key]);
+  setManagedSaveCheck(bankKey, fieldKey, 'saving');
+  managedBankAutoSaveTimers[key] = window.setTimeout(() => {
+    autoSaveManagedBankDetails(bankKey, fieldKey);
+  }, immediate ? 80 : 700);
+}
+
+async function autoSaveManagedBankDetails(bankKey, fieldKey = 'name') {
+  const base = getBankInfo(bankKey) || {};
+  const newName = document.getElementById('edit-name-' + bankKey)?.value.trim() || plainBankName(bankKey);
+  const newCurrency = document.getElementById('edit-currency-' + bankKey)?.value || base.primaryCurrency || 'CZK';
+  const newAccount = cleanBankAccountValue(document.getElementById('edit-account-' + bankKey)?.value || base.account || '');
+  const newCards = removeAccountPartsFromCards(cleanBankCardsValue(document.getElementById('edit-cards-' + bankKey)?.value || base.cards || ''), newAccount);
+
+  setBankDisplayOverride(bankKey, newName);
+  localStorage.setItem('bank_currency_' + bankKey, newCurrency);
+  localStorage.setItem('bank_account_' + bankKey, newAccount);
+  localStorage.setItem('bank_cards_' + bankKey, newCards);
+
+  const customBanks = getCustomBanks();
+  const custom = customBanks.find(b => b.id === bankKey);
+  if (custom) {
+    custom.name = newName;
+    custom.currency = newCurrency;
+    custom.account = newAccount;
+    custom.cards = newCards;
+    saveCustomBanks(customBanks);
+  }
+
+  const ok = await postToBankTrackerEndpoint('saveBank', {
+    bank: {
+      id: bankKey,
+      name: newName,
+      currency: newCurrency,
+      type: base.primaryType || custom?.type || 'card',
+      account: newAccount,
+      cards: newCards,
+      active: true
+    }
+  });
+
+  setManagedSaveCheck(bankKey, fieldKey, ok ? 'saved' : 'error');
+  renderOverview();
+  renderArchive();
+  return ok;
+}
+
+async function autoSaveManagedBankMonthlyField(bankKey, fieldKey = 'settings') {
+  const values = getManagedBankMonthlyValues(bankKey);
+  if (!values.month) return false;
+
+  // Update local state first so the UI reacts immediately.
+  localStorage.setItem(`bank_card_limit_${bankKey}_${values.month}`, String(values.cardLimit));
+  const limits = getLimitsForMonth(values.month);
+  const bank = getBankInfo(bankKey);
+  if (bank && bank.limitKey) {
+    limits[bank.limitKey] = values.cardLimit;
+    saveLimitsForMonth(values.month, limits);
+  }
+  setBudgetSettingsForBank(bankKey, values.budget, values.warning, values.month);
+  setAccountBalance(bankKey, values.balance, values.month);
+  setTransactionAlertSettingsForBank(bankKey, values.incomingAlert, values.outgoingAlert, values.month);
+
+  let ok = await saveBankSettingsEndpoint(bankKey, values.month, values.cardLimit, values.budget, values.warning, values.balance, values.incomingAlert, values.outgoingAlert);
+
+  setManagedSaveCheck(bankKey, fieldKey, ok ? 'saved' : 'error');
+  renderOverview();
+  renderArchive();
+  return ok;
 }
 
 async function updateSystemBankSettings(bankKey) {
@@ -10595,6 +10844,8 @@ async function updateSystemBankSettings(bankKey) {
   const newBudget = parseFloat(document.getElementById('edit-budget-' + bankKey)?.value || '0') || 0;
   const newWarning = parseFloat(document.getElementById('edit-warning-' + bankKey)?.value || '0') || 0;
   const newBalance = parseFloat(document.getElementById('edit-balance-' + bankKey)?.value || '0') || 0;
+  const newIncomingAlert = parseFloat(document.getElementById('edit-incoming-alert-' + bankKey)?.value || '0') || 0;
+  const newOutgoingAlert = parseFloat(document.getElementById('edit-outgoing-alert-' + bankKey)?.value || '0') || 0;
 
   setBankDisplayOverride(bankKey, newName);
   localStorage.setItem('bank_currency_' + bankKey, newCurrency);
@@ -10606,13 +10857,8 @@ async function updateSystemBankSettings(bankKey) {
 
   setBudgetSettingsForBank(bankKey, newBudget, newWarning, budgetMonth);
   setAccountBalance(bankKey, newBalance, monthStr);
+  setTransactionAlertSettingsForBank(bankKey, newIncomingAlert, newOutgoingAlert, monthStr);
 
-  let creditSettingsOk = false;
-  if (bankKey === 'csob_cz') {
-    const creditBalance = parseFloat(document.getElementById('edit-credit-balance-csob_cz')?.value || '0') || 0;
-    setCreditOutstandingBalance('csob_cz_credit', creditBalance);
-    creditSettingsOk = await saveBankSettingsEndpoint('csob_cz_credit', budgetMonth, 0, 0, 0, creditBalance);
-  }
 
   const bankOk = await postToBankTrackerEndpoint('saveBank', {
     bank: {
@@ -10625,11 +10871,11 @@ async function updateSystemBankSettings(bankKey) {
       active: true
     }
   });
-  const settingsOk = await saveBankSettingsEndpoint(bankKey, budgetMonth, newLimit, newBudget, newWarning, newBalance);
+  const settingsOk = await saveBankSettingsEndpoint(bankKey, budgetMonth, newLimit, newBudget, newWarning, newBalance, newIncomingAlert, newOutgoingAlert);
 
   renderBankManager();
   renderAll();
-  alert(bankOk || settingsOk || creditSettingsOk ? 'Nastavenia banky boli uložené lokálne a odoslané do Google Sheets.' : 'Nastavenia banky boli uložené lokálne, ale Google Sheets zápis neprebehol. Skontroluj Web App /exec URL.');
+  alert(bankOk || settingsOk ? 'Nastavenia banky boli uložené lokálne a odoslané do Google Sheets.' : 'Nastavenia banky boli uložené lokálne, ale Google Sheets zápis neprebehol. Skontroluj Web App /exec URL.');
 }
 
 function fillManualTransactionBanks(){const select=document.getElementById('manual-tx-bank');if(!select)return;select.innerHTML=BANK_ORDER.map(k=>`<option value="${k}">${plainBankName(k)}</option>`).join('')+getCustomBanks().map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}
@@ -10696,6 +10942,7 @@ function saveManualTransaction(){
 
   allTransactions.unshift(newTx);
   allTransactions=sortTransactionsNewestFirst(allTransactions);
+  applyLocalAccountBalanceFromTransaction(newTx, 1);
   localStorage.setItem('cached_txns',JSON.stringify(allTransactions));
   postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(newTx) });
 
@@ -11163,6 +11410,7 @@ const I18N = {
     noLimit: 'no limit',
     monthArchive: 'Monthly archive',
     saveChanges: 'Save changes',
+    autosaveHint: 'Changes are saved automatically. A green check means Google Sheets confirmed the save.',
     saveBank: 'Save bank',
     saveTransaction: 'Save transaction',
     current: 'Current',
@@ -11269,6 +11517,12 @@ const I18N = {
     date: 'Date',
     direction: 'Direction',
     cardLimitShort: 'card limit',
+    incomingAlertShort: 'incoming from',
+    outgoingAlertShort: 'outgoing from',
+    largeMovementAlerts: 'Push alerts',
+    largeMovementAlertsHint: '0 = off. The alert is checked per single transaction for the selected month.',
+    incomingAlertPlaceholder: 'Incoming from',
+    outgoingAlertPlaceholder: 'Outgoing from',
     budgetLabel: 'budget',
     noBanksAdded: 'No banks added yet.',
     cardPayments: 'card payments',
@@ -11411,6 +11665,7 @@ const I18N = {
     noLimit: 'bez limitu',
     monthArchive: 'Archív mesiacov',
     saveChanges: 'Uložiť zmeny',
+    autosaveHint: 'Zmeny sa ukladajú automaticky. Zelená fajka znamená, že Google Sheets potvrdil uloženie.',
     saveBank: 'Uložiť banku',
     saveTransaction: 'Uložiť transakciu',
     current: 'Aktuálne',
@@ -11514,6 +11769,12 @@ const I18N = {
     date: 'Dátum',
     direction: 'Typ',
     cardLimitShort: 'limit karty',
+    incomingAlertShort: 'príjem od',
+    outgoingAlertShort: 'odchod od',
+    largeMovementAlerts: 'Push alerts',
+    largeMovementAlertsHint: '0 = vypnuté. Kontroluje sa každá jedna transakcia vo vybranom mesiaci.',
+    incomingAlertPlaceholder: 'Prijatá platba od',
+    outgoingAlertPlaceholder: 'Odoslaná platba od',
     budgetLabel: 'budget',
     noBanksAdded: 'Nemáš pridané banky.',
     cardPayments: 'platby kartou',
@@ -11654,6 +11915,7 @@ const I18N = {
     noLimit: 'bez limitu',
     monthArchive: 'Archiv měsíců',
     saveChanges: 'Uložit změny',
+    autosaveHint: 'Změny se ukládají automaticky. Zelená fajfka znamená, že Google Sheets potvrdil uložení.',
     saveBank: 'Uložit banku',
     saveTransaction: 'Uložit transakci',
     current: 'Aktuální',
@@ -11760,6 +12022,12 @@ const I18N = {
     date: 'Datum',
     direction: 'Typ',
     cardLimitShort: 'limit karty',
+    incomingAlertShort: 'příjem od',
+    outgoingAlertShort: 'odchod od',
+    largeMovementAlerts: 'Push alerts',
+    largeMovementAlertsHint: '0 = vypnuto. Kontroluje se každá jednotlivá transakce ve vybraném měsíci.',
+    incomingAlertPlaceholder: 'Příchozí platba od',
+    outgoingAlertPlaceholder: 'Odchozí platba od',
     budgetLabel: 'budget',
     noBanksAdded: 'Nemáš přidané banky.',
     cardPayments: 'platby kartou',
@@ -11950,19 +12218,39 @@ function ensureDefaultConfig() {
 
 
 
-function getBankSettingsPayload(bankId, monthStr, cardLimit, budget, warning, accountBalance) {
+function getTransactionAlertStorageKey(bankId, direction, monthStr) {
+  return `bank_tx_alert_${direction}_${bankId}_${normalizeMonthStr(monthStr || getAktuálneMonth())}`;
+}
+
+function getTransactionAlertSettingsForBank(bankId, monthStr) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
   return {
-    bankId,
-    month: normalizeMonthStr(monthStr || getAktuálneMonth()),
-    cardLimit: Number(cardLimit || 0) || 0,
-    budget: Number(budget || 0) || 0,
-    warning: Number(warning || 0) || 0,
-    accountBalance: Number(accountBalance || 0) || 0
+    incoming: parseFloat(localStorage.getItem(getTransactionAlertStorageKey(bankId, 'incoming', month)) || '0') || 0,
+    outgoing: parseFloat(localStorage.getItem(getTransactionAlertStorageKey(bankId, 'outgoing', month)) || '0') || 0
   };
 }
 
-async function saveBankSettingsEndpoint(bankId, monthStr, cardLimit, budget, warning, accountBalance) {
-  const payload = getBankSettingsPayload(bankId, monthStr, cardLimit, budget, warning, accountBalance);
+function setTransactionAlertSettingsForBank(bankId, incomingAlert, outgoingAlert, monthStr) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  localStorage.setItem(getTransactionAlertStorageKey(bankId, 'incoming', month), String(parseAmountValue(incomingAlert)));
+  localStorage.setItem(getTransactionAlertStorageKey(bankId, 'outgoing', month), String(parseAmountValue(outgoingAlert)));
+}
+
+function getBankSettingsPayload(bankId, monthStr, cardLimit, budget, warning, accountBalance, incomingAlert, outgoingAlert) {
+  return {
+    bankId,
+    month: normalizeMonthStr(monthStr || getAktuálneMonth()),
+    cardLimit: parseAmountValue(cardLimit),
+    budget: parseAmountValue(budget),
+    warning: parseAmountValue(warning),
+    accountBalance: parseAmountValue(accountBalance),
+    incomingAlert: parseAmountValue(incomingAlert),
+    outgoingAlert: parseAmountValue(outgoingAlert)
+  };
+}
+
+async function saveBankSettingsEndpoint(bankId, monthStr, cardLimit, budget, warning, accountBalance, incomingAlert, outgoingAlert) {
+  const payload = getBankSettingsPayload(bankId, monthStr, cardLimit, budget, warning, accountBalance, incomingAlert, outgoingAlert);
   return postToBankTrackerEndpoint('saveBankSettings', { ...payload, settings: payload });
 }
 
@@ -12115,7 +12403,7 @@ function parseBanksSheetData(raw) {
       id: canonicalId,
       name: name || old.name || canonicalId,
       currency: currency || old.currency || 'CZK',
-      type: type === 'card' ? 'card' : 'account',
+      type: type === 'credit' ? 'credit' : (type === 'card' ? 'card' : 'account'),
       account: account || old.account || '',
       cards: cards || old.cards || '',
       active: true
@@ -12157,9 +12445,12 @@ function parseBankSettingsSheetData(raw) {
     const budget = parseSheetNumber(c[3]?.v, c[3]?.f);
     const warning = parseSheetNumber(c[4]?.v, c[4]?.f);
     const balance = parseSheetNumber(c[5]?.v, c[5]?.f);
+    const incomingAlert = parseSheetNumber(c[6]?.v, c[6]?.f);
+    const outgoingAlert = parseSheetNumber(c[7]?.v, c[7]?.f);
     localStorage.setItem(getBudgetStorageKey(bankId, 'limit', month), String(budget));
     localStorage.setItem(getBudgetStorageKey(bankId, 'warn', month), String(warning));
-    if (balance || localStorage.getItem(getAccountBalanceStorageKey(bankId)) === null) setAccountBalance(bankId, balance);
+    if (balance || localStorage.getItem(getAccountBalanceStorageKey(bankId)) === null) setAccountBalance(bankId, balance, month);
+    setTransactionAlertSettingsForBank(bankId, incomingAlert, outgoingAlert, month);
 
     const limits = getLimitsForMonth(month);
     const info = getBankInfo(bankId);
@@ -12175,6 +12466,8 @@ function parseBankSettingsSheetData(raw) {
       custom.budget = budget;
       custom.warning = warning;
       custom.balance = balance;
+      custom.incomingAlert = incomingAlert;
+      custom.outgoingAlert = outgoingAlert;
       custom.budgetMonth = month;
       saveCustomBanks(banks);
     }
@@ -12257,6 +12550,8 @@ function flattenEndpointPayload(action, payload = {}) {
     add('budget', payload.settings.budget);
     add('warning', payload.settings.warning);
     add('accountBalance', payload.settings.accountBalance);
+    add('incomingAlert', payload.settings.incomingAlert);
+    add('outgoingAlert', payload.settings.outgoingAlert);
   }
 
   if (payload.transaction) {
@@ -12718,6 +13013,7 @@ function saveEditedTransaction() {
   const txId = document.getElementById('edit-tx-id')?.value || '';
   const tx = findTransactionById(txId);
   if (!tx) return;
+  const oldTxSnapshot = { ...tx };
 
   const parsedDate = parseManualDateInput(document.getElementById('edit-tx-date')?.value || '');
   const amountRaw = parseFloat(document.getElementById('edit-tx-amount')?.value || '0') || 0;
@@ -12747,6 +13043,9 @@ function saveEditedTransaction() {
   tx.msgId = tx.msgId || tx.id;
 
   allTransactions = sortTransactionsNewestFirst(allTransactions);
+  applyLocalAccountBalanceFromTransaction(oldTxSnapshot, -1);
+  applyLocalAccountBalanceFromTransaction(tx, 1);
+  localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
 
   postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
 
