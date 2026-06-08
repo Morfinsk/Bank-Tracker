@@ -1,5 +1,5 @@
 /* firebase-messaging-sw.js
-   Bank Tracker - Android safe Firebase Messaging Service Worker
+   Bank Tracker - Android safe Firebase Messaging Service Worker / no duplicate background notifications
    Upload this file to GitHub as:
    firebase-messaging-sw.js
 */
@@ -84,6 +84,16 @@ function getNotificationOptions(payload) {
 if (messaging && messaging.onBackgroundMessage) {
   try {
     messaging.onBackgroundMessage(function (payload) {
+      // IMPORTANT:
+      // Apps Script currently sends FCM messages with a `notification` payload.
+      // Firebase/browser can display those automatically in the background.
+      // If we also call showNotification() here, Android PWA can show the same
+      // alert twice. Therefore we only manually display data-only messages.
+      if (payload && payload.notification) {
+        console.log("[Bank Tracker SW] Background notification payload received; letting Firebase/browser display it once.", payload);
+        return;
+      }
+
       const title = pickPayloadValue(payload, "title", "Bank Card Tracker");
       const options = getNotificationOptions(payload);
 
