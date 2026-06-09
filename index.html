@@ -29,7 +29,7 @@
   }
 </style>
 
-<link rel="manifest" href="./manifest.json?v=169">
+<link rel="manifest" href="./manifest.json?v=171">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -460,6 +460,48 @@
     .archive-bank-limit-cell .bank-logo-mini { width: 19px; height: 19px; flex-basis: 19px; }
   }
 
+  /* v138 archive: date on the top row, wider bank/spent/income columns */
+  .archive-item-spent-layout {
+    display: block !important;
+    grid-template-columns: none !important;
+    padding: 18px 18px !important;
+  }
+  .archive-month-top {
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--text);
+    margin: 0 0 14px;
+    font-family: var(--font-display);
+  }
+  .archive-spent-table {
+    width: 100%;
+    display: grid;
+    gap: 11px !important;
+  }
+  .archive-bank-spent-header,
+  .archive-bank-spent-row {
+    grid-template-columns: minmax(104px, 1.15fr) minmax(98px, 1fr) minmax(98px, 1fr) !important;
+    gap: 10px !important;
+  }
+  .archive-bank-spent-header {
+    padding-left: 0;
+  }
+  .archive-bank-spent-cell,
+  .archive-bank-income-cell {
+    font-size: 13px !important;
+  }
+  @media (max-width: 380px) {
+    .archive-item-spent-layout { padding: 17px 14px !important; }
+    .archive-bank-spent-header,
+    .archive-bank-spent-row {
+      grid-template-columns: minmax(90px, 1.08fr) minmax(86px, .96fr) minmax(86px, .96fr) !important;
+      gap: 8px !important;
+    }
+    .archive-bank-spent-cell,
+    .archive-bank-income-cell { font-size: 12px !important; }
+  }
+
+
 
 
   /* v132 archive: only individual cells are tappable, never the whole row */
@@ -477,6 +519,62 @@
   .archive-bank-income-cell {
     color: var(--ok) !important;
   }
+
+
+  /* v139 archive alignment: centered month and wider spent/income columns */
+  .archive-item-spent-layout {
+    padding: 18px 14px !important;
+  }
+  .archive-month-top {
+    text-align: center !important;
+    color: #8fdcff !important;
+    font-size: 16px !important;
+    letter-spacing: .01em;
+    margin: 0 0 16px !important;
+    text-shadow: 0 0 14px rgba(143,220,255,.18);
+  }
+  .archive-bank-spent-header,
+  .archive-bank-spent-row {
+    grid-template-columns: minmax(96px, .95fr) minmax(108px, 1.06fr) minmax(116px, 1.12fr) !important;
+    gap: 8px !important;
+  }
+  .archive-bank-spent-header > div:nth-child(2),
+  .archive-bank-spent-header > div:nth-child(3),
+  .archive-bank-spent-cell,
+  .archive-bank-income-cell {
+    text-align: right !important;
+  }
+  .archive-bank-spent-cell,
+  .archive-bank-income-cell {
+    font-size: 12.5px !important;
+    letter-spacing: -0.035em;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+  .archive-bank-limit-cell {
+    font-size: 13px !important;
+  }
+  .archive-bank-limit-cell .bank-logo-mini {
+    width: 20px !important;
+    height: 20px !important;
+    flex-basis: 20px !important;
+  }
+  @media (max-width: 380px) {
+    .archive-item-spent-layout { padding: 17px 11px !important; }
+    .archive-bank-spent-header,
+    .archive-bank-spent-row {
+      grid-template-columns: minmax(78px, .84fr) minmax(96px, 1.04fr) minmax(106px, 1.12fr) !important;
+      gap: 6px !important;
+    }
+    .archive-bank-spent-cell,
+    .archive-bank-income-cell {
+      font-size: 11.5px !important;
+      letter-spacing: -0.055em;
+    }
+    .archive-bank-limit-cell { font-size: 12.5px !important; }
+    .archive-bank-limit-cell .bank-logo-mini { width: 18px !important; height: 18px !important; flex-basis: 18px !important; }
+  }
+
 
   /* Config screen & Simulátor */
   .config-banner {
@@ -7410,10 +7508,10 @@ async function fetchSheetTransactions(spreadsheetId, sheetName) {
 async function syncArchivedTransactionsFromSheets(spreadsheetId) {
   try {
     if (!spreadsheetId) return [];
-    const txns = await fetchSheetTransactions(spreadsheetId, 'Archiv_Transakcie');
+    const txns = await fetchSheetTransactions(spreadsheetId, 'Archive_Transactions');
     return txns.map(tx => ({ ...tx, archived: true }));
   } catch (e) {
-    console.warn('Archiv_Transakcie sync skipped:', e);
+    console.warn('Archive_Transactions sync skipped:', e);
     return [];
   }
 }
@@ -7446,7 +7544,7 @@ async function syncData() {
     await syncBanksFromSheets(match[1]);
     await syncFxRatesFromSheets(match[1]);
     await syncBankSettingsFromSheets(match[1]);
-    const activeTxns = await fetchSheetTransactions(match[1], 'Transakcie');
+    const activeTxns = await fetchSheetTransactions(match[1], 'Transactions');
     const archivedTxns = await syncArchivedTransactionsFromSheets(match[1]);
     allTransactions = sortTransactionsNewestFirst(dedupeTransactionsForCloud([...activeTxns, ...archivedTxns]));
     if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa načítali správne.';
@@ -9480,7 +9578,7 @@ function getTransactionViewSemanticKey(tx, forceCardLast4) {
 }
 
 function getTransactionViewDedupeKey(tx) {
-  // In the ČSOB CZ credit-card view the same repayment can enter the UI
+  // In the ČSOB CZ card 9344 view the same credit-card repayment can enter the UI
   // through two representations: account-side row and credit-card-side display row.
   // Do not use msgId first here, because those two rows may have different IDs.
   const creditCard = getCsobCzCreditCardLast4();
@@ -9917,6 +10015,7 @@ function openBankTransactions(bankKey, paymentKind = 'card') {
 }
 
 function openRecentBankTransactions(bankKey) {
+  // Recent bank click should only select the bank. It must not apply the old 14-day/date filter.
   showPage('txns', { preserveFilters: true });
   activeCategory = 'všetky';
   activePaymentKind = 'all';
@@ -9924,30 +10023,15 @@ function openRecentBankTransactions(bankKey) {
   activeMonthFilter = '';
   activeSearch = '';
   activeTxnHistoryScope = 'all';
-
-  const bankTxns = sortTransactionsNewestFirst(allTransactions.filter(tx => matchesActiveBankFilter(tx, bankKey)));
-  const latest = bankTxns
-    .map(tx => parseCustomDateStr(tx.rawDate || tx.date))
-    .filter(d => d && !isNaN(d.getTime()))
-    .sort((a, b) => b - a)[0];
-
-  if (latest) {
-    const from = new Date(latest);
-    from.setDate(from.getDate() - 13);
-    from.setHours(0, 0, 0, 0);
-    const to = new Date(latest);
-    to.setHours(23, 59, 59, 999);
-    activeDateFrom = toDateInputValue(from);
-    activeDateTo = toDateInputValue(to);
-  } else {
-    activeDateFrom = '';
-    activeDateTo = '';
-  }
+  activeDateFrom = '';
+  activeDateTo = '';
+  activeCardLast4 = '';
 
   const search = document.getElementById('txn-search');
   if (search) search.value = '';
   updatePaymentKindFilterUi();
   updateDirectionFilterUi();
+  updateCardSourceFiltersUi();
   updateTransactionDateInputs();
   filterBank(bankKey);
 }
@@ -10201,7 +10285,7 @@ async function saveConfig() {
   if (LIMITS_WEBAPP_URL) {
     const sentCount = await syncAllBanksAndSettingsToEndpoint();
     bankSyncMessage = sentCount
-      ? `\nBanky + Bank_Settings odoslané: ${sentCount} záznamov.`
+      ? `\nBank_Settings + Bank_Archive odoslané: ${sentCount} záznamov.`
       : '\nWeb App URL je uložená, ale nebolo čo odoslať.';
   }
 
@@ -12181,7 +12265,7 @@ function renderArchive() {
       </div>`;
     }).join('');
     const header = `<div class="archive-bank-spent-header"><div>${t('bank')}</div><div>${t('spent')}</div><div>${t('income')}</div></div>`;
-    return `<div class="archive-item archive-item-spent-layout"><div class="archive-month-left"><div class="archive-month-name">${formatMonthString(mStr)}</div></div><div class="archive-spent-table">${header}${rows}</div></div>`;
+    return `<div class="archive-item archive-item-spent-layout"><div class="archive-month-top">${formatMonthString(mStr)}</div><div class="archive-spent-table">${header}${rows}</div></div>`;
   }).join('');
 }
 
@@ -13278,14 +13362,14 @@ async function syncBanksFromSheets(spreadsheetId) {
   try {
     if (!spreadsheetId) return false;
     saveCustomBanks([]);
-    const gvizUrl = buildGvizUrl(spreadsheetId, 'Banky');
+    const gvizUrl = buildGvizUrl(spreadsheetId, 'Bank_Settings');
     const res = await fetchNoStore(gvizUrl);
-    if (!res.ok) throw new Error('Banky fetch failed');
+    if (!res.ok) throw new Error('Bank_Settings fetch failed');
     const raw = await res.text();
     parseBanksSheetData(raw);
     return true;
   } catch (e) {
-    console.warn('Banky sync skipped:', e);
+    console.warn('Bank_Settings sync skipped:', e);
     return false;
   }
 }
@@ -13348,14 +13432,14 @@ function parseBankSettingsSheetData(raw) {
 async function syncBankSettingsFromSheets(spreadsheetId) {
   try {
     if (!spreadsheetId) return false;
-    const gvizUrl = buildGvizUrl(spreadsheetId, 'Bank_Settings');
+    const gvizUrl = buildGvizUrl(spreadsheetId, 'Bank_Archive');
     const res = await fetchNoStore(gvizUrl);
-    if (!res.ok) throw new Error('Bank_Settings fetch failed');
+    if (!res.ok) throw new Error('Bank_Archive fetch failed');
     const raw = await res.text();
     parseBankSettingsSheetData(raw);
     return true;
   } catch (e) {
-    console.warn('Bank_Settings sync skipped:', e);
+    console.warn('Bank_Archive sync skipped:', e);
     return false;
   }
 }
@@ -13377,7 +13461,7 @@ async function syncDetectedBanksToSheets() {
   }
   const ok = await postToBankTrackerEndpoint('syncDetectedBanks', { month: getAktuálneMonth() });
   alert(ok
-    ? 'Sync detected banks dokončený. Aktualizovaný bol iba tab Banky; Bank_Settings sa nemenil.'
+    ? 'Sync detected banks dokončený. Aktualizovaný bol iba tab Bank_Settings; Bank_Archive sa nemenil.'
     : 'Sync sa nepodarilo odoslať. Skontroluj Web App URL a deployment access.');
   return ok;
 }
@@ -13720,16 +13804,21 @@ function shouldShowScrollToLatestButton() {
   return false;
 }
 
-function isTransactionBottomContentVisible() {
-  const pageId = getActivePageId ? getActivePageId() : activePageId;
-  if (pageId !== 'txns') return false;
-  const totals = document.querySelector('#txn-list .txn-totals-card');
-  const lastTx = [...document.querySelectorAll('#txn-list .tx-item')].pop();
-  const target = totals || lastTx;
-  if (!target) return false;
-  const rect = target.getBoundingClientRect();
+function isActivePageBottomContentVisible() {
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return false;
   const vh = window.innerHeight || document.documentElement.clientHeight || 0;
-  return rect.top < vh - 90;
+  const doc = document.documentElement;
+  const body = document.body;
+  const scrollTop = window.scrollY || doc.scrollTop || body.scrollTop || 0;
+  const fullHeight = Math.max(body.scrollHeight || 0, doc.scrollHeight || 0, body.offsetHeight || 0, doc.offsetHeight || 0);
+  if (!fullHeight || fullHeight <= vh + 80) return false;
+  return (scrollTop + vh) >= (fullHeight - 220);
+}
+
+function isTransactionBottomContentVisible() {
+  // Kept for compatibility with older calls; now dims the utility buttons near the bottom of any tab.
+  return isActivePageBottomContentVisible();
 }
 
 function updateFloatingUtilityButtons() {
@@ -13739,7 +13828,7 @@ function updateFloatingUtilityButtons() {
   const hasSheetOpen = document.body.classList.contains('sheet-open') || !!document.querySelector('.bottom-sheet.open');
   const hideUtilities = hasSheetOpen || activeSheet === 'bank-manager-sheet';
   const showScroll = !hideUtilities && shouldShowScrollToLatestButton();
-  const dimUtilities = !hideUtilities && isTransactionBottomContentVisible();
+  const dimUtilities = !hideUtilities && isActivePageBottomContentVisible();
 
   if (btn) {
     btn.classList.toggle('visible', showScroll);
