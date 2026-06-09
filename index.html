@@ -29,7 +29,7 @@
   }
 </style>
 
-<link rel="manifest" href="./manifest.json?v=171">
+<link rel="manifest" href="./manifest.json?v=169">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -379,21 +379,23 @@
     .archive-bank-limit-cell .bank-logo-mini { width: 19px; height: 19px; flex-basis: 19px; }
   }
 
-  /* v129 monthly archive: bank + spent + income columns */
+  /* v137 monthly archive: aligned bank + spent + income columns */
   .archive-item-spent-layout {
-    grid-template-columns: 76px minmax(0, 1fr) !important;
-    gap: 13px !important;
+    grid-template-columns: 70px minmax(0, 1fr) !important;
+    gap: 10px !important;
   }
   .archive-spent-table {
-    gap: 8px !important;
+    gap: 10px !important;
     padding-left: 0 !important;
+    width: 100%;
   }
   .archive-bank-spent-header,
   .archive-bank-spent-row {
     display: grid;
-    grid-template-columns: minmax(92px, 1fr) minmax(76px, max-content) minmax(76px, max-content) !important;
-    gap: 9px !important;
+    grid-template-columns: minmax(78px, 1fr) minmax(88px, 96px) minmax(88px, 96px) !important;
+    gap: 8px !important;
     align-items: center;
+    width: 100%;
   }
   .archive-bank-spent-header {
     color: var(--muted);
@@ -404,16 +406,22 @@
     text-transform: uppercase;
     padding-bottom: 2px;
   }
+  .archive-bank-spent-header > div:nth-child(2),
+  .archive-bank-spent-header > div:nth-child(3) {
+    text-align: right;
+  }
   .archive-bank-limit-cell {
-    font-size: 13px !important;
+    font-size: 14px !important;
+    min-width: 0;
   }
   .archive-bank-limit-cell .bank-inline-logo {
-    gap: 6px;
+    gap: 7px;
+    white-space: nowrap;
   }
   .archive-bank-limit-cell .bank-logo-mini {
-    width: 20px;
-    height: 20px;
-    flex-basis: 20px;
+    width: 21px;
+    height: 21px;
+    flex-basis: 21px;
   }
   .archive-bank-spent-cell,
   .archive-bank-income-cell {
@@ -423,6 +431,9 @@
     color: var(--text);
     text-align: right;
     white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: clip;
   }
   .archive-bank-income-cell {
     color: var(--ok);
@@ -441,13 +452,14 @@
     transform: scale(.98);
   }
   @media (max-width: 380px) {
-    .archive-item-spent-layout { grid-template-columns: 70px minmax(0, 1fr) !important; gap: 10px !important; }
+    .archive-item-spent-layout { grid-template-columns: 64px minmax(0, 1fr) !important; gap: 8px !important; }
     .archive-bank-spent-header,
-    .archive-bank-spent-row { grid-template-columns: minmax(82px, 1fr) minmax(66px, max-content) minmax(66px, max-content) !important; gap: 6px !important; }
-    .archive-bank-limit-cell { font-size: 12px !important; }
+    .archive-bank-spent-row { grid-template-columns: minmax(68px, 1fr) minmax(80px, 88px) minmax(80px, 88px) !important; gap: 6px !important; }
+    .archive-bank-limit-cell { font-size: 13px !important; }
     .archive-bank-spent-cell, .archive-bank-income-cell { font-size: 11px !important; }
-    .archive-bank-limit-cell .bank-logo-mini { width: 18px; height: 18px; flex-basis: 18px; }
+    .archive-bank-limit-cell .bank-logo-mini { width: 19px; height: 19px; flex-basis: 19px; }
   }
+
 
 
   /* v132 archive: only individual cells are tappable, never the whole row */
@@ -6681,16 +6693,16 @@ function formatMonthString(monthYearStr) {
 }
 
 const BANKS = {
-  rb_cz: { label: 'RB CZ', short: 'RB', color: 'var(--rb-color)', limitKey: 'rbCz', defaultLimit: 10, primaryCurrency: 'CZK', primaryType: 'card', account: '4760/5500', cards: '3684,1398', aliases: ['rb cz','raiffeisen','raiffeisen cz','3684','1398','4760','4760/5500'] },
-  csob_sk: { label: 'ČSOB SK', short: 'ČSOB SK', color: 'var(--csob-color)', limitKey: 'csobSk', defaultLimit: 5, primaryCurrency: 'EUR', primaryType: 'card', account: 'SK 7882', cards: '5612', aliases: ['csob sk','čsob sk','csob slov','čsob slov','5612','7882','SK 7882','9375'] ,
+  rb_cz: { label: 'RB CZ', short: 'RB', color: 'var(--rb-color)', limitKey: 'rbCz', defaultLimit: 10, primaryCurrency: 'CZK', primaryType: 'card', account: '', cards: '', aliases: ['rb cz','raiffeisen','raiffeisen cz'] },
+  csob_sk: { label: 'ČSOB SK', short: 'ČSOB SK', color: 'var(--csob-color)', limitKey: 'csobSk', defaultLimit: 5, primaryCurrency: 'EUR', primaryType: 'card', account: '', cards: '', aliases: ['csob sk','čsob sk','csob slov','čsob slov'] ,
     googleSheetsToggleTitle: 'Google Sheets sync',
     googleSheetsToggleSubOn: 'Zapnuté — appka načíta reálne transakcie zo Sheets.',
     googleSheetsToggleSubOff: 'Vypnuté — appka používa iba lokálnu cache.',
     googleSheetsLocalStatus: 'Google Sheets connection is saved locally. Apps Script URL will be used to save limits, budgets and tokens.'},
-  csob_cz: { label: 'ČSOB CZ', short: 'ČSOB CZ', color: '#8fbfff', limitKey: 'csobCz', defaultLimit: 5, primaryCurrency: 'CZK', primaryType: 'card', account: '6624/0300', cards: '8615,9344', aliases: ['csob cz','čsob cz','csob česk','čsob česk','8615','9344','6624','6624/0300'] },
-  csob_cz_credit: { label: 'ČSOB CZ credit card', short: 'Credit card', color: '#8fbfff', limitKey: null, defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'credit', account: '', cards: '9344', cardLast4: '9344', aliases: ['csob cz credit card','csob cz kreditka','čsob cz kreditka','kreditní karta čsob','kreditna karta csob','9344'] },
-  moneta: { label: '<span class="moneta-gradient">Moneta</span>', short: '<span class="moneta-gradient">Moneta</span>', color: 'var(--moneta-color)', limitKey: 'moneta', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'card', aliases: ['moneta','moneta money','moneta bank'] },
-  air_bank_cz: { label: 'Air Bank', short: 'Air Bank', color: '#b8ff2f', limitKey: 'airBankCz', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'account', account: '3030', cards: '', aliases: ['air bank','airbank','air bank cz','3030'] }
+  csob_cz: { label: 'ČSOB CZ', short: 'ČSOB CZ', color: '#8fbfff', limitKey: 'csobCz', defaultLimit: 5, primaryCurrency: 'CZK', primaryType: 'card', account: '', cards: '', aliases: ['csob cz','čsob cz','csob česk','čsob česk'] },
+  csob_cz_credit: { label: 'ČSOB CZ credit card', short: 'Credit card', color: '#8fbfff', limitKey: null, defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'credit', account: '', cards: '', cardLast4: '', aliases: ['csob cz credit card','csob cz kreditka','čsob cz kreditka','kreditní karta čsob','kreditna karta csob'] },
+  moneta: { label: '<span class="moneta-gradient">Moneta</span>', short: '<span class="moneta-gradient">Moneta</span>', color: 'var(--moneta-color)', limitKey: 'moneta', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'card', account: '', cards: '', aliases: ['moneta','moneta money','moneta bank'] },
+  air_bank_cz: { label: 'Air Bank', short: 'Air Bank', color: '#b8ff2f', limitKey: 'airBankCz', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'account', account: '', cards: '', aliases: ['air bank','airbank','air bank cz'] }
 };
 const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','csob_cz_credit','moneta','air_bank_cz'];
 
@@ -6735,6 +6747,59 @@ function bankLabelWithLogo(bankKey) {
 function bankShortWithLogo(bankKey) {
   const bank = getBankInfo(bankKey);
   return `<span class="bank-name-with-logo">${bankLogoImg(bankKey)}<span>${bank.label}</span></span>`;
+}
+
+
+function getStoredSystemBankAccount(bankKey) {
+  const custom = getCustomBanks().find(b => b && b.id === bankKey);
+  return cleanBankAccountValue(custom?.account || localStorage.getItem('bank_account_' + bankKey) || '');
+}
+
+function getStoredSystemBankCards(bankKey, options = {}) {
+  const includeCreditChild = options.includeCreditChild !== false;
+  const values = [];
+  const addCards = (raw) => {
+    cleanBankCardsValue(raw).split(',').map(v => v.trim()).filter(Boolean).forEach(v => {
+      const last4 = String(v || '').replace(/\D/g, '').slice(-4);
+      if (last4 && !values.includes(last4)) values.push(last4);
+    });
+  };
+  const custom = getCustomBanks().find(b => b && b.id === bankKey);
+  addCards(custom?.cards || localStorage.getItem('bank_cards_' + bankKey) || '');
+  if (bankKey === 'csob_cz' && includeCreditChild) {
+    const credit = getCustomBanks().find(b => b && b.id === 'csob_cz_credit');
+    addCards(credit?.cards || localStorage.getItem('bank_cards_csob_cz_credit') || '');
+  }
+  return values;
+}
+
+function getStoredBankIdentifierText(bankKey) {
+  return [
+    getStoredSystemBankAccount(bankKey),
+    getStoredSystemBankCards(bankKey).join(' '),
+    localStorage.getItem('bank_cards_' + bankKey) || '',
+    localStorage.getItem('bank_account_' + bankKey) || ''
+  ].join(' ').toLowerCase();
+}
+
+function textContainsAnyIdentifier(text, identifiers) {
+  const hay = String(text || '').toLowerCase();
+  return (identifiers || []).some(v => {
+    const needle = String(v || '').trim().toLowerCase();
+    return needle && hay.includes(needle);
+  });
+}
+
+function getCsobCzCreditCardLast4() {
+  const fromCreditRow = getStoredSystemBankCards('csob_cz_credit', { includeCreditChild: false })[0] || '';
+  if (fromCreditRow) return fromCreditRow;
+  const custom = getCustomBanks().find(b => b && b.id === 'csob_cz_credit');
+  const explicit = cleanBankCardsValue(custom?.cardLast4 || localStorage.getItem('bank_card_last4_csob_cz_credit') || '').split(',')[0] || '';
+  return explicit;
+}
+
+function getVisibleCardsForBank(bankKey) {
+  return getStoredSystemBankCards(bankKey, { includeCreditChild: true });
 }
 
 function plainBankName(bankKey) {
@@ -6935,7 +7000,7 @@ function applySimulatorLimitsForMonth(monthStr) {
 
 function isAirBankLikeValue(value) {
   const text = String(value || '').toLowerCase();
-  return text.includes('air bank') || text.includes('airbank') || text.includes('3030');
+  return text.includes('air bank') || text.includes('airbank');
 }
 
 function canonicalBankIdFromSheetRow(id, name, account) {
@@ -6956,13 +7021,19 @@ function getBankKey(t) {
   const categoryLower = String(t?.category || '').toLowerCase();
   const combined = `${bankLower} ${cardLower} ${merchantLower} ${typeLower} ${categoryLower}`;
 
-  if (combined.includes('air bank') || combined.includes('airbank') || cardLower.includes('3030')) return 'air_bank_cz';
-  if (combined.includes('csob cz credit card') || cardLower.includes('9344')) return 'csob_cz_credit';
-  if ((combined.includes('kredit') || combined.includes('credit card')) && (combined.includes('9344') || combined.includes('splátka') || combined.includes('splatka') || combined.includes('repayment'))) return 'csob_cz_credit';
-  if (combined.includes('csob cz') || combined.includes('čsob cz') || combined.includes('csob česk') || combined.includes('čsob česk') || cardLower.includes('8615') || cardLower.includes('6624/0300')) return 'csob_cz';
+  const csobCreditCard = getCsobCzCreditCardLast4();
+  const rbCards = getVisibleCardsForBank('rb_cz');
+  const csobSkCards = getVisibleCardsForBank('csob_sk');
+  const csobCzCards = getVisibleCardsForBank('csob_cz').filter(v => v !== csobCreditCard);
+  const airIds = [getStoredSystemBankAccount('air_bank_cz'), ...getVisibleCardsForBank('air_bank_cz')].filter(Boolean);
+
+  if (combined.includes('air bank') || combined.includes('airbank') || textContainsAnyIdentifier(cardLower, airIds)) return 'air_bank_cz';
+  if (combined.includes('csob cz credit card') || (csobCreditCard && cardLower.includes(csobCreditCard))) return 'csob_cz_credit';
+  if ((combined.includes('kredit') || combined.includes('credit card')) && (combined.includes('splátka') || combined.includes('splatka') || combined.includes('repayment') || (csobCreditCard && combined.includes(csobCreditCard)))) return 'csob_cz_credit';
+  if (combined.includes('csob cz') || combined.includes('čsob cz') || combined.includes('csob česk') || combined.includes('čsob česk') || textContainsAnyIdentifier(cardLower, csobCzCards) || textContainsAnyIdentifier(cardLower, [getStoredSystemBankAccount('csob_cz')])) return 'csob_cz';
   if (combined.includes('moneta')) return 'moneta';
-  if (combined.includes('csob sk') || combined.includes('čsob sk') || combined.includes('csob slov') || combined.includes('čsob slov') || cardLower.includes('5612')) return 'csob_sk';
-  if (combined.includes('raiffeisen') || combined.includes('rb cz') || cardLower.includes('3684') || cardLower.includes('1398')) return 'rb_cz';
+  if (combined.includes('csob sk') || combined.includes('čsob sk') || combined.includes('csob slov') || combined.includes('čsob slov') || textContainsAnyIdentifier(cardLower, csobSkCards) || textContainsAnyIdentifier(cardLower, [getStoredSystemBankAccount('csob_sk')])) return 'csob_sk';
+  if (combined.includes('raiffeisen') || combined.includes('rb cz') || textContainsAnyIdentifier(cardLower, rbCards) || textContainsAnyIdentifier(cardLower, [getStoredSystemBankAccount('rb_cz')])) return 'rb_cz';
   if (merchantLower.includes('sup. maj')) return 'csob_sk';
   return 'rb_cz';
 }
@@ -7857,21 +7928,19 @@ function updatePaymentKindFilterUi() {
 }
 
 function getKnownCardFilters() {
-  const defaults = [
-    { bankKey: 'rb_cz', label: 'RB CZ', card: '3684' },
-    { bankKey: 'rb_cz', label: 'RB CZ', card: '1398' },
-    { bankKey: 'csob_sk', label: 'ČSOB SK', card: '5612' },
-    { bankKey: 'csob_cz', label: 'ČSOB CZ', card: '8615' },
-    { bankKey: 'csob_cz', label: 'ČSOB CZ', card: '9344' }
-  ];
-  const customCards = [];
+  const items = [];
+  const addBankCards = (bankKey, label) => {
+    getVisibleCardsForBank(bankKey).forEach(card => items.push({ bankKey, label: label || plainBankName(bankKey), card }));
+  };
+  BANK_ORDER.filter(k => k !== 'csob_cz_credit').forEach(k => addBankCards(k, plainBankName(k)));
   getCustomBanks().forEach(bank => {
-    String(bank.cards || '').split(',').map(v => v.replace(/\D/g,'').slice(-4)).filter(Boolean).forEach(card => {
-      customCards.push({ bankKey: bank.id, label: bank.name || bank.id, card });
+    if (!bank || bank.active === false || BANK_ORDER.includes(bank.id)) return;
+    cleanBankCardsValue(bank.cards || '').split(',').map(v => v.trim()).filter(Boolean).forEach(card => {
+      items.push({ bankKey: bank.id, label: bank.name || bank.id, card });
     });
   });
   const seen = new Set();
-  return defaults.concat(customCards).filter(item => {
+  return items.filter(item => {
     const key = item.bankKey + '|' + item.card;
     if (!item.card || seen.has(key)) return false;
     seen.add(key);
@@ -8263,7 +8332,9 @@ function isCsobCzCreditCardRepaymentTx(tx) {
 
 function isCsobCzCreditCardBalanceTx(tx) {
   const text = [tx?.bank, tx?.card, tx?.type, tx?.category, tx?.merchant, tx?.merchantRaw].join(' ').toLowerCase();
-  return (text.includes('csob cz') || text.includes('čsob cz') || text.includes('9344') || text.includes('kredit')) && (text.includes('9344') || text.includes('credit card') || text.includes('kredit'));
+  const creditCard = getCsobCzCreditCardLast4();
+  const hasCreditCard = creditCard && text.includes(creditCard);
+  return (text.includes('csob cz') || text.includes('čsob cz') || hasCreditCard || text.includes('kredit')) && (hasCreditCard || text.includes('credit card') || text.includes('kredit'));
 }
 
 function adjustLocalAccountBalance(bankKey, monthStr, delta, tx) {
@@ -8307,7 +8378,7 @@ function getBankBalanceCurrency(bankKey) {
 }
 
 const CREDIT_BALANCE_SUBACCOUNTS = [
-  { id: 'csob_cz_credit', parentId: 'csob_cz', nameKey: 'csobCzCreditOutstandingName', currency: 'CZK', cardLast4: '9344', liability: true }
+  { id: 'csob_cz_credit', parentId: 'csob_cz', nameKey: 'csobCzCreditOutstandingName', currency: 'CZK', cardLast4: '', liability: true }
 ];
 
 function getAccountBalancePrivacyKey() {
@@ -8658,9 +8729,7 @@ function renderBankCards(byBank) {
   const extra = document.getElementById('csob-container');
   if (!main || !extra) return;
 
-  // ČSOB CZ has both debit card 8615 and credit card 9344. For card limits they belong
-  // to one ČSOB CZ limit counter, while Account balance still shows the credit card as
-  // a nested liability under ČSOB CZ.
+  // ČSOB CZ debit and credit card limits are merged under the parent bank; identifiers come from Google Sheets.
   const mergedByBank = { ...(byBank || {}) };
   mergedByBank.csob_cz = [
     ...(mergedByBank.csob_cz || []),
@@ -8676,13 +8745,6 @@ function renderBankCards(byBank) {
 
 
 function getBankCardDisplayLabel(bankKey, txns) {
-  const fallbackCards = {
-    rb_cz: ['3684','1398'],
-    csob_sk: ['5612'],
-    csob_cz: ['8615','9344'],
-    moneta: []
-  };
-
   const lang = getLanguage();
   const prefix = lang === 'en' ? 'Card' : 'Karta';
   const joiner = lang === 'en' ? ' and ' : ' a ';
@@ -8704,13 +8766,9 @@ function getBankCardDisplayLabel(bankKey, txns) {
     if (cleaned && !names.includes(cleaned)) names.push(cleaned);
   });
 
-  (fallbackCards[bankKey] || []).forEach(cardNo => {
-    if (!numbers.includes(cardNo)) numbers.push(cardNo);
+  getVisibleCardsForBank(bankKey).forEach(cardNo => {
+    if (cardNo && !numbers.includes(cardNo)) numbers.push(cardNo);
   });
-
-  if (bankKey === 'csob_cz') {
-    return `${prefix} 8615${joiner}9344`;
-  }
 
   if (numbers.length) {
     const list = numbers.length === 1
@@ -8764,7 +8822,7 @@ function renderRecentBankColumns(byBank) {
   if (!wrap) return;
 
   // ČSOB CZ credit card is part of ČSOB CZ for recent transactions.
-  // Clicking ČSOB CZ must show cash, transfers, debit card 8615 and credit card 9344 together.
+  // Clicking ČSOB CZ must show cash, transfers and all cards belonging to that bank.
   const mergedByBank = { ...(byBank || {}) };
   mergedByBank.csob_cz = [
     ...(mergedByBank.csob_cz || []),
@@ -9310,14 +9368,8 @@ function getTxnTimeDisplay(tx) {
 }
 
 function getCardSourceLabelByLast4(last4) {
-  const labels = {
-    '9344': '9344',
-    '8615': '8615',
-    '3684': '3684',
-    '1398': '1398',
-    '5612': '5612'
-  };
-  return labels[String(last4 || '')] || '';
+  const value = String(last4 || '').replace(/\D/g, '').slice(-4);
+  return value || '';
 }
 
 function getPaymentSourceMasked(tx) {
@@ -9340,7 +9392,8 @@ function transactionMatchesCardLast4(tx, last4) {
   const bankText = String(tx?.bank || tx?.banka || '').toLowerCase();
   const digits = cardText.replace(/\D/g, '');
   if (digits.endsWith(target) || cardText.includes(target)) return true;
-  if (target === '9344') {
+  const creditCard = getCsobCzCreditCardLast4();
+  if (creditCard && target === creditCard) {
     const combined = `${cardText} ${typeText} ${merchantText} ${bankText}`;
     return combined.includes('csob cz credit card') || combined.includes('splátka kredit') || combined.includes('splatka kredit') || combined.includes('kreditní kart') || combined.includes('kreditni kart');
   }
@@ -9363,15 +9416,16 @@ function matchesActiveBankFilter(tx, bankKey) {
 }
 
 function makeCreditCardRepaymentDisplayTx(tx) {
-  if (!activeCardLast4 || String(activeCardLast4) !== '9344') return tx;
-  if (!transactionMatchesCardLast4(tx, '9344') || !isCsobCzCreditCardRepaymentTx(tx)) return tx;
+  const creditCard = getCsobCzCreditCardLast4();
+  if (!activeCardLast4 || !creditCard || String(activeCardLast4) !== creditCard) return tx;
+  if (!transactionMatchesCardLast4(tx, creditCard) || !isCsobCzCreditCardRepaymentTx(tx)) return tx;
   const amount = Math.abs(Number(tx.amount || 0));
   return {
     ...tx,
-    id: String(tx.id || tx.msgId || '') + '_credit_9344_view',
-    msgId: String(tx.msgId || tx.id || '') + '_credit_9344_view',
+    id: String(tx.id || tx.msgId || '') + '_credit_card_view',
+    msgId: String(tx.msgId || tx.id || '') + '_credit_card_view',
     amount: amount,
-    card: 'Karta 9344',
+    card: `${getLanguage() === 'en' ? 'Card' : 'Karta'} ${creditCard}`,
     paymentKind: 'card',
     type: 'credit card repayment to card',
     bank: 'ČSOB CZ credit card',
@@ -9380,7 +9434,8 @@ function makeCreditCardRepaymentDisplayTx(tx) {
 }
 
 function prepareTransactionsForCurrentView(txns) {
-  if (activeBank === 'csob_cz' && String(activeCardLast4 || '') === '9344') {
+  const creditCard = getCsobCzCreditCardLast4();
+  if (activeBank === 'csob_cz' && creditCard && String(activeCardLast4 || '') === creditCard) {
     return (txns || []).map(makeCreditCardRepaymentDisplayTx);
   }
   return txns || [];
@@ -9425,14 +9480,15 @@ function getTransactionViewSemanticKey(tx, forceCardLast4) {
 }
 
 function getTransactionViewDedupeKey(tx) {
-  // In the ČSOB CZ card 9344 view the same credit-card repayment can enter the UI
+  // In the ČSOB CZ credit-card view the same repayment can enter the UI
   // through two representations: account-side row and credit-card-side display row.
   // Do not use msgId first here, because those two rows may have different IDs.
-  if (activeBank === 'csob_cz' && String(activeCardLast4 || '') === '9344') {
-    return 'csob9344:' + getTransactionViewSemanticKey(tx, '9344');
+  const creditCard = getCsobCzCreditCardLast4();
+  if (activeBank === 'csob_cz' && creditCard && String(activeCardLast4 || '') === creditCard) {
+    return 'csob_credit:' + getTransactionViewSemanticKey(tx, creditCard);
   }
 
-  const rawId = String(tx?.msgId || tx?.id || '').replace(/_credit_9344_view$/, '').trim();
+  const rawId = String(tx?.msgId || tx?.id || '').replace(/_credit_card_view$/, '').trim();
   if (rawId) return 'id:' + rawId;
   return 'semantic:' + getTransactionViewSemanticKey(tx);
 }
@@ -9820,11 +9876,13 @@ function setTransactionDateRangeFromBankMonth(bankKey, monthStr, paymentKind = '
   activeDateTo = '';
 }
 
-function openCreditCardTransactions(cardLast4 = '9344') {
+function openCreditCardTransactions(cardLast4 = '') {
+  const creditCard = String(cardLast4 || getCsobCzCreditCardLast4() || '').replace(/\D/g, '').slice(-4);
+  if (!creditCard) return;
   activePageId = 'transactions';
   activeBank = 'csob_cz';
   activePaymentKind = 'card';
-  activeCardLast4 = String(cardLast4 || '9344').replace(/\D/g, '').slice(-4);
+  activeCardLast4 = creditCard;
   activeCategory = 'všetky';
   activeSearch = '';
   activeDirection = 'all';
@@ -11345,14 +11403,14 @@ function renderBankManager(){
           <div>
             <label>Accounts</label>
             <div class="save-field-wrap">
-              <input class="config-input" id="edit-account-${b.id}" value="${escapeAttr(b.account||'')}" placeholder="4760/5500" oninput="scheduleManagedBankDetailAutoSave('${b.id}', 'account')" onchange="scheduleManagedBankDetailAutoSave('${b.id}', 'account', true)" />
+              <input class="config-input" id="edit-account-${b.id}" value="${escapeAttr(b.account||'')}" placeholder="1234/0000" oninput="scheduleManagedBankDetailAutoSave('${b.id}', 'account')" onchange="scheduleManagedBankDetailAutoSave('${b.id}', 'account', true)" />
               <span class="field-save-check" id="save-check-account-${b.id}">✓</span>
             </div>
           </div>
           <div>
             <label>Cards</label>
             <div class="save-field-wrap">
-              <input class="config-input" id="edit-cards-${b.id}" value="${escapeAttr(b.cards||'')}" placeholder="3684,1398" oninput="scheduleManagedBankDetailAutoSave('${b.id}', 'cards')" onchange="scheduleManagedBankDetailAutoSave('${b.id}', 'cards', true)" />
+              <input class="config-input" id="edit-cards-${b.id}" value="${escapeAttr(b.cards||'')}" placeholder="1234,5678" oninput="scheduleManagedBankDetailAutoSave('${b.id}', 'cards')" onchange="scheduleManagedBankDetailAutoSave('${b.id}', 'cards', true)" />
               <span class="field-save-check" id="save-check-cards-${b.id}">✓</span>
             </div>
           </div>
@@ -13189,10 +13247,6 @@ function parseBanksSheetData(raw) {
     const canonicalId = canonicalBankIdFromSheetRow(id, name, [account, cards].filter(Boolean).join(' '));
     let currency = isValidCurrencyCode(rawCurrency) ? rawCurrency : '';
     if (canonicalId === 'csob_sk') currency = 'EUR';
-    if (canonicalId === 'csob_sk') {
-      if (!account) account = 'SK 7882';
-      if (!cards) cards = '5612';
-    }
     cards = removeAccountPartsFromCards(cards, account);
 
     if (BANK_ORDER.includes(canonicalId)) {
