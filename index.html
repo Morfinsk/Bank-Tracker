@@ -292,6 +292,180 @@
   .archive-bank-title { font-size: 12px; font-family: var(--font-mono); font-weight: 500; }
   .archive-bank-status { font-size: 10px; font-weight: bold; margin-top: 2px; }
 
+
+  .archive-item-spent-layout {
+    display: grid !important;
+    grid-template-columns: 76px minmax(0, 1fr);
+    align-items: center !important;
+    gap: 12px;
+  }
+  .archive-item-spent-layout .archive-month-left {
+    width: auto;
+    flex: 0 0 auto;
+  }
+  .archive-spent-table {
+    width: 100%;
+    display: grid;
+    gap: 9px;
+    min-width: 0;
+  }
+  .archive-bank-spent-row {
+    display: grid;
+    grid-template-columns: minmax(108px, 1fr) minmax(76px, max-content);
+    gap: 10px;
+    align-items: center;
+    cursor: pointer;
+    padding: 2px 0;
+    min-width: 0;
+  }
+  .archive-bank-limit-cell {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 900;
+    min-width: 0;
+    text-align: left;
+  }
+  .archive-bank-limit-cell .bank-inline-logo {
+    justify-content: flex-start;
+  }
+  .archive-bank-spent-cell {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 900;
+    color: var(--text);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .archive-bank-spent-label { display:none; }
+  .archive-bank-spent-row .archive-bank-status { text-align: left; }
+  @media (max-width: 380px) {
+    .archive-item-spent-layout { grid-template-columns: 74px minmax(0, 1fr); gap: 10px; }
+    .archive-bank-spent-row { grid-template-columns: minmax(112px, 1fr) minmax(76px, max-content); gap: 8px; }
+    .archive-bank-limit-cell, .archive-bank-spent-cell { font-size: 12px; }
+  }
+
+  /* v128 archive: more breathing room for bank logos/limits and clearer totals */
+  .archive-item-spent-layout {
+    grid-template-columns: 86px minmax(0, 1fr) !important;
+    gap: 16px !important;
+  }
+  .archive-spent-table {
+    gap: 10px !important;
+    padding-left: 8px;
+  }
+  .archive-bank-spent-row {
+    grid-template-columns: minmax(132px, 1fr) minmax(88px, max-content) !important;
+    gap: 12px !important;
+  }
+  .archive-bank-limit-cell {
+    font-size: 13px !important;
+  }
+  .archive-bank-spent-cell {
+    font-size: 13px !important;
+  }
+  .archive-bank-limit-cell .bank-inline-logo {
+    gap: 6px;
+  }
+  .archive-bank-limit-cell .bank-logo-mini {
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
+  }
+  @media (max-width: 380px) {
+    .archive-item-spent-layout { grid-template-columns: 76px minmax(0, 1fr) !important; gap: 11px !important; }
+    .archive-spent-table { padding-left: 4px; }
+    .archive-bank-spent-row { grid-template-columns: minmax(118px, 1fr) minmax(78px, max-content) !important; gap: 8px !important; }
+    .archive-bank-limit-cell, .archive-bank-spent-cell { font-size: 12px !important; }
+    .archive-bank-limit-cell .bank-logo-mini { width: 19px; height: 19px; flex-basis: 19px; }
+  }
+
+  /* v129 monthly archive: bank + spent + income columns */
+  .archive-item-spent-layout {
+    grid-template-columns: 76px minmax(0, 1fr) !important;
+    gap: 13px !important;
+  }
+  .archive-spent-table {
+    gap: 8px !important;
+    padding-left: 0 !important;
+  }
+  .archive-bank-spent-header,
+  .archive-bank-spent-row {
+    display: grid;
+    grid-template-columns: minmax(92px, 1fr) minmax(76px, max-content) minmax(76px, max-content) !important;
+    gap: 9px !important;
+    align-items: center;
+  }
+  .archive-bank-spent-header {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding-bottom: 2px;
+  }
+  .archive-bank-limit-cell {
+    font-size: 13px !important;
+  }
+  .archive-bank-limit-cell .bank-inline-logo {
+    gap: 6px;
+  }
+  .archive-bank-limit-cell .bank-logo-mini {
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
+  }
+  .archive-bank-spent-cell,
+  .archive-bank-income-cell {
+    font-family: var(--font-mono);
+    font-size: 12px !important;
+    font-weight: 900;
+    color: var(--text);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .archive-bank-income-cell {
+    color: var(--ok);
+  }
+
+  .archive-bank-limit-cell,
+  .archive-bank-spent-cell,
+  .archive-bank-income-cell {
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .archive-bank-limit-cell:active,
+  .archive-bank-spent-cell:active,
+  .archive-bank-income-cell:active {
+    background: rgba(88,166,255,.10);
+    transform: scale(.98);
+  }
+  @media (max-width: 380px) {
+    .archive-item-spent-layout { grid-template-columns: 70px minmax(0, 1fr) !important; gap: 10px !important; }
+    .archive-bank-spent-header,
+    .archive-bank-spent-row { grid-template-columns: minmax(82px, 1fr) minmax(66px, max-content) minmax(66px, max-content) !important; gap: 6px !important; }
+    .archive-bank-limit-cell { font-size: 12px !important; }
+    .archive-bank-spent-cell, .archive-bank-income-cell { font-size: 11px !important; }
+    .archive-bank-limit-cell .bank-logo-mini { width: 18px; height: 18px; flex-basis: 18px; }
+  }
+
+
+  /* v132 archive: only individual cells are tappable, never the whole row */
+  .archive-bank-spent-row {
+    border-radius: 10px;
+    transition: none !important;
+  }
+  .archive-bank-spent-row:active {
+    background: transparent !important;
+    transform: none !important;
+  }
+  .archive-bank-spent-cell {
+    color: var(--danger) !important;
+  }
+  .archive-bank-income-cell {
+    color: var(--ok) !important;
+  }
+
   /* Config screen & Simulátor */
   .config-banner {
     margin: 0 20px 20px;
@@ -5742,6 +5916,38 @@ html[data-theme="light"] .txn-day-header {
   }
 }
 
+
+
+/* v136 startup/background simplification: dark/default = black/dark navy, light = white */
+html,
+html[data-theme="dark"] {
+  background: #020617 !important;
+  background-color: #020617 !important;
+}
+
+html body,
+html[data-theme="dark"] body {
+  background: linear-gradient(180deg, #020617 0%, #07111f 100%) !important;
+  background-color: #020617 !important;
+}
+
+html[data-theme="light"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+html[data-theme="light"] body {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+html[data-theme="dark"] body::before {
+  background: #020617 !important;
+}
+
+html[data-theme="light"] body::before {
+  background: #ffffff !important;
+}
 </style>
 </head>
 <body>
@@ -5765,7 +5971,7 @@ html[data-theme="light"] .txn-day-header {
   <div class="summary">
     <div class="summary-item">
       <div class="summary-val" id="sum-txns">0</div>
-      <div class="summary-label" data-i18n="cardPayments">card payments</div>
+      <div class="summary-label" data-i18n="totalTransactions">transactions</div>
     </div>
     <div class="summary-divider"></div>
     <div class="summary-item">
@@ -5866,6 +6072,7 @@ html[data-theme="light"] .txn-day-header {
         <div class="txn-filter-pill" id="filter-kind-account" onclick="filterPaymentKind('account')" data-i18n="accountsOnly">Accounts</div>
         <div class="txn-filter-pill" id="filter-kind-cash" onclick="filterPaymentKind('cash')" data-i18n="cashOnly">Cash</div>
       </div>
+      <div class="cat-grid" id="card-source-filters" style="display:none;"></div>
 
       <div class="filter-group-title" data-i18n="category">Category</div>
       <div class="cat-grid" id="cat-filters"></div>
@@ -5895,7 +6102,7 @@ html[data-theme="light"] .txn-day-header {
     <div id="archive-trend-chart"></div>
   </div>
   <div class="section-title" style="margin-top:8px;" data-i18n="monthlyArchive">Monthly archive</div>
-  <div class="archive-hint" data-i18n="archiveCardsOnlyHint">Monthly archive and trend count card payments only.</div>
+  <div class="archive-hint" data-i18n="archiveMonthlyTotalsHint">Card payments, spending and income totals by bank.</div>
   <div class="archive-container" id="archive-months-list"></div>
 </div>
 
@@ -7649,6 +7856,53 @@ function updatePaymentKindFilterUi() {
   document.getElementById('filter-kind-cash')?.classList.toggle('active', activePaymentKind === 'cash');
 }
 
+function getKnownCardFilters() {
+  const defaults = [
+    { bankKey: 'rb_cz', label: 'RB CZ', card: '3684' },
+    { bankKey: 'rb_cz', label: 'RB CZ', card: '1398' },
+    { bankKey: 'csob_sk', label: 'ČSOB SK', card: '5612' },
+    { bankKey: 'csob_cz', label: 'ČSOB CZ', card: '8615' },
+    { bankKey: 'csob_cz', label: 'ČSOB CZ', card: '9344' }
+  ];
+  const customCards = [];
+  getCustomBanks().forEach(bank => {
+    String(bank.cards || '').split(',').map(v => v.replace(/\D/g,'').slice(-4)).filter(Boolean).forEach(card => {
+      customCards.push({ bankKey: bank.id, label: bank.name || bank.id, card });
+    });
+  });
+  const seen = new Set();
+  return defaults.concat(customCards).filter(item => {
+    const key = item.bankKey + '|' + item.card;
+    if (!item.card || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function updateCardSourceFiltersUi() {
+  const wrap = document.getElementById('card-source-filters');
+  if (!wrap) return;
+  if (activePaymentKind !== 'card') {
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.style.display = 'flex';
+  const items = getKnownCardFilters();
+  wrap.innerHTML = `<div class="txn-filter-pill ${!activeCardLast4 ? 'active' : ''}" onclick="filterCardSource('', '')">${escapeHtml(t('all'))}</div>` +
+    items.map(item => `<div class="txn-filter-pill ${String(activeCardLast4) === item.card ? 'active' : ''}" onclick="filterCardSource('${escapeAttr(item.bankKey)}','${escapeAttr(item.card)}')">${escapeHtml(item.label)} ${escapeHtml(item.card)}</div>`).join('');
+}
+
+function filterCardSource(bankKey, cardLast4) {
+  activePaymentKind = 'card';
+  activeCardLast4 = String(cardLast4 || '').replace(/\D/g, '').slice(-4);
+  if (bankKey) activeBank = bankKey;
+  resetTxnVisibleLimit();
+  updatePaymentKindFilterUi();
+  updateCardSourceFiltersUi();
+  updateTxnPage();
+}
+
 function updateDirectionFilterUi() {
   document.getElementById('filter-dir-all')?.classList.toggle('active', activeDirection === 'all');
   document.getElementById('filter-dir-incoming')?.classList.toggle('active', activeDirection === 'incoming');
@@ -7657,9 +7911,10 @@ function updateDirectionFilterUi() {
 
 function filterPaymentKind(kind) {
   activePaymentKind = kind || 'all';
-  activeCardLast4 = '';
+  if (activePaymentKind !== 'card') activeCardLast4 = '';
   resetTxnVisibleLimit();
   updatePaymentKindFilterUi();
+  updateCardSourceFiltersUi();
   updateTxnPage();
 }
 
@@ -7803,6 +8058,7 @@ function getAktuálneMonthCzkSpent(bankKey = null) {
   // ČSOB CZ credit card is budgeted under ČSOB CZ, not as a separate bank budget row.
   return allTransactions
     .filter(t => t.month === month && Number(t.amount) < 0)
+    .filter(t => !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(t)))
     .filter(t => !bankKey || getBudgetBankKeyFromTransaction(t) === bankKey)
     .reduce((sum, t) => sum + Math.abs(convertTransactionAmount(t, 'CZK')), 0);
 }
@@ -8155,8 +8411,9 @@ function getAllManagedBanksForBalance() {
     const info = getBankInfo(k);
     return {
       id: k,
-      name: getBankDisplayOverride(k),
+      name: plainBankName(k),
       logo: bankLogoImg(k),
+      color: info?.color || 'var(--accent)',
       currency: getBankBalanceCurrency(k),
       balance: getAccountBalance(k),
       type: info?.primaryType || 'account',
@@ -8170,6 +8427,7 @@ function getAllManagedBanksForBalance() {
       id: b.id,
       name: b.name,
       logo: '🏦',
+      color: 'var(--accent)',
       currency: b.currency || 'CZK',
       balance: getAccountBalance(b.id),
       type: b.type || 'account',
@@ -8237,7 +8495,7 @@ function renderAccountBalanceWidget() {
     const value = formatCurrencyAmount(item.balance || 0, currency);
     const czkEquivalent = getCzkEquivalentText(item.balance || 0, currency);
     return `
-      <div class="budget-bank-row account-balance-row account-balance-sub-row" onclick="openCreditCardTransactions('${escapeAttr(item.cardLast4 || '')}')" title="${escapeAttr(t('filteredTransactions'))}" style="padding:9px 0 9px 18px;border-bottom:1px solid var(--border);cursor:pointer;">
+      <div class="budget-bank-row account-balance-row account-balance-sub-row" style="padding:9px 0 9px 18px;border-bottom:1px solid var(--border);">
         <div class="budget-status-main">
           <div class="account-balance-name-wrap">
             <div class="budget-status-value account-balance-name" style="color:var(--accent);font-size:14px;">└ ${escapeHtml(item.name)}</div>
@@ -8260,10 +8518,10 @@ function renderAccountBalanceWidget() {
     const creditToggle = hasCreditChildren ? `<button class="account-balance-rollup-btn ${creditExpanded ? 'is-expanded' : ''}" type="button" onclick="event.stopPropagation(); toggleCreditSubaccount('${escapeAttr(bank.id)}')" title="${creditExpanded ? 'Hide credit card' : 'Show credit card'}" aria-label="${creditExpanded ? 'Hide credit card' : 'Show credit card'}">${creditExpanded ? '⌄' : '›'}</button>` : '';
     const childHint = hasCreditChildren ? `<div class="budget-status-note credit-balance-hint">${creditExpanded ? escapeHtml(t('csobCzCreditOutstandingShort')) : escapeHtml(t('csobCzCreditOutstandingShort')) + ' · hidden from total'}</div>` : '';
     const mainRow = `
-      <div class="budget-bank-row account-balance-row" onclick="openBankTransactions('${bank.id}', 'all')" title="${t('filteredTransactions')}" style="padding:10px 0;border-bottom:1px solid var(--border);">
+      <div class="budget-bank-row account-balance-row" style="padding:10px 0;border-bottom:1px solid var(--border);">
         <div class="budget-status-main">
           <div class="account-balance-name-wrap">
-            <div class="budget-status-value account-balance-name" style="font-size:15px;display:flex;align-items:center;gap:7px;">${bank.logo}<span>${escapeHtml(bank.name)}</span>${creditToggle}</div>
+            <div class="budget-status-value account-balance-name" style="font-size:15px;display:flex;align-items:center;gap:7px;">${bank.logo}${bank.id === 'moneta' ? '<span class="moneta-gradient">Moneta</span>' : `<span style="color:${bank.color || 'var(--text)'};">${escapeHtml(bank.name)}</span>`}${creditToggle}</div>
             ${childHint}
           </div>
           <div class="account-balance-value-wrap">
@@ -8357,6 +8615,7 @@ function renderAll() {
 
   const month = getAktuálneMonth();
   const monthTxns = getCurrentMonthOutgoingTransactions();
+  const monthAllTxns = allTransactions.filter(t => normalizeMonthStr(t.month) === normalizeMonthStr(month));
   const monthCardTxns = getCurrentMonthCardTransactions();
 
   document.getElementById('header-month').textContent = getMonthLabel();
@@ -8367,10 +8626,10 @@ function renderAll() {
   const txnAktuálneDate = document.getElementById('txn-current-date');
   if (txnAktuálneDate) txnAktuálneDate.textContent = `${t('todayPrefix')}: ${formatDate(new Date())}`;
 
-  // Overview headline numbers are tied to used card payments / bank benefits.
-  const totalCardAmt = getTransactionsCzkEquivalentTotal(monthCardTxns);
-  document.getElementById('sum-txns').textContent = monthCardTxns.length;
-  document.getElementById('sum-amount').textContent = Math.round(totalCardAmt).toLocaleString('cs');
+  // Overview headline: card count + total monthly spending in CZK for the selected overview month.
+  const totalMonthSpent = getAktuálneMonthCzkSpent();
+  document.getElementById('sum-txns').textContent = monthAllTxns.length;
+  document.getElementById('sum-amount').textContent = Math.round(totalMonthSpent).toLocaleString('cs');
   document.getElementById('sum-days').textContent = getDaysRemaining();
 
   // Bank budget intentionally includes every payment kind: cards, account payments and cash.
@@ -8424,6 +8683,9 @@ function getBankCardDisplayLabel(bankKey, txns) {
     moneta: []
   };
 
+  const lang = getLanguage();
+  const prefix = lang === 'en' ? 'Card' : 'Karta';
+  const joiner = lang === 'en' ? ' and ' : ' a ';
   const numbers = [];
   const names = [];
 
@@ -8438,7 +8700,7 @@ function getBankCardDisplayLabel(bankKey, txns) {
       return;
     }
 
-    const cleaned = raw.replace(/^karta\s*/i, '').trim();
+    const cleaned = raw.replace(/^karta\s*/i, '').replace(/^card\s*/i, '').trim();
     if (cleaned && !names.includes(cleaned)) names.push(cleaned);
   });
 
@@ -8447,24 +8709,24 @@ function getBankCardDisplayLabel(bankKey, txns) {
   });
 
   if (bankKey === 'csob_cz') {
-    return 'Karta 8615 and 9344';
+    return `${prefix} 8615${joiner}9344`;
   }
 
   if (numbers.length) {
     const list = numbers.length === 1
       ? numbers[0]
-      : `${numbers.slice(0, -1).join(', ')} a ${numbers[numbers.length - 1]}`;
-    return `Karta ${list}`;
+      : `${numbers.slice(0, -1).join(', ')}${joiner}${numbers[numbers.length - 1]}`;
+    return `${prefix} ${list}`;
   }
 
   if (names.length) {
     const list = names.length === 1
       ? names[0]
-      : `${names.slice(0, -1).join(', ')} a ${names[names.length - 1]}`;
-    return `Karta ${list}`;
+      : `${names.slice(0, -1).join(', ')}${joiner}${names[names.length - 1]}`;
+    return `${prefix} ${list}`;
   }
 
-  return 'Karta';
+  return prefix;
 }
 
 function renderBankCard(bankKey, txns) {
@@ -8500,9 +8762,19 @@ function renderBankCard(bankKey, txns) {
 function renderRecentBankColumns(byBank) {
   const wrap = document.getElementById('recent-bank-columns');
   if (!wrap) return;
-  wrap.innerHTML = BANK_ORDER.map(bankKey => {
+
+  // ČSOB CZ credit card is part of ČSOB CZ for recent transactions.
+  // Clicking ČSOB CZ must show cash, transfers, debit card 8615 and credit card 9344 together.
+  const mergedByBank = { ...(byBank || {}) };
+  mergedByBank.csob_cz = [
+    ...(mergedByBank.csob_cz || []),
+    ...(mergedByBank.csob_cz_credit || [])
+  ];
+
+  const visibleBankKeys = BANK_ORDER.filter(bankKey => bankKey !== 'csob_cz_credit');
+  wrap.innerHTML = visibleBankKeys.map(bankKey => {
     const bank = getBankInfo(bankKey);
-    const txns = sortTransactionsNewestFirst([...(byBank[bankKey] || [])]).slice(0, 5);
+    const txns = sortTransactionsNewestFirst([...(mergedByBank[bankKey] || [])]).slice(0, 5);
     const items = txns.length === 0 ? `<div class="tx-meta-compact">${t('emptyMovements')}</div>` : txns.map(t => {
       const txId = typeof getTransactionId === 'function' ? getTransactionId(t) : (t.id || t.msgId || '');
       return `
@@ -9014,7 +9286,7 @@ function updateTransactionFilterSummary() {
   if (activeDateFrom || activeDateTo) chips.push(activeDateFrom && activeDateTo ? `${activeDateFrom}–${activeDateTo}` : (activeDateFrom || activeDateTo));
   if (activeDirection && activeDirection !== 'all') chips.push(getDirectionFilterLabel(activeDirection));
   if (activePaymentKind && activePaymentKind !== 'all') chips.push(getPaymentKindFilterLabel(activePaymentKind));
-  if (activeCardLast4) chips.push(getCardSourceLabelByLast4(activeCardLast4) || ('****' + activeCardLast4));
+  if (activeCardLast4) chips.push(getCardSourceLabelByLast4(activeCardLast4) || activeCardLast4);
   if (activeCategory && activeCategory !== 'všetky') chips.push(translateCategory(activeCategory));
   wrap.innerHTML = chips.slice(0, 4).map(label => `<span class="txn-filter-summary-chip">${escapeHtml(label)}</span>`).join('');
 }
@@ -9039,11 +9311,11 @@ function getTxnTimeDisplay(tx) {
 
 function getCardSourceLabelByLast4(last4) {
   const labels = {
-    '9344': '****9344',
-    '8615': '****8615',
-    '3684': '****3684',
-    '1398': '****1398',
-    '5612': '****5612'
+    '9344': '9344',
+    '8615': '8615',
+    '3684': '3684',
+    '1398': '1398',
+    '5612': '5612'
   };
   return labels[String(last4 || '')] || '';
 }
@@ -9055,7 +9327,7 @@ function getPaymentSourceMasked(tx) {
   const accountMatch = raw.match(/(\d{1,10})\s*\/\s*(\d{4})/);
   if (accountMatch) return `${accountMatch[1]}/${accountMatch[2]}`;
   const digits = raw.replace(/\D/g, '');
-  if (digits.length >= 4) return '****' + digits.slice(-4);
+  if (digits.length >= 4) return digits.slice(-4);
   return raw.replace(/^Karta\s*/i, '').replace(/^Card\s*/i, '').replace(/^Účet\s*/i, '').replace(/^Ucet\s*/i, '').trim() || raw;
 }
 
@@ -9099,7 +9371,7 @@ function makeCreditCardRepaymentDisplayTx(tx) {
     id: String(tx.id || tx.msgId || '') + '_credit_9344_view',
     msgId: String(tx.msgId || tx.id || '') + '_credit_9344_view',
     amount: amount,
-    card: 'Karta ****9344',
+    card: 'Karta 9344',
     paymentKind: 'card',
     type: 'credit card repayment to card',
     bank: 'ČSOB CZ credit card',
@@ -9114,6 +9386,67 @@ function prepareTransactionsForCurrentView(txns) {
   return txns || [];
 }
 
+function normalizeTransactionDedupeDateKey(tx) {
+  const raw = tx?.rawDate || tx?.date || '';
+  const parsed = parseCustomDateStr(raw);
+  if (parsed && !isNaN(parsed.getTime())) {
+    return [
+      parsed.getFullYear(),
+      String(parsed.getMonth() + 1).padStart(2, '0'),
+      String(parsed.getDate()).padStart(2, '0'),
+      String(parsed.getHours()).padStart(2, '0'),
+      String(parsed.getMinutes()).padStart(2, '0')
+    ].join('-');
+  }
+  return String(raw || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function normalizeTransactionDedupeTextKey(value) {
+  return String(value || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getTransactionViewSemanticKey(tx, forceCardLast4) {
+  const cardKey = String(forceCardLast4 || getPaymentSourceMasked(tx) || '').replace(/\D/g, '').slice(-4);
+  const normalizedBank = getBankKey(tx) === 'csob_cz_credit' ? 'csob_cz' : getBankKey(tx);
+  return [
+    normalizeMonthStr(tx?.month || ''),
+    normalizeTransactionDedupeDateKey(tx),
+    normalizeTransactionDedupeTextKey(tx?.merchant || tx?.merchantRaw || ''),
+    Math.abs(Number(tx?.amount || 0)).toFixed(2),
+    String(tx?.currency || '').toUpperCase(),
+    normalizedBank,
+    cardKey || getPaymentSourceMasked(tx)
+  ].join('|');
+}
+
+function getTransactionViewDedupeKey(tx) {
+  // In the ČSOB CZ card 9344 view the same credit-card repayment can enter the UI
+  // through two representations: account-side row and credit-card-side display row.
+  // Do not use msgId first here, because those two rows may have different IDs.
+  if (activeBank === 'csob_cz' && String(activeCardLast4 || '') === '9344') {
+    return 'csob9344:' + getTransactionViewSemanticKey(tx, '9344');
+  }
+
+  const rawId = String(tx?.msgId || tx?.id || '').replace(/_credit_9344_view$/, '').trim();
+  if (rawId) return 'id:' + rawId;
+  return 'semantic:' + getTransactionViewSemanticKey(tx);
+}
+
+function dedupeTransactionsForCurrentView(txns) {
+  const seen = new Set();
+  return (txns || []).filter(tx => {
+    const key = getTransactionViewDedupeKey(tx);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function updateTxnPage(monthTxns) {
   const listDiv = document.getElementById('txn-list');
   const cashflowSlot = document.getElementById('txn-cashflow-slot');
@@ -9121,6 +9454,7 @@ function updateTxnPage(monthTxns) {
 
   updateTransactionDateInputs();
   updatePaymentKindFilterUi();
+  updateCardSourceFiltersUi();
   updateDirectionFilterUi();
   updateTransactionFilterPanelUi();
 
@@ -9133,6 +9467,7 @@ function updateTxnPage(monthTxns) {
   if (activeBank !== 'všetky') base = base.filter(t => matchesActiveBankFilter(t, activeBank));
   if (activeCardLast4) base = base.filter(t => transactionMatchesCardLast4(t, activeCardLast4));
   base = prepareTransactionsForCurrentView(base);
+  base = dedupeTransactionsForCurrentView(base);
 
   if (activePaymentKind === 'card') base = base.filter(t => isCardTransaction(t));
   if (activePaymentKind === 'account') base = base.filter(t => isAccountTransaction(t));
@@ -9486,23 +9821,27 @@ function setTransactionDateRangeFromBankMonth(bankKey, monthStr, paymentKind = '
 }
 
 function openCreditCardTransactions(cardLast4 = '9344') {
-  showPage('txns', { preserveFilters: true });
-  activeCategory = 'všetky';
+  activePageId = 'transactions';
   activeBank = 'csob_cz';
-  activePaymentKind = 'all';
-  activeDirection = 'all';
+  activePaymentKind = 'card';
   activeCardLast4 = String(cardLast4 || '9344').replace(/\D/g, '').slice(-4);
-  activeDateFrom = '';
-  activeDateTo = '';
-  activeMonthFilter = '';
-  activeTxnHistoryScope = 'all';
+  activeCategory = 'všetky';
   activeSearch = '';
+  activeDirection = 'all';
+  if (getAktuálneMonth() !== getCurrentMonth()) {
+    setTransactionDateRangeFromMonth(getAktuálneMonth());
+  } else {
+    activeDateFrom = '';
+    activeDateTo = '';
+    activeTxnMonthFilter = '';
+  }
   const search = document.getElementById('txn-search');
   if (search) search.value = '';
-  updatePaymentKindFilterUi();
-  updateDirectionFilterUi();
-  updateTransactionDateInputs();
-  filterBank('csob_cz');
+  resetTxnVisibleLimit();
+  switchPage('transactions');
+  updateCardSourceFiltersUi();
+  updateTxnPage();
+  setTimeout(scrollToLatestVisibleTransaction, 120);
 }
 
 function openBankTransactions(bankKey, paymentKind = 'card') {
@@ -9528,7 +9867,7 @@ function openRecentBankTransactions(bankKey) {
   activeSearch = '';
   activeTxnHistoryScope = 'all';
 
-  const bankTxns = sortTransactionsNewestFirst(allTransactions.filter(tx => getBankKey(tx) === bankKey));
+  const bankTxns = sortTransactionsNewestFirst(allTransactions.filter(tx => matchesActiveBankFilter(tx, bankKey)));
   const latest = bankTxns
     .map(tx => parseCustomDateStr(tx.rawDate || tx.date))
     .filter(d => d && !isNaN(d.getTime()))
@@ -9556,13 +9895,37 @@ function openRecentBankTransactions(bankKey) {
 }
 
 function openBankMonthTransactions(bankKey, monthStr, paymentKind = 'card') {
+  openArchiveMonthFilter(bankKey, monthStr, paymentKind === 'card' ? 'cards' : 'all');
+}
+
+function openArchiveMonthFilter(bankKey, monthStr, mode = 'cards') {
   showPage('txns');
   activeCategory = 'všetky';
-  activePaymentKind = paymentKind || 'all';
+  activeCardLast4 = '';
   activeMonthFilter = '';
-  setTransactionDateRangeFromMonth(monthStr);
+  activeSearch = '';
   activeTxnHistoryScope = 'all';
+
+  if (mode === 'cards') {
+    activePaymentKind = 'card';
+    activeDirection = 'outgoing';
+  } else if (mode === 'spent') {
+    activePaymentKind = 'all';
+    activeDirection = 'outgoing';
+  } else if (mode === 'income') {
+    activePaymentKind = 'all';
+    activeDirection = 'incoming';
+  } else {
+    activePaymentKind = 'all';
+    activeDirection = 'all';
+  }
+
+  setTransactionDateRangeFromMonth(monthStr);
+  const search = document.getElementById('txn-search');
+  if (search) search.value = '';
   updatePaymentKindFilterUi();
+  updateDirectionFilterUi();
+  updateCardSourceFiltersUi();
   updateTransactionDateInputs();
   filterBank(bankKey);
 }
@@ -10952,14 +11315,17 @@ function renderBankManager(){
     return [b.name, b.currency, b.account, b.cardLimit, b.budget, b.incomingAlert, b.outgoingAlert].some(v => matchesSearch(v, query));
   });
 
-  const row = (b) => `
+  const row = (b) => {
+    const isCreditCardStandalone = b.id === 'csob_cz_credit';
+    const managedSubLine = `${escapeHtml(b.currency)}${b.account ? ` · Účty ${escapeHtml(b.account)}` : ''}${b.cards ? ` · Karty ${escapeHtml(b.cards.split(',').map(v => v.trim().replace(/\D/g,'').slice(-4)).filter(Boolean).join(', '))}` : ''}${isCreditCardStandalone ? ` · ${escapeHtml(t('creditCardBalanceAlertsOnly', 'credit card balance + alerts only'))}` : ` · ${t('cardLimitShort')} ${b.cardLimit || 0} · ${t('budgetLabel')} ${formatMoney(b.budget || 0, 'CZK')} CZK`} · ${t('accountBalanceTitle')} ${escapeHtml(formatCurrencyAmount(b.balance || 0, b.currency || 'CZK'))}${getCzkEquivalentText(b.balance || 0, b.currency || 'CZK') ? ` · ${escapeHtml(getCzkEquivalentText(b.balance || 0, b.currency || 'CZK'))}` : ''} · ${escapeHtml(t('incomingAlertShort'))} ${formatMoney(b.incomingAlert || 0, b.currency || 'CZK')} · ${escapeHtml(t('outgoingAlertShort'))} ${formatMoney(b.outgoingAlert || 0, b.currency || 'CZK')}`;
+    return `
     <div class="managed-bank-row" id="bank-row-${b.id}">
       <div class="managed-bank-top">
         <div class="managed-bank-left">
           <div class="managed-bank-icon">${b.logo}</div>
           <div style="min-width:0;">
             <div class="managed-bank-name">${escapeHtml(b.name)}</div>
-            <div class="managed-bank-sub">${escapeHtml(b.currency)}${b.account ? ` · Účty ${escapeHtml(b.account)}` : ''}${b.cards ? ` · Karty ${escapeHtml(b.cards.split(',').map(v => '****' + v.trim().replace(/\D/g,'').slice(-4)).filter(v => v !== '****').join(', '))}` : ''} · ${t('cardLimitShort')} ${b.cardLimit || 0} · ${t('budgetLabel')} ${formatMoney(b.budget || 0, 'CZK')} CZK · ${t('accountBalanceTitle')} ${escapeHtml(formatCurrencyAmount(b.balance || 0, b.currency || 'CZK'))}${getCzkEquivalentText(b.balance || 0, b.currency || 'CZK') ? ` · ${escapeHtml(getCzkEquivalentText(b.balance || 0, b.currency || 'CZK'))}` : ''} · ${escapeHtml(t('incomingAlertShort'))} ${formatMoney(b.incomingAlert || 0, b.currency || 'CZK')} · ${escapeHtml(t('outgoingAlertShort'))} ${formatMoney(b.outgoingAlert || 0, b.currency || 'CZK')}</div>
+            <div class="managed-bank-sub">${managedSubLine}</div>
           </div>
         </div>
         <div class="managed-bank-actions">
@@ -11006,6 +11372,7 @@ function renderBankManager(){
         </select>
 
         <div class="managed-bank-monthly-settings open" id="edit-monthly-settings-${b.id}">
+          ${isCreditCardStandalone ? `<div class="budget-status-note" style="margin-bottom:8px;">${escapeHtml(t('creditCardSharedBudgetLimitHint', 'Monthly card limit and budget are shared under ČSOB CZ. Only credit-card balance and push alerts are editable here.'))}</div>` : `
           <label>${t('monthlyCardLimit')}</label>
           <div class="save-field-wrap">
             <input class="config-input" id="edit-card-limit-${b.id}" type="number" value="${b.cardLimit||0}" placeholder="10" oninput="scheduleManagedBankAutoSave('${b.id}', 'card-limit')" onchange="scheduleManagedBankAutoSave('${b.id}', 'card-limit', true)" />
@@ -11023,6 +11390,7 @@ function renderBankManager(){
               <span class="field-save-check" id="save-check-warning-${b.id}">✓</span>
             </div>
           </div>
+          `}
 
           <label>${t('accountBalanceTitle')}</label>
           <div class="save-field-wrap">
@@ -11056,6 +11424,7 @@ function renderBankManager(){
       </div>
     </div>
   `;
+  };
 
   wrap.innerHTML = allBanks.map(row).join('') || `<div class="empty-state">${t('noBanksAdded')}</div>`;
 }
@@ -11441,6 +11810,58 @@ function getArchiveBankName(bankKey) {
   return custom ? (custom.name || 'Banka') : plainBankName(bankKey);
 }
 
+
+function getArchiveMonthlyStatKey(bankKey, monthStr, field) {
+  return `bank_monthly_${field}_${bankKey}_${normalizeMonthStr(monthStr)}`;
+}
+
+function getArchiveMonthlyStat(bankKey, monthStr, field) {
+  const normalizedMonth = normalizeMonthStr(monthStr);
+  let total = 0;
+  let hasStored = false;
+  const stored = localStorage.getItem(getArchiveMonthlyStatKey(bankKey, normalizedMonth, field));
+  if (stored !== null) {
+    const n = Number(stored || 0);
+    if (Number.isFinite(n)) { total += n; hasStored = true; }
+  }
+  if (bankKey === 'csob_cz') {
+    const creditStored = localStorage.getItem(getArchiveMonthlyStatKey('csob_cz_credit', normalizedMonth, field));
+    if (creditStored !== null) {
+      const n = Number(creditStored || 0);
+      if (Number.isFinite(n)) { total += n; hasStored = true; }
+    }
+  }
+  if (hasStored) return total;
+  return allTransactions.reduce((sum, tx) => {
+    if (normalizeMonthStr(tx.month) !== normalizedMonth) return sum;
+    if (getArchiveBankKeyFromTransaction(tx) !== bankKey) return sum;
+    if (typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)) return sum;
+    const amount = Number(tx.amount) || 0;
+    if (field === 'spending' && amount < 0) return sum + Math.abs(convertTransactionAmount(tx, 'CZK'));
+    if (field === 'income' && amount > 0) return sum + convertTransactionAmount(tx, 'CZK');
+    if (field === 'net') return sum + convertTransactionAmount(tx, 'CZK');
+    return sum;
+  }, 0);
+}
+
+function getMonthlyArchiveSpentForBank(bankKey, monthStr) {
+  return getArchiveMonthlyStat(bankKey, monthStr, 'spending');
+}
+
+function formatMonthlyArchiveSpentCell(bankKey, monthStr) {
+  const spent = Number(getMonthlyArchiveSpentForBank(bankKey, monthStr) || 0);
+  return spent ? ('-' + formatCurrencyAmount(Math.abs(spent), 'CZK')) : '0 CZK';
+}
+
+function getMonthlyArchiveIncomeForBank(bankKey, monthStr) {
+  return getArchiveMonthlyStat(bankKey, monthStr, 'income');
+}
+
+function formatMonthlyArchiveIncomeCell(bankKey, monthStr) {
+  const income = Number(getMonthlyArchiveIncomeForBank(bankKey, monthStr) || 0);
+  return income ? formatCurrencyAmount(income, 'CZK') : '0 CZK';
+}
+
 function getArchiveCardLimitForMonth(bankKey, monthStr) {
   const bank = getArchiveBankInfo(bankKey);
   const systemBank = BANKS[bankKey];
@@ -11656,9 +12077,13 @@ function renderArchive() {
   const container = document.getElementById('archive-months-list');
   if (!container) return;
 
-  const cardTxnsAll = allTransactions.filter(t => isCardTransaction(t));
-  const monthsInSpecs = [...new Set(cardTxnsAll.map(t => t.month).filter(Boolean))];
-  monthsInSpecs.sort((a,b) => monthSortValue(b) - monthSortValue(a));
+  const txnsAll = allTransactions.filter(t => t.month);
+  const storedStatMonths = Object.keys(localStorage)
+    .map(k => String(k || '').match(/^bank_monthly_(?:spending|income|net)_[^_]+_(\d{2}\/\d{4})$/))
+    .filter(Boolean)
+    .map(m => normalizeMonthStr(m[1]));
+  const monthsInSpecs = [...new Set([...txnsAll.map(t => normalizeMonthStr(t.month)).filter(Boolean), ...storedStatMonths])]
+    .sort((a,b) => monthSortValue(b) - monthSortValue(a));
 
   if (monthsInSpecs.length === 0) {
     container.innerHTML = `<div class="empty-state" style="padding:20px 0;">${t('archiveEmpty')}</div>`;
@@ -11667,27 +12092,38 @@ function renderArchive() {
 
   const monthlyCounts = {};
   monthsInSpecs.forEach(month => { monthlyCounts[month] = {}; });
-  cardTxnsAll.forEach(tx => {
-    if (!tx.month || !(Number(tx.amount) < 0)) return;
+  allTransactions.forEach(tx => {
+    if (!tx.month || Number(tx.amount || 0) >= 0 || !isCardTransaction(tx)) return;
+    if (typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)) return;
+    const month = normalizeMonthStr(tx.month);
     const bankKey = getArchiveBankKeyFromTransaction(tx);
-    if (!monthlyCounts[tx.month]) monthlyCounts[tx.month] = {};
-    monthlyCounts[tx.month][bankKey] = (monthlyCounts[tx.month][bankKey] || 0) + 1;
+    if (!monthlyCounts[month]) monthlyCounts[month] = {};
+    monthlyCounts[month][bankKey] = (monthlyCounts[month][bankKey] || 0) + 1;
   });
 
+  const fallbackBankKeys = BANK_ORDER.filter(bankKey => bankKey !== 'csob_cz_credit');
   const dynamicBankKeys = getDynamicArchiveBankKeys(monthlyCounts)
-    .filter(bankKey => monthsInSpecs.some(mStr => (monthlyCounts[mStr]?.[bankKey] || 0) > 0) || getArchiveCardLimitForMonth(bankKey, getAktuálneMonth()) > 0);
-  const visibleBankKeys = (dynamicBankKeys.length ? dynamicBankKeys : BANK_ORDER).filter(bankKey => bankKey !== 'csob_cz_credit');
+    .filter(bankKey => bankKey !== 'csob_cz_credit')
+    .filter(bankKey => monthsInSpecs.some(mStr => (monthlyCounts[mStr]?.[bankKey] || 0) > 0 || Number(getMonthlyArchiveSpentForBank(bankKey, mStr) || 0) > 0 || Number(getMonthlyArchiveIncomeForBank(bankKey, mStr) || 0) > 0 || getArchiveCardLimitForMonth(bankKey, mStr) > 0));
+  const visibleBankKeys = dynamicBankKeys.length ? dynamicBankKeys : fallbackBankKeys;
 
   container.innerHTML = monthsInSpecs.map(mStr => {
-    const cols = visibleBankKeys.map(bankKey => {
+    const rows = visibleBankKeys.map(bankKey => {
       const bank = getArchiveBankInfo(bankKey);
       const count = monthlyCounts[mStr]?.[bankKey] || 0;
       const limit = getArchiveCardLimitForMonth(bankKey, mStr);
       const logo = bankLogoImg(bankKey);
       const title = escapeAttr(getArchiveBankName(bankKey));
-      return `<div class="archive-bank-col" onclick="openBankMonthTransactions('${bankKey}','${mStr}','card')" title="${title} · ${t('transactions')}"><span class="archive-bank-title" style="color:${bank.color};"><span class="bank-inline-logo">${logo}<span>${count}/${limit}</span></span></span>${getBankStatusText(count, limit, mStr)}</div>`;
+      const spent = formatMonthlyArchiveSpentCell(bankKey, mStr);
+      const income = formatMonthlyArchiveIncomeCell(bankKey, mStr);
+      return `<div class="archive-bank-spent-row" title="${title} · ${formatMonthString(mStr)}">
+        <div class="archive-bank-limit-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','cards')" style="color:${bank.color};" title="${title} · ${t('cardsOnly')} · ${t('transactions')}"><span class="bank-inline-logo">${logo}<span>${count}/${limit}</span></span><div>${getBankStatusText(count, limit, mStr)}</div></div>
+        <div class="archive-bank-spent-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','spent')" title="${title} · ${t('spent')} · ${t('outgoing')}">${escapeHtml(spent)}</div>
+        <div class="archive-bank-income-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','income')" title="${title} · ${t('income')} · ${t('incoming')}">${escapeHtml(income)}</div>
+      </div>`;
     }).join('');
-    return `<div class="archive-item"><div class="archive-month-left"><div class="archive-month-name">${formatMonthString(mStr)}</div></div><div class="archive-stats-grid" style="grid-template-columns: repeat(${visibleBankKeys.length}, auto); gap: 10px;">${cols}</div></div>`;
+    const header = `<div class="archive-bank-spent-header"><div>${t('bank')}</div><div>${t('spent')}</div><div>${t('income')}</div></div>`;
+    return `<div class="archive-item archive-item-spent-layout"><div class="archive-month-left"><div class="archive-month-name">${formatMonthString(mStr)}</div></div><div class="archive-spent-table">${header}${rows}</div></div>`;
   }).join('');
 }
 
@@ -11713,6 +12149,7 @@ const I18N = {
     appCurrency: 'App currency',
     payments: 'payments',
     daysLeft: 'days left',
+    totalTransactions: 'transactions',
     recentTransactions: 'recent transactions',
     spentByCurrency: 'spent by currency',
     spentByBank: 'spent by bank',
@@ -11735,6 +12172,7 @@ const I18N = {
     noHistoryYet: 'No history yet',
     noHistoryText: 'Past months with transactions will appear here once a full month has passed.',
     monthlyArchive: 'Monthly archive',
+    archiveMonthlyTotalsHint: 'Card payments, spending and income totals by bank.',
     plan: 'plan',
     freePlan: 'Free plan',
     freePlanSub: 'Manual entry · upgrade for auto-sync',
@@ -11936,6 +12374,8 @@ const I18N = {
     cardsOnly: 'Cards',
     accountsOnly: 'Accounts',
     cardVsAccountHint: 'Card payments count towards bank benefits. Account payments are separated.',
+    spent: 'Spent',
+    income: 'Income',
     archiveCardsOnlyHint: 'Monthly archive and trend count card payments only.',
     archivePaymentTypeHint: 'Filter this bank detail by all payments, card payments or account payments.',
     paymentKindAll: 'All payments',
@@ -11969,6 +12409,7 @@ const I18N = {
     appCurrency: 'Mena appky',
     payments: 'platieb',
     daysLeft: 'dní zostáva',
+    totalTransactions: 'transakcie',
     recentTransactions: 'posledné transakcie',
     spentByCurrency: 'minuté podľa meny',
     spentByBank: 'minuté podľa banky',
@@ -11991,6 +12432,7 @@ const I18N = {
     noHistoryYet: 'Zatiaľ žiadna história',
     noHistoryText: 'Minulé mesiace s transakciami sa zobrazia po uzavretí celého mesiaca.',
     monthlyArchive: 'Archív mesiacov',
+    archiveMonthlyTotalsHint: 'Kartové platby, výdavky a príjmy spolu podľa banky.',
     plan: 'plán',
     freePlan: 'Bezplatný plán',
     freePlanSub: 'Ručné zadávanie · upgrade pre auto-sync',
@@ -12220,6 +12662,7 @@ const I18N = {
     language: 'Jazyk',
     payments: 'plateb',
     daysLeft: 'dní zbývá',
+    totalTransactions: 'transakce',
     recentTransactions: 'poslední transakce',
     spentByCurrency: 'utraceno podle měny',
     spentByBank: 'utraceno podle banky',
@@ -12242,6 +12685,7 @@ const I18N = {
     noHistoryYet: 'Zatím žádná historie',
     noHistoryText: 'Minulé měsíce s transakcemi se zobrazí po uzavření celého měsíce.',
     monthlyArchive: 'Archiv měsíců',
+    archiveMonthlyTotalsHint: 'Karetní platby, výdaje a příjmy celkem podle banky.',
     plan: 'plán',
     freePlan: 'Bezplatný plán',
     freePlanSub: 'Ruční zadávání · upgrade pro auto-sync',
@@ -12809,6 +13253,12 @@ function parseBankSettingsSheetData(raw) {
     const balance = parseSheetNumber(c[5]?.v, c[5]?.f);
     const incomingAlert = parseSheetNumber(c[6]?.v, c[6]?.f);
     const outgoingAlert = parseSheetNumber(c[7]?.v, c[7]?.f);
+    const monthlySpending = parseSheetNumber(c[8]?.v, c[8]?.f);
+    const monthlyIncome = parseSheetNumber(c[9]?.v, c[9]?.f);
+    const monthlyNet = parseSheetNumber(c[10]?.v, c[10]?.f);
+    localStorage.setItem(getArchiveMonthlyStatKey(bankId, month, 'spending'), String(monthlySpending));
+    localStorage.setItem(getArchiveMonthlyStatKey(bankId, month, 'income'), String(monthlyIncome));
+    localStorage.setItem(getArchiveMonthlyStatKey(bankId, month, 'net'), String(monthlyNet));
     localStorage.setItem(getBudgetStorageKey(bankId, 'limit', month), String(budget));
     localStorage.setItem(getBudgetStorageKey(bankId, 'warn', month), String(warning));
     if (balance || localStorage.getItem(getAccountBalanceStorageKey(bankId)) === null) setAccountBalance(bankId, balance, month);
@@ -12830,6 +13280,9 @@ function parseBankSettingsSheetData(raw) {
       custom.balance = balance;
       custom.incomingAlert = incomingAlert;
       custom.outgoingAlert = outgoingAlert;
+      custom.monthlySpending = monthlySpending;
+      custom.monthlyIncome = monthlyIncome;
+      custom.monthlyNet = monthlyNet;
       custom.budgetMonth = month;
       saveCustomBanks(banks);
     }
