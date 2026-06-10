@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Bank Tracker index_v117: v111 UI + CSOB CZ credit rollup arrow after label + delete toast + mobile sheet guards -->
+<!-- Bank Tracker index_v141: v140 + currency symbols everywhere + CSOB SK EUR budget display -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -6058,6 +6058,53 @@ html[data-theme="dark"] body::before {
 html[data-theme="light"] body::before {
   background: #ffffff !important;
 }
+
+
+  /* v143 archive readability + save/delete center toast polish */
+  .archive-bank-spent-header,
+  .archive-bank-spent-row {
+    grid-template-columns: minmax(78px, .78fr) minmax(118px, 1.11fr) minmax(118px, 1.11fr) !important;
+    gap: 8px !important;
+  }
+
+  .archive-bank-spent-cell,
+  .archive-bank-income-cell {
+    font-size: clamp(13px, 3.35vw, 15px) !important;
+    line-height: 1.16 !important;
+    letter-spacing: -0.065em !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .archive-bank-limit-cell {
+    font-size: clamp(13px, 3.25vw, 14.5px) !important;
+    letter-spacing: -0.035em !important;
+  }
+
+  .archive-bank-spent-header {
+    font-size: 9.5px !important;
+  }
+
+  @media (max-width: 380px) {
+    .archive-bank-spent-header,
+    .archive-bank-spent-row {
+      grid-template-columns: minmax(70px, .72fr) minmax(105px, 1.08fr) minmax(108px, 1.10fr) !important;
+      gap: 5px !important;
+    }
+
+    .archive-bank-spent-cell,
+    .archive-bank-income-cell {
+      font-size: clamp(12px, 3.35vw, 13.2px) !important;
+      letter-spacing: -0.075em !important;
+    }
+
+    .archive-bank-limit-cell {
+      font-size: 12.5px !important;
+      letter-spacing: -0.045em !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -6235,11 +6282,11 @@ html[data-theme="light"] body::before {
     <div>
       <div class="section-title" data-i18n="appCurrency">App currency</div>
       <select class="config-input" id="app-currency-select" onchange="setAppCurrency(this.value)">
-        <option value="CZK">CZK</option>
-        <option value="EUR">EUR</option>
-        <option value="USD">USD</option>
-        <option value="GBP">GBP</option>
-        <option value="PLN">PLN</option>
+        <option value="Kč">Kč</option>
+        <option value="€">€</option>
+        <option value="$">$</option>
+        <option value="£">£</option>
+        <option value="zł">zł</option>
       </select>
     </div>
   </div>
@@ -6339,7 +6386,7 @@ html[data-theme="light"] body::before {
   <div class="sheet-grid">
     <label data-i18n="bankName">Bank name</label><input class="config-input" id="new-bank-name" placeholder="napr. Air Bank CZ" />
     <label><span data-i18n="accountLast4">Account / Card last 4 digits</span> <span style="color:var(--muted);font-weight:400;">(optional)</span></label><input class="config-input" id="new-bank-account" placeholder="1234" />
-    <div class="sheet-grid-2"><div><label data-i18n="currency">Currency</label><select class="config-input" id="new-bank-currency"><option value="CZK">CZK — Czech koruna</option><option value="EUR">EUR — Euro</option><option value="USD">USD — US dollar</option><option value="GBP">GBP — British pound</option><option value="PLN">PLN — Polish zloty</option></select></div><div><label data-i18n="type">Type</label><select class="config-input" id="new-bank-type"><option value="card" data-i18n="bankTypeCard">Card</option><option value="account" data-i18n="bankTypeAccount">Account</option></select></div></div>
+    <div class="sheet-grid-2"><div><label data-i18n="currency">Currency</label><select class="config-input" id="new-bank-currency"><option value="Kč">Kč — Czech koruna</option><option value="€">€ — Euro</option><option value="$">$ — US dollar</option><option value="£">£ — British pound</option><option value="zł">zł — Polish zloty</option></select></div><div><label data-i18n="type">Type</label><select class="config-input" id="new-bank-type"><option value="card" data-i18n="bankTypeCard">Card</option><option value="account" data-i18n="bankTypeAccount">Account</option></select></div></div>
     <div class="sheet-grid-2"><div><label data-i18n="monthlyBudget">Monthly budget</label><input class="config-input" id="new-bank-budget" type="number" min="0" placeholder="10000" /></div><div><label data-i18n="warnWhenRemaining">Warn when remaining</label><input class="config-input" id="new-bank-warning" type="number" min="0" placeholder="1000" /></div></div>
     <label data-i18n="monthlyCardLimit">Monthly card limit</label><input class="config-input" id="new-bank-card-limit" type="number" min="0" placeholder="5" />
     <button class="config-save" onclick="saveNewBank()" data-i18n="saveBank">Save bank</button>
@@ -6362,7 +6409,7 @@ html[data-theme="light"] body::before {
     <div class="budget-status-note" data-i18n="manualKindHint">Cards count towards bank benefits. Account and cash payments are tracked separately.</div>
     <label data-i18n="merchantDescription">Merchant / description</label><input class="config-input" id="manual-tx-merchant" placeholder="napr. Tesco" />
     <div class="sheet-grid-2"><div><label data-i18n="amount">Amount</label><input class="config-input" id="manual-tx-amount" type="number" step="0.01" placeholder="100" /></div><div><label data-i18n="type">Type</label><select class="config-input" id="manual-tx-direction"><option value="outgoing" data-i18n="outgoingOption">Výdaj (-)</option><option value="incoming" data-i18n="incomingOption">Príjem (+)</option></select></div></div>
-    <div class="sheet-grid-2"><div><label data-i18n="currency">Currency</label><select class="config-input" id="manual-tx-currency"><option value="CZK">CZK — Czech koruna</option><option value="EUR">EUR — Euro</option><option value="USD">USD — US dollar</option><option value="GBP">GBP — British pound</option><option value="PLN">PLN — Polish zloty</option></select></div><div><label data-i18n="category">Category</label>
+    <div class="sheet-grid-2"><div><label data-i18n="currency">Currency</label><select class="config-input" id="manual-tx-currency"><option value="Kč">Kč — Czech koruna</option><option value="€">€ — Euro</option><option value="$">$ — US dollar</option><option value="£">£ — British pound</option><option value="zł">zł — Polish zloty</option></select></div><div><label data-i18n="category">Category</label>
 <select class="config-input" id="manual-tx-category">
   <option value="Domácnosť">Domácnosť</option>
   <option value="Potraviny">Potraviny</option>
@@ -6553,7 +6600,7 @@ html[data-theme="light"] body::before {
     <div class="sheet-grid-2">
       <div>
         <label data-i18n="currency">Currency</label>
-        <select class="config-input" id="edit-tx-currency"><option value="CZK">CZK — Czech koruna</option><option value="EUR">EUR — Euro</option><option value="USD">USD — US dollar</option><option value="GBP">GBP — British pound</option><option value="PLN">PLN — Polish zloty</option></select>
+        <select class="config-input" id="edit-tx-currency"><option value="Kč">Kč — Czech koruna</option><option value="€">€ — Euro</option><option value="$">$ — US dollar</option><option value="£">£ — British pound</option><option value="zł">zł — Polish zloty</option></select>
       </div>
       <div>
         <label data-i18n="category">Category</label>
@@ -6634,12 +6681,14 @@ const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minút
 
 
 function getAppCurrency() {
-  return localStorage.getItem('app_currency') || 'CZK';
+  return normalizeCurrencyForStorage(localStorage.getItem('app_currency') || 'Kč');
 }
 
 function setAppCurrency(currency) {
-  const curr = String(currency || 'CZK').toUpperCase();
+  const curr = normalizeCurrencyForStorage(currency || 'Kč');
   localStorage.setItem('app_currency', curr);
+  const select = document.getElementById('app-currency-select');
+  if (select) select.value = curr;
   renderAll();
   applyLanguage();
 }
@@ -7292,30 +7341,23 @@ function parseAmountValue(value) {
 }
 
 function formatMoney(amount, currency) {
-  const curr = String(currency || 'CZK').toUpperCase();
-  const decimals = curr === 'CZK' ? 2 : 2;
-  return Math.abs(amount).toLocaleString('cs-CZ', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals
+  const curr = currencyCode(currency || getAppCurrency() || 'Kč');
+  const value = Math.abs(Number(amount) || 0).toLocaleString('cs-CZ', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   });
+  return value;
 }
 
 function getCurrencySymbol(currency) {
-  const curr = String(currency || 'CZK').toUpperCase();
-  return {
-    EUR: '€',
-    USD: '$',
-    GBP: '£'
-  }[curr] || curr;
+  return currencySymbol(currency || 'Kč');
 }
 
 function formatCurrencyAmount(amount, currency) {
-  const curr = String(currency || 'CZK').toUpperCase();
-  const value = formatMoney(amount, curr).replace(/\s/g, '\u00A0');
-  const symbol = getCurrencySymbol(curr);
-  if (symbol === '€') return `${value}\u00A0${symbol}`;
+  const value = formatMoney(amount, currency).replace(/\s/g, ' ');
+  const symbol = currencySymbol(currency || getAppCurrency() || 'Kč');
   if (symbol === '$' || symbol === '£') return `${symbol}${value}`;
-  return `${value}\u00A0${symbol}`;
+  return `${value} ${symbol}`;
 }
 
 function formatFxDateShort(dateStr) {
@@ -7338,7 +7380,7 @@ function updateAccountBalanceFxBadge() {
 }
 
 function getCzkEquivalentText(amount, currency) {
-  const curr = String(currency || 'CZK').toUpperCase();
+  const curr = currencyCode(currency || 'CZK');
   const target = getAppCurrency();
   if (curr === target) return '';
   const converted = convertAmountCurrency(amount, curr, target);
@@ -7348,7 +7390,7 @@ function getCzkEquivalentText(amount, currency) {
 
 function getCurrencyTotals(txns) {
   return txns.reduce((acc, t) => {
-    const curr = String(t.currency || 'CZK').toUpperCase();
+    const curr = currencyCode(t.currency || 'CZK');
     acc[curr] = (acc[curr] || 0) + Math.abs(Number(t.amount) || 0);
     return acc;
   }, {});
@@ -7360,10 +7402,10 @@ function renderCurrencyTotalLines(txns, primaryCurrency = 'CZK') {
   const currencies = [primary, ...Object.keys(totals).filter(c => c !== primary).sort()];
   const rows = currencies.filter(c => totals[c] > 0);
 
-  if (rows.length === 0) return `0,00 ${primary}`;
+  if (rows.length === 0) return formatCurrencyAmount(0, primary);
 
   return rows.map((c, idx) => `
-    <div style="${idx > 0 ? 'font-size:12px;color:var(--text);margin-top:3px;font-weight:600;' : ''}">${formatMoney(totals[c], c)} ${c}</div>
+    <div style="${idx > 0 ? 'font-size:12px;color:var(--text);margin-top:3px;font-weight:600;' : ''}">${formatCurrencyAmount(totals[c], c)}</div>
   `).join('');
 }
 
@@ -7394,7 +7436,7 @@ function parseSheetData(raw) {
       emailId: sheetEmailId || '',
       date: dateStr,
       amount: isNaN(amount) ? 0 : amount,
-      currency: row.c[2]?.v || 'CZK',
+      currency: normalizeCurrencyForStorage(row.c[2]?.v || 'CZK'),
       merchant: row.c[3]?.v || 'Neznámy',
       category: row.c[4]?.v || 'Ostatné',
       card: row.c[5]?.v || '????',
@@ -7463,7 +7505,7 @@ function parseFxRatesSheetData(raw) {
     const c = row.c || [];
     const date = normalizeFxSheetDate(c[0]?.v, c[0]?.f);
     const base = String(c[1]?.v || c[1]?.f || '').toUpperCase();
-    const currency = String(c[2]?.v || c[2]?.f || '').toUpperCase();
+    const currency = currencyCode(c[2]?.v || c[2]?.f || '');
     const rate = Number(c[3]?.v ?? c[3]?.f ?? 0);
     return { date, base, currency, rate };
   }).filter(r => r.date && r.base === 'EUR' && r.currency && r.rate > 0);
@@ -7836,7 +7878,7 @@ function renderArchiveBankDetail() {
             <div class="daily-tx-title">${escapeHtml(tx.merchant || '')}</div>
             <div class="daily-tx-sub">${escapeHtml(tx.date || '')} · ${translateCategory(tx.category || '')}<span class="daily-tx-kind">${getPaymentKindLabel(tx)}</span></div>
           </div>
-          <div class="daily-tx-amount ${amountClass}">${sign}${formatMoney(tx.amount, tx.currency)} ${escapeHtml(tx.currency || 'CZK')}</div>
+          <div class="daily-tx-amount ${amountClass}">${sign}${formatCurrencyAmount(tx.amount, tx.currency)}</div>
         </div>`;
     }).join('')}
     ${renderArchiveDetailLoadMoreButton(renderedTxns.length, totalVisibleTxns)}
@@ -7907,17 +7949,19 @@ async function deleteSingleTransaction(txId) {
   if (!sheetId) return false;
 
   const ok = await postToBankTrackerEndpoint('deleteTransaction', { id: sheetId, msgId: sheetId });
-  if (!ok) {
-    const status = document.getElementById('limits-sync-status');
-    if (status) status.textContent = 'Transakciu sa nepodarilo vymazať z Google Sheets. Skontroluj Web App /exec a Apps Script Executions.';
-    showLargeStatusToast(t('transactionDeleteFailed') || 'Transaction was not deleted.', 'error');
-    return false;
-  }
 
+  // v142: keep the app responsive and restore the big center "Deleted" checkmark.
+  // If Apps Script times out or does not return JSONP, the local deletion still happens;
+  // the status line keeps the Google Sheets warning visible without replacing the toast by an error.
   if (tx) applyLocalAccountBalanceFromTransaction(tx, -1);
   allTransactions = allTransactions.filter(t => String(t.id || t.msgId || t.emailId || '') !== targetId && String(t.msgId || t.emailId || t.id || '') !== sheetId);
   localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
   renderAll();
+
+  if (!ok) {
+    const status = document.getElementById('limits-sync-status');
+    if (status) status.textContent = 'Transakcia bola vymazaná lokálne. Google Sheets sync sa nepodaril - skontroluj Web App /exec a Apps Script Executions.';
+  }
   return true;
 }
 
@@ -8161,19 +8205,45 @@ function showBackExitToast() {
 
 
 function showLargeStatusToast(message, type) {
-  const toast = document.getElementById('large-status-toast');
-  if (!toast) return;
+  let toast = document.getElementById('large-status-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'large-status-toast';
+    toast.className = 'large-status-toast';
+    toast.setAttribute('aria-live', 'polite');
+    document.body.appendChild(toast);
+  }
   const isError = type === 'error';
+  toast.classList.remove('show', 'error');
   toast.classList.toggle('error', isError);
   toast.innerHTML = `
     <div class="large-status-icon">${isError ? '!' : '✓'}</div>
     <div class="large-status-text">${escapeHtml(message || '')}</div>
   `;
+  // Restart the animation even when the same toast is shown twice in a row.
+  void toast.offsetWidth;
   toast.classList.add('show');
   if (window.__bankTrackerLargeToastTimer) clearTimeout(window.__bankTrackerLargeToastTimer);
   window.__bankTrackerLargeToastTimer = window.setTimeout(() => {
     toast.classList.remove('show');
-  }, 1550);
+  }, 1650);
+}
+
+function getActionToastText(kind) {
+  const lang = (typeof getLanguage === 'function' ? getLanguage() : 'en');
+  const isSk = lang === 'sk';
+  const isCs = lang === 'cs';
+  if (kind === 'saved') return isSk ? 'Uložené' : (isCs ? 'Uloženo' : 'Saved');
+  if (kind === 'deleted') return isSk ? 'Vymazané' : (isCs ? 'Smazáno' : 'Deleted');
+  return String(kind || 'OK');
+}
+
+function showSavedToast() {
+  showLargeStatusToast(getActionToastText('saved'));
+}
+
+function showDeletedToast() {
+  showLargeStatusToast(getActionToastText('deleted'));
 }
 
 function exitBankTrackerApp() {
@@ -8338,7 +8408,8 @@ function renderBudgetStatus() {
     .map(bankKey => {
     const bank = BANKS[bankKey];
     const { budget, warning } = getBudgetSettingsForBank(bankKey);
-    const spent = getAktuálneMonthCzkSpent(bankKey);
+    const budgetCurrency = getBankBudgetCurrency(bankKey);
+    const spent = getCurrentMonthSpentInBankCurrency(bankKey);
 
     if (!budget) {
       return `
@@ -8364,7 +8435,7 @@ function renderBudgetStatus() {
         <div class="budget-status-main">
           <div>
             <div class="budget-status-value" style="color:${bank.color};font-size:15px;">${bankLabelWithLogo(bankKey)}</div>
-            <div class="budget-status-note">${formatMoney(spent, 'CZK')} / ${formatMoney(budget, 'CZK')} CZK · ${t('remaining')} ${formatMoney(remaining, 'CZK')} CZK · <span style="color:${statusColor};font-weight:700;">${status}</span></div>
+            <div class="budget-status-note">${formatCurrencyAmount(spent, budgetCurrency)} / ${formatCurrencyAmount(budget, budgetCurrency)} · ${t('remaining')} ${formatCurrencyAmount(remaining, budgetCurrency)} · <span style="color:${statusColor};font-weight:700;">${status}</span></div>
           </div>
         </div>
         <div class="budget-progress"><div class="budget-progress-fill" style="width:${pct}%;background:${statusColor};"></div></div>
@@ -8416,7 +8487,7 @@ function setAccountBalance(bankKey, value, monthStr = getAktuálneMonth()) {
 
 
 function canApplyBalanceDeltaForTx(bankKey, tx) {
-  const txCurrency = String(tx?.currency || '').toUpperCase();
+  const txCurrency = currencyCode(tx?.currency || '');
   const bankCurrency = String(getBankBalanceCurrency(bankKey) || '').toUpperCase();
   return !txCurrency || !bankCurrency || txCurrency === bankCurrency;
 }
@@ -8532,7 +8603,7 @@ function getCreditBalanceSubaccountData(config) {
     ...config,
     // In Overview this is a child row under ČSOB CZ, so do not repeat the parent bank name.
     name: cardLast4 && !String(baseName).includes(cardLast4) ? `${baseName} ${cardLast4}` : baseName,
-    currency: sheetRow.currency || config.currency || 'CZK',
+    currency: normalizeCurrencyForStorage(sheetRow.currency || config.currency || 'CZK'),
     cardLast4: cardLast4
   };
 }
@@ -8751,14 +8822,14 @@ function maybeSendBudgetLocalNotification(bankKey, bankLabel, spent, budget, rem
   if (warning && remaining > 0 && remaining <= warning) {
     const key = `budget_warn_${bankKey}_${month}_${budget}_${warning}`;
     if (localStorage.getItem(key) !== 'sent') {
-      sendSafeNotification(`${bankLabel}: minuté ${formatMoney(spent, 'CZK')} CZK. Ostáva ${formatMoney(remaining, 'CZK')} CZK do konca mesačného budgetu.`);
+      sendSafeNotification(`${bankLabel}: minuté ${formatCurrencyAmount(spent, getBankBudgetCurrency(bankKey))}. Ostáva ${formatCurrencyAmount(remaining, getBankBudgetCurrency(bankKey))} do konca mesačného budgetu.`);
       localStorage.setItem(key, 'sent');
     }
   }
   if (remaining <= 0) {
     const key = `budget_over_${bankKey}_${month}_${budget}`;
     if (localStorage.getItem(key) !== 'sent') {
-      sendSafeNotification(`${bankLabel}: mesačný budget ${formatMoney(budget, 'CZK')} CZK bol prekročený.`);
+      sendSafeNotification(`${bankLabel}: mesačný budget ${formatCurrencyAmount(budget, getBankBudgetCurrency(bankKey))} bol prekročený.`);
       localStorage.setItem(key, 'sent');
     }
   }
@@ -8937,7 +9008,7 @@ function renderRecentBankColumns(byBank) {
       <div class="tx-item-compact" data-tx-id="${escapeAttr(txId)}">
         <div class="tx-row-top">
           <div class="tx-merchant-compact">${escapeHtml(t.merchant)}</div>
-          <div class="tx-amt-compact ${Number(t.amount) > 0 ? 'amount-income' : 'amount-expense'}">${Number(t.amount) > 0 ? '+' : '-'}${formatMoney(t.amount, t.currency)} ${escapeHtml(t.currency)}</div>
+          <div class="tx-amt-compact ${Number(t.amount) > 0 ? 'amount-income' : 'amount-expense'}">${Number(t.amount) > 0 ? '+' : '-'}${formatCurrencyAmount(t.amount, t.currency)}</div>
         </div>
         <div class="tx-meta-compact">${escapeHtml((t.date || '').split(' ')[0])}</div>
       </div>`;
@@ -9052,7 +9123,7 @@ function buildTransactionTotals(txns) {
   };
 
   txns.forEach(tx => {
-    const currency = String(tx.currency || 'CZK').toUpperCase();
+    const currency = currencyCode(tx.currency || 'CZK');
     const amount = Number(tx.amount || 0);
     if (!totals.incoming[currency]) totals.incoming[currency] = 0;
     if (!totals.outgoing[currency]) totals.outgoing[currency] = 0;
@@ -9068,7 +9139,7 @@ function buildTransactionTotals(txns) {
 
 function renderTotalsValueLines(map, mode = 'neutral') {
   const currencies = getPreferredCurrencyOrder(Object.keys(map || {}));
-  if (!currencies.length) return `<span class="amount-neutral">${t('noTotalValue')} CZK</span>`;
+  if (!currencies.length) return `<span class="amount-neutral">${t('noTotalValue')} ${currencySymbol('CZK')}</span>`;
 
   return currencies.map(currency => {
     const value = Number(map[currency] || 0);
@@ -9092,7 +9163,7 @@ function renderTotalsValueLines(map, mode = 'neutral') {
             ? '-'
             : '';
 
-    return `<span class="${cls}">${sign}${formatMoney(value, currency)} ${escapeHtml(currency)}</span>`;
+    return `<span class="${cls}">${sign}${formatCurrencyAmount(value, currency)}</span>`;
   }).join('');
 }
 
@@ -9187,9 +9258,9 @@ function renderTransactionDailyCashflow(txns) {
           <text class="txn-cashflow-axis-label" x="56" y="68" text-anchor="middle">${t('spent')}</text>
         </svg>
         <div class="txn-cashflow-pie-stats">
-          <div class="txn-cashflow-pie-stat"><span>${t('incoming')}</span><strong class="amount-income">+${formatMoney(totalIncoming, getAppCurrency())}</strong></div>
-          <div class="txn-cashflow-pie-stat"><span>${t('spent')}</span><strong class="amount-expense">-${formatMoney(totalOutgoing, getAppCurrency())}</strong></div>
-          <div class="txn-cashflow-pie-stat"><span>${t('totalNet')}</span><strong class="${netClass}">${net >= 0 ? '+' : '-'}${formatMoney(Math.abs(net), getAppCurrency())}</strong></div>
+          <div class="txn-cashflow-pie-stat"><span>${t('incoming')}</span><strong class="amount-income">+${formatCurrencyAmount(totalIncoming, getAppCurrency())}</strong></div>
+          <div class="txn-cashflow-pie-stat"><span>${t('spent')}</span><strong class="amount-expense">-${formatCurrencyAmount(totalOutgoing, getAppCurrency())}</strong></div>
+          <div class="txn-cashflow-pie-stat"><span>${t('totalNet')}</span><strong class="${netClass}">${net >= 0 ? '+' : '-'}${formatCurrencyAmount(Math.abs(net), getAppCurrency())}</strong></div>
         </div>
       </div>
     </div>`;
@@ -9571,7 +9642,7 @@ function getTransactionViewSemanticKey(tx, forceCardLast4) {
     normalizeTransactionDedupeDateKey(tx),
     normalizeTransactionDedupeTextKey(tx?.merchant || tx?.merchantRaw || ''),
     Math.abs(Number(tx?.amount || 0)).toFixed(2),
-    String(tx?.currency || '').toUpperCase(),
+    currencyCode(tx?.currency || ''),
     normalizedBank,
     cardKey || getPaymentSourceMasked(tx)
   ].join('|');
@@ -9669,7 +9740,7 @@ function updateTxnPage(monthTxns) {
     const source = getPaymentSourceMasked(t);
     const dayHeader = dayLabel !== lastDayLabel ? `<div class="txn-day-header">${escapeHtml(dayLabel)}</div>` : '';
     lastDayLabel = dayLabel;
-    return `${dayHeader}<div class="tx-item" data-tx-id="${escapeAttr(txId)}"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${escapeHtml(t.merchant)}</div><div class="tx-meta">${escapeHtml(timeLabel)} · <span class="tx-payment-source" data-label="${escapeAttr(paymentLabel)}" data-source="${escapeAttr(source)}" onclick="event.stopPropagation(); togglePaymentSourceDetail(this)">${escapeHtml(paymentLabel)}</span></div></div></div><div class="tx-right-side"><div class="tx-amount ${amountClass}">${sign}${formatMoney(t.amount, t.currency)} ${escapeHtml(t.currency)}</div>${bankLogoImg(bankKey, 'tx-bank-logo')}</div></div>`;
+    return `${dayHeader}<div class="tx-item" data-tx-id="${escapeAttr(txId)}"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${escapeHtml(t.merchant)}</div><div class="tx-meta">${escapeHtml(timeLabel)} · <span class="tx-payment-source" data-label="${escapeAttr(paymentLabel)}" data-source="${escapeAttr(source)}" onclick="event.stopPropagation(); togglePaymentSourceDetail(this)">${escapeHtml(paymentLabel)}</span></div></div></div><div class="tx-right-side"><div class="tx-amount ${amountClass}">${sign}${formatCurrencyAmount(t.amount, t.currency)}</div>${bankLogoImg(bankKey, 'tx-bank-logo')}</div></div>`;
   }).join('');
 
   if (cashflowSlot) cashflowSlot.innerHTML = renderTransactionDailyCashflow(scoped);
@@ -10475,33 +10546,172 @@ const COMMON_CURRENCIES = [
   ['MAD', 'Moroccan dirham']
 ];
 
-function getCurrencyOptionsHtml(selectedCurrency = 'CZK') {
-  const selected = String(selectedCurrency || 'CZK').toUpperCase();
+const CURRENCY_SYMBOLS = {
+  CZK: 'Kč',
+  EUR: '€',
+  USD: '$',
+  GBP: '£',
+  PLN: 'zł',
+  HUF: 'Ft',
+  RON: 'lei',
+  BGN: 'лв',
+  CHF: 'CHF',
+  SEK: 'kr',
+  NOK: 'kr',
+  DKK: 'kr',
+  ISK: 'kr',
+  TRY: '₺',
+  UAH: '₴',
+  AUD: 'A$',
+  CAD: 'C$',
+  NZD: 'NZ$',
+  JPY: '¥',
+  CNY: '¥',
+  HKD: 'HK$',
+  SGD: 'S$',
+  KRW: '₩',
+  INR: '₹',
+  THB: '฿',
+  MYR: 'RM',
+  IDR: 'Rp',
+  PHP: '₱',
+  VND: '₫',
+  AED: 'د.إ',
+  SAR: '﷼',
+  QAR: 'ر.ق',
+  KWD: 'د.ك',
+  ILS: '₪',
+  ZAR: 'R',
+  MXN: 'Mex$',
+  BRL: 'R$',
+  ARS: 'AR$',
+  CLP: 'CLP$',
+  COP: 'COL$',
+  PEN: 'S/',
+  EGP: 'E£',
+  MAD: 'DH'
+};
+
+const CURRENCY_CODES_BY_SYMBOL = {
+  'Kč': 'CZK',
+  'KC': 'CZK',
+  'KČ': 'CZK',
+  'CZK': 'CZK',
+  '€': 'EUR',
+  'EUR': 'EUR',
+  '$': 'USD',
+  'USD': 'USD',
+  '£': 'GBP',
+  'GBP': 'GBP',
+  'zł': 'PLN',
+  'ZŁ': 'PLN',
+  'zl': 'PLN',
+  'ZL': 'PLN',
+  'PLN': 'PLN'
+};
+
+function currencyCode(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return 'CZK';
+  const upper = raw.toUpperCase();
+  return CURRENCY_CODES_BY_SYMBOL[raw] || CURRENCY_CODES_BY_SYMBOL[upper] || upper;
+}
+
+function currencySymbol(value) {
+  const code = currencyCode(value || 'CZK');
+  return CURRENCY_SYMBOLS[code] || code;
+}
+
+function normalizeCurrencyForStorage(value) {
+  return currencySymbol(value || 'CZK');
+}
+
+function normalizeCurrencyCodeForLogic(value) {
+  return currencyCode(value || 'CZK');
+}
+
+function getBankBudgetCurrency(bankKey) {
+  return normalizeCurrencyForStorage(getBankBalanceCurrency(bankKey) || getBankInfo(bankKey)?.primaryCurrency || 'CZK');
+}
+
+function getCurrentMonthSpentInBankCurrency(bankKey = null) {
+  const targetCurrency = bankKey ? getBankBudgetCurrency(bankKey) : 'Kč';
+  const month = getAktuálneMonth();
+  return allTransactions
+    .filter(t => t.month === month && Number(t.amount) < 0)
+    .filter(t => !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(t)))
+    .filter(t => !bankKey || getBudgetBankKeyFromTransaction(t) === bankKey)
+    .reduce((sum, t) => sum + Math.abs(convertTransactionAmount(t, targetCurrency)), 0);
+}
+
+function migrateCurrencyStorageToSymbols() {
+  try {
+    const appCurrency = localStorage.getItem('app_currency');
+    if (appCurrency) localStorage.setItem('app_currency', normalizeCurrencyForStorage(appCurrency));
+
+    Object.keys(localStorage).forEach(key => {
+      if (key.indexOf('bank_currency_') === 0) {
+        localStorage.setItem(key, normalizeCurrencyForStorage(localStorage.getItem(key)));
+      }
+    });
+
+    const cached = JSON.parse(localStorage.getItem('cached_txns') || '[]');
+    if (Array.isArray(cached)) {
+      let changed = false;
+      cached.forEach(tx => {
+        if (tx && tx.currency) {
+          const next = normalizeCurrencyForStorage(tx.currency);
+          if (tx.currency !== next) { tx.currency = next; changed = true; }
+        }
+      });
+      if (changed) localStorage.setItem('cached_txns', JSON.stringify(cached));
+    }
+
+    const banks = getCustomBanks();
+    if (Array.isArray(banks) && banks.length) {
+      let changed = false;
+      banks.forEach(bank => {
+        if (bank && bank.currency) {
+          const next = normalizeCurrencyForStorage(bank.currency);
+          if (bank.currency !== next) { bank.currency = next; changed = true; }
+        }
+      });
+      if (changed) saveCustomBanks(banks);
+    }
+  } catch (e) {
+    console.warn('Currency symbol migration skipped:', e);
+  }
+}
+
+function getCurrencyOptionsHtml(selectedCurrency = 'Kč') {
+  const selectedCode = currencyCode(selectedCurrency || 'CZK');
   const knownCodes = COMMON_CURRENCIES.map(([code]) => code);
-  const rows = knownCodes.includes(selected)
+  const rows = knownCodes.includes(selectedCode)
     ? COMMON_CURRENCIES
-    : [[selected, selected], ...COMMON_CURRENCIES];
+    : [[selectedCode, selectedCode], ...COMMON_CURRENCIES];
 
   return rows.map(([code, name]) => {
-    return `<option value="${code}" ${selected === code ? 'selected' : ''}>${code} — ${name}</option>`;
+    const symbol = currencySymbol(code);
+    return `<option value="${escapeAttr(symbol)}" ${selectedCode === code ? 'selected' : ''}>${escapeHtml(symbol)} — ${escapeHtml(name)}</option>`;
   }).join('');
 }
 
-function getLightCurrencyOptionsHtml(selectedCurrency = 'CZK') {
-  const selected = String(selectedCurrency || 'CZK').toUpperCase();
+function getLightCurrencyOptionsHtml(selectedCurrency = 'Kč') {
+  const selectedCode = currencyCode(selectedCurrency || 'CZK');
   const common = ['CZK', 'EUR', 'USD', 'GBP', 'PLN'];
   const map = new Map(COMMON_CURRENCIES.map(([code, name]) => [code, name]));
-  const codes = common.includes(selected) ? common : [selected, ...common];
+  const codes = common.includes(selectedCode) ? common : [selectedCode, ...common];
 
   return [...new Set(codes)].map(code => {
     const name = map.get(code) || code;
-    return `<option value="${code}" ${selected === code ? 'selected' : ''}>${code} — ${name}</option>`;
+    const symbol = currencySymbol(code);
+    return `<option value="${escapeAttr(symbol)}" ${selectedCode === code ? 'selected' : ''}>${escapeHtml(symbol)} — ${escapeHtml(name)}</option>`;
   }).join('');
 }
 
 function hydrateCurrencySelect(select, selectedCurrency = null) {
   if (!select) return;
-  const selected = String(selectedCurrency || select.value || 'CZK').toUpperCase();
+  const selected = normalizeCurrencyForStorage(selectedCurrency || select.value || 'Kč');
   if (select.dataset.currencyOptionsLoaded === 'true') {
     select.value = selected;
     return;
@@ -10516,17 +10726,17 @@ function attachCurrencyLazyLoader(select) {
   if (!select || select.dataset.currencyLazyBound === 'true') return;
   select.dataset.currencyLazyBound = 'true';
 
-  const hydrate = () => hydrateCurrencySelect(select, select.value || 'CZK');
+  const hydrate = () => hydrateCurrencySelect(select, select.value || 'Kč');
 
   select.addEventListener('focus', hydrate, { once: true });
   select.addEventListener('pointerdown', hydrate, { once: true });
   select.addEventListener('touchstart', hydrate, { once: true, passive: true });
 }
 
-function fillCurrencySelect(select, selectedCurrency = 'CZK') {
+function fillCurrencySelect(select, selectedCurrency = 'Kč') {
   if (!select) return;
 
-  const selected = String(selectedCurrency || 'CZK').toUpperCase();
+  const selected = normalizeCurrencyForStorage(selectedCurrency || 'Kč');
 
   if (select.dataset.currencyOptionsLoaded === 'true') {
     if (![...select.options].some(option => option.value === selected)) {
@@ -10547,9 +10757,9 @@ function fillCurrencySelect(select, selectedCurrency = 'CZK') {
 }
 
 function initCurrencyDropdowns() {
-  fillCurrencySelect(document.getElementById('new-bank-currency'), document.getElementById('new-bank-currency')?.value || 'CZK');
-  fillCurrencySelect(document.getElementById('manual-tx-currency'), document.getElementById('manual-tx-currency')?.value || 'CZK');
-  fillCurrencySelect(document.getElementById('edit-tx-currency'), document.getElementById('edit-tx-currency')?.value || 'CZK');
+  fillCurrencySelect(document.getElementById('new-bank-currency'), document.getElementById('new-bank-currency')?.value || 'Kč');
+  fillCurrencySelect(document.getElementById('manual-tx-currency'), document.getElementById('manual-tx-currency')?.value || 'Kč');
+  fillCurrencySelect(document.getElementById('edit-tx-currency'), document.getElementById('edit-tx-currency')?.value || 'Kč');
 }
 
 function getCustomBanks(){try{return JSON.parse(localStorage.getItem('custom_banks')||'[]')}catch(e){return[]}}
@@ -11023,7 +11233,7 @@ async function updateCustomBank(bankId) {
   bank.name = document.getElementById('edit-name-' + bankId)?.value.trim() || bank.name;
   bank.account = cleanBankAccountValue(document.getElementById('edit-account-' + bankId)?.value || bank.account || '');
   bank.cards = cleanBankCardsValue(document.getElementById('edit-cards-' + bankId)?.value || bank.cards || '');
-  bank.currency = document.getElementById('edit-currency-' + bankId)?.value || bank.currency;
+  bank.currency = normalizeCurrencyForStorage(document.getElementById('edit-currency-' + bankId)?.value || bank.currency || 'Kč');
   const budgetMonth = document.getElementById('edit-budget-month-' + bankId)?.value || '';
   if (!budgetMonth) {
     alert(t('chooseMonth', 'Vyber mesiac'));
@@ -11042,13 +11252,17 @@ async function updateCustomBank(bankId) {
   setTransactionAlertSettingsForBank(bankId, bank.incomingAlert, bank.outgoingAlert, budgetMonth);
 
   saveCustomBanks(banks);
+  showSavedToast();
   // v50 hotfix: saveBank must only update the Banky tab.
   // Limits, budgets and balances are saved only via saveBankSettingsEndpoint below.
   const bankOk = await postToBankTrackerEndpoint('saveBank', { bank: getEndpointBankPayload(bankId, bank) });
   const settingsOk = await saveBankSettingsEndpoint(bankId, budgetMonth, bank.cardLimit, bank.budget, bank.warning, bank.balance, bank.incomingAlert, bank.outgoingAlert);
   renderBankManager();
   renderAll();
-  alert(bankOk && settingsOk ? 'Zmeny boli uložené v Google Sheets.' : 'Zmeny ostali lokálne. Google Sheets zápis neprebehol - skontroluj Web App /exec URL a Apps Script Executions.');
+  if (!(bankOk && settingsOk)) {
+    const status = document.getElementById('limits-sync-status');
+    if (status) status.textContent = 'Zmeny sú uložené lokálne. Google Sheets sync sa nepodaril - skontroluj Web App /exec a Apps Script Executions.';
+  }
 }
 
 
@@ -11120,7 +11334,7 @@ function renderTransactionManager() {
         <div class="managed-tx-top">
           <div class="managed-tx-main">
             <div class="managed-tx-title">${escapeHtml(tx.merchant || '')}</div>
-            <div class="managed-tx-sub">${escapeHtml(tx.date || '')} · ${escapeHtml(tx.bank || plainBankName(bankKey))} · <span class="${amountClass}">${sign}${formatMoney(amount, tx.currency)} ${escapeHtml(tx.currency || 'CZK')}</span></div>
+            <div class="managed-tx-sub">${escapeHtml(tx.date || '')} · ${escapeHtml(tx.bank || plainBankName(bankKey))} · <span class="${amountClass}">${sign}${formatCurrencyAmount(amount, tx.currency)}</span></div>
           </div>
           <div class="managed-tx-actions">
             <button class="icon-action-btn edit" onclick="toggleTransactionEditFromButton(this)" title="${t('edit')}" aria-label="${t('edit')}">✎</button>
@@ -11191,7 +11405,7 @@ function updateManagedTransactionFromButton(button) {
   const dateValue = getField('date')?.value || tx.date;
   const amountValue = parseFloat(getField('amount')?.value || '0') || 0;
   const direction = getField('direction')?.value || 'outgoing';
-  const currency = getField('currency')?.value || tx.currency || 'CZK';
+  const currency = normalizeCurrencyForStorage(getField('currency')?.value || tx.currency || 'Kč');
   const category = getField('category')?.value || tx.category || 'Ostatné';
   const merchant = getField('merchant')?.value.trim() || tx.merchant || '';
   const bankKey = getField('bank')?.value || getBankKey(tx);
@@ -11223,7 +11437,7 @@ function updateManagedTransactionFromButton(button) {
 
   renderAll();
   renderTransactionManager();
-  alert(t('transactionSaved'));
+  showSavedToast();
 }
 
 async function deleteManagedTransactionFromButton(button) {
@@ -11236,7 +11450,7 @@ async function deleteManagedTransactionFromButton(button) {
   const ok = await deleteSingleTransaction(txId);
   if (ok) {
     renderTransactionManager();
-    showLargeStatusToast(t('transactionDeleted'));
+    showDeletedToast();
   } else {
     showLargeStatusToast(t('transactionDeleteFailed') || 'Transaction was not deleted.', 'error');
   }
@@ -11253,7 +11467,7 @@ function deleteCustomBank(bankId) {
 
   renderBankManager();
   renderAll();
-  alert(t('bankDeleted'));
+  showDeletedToast();
 }
 
 function openQuickAddSheet() {
@@ -11326,7 +11540,7 @@ async function saveNewBank(){
   const bank={
     id:'custom_'+Date.now(),
     name,
-    currency:document.getElementById('new-bank-currency')?.value||'CZK',
+    currency:normalizeCurrencyForStorage(document.getElementById('new-bank-currency')?.value||'Kč'),
     type:document.getElementById('new-bank-type')?.value||'card',
     account:cleanBankAccountValue(document.getElementById('new-bank-account')?.value||''),
     cards:removeAccountPartsFromCards(cleanBankCardsValue(document.getElementById('new-bank-cards')?.value||''), cleanBankAccountValue(document.getElementById('new-bank-account')?.value||'')),
@@ -11459,7 +11673,7 @@ function renderBankManager(){
 
   const row = (b) => {
     const isCreditCardStandalone = b.id === 'csob_cz_credit';
-    const managedSubLine = `${escapeHtml(b.currency)}${b.account ? ` · Účty ${escapeHtml(b.account)}` : ''}${b.cards ? ` · Karty ${escapeHtml(b.cards.split(',').map(v => v.trim().replace(/\D/g,'').slice(-4)).filter(Boolean).join(', '))}` : ''}${isCreditCardStandalone ? ` · ${escapeHtml(t('creditCardBalanceAlertsOnly', 'credit card balance + alerts only'))}` : ` · ${t('cardLimitShort')} ${b.cardLimit || 0} · ${t('budgetLabel')} ${formatMoney(b.budget || 0, 'CZK')} CZK`} · ${t('accountBalanceTitle')} ${escapeHtml(formatCurrencyAmount(b.balance || 0, b.currency || 'CZK'))}${getCzkEquivalentText(b.balance || 0, b.currency || 'CZK') ? ` · ${escapeHtml(getCzkEquivalentText(b.balance || 0, b.currency || 'CZK'))}` : ''} · ${escapeHtml(t('incomingAlertShort'))} ${formatMoney(b.incomingAlert || 0, b.currency || 'CZK')} · ${escapeHtml(t('outgoingAlertShort'))} ${formatMoney(b.outgoingAlert || 0, b.currency || 'CZK')}`;
+    const managedSubLine = `${escapeHtml(currencySymbol(b.currency))}${b.account ? ` · Účty ${escapeHtml(b.account)}` : ''}${b.cards ? ` · Karty ${escapeHtml(b.cards.split(',').map(v => v.trim().replace(/\D/g,'').slice(-4)).filter(Boolean).join(', '))}` : ''}${isCreditCardStandalone ? ` · ${escapeHtml(t('creditCardBalanceAlertsOnly', 'credit card balance + alerts only'))}` : ` · ${t('cardLimitShort')} ${b.cardLimit || 0} · ${t('budgetLabel')} ${formatCurrencyAmount(b.budget || 0, b.currency || 'CZK')}`} · ${t('accountBalanceTitle')} ${escapeHtml(formatCurrencyAmount(b.balance || 0, b.currency || 'CZK'))}${getCzkEquivalentText(b.balance || 0, b.currency || 'CZK') ? ` · ${escapeHtml(getCzkEquivalentText(b.balance || 0, b.currency || 'CZK'))}` : ''} · ${escapeHtml(t('incomingAlertShort'))} ${formatCurrencyAmount(b.incomingAlert || 0, b.currency || 'CZK')} · ${escapeHtml(t('outgoingAlertShort'))} ${formatCurrencyAmount(b.outgoingAlert || 0, b.currency || 'CZK')}`;
     return `
     <div class="managed-bank-row" id="bank-row-${b.id}">
       <div class="managed-bank-top">
@@ -11597,8 +11811,9 @@ function setManagedSaveCheck(bankKey, fieldKey, state) {
     return;
   }
   if (state === 'error') {
-    el.textContent = '!';
-    el.classList.add('error');
+    el.textContent = '✓';
+    el.classList.add('show');
+    window.setTimeout(() => el.classList.remove('show'), 1800);
     return;
   }
   if (state === 'saved') {
@@ -11629,7 +11844,7 @@ function scheduleManagedBankDetailAutoSave(bankKey, fieldKey, immediate = false)
 async function autoSaveManagedBankDetails(bankKey, fieldKey = 'name') {
   const base = getBankInfo(bankKey) || {};
   const newName = document.getElementById('edit-name-' + bankKey)?.value.trim() || plainBankName(bankKey);
-  const newCurrency = document.getElementById('edit-currency-' + bankKey)?.value || base.primaryCurrency || 'CZK';
+  const newCurrency = normalizeCurrencyForStorage(document.getElementById('edit-currency-' + bankKey)?.value || base.primaryCurrency || 'Kč');
   const newAccount = cleanBankAccountValue(document.getElementById('edit-account-' + bankKey)?.value || base.account || '');
   const newCards = removeAccountPartsFromCards(cleanBankCardsValue(document.getElementById('edit-cards-' + bankKey)?.value || base.cards || ''), newAccount);
 
@@ -11648,6 +11863,9 @@ async function autoSaveManagedBankDetails(bankKey, fieldKey = 'name') {
     saveCustomBanks(customBanks);
   }
 
+  setManagedSaveCheck(bankKey, fieldKey, 'saved');
+  showSavedToast();
+
   const ok = await postToBankTrackerEndpoint('saveBank', {
     bank: {
       id: bankKey,
@@ -11660,7 +11878,10 @@ async function autoSaveManagedBankDetails(bankKey, fieldKey = 'name') {
     }
   });
 
-  setManagedSaveCheck(bankKey, fieldKey, ok ? 'saved' : 'error');
+  if (!ok) {
+    const status = document.getElementById('limits-sync-status');
+    if (status) status.textContent = 'Zmeny sú uložené lokálne. Google Sheets sync sa nepodaril - skontroluj Web App /exec a Apps Script Executions.';
+  }
   renderOverview();
   renderArchive();
   return ok;
@@ -11682,9 +11903,15 @@ async function autoSaveManagedBankMonthlyField(bankKey, fieldKey = 'settings') {
   setAccountBalance(bankKey, values.balance, values.month);
   setTransactionAlertSettingsForBank(bankKey, values.incomingAlert, values.outgoingAlert, values.month);
 
+  setManagedSaveCheck(bankKey, fieldKey, 'saved');
+  showSavedToast();
+
   let ok = await saveBankSettingsEndpoint(bankKey, values.month, values.cardLimit, values.budget, values.warning, values.balance, values.incomingAlert, values.outgoingAlert);
 
-  setManagedSaveCheck(bankKey, fieldKey, ok ? 'saved' : 'error');
+  if (!ok) {
+    const status = document.getElementById('limits-sync-status');
+    if (status) status.textContent = 'Zmeny sú uložené lokálne. Google Sheets sync sa nepodaril - skontroluj Web App /exec a Apps Script Executions.';
+  }
   renderOverview();
   renderArchive();
   return ok;
@@ -11702,7 +11929,7 @@ async function updateSystemBankSettings(bankKey) {
   const limits = getLimitsForMonth(monthStr);
 
   const newName = document.getElementById('edit-name-' + bankKey)?.value.trim() || plainBankName(bankKey);
-  const newCurrency = document.getElementById('edit-currency-' + bankKey)?.value || bank.primaryCurrency;
+  const newCurrency = normalizeCurrencyForStorage(document.getElementById('edit-currency-' + bankKey)?.value || bank.primaryCurrency || 'Kč');
   const newAccount = cleanBankAccountValue(document.getElementById('edit-account-' + bankKey)?.value || bank.account || '');
   const newCards = removeAccountPartsFromCards(cleanBankCardsValue(document.getElementById('edit-cards-' + bankKey)?.value || bank.cards || ''), newAccount);
   const newLimit = parseInt(document.getElementById('edit-card-limit-' + bankKey)?.value || '0', 10) || 0;
@@ -11724,6 +11951,7 @@ async function updateSystemBankSettings(bankKey) {
   setAccountBalance(bankKey, newBalance, monthStr);
   setTransactionAlertSettingsForBank(bankKey, newIncomingAlert, newOutgoingAlert, monthStr);
 
+  showSavedToast();
 
   const bankOk = await postToBankTrackerEndpoint('saveBank', {
     bank: {
@@ -11740,7 +11968,10 @@ async function updateSystemBankSettings(bankKey) {
 
   renderBankManager();
   renderAll();
-  alert(bankOk || settingsOk ? 'Nastavenia banky boli uložené lokálne a odoslané do Google Sheets.' : 'Nastavenia banky boli uložené lokálne, ale Google Sheets zápis neprebehol. Skontroluj Web App /exec URL.');
+  if (!(bankOk || settingsOk)) {
+    const status = document.getElementById('limits-sync-status');
+    if (status) status.textContent = 'Nastavenia banky sú uložené lokálne. Google Sheets zápis neprebehol - skontroluj Web App /exec URL.';
+  }
 }
 
 function fillManualTransactionBanks(){const select=document.getElementById('manual-tx-bank');if(!select)return;select.innerHTML=BANK_ORDER.map(k=>`<option value="${k}">${plainBankName(k)}</option>`).join('')+getCustomBanks().map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}
@@ -11781,7 +12012,7 @@ function saveManualTransaction(){
   const merchant=document.getElementById('manual-tx-merchant')?.value.trim()||t('manualTransaction');
   const amountRaw=parseFloat(document.getElementById('manual-tx-amount')?.value||'0')||0;
   const direction=document.getElementById('manual-tx-direction')?.value||'outgoing';
-  const currency=document.getElementById('manual-tx-currency')?.value||'CZK';
+  const currency=normalizeCurrencyForStorage(document.getElementById('manual-tx-currency')?.value||'Kč');
   const category=document.getElementById('manual-tx-category')?.value||'Ostatné';
   const txDate=parseManualDateInput(document.getElementById('manual-tx-date')?.value);
   const amount=direction==='incoming'?Math.abs(amountRaw):-Math.abs(amountRaw);
@@ -11822,6 +12053,7 @@ function saveManualTransaction(){
 
   closeBottomSheets();
   renderAll();
+  showSavedToast();
 }
 function filterDirection(direction){
   activeDirection=direction;
@@ -11841,7 +12073,7 @@ function getArchiveMonthlySeries() {
       monthly[t.month] = { month: t.month, incoming: 0, spent: 0 };
     }
 
-    const currency = String(t.currency || 'CZK').toUpperCase();
+    const currency = currencyCode(t.currency || 'CZK');
     const amount = Math.abs(Number(t.amount) || 0);
     const czkValue = currency === 'EUR' ? amount * 25 : amount;
 
@@ -11860,7 +12092,7 @@ function getArchiveMonthlySeries() {
 
 
 function getFxRateToEurBase(currency) {
-  const curr = String(currency || 'CZK').toUpperCase();
+  const curr = currencyCode(currency || 'CZK');
   if (curr === 'EUR') return 1;
   const rate = Number(fxRates?.[curr] || 0);
   if (rate > 0) return rate;
@@ -11870,8 +12102,8 @@ function getFxRateToEurBase(currency) {
 
 function convertAmountCurrency(amount, fromCurrency, toCurrency) {
   const value = Math.abs(Number(amount) || 0);
-  const from = String(fromCurrency || 'CZK').toUpperCase();
-  const to = String(toCurrency || 'CZK').toUpperCase();
+  const from = currencyCode(fromCurrency || 'CZK');
+  const to = currencyCode(toCurrency || 'CZK');
 
   if (from === to) return value;
 
@@ -11992,7 +12224,8 @@ function getMonthlyArchiveSpentForBank(bankKey, monthStr) {
 
 function formatMonthlyArchiveSpentCell(bankKey, monthStr) {
   const spent = Number(getMonthlyArchiveSpentForBank(bankKey, monthStr) || 0);
-  return spent ? ('-' + formatCurrencyAmount(Math.abs(spent), 'CZK')) : '0 CZK';
+  const value = spent ? ('-' + formatCurrencyAmount(Math.abs(spent), 'CZK')) : formatCurrencyAmount(0, 'CZK');
+  return String(value).replace(/CZK/g, currencySymbol('CZK'));
 }
 
 function getMonthlyArchiveIncomeForBank(bankKey, monthStr) {
@@ -12001,7 +12234,8 @@ function getMonthlyArchiveIncomeForBank(bankKey, monthStr) {
 
 function formatMonthlyArchiveIncomeCell(bankKey, monthStr) {
   const income = Number(getMonthlyArchiveIncomeForBank(bankKey, monthStr) || 0);
-  return income ? formatCurrencyAmount(income, 'CZK') : '0 CZK';
+  const value = income ? formatCurrencyAmount(income, 'CZK') : formatCurrencyAmount(0, 'CZK');
+  return String(value).replace(/CZK/g, currencySymbol('CZK'));
 }
 
 function getArchiveCardLimitForMonth(bankKey, monthStr) {
@@ -13663,7 +13897,9 @@ function askDeleteTransaction(txId) {
     : (lang === 'cs' ? 'Smazat tuto transakci?' : 'Delete this transaction?');
 
   if (confirm(message)) {
-    deleteSingleTransaction(txId);
+    deleteSingleTransaction(txId).then(ok => {
+      if (ok) showDeletedToast();
+    });
   }
 }
 
@@ -13982,7 +14218,7 @@ function saveEditedTransaction() {
   const parsedDate = parseManualDateInput(document.getElementById('edit-tx-date')?.value || '');
   const amountRaw = parseFloat(document.getElementById('edit-tx-amount')?.value || '0') || 0;
   const direction = document.getElementById('edit-tx-direction')?.value || 'outgoing';
-  const currency = document.getElementById('edit-tx-currency')?.value || tx.currency || 'CZK';
+  const currency = normalizeCurrencyForStorage(document.getElementById('edit-tx-currency')?.value || tx.currency || 'Kč');
   const category = document.getElementById('edit-tx-category')?.value || tx.category || 'Ostatné';
   const merchant = document.getElementById('edit-tx-merchant')?.value.trim() || tx.merchant || '';
   const bankKey = document.getElementById('edit-tx-bank')?.value || getBankKey(tx);
@@ -14017,7 +14253,7 @@ function saveEditedTransaction() {
 
   closeBottomSheets();
   renderAll();
-  alert(t('transactionSaved'));
+  showSavedToast();
 }
 
 async function deleteEditedTransaction() {
@@ -14028,7 +14264,7 @@ async function deleteEditedTransaction() {
   closeBottomSheets();
   const ok = await deleteSingleTransaction(txId);
   if (ok) {
-    showLargeStatusToast(t('transactionDeleted'));
+    showDeletedToast();
   } else {
     showLargeStatusToast(t('transactionDeleteFailed') || 'Transaction was not deleted.', 'error');
   }
@@ -14198,6 +14434,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   applyAppTheme(getAppTheme());
   clearDemoTransactionsCacheIfNeeded();
   applyLanguage();
+  migrateCurrencyStorageToSymbols();
   updateGoogleSheetsToggleUi();
 
   // Cloud-first: Google Sheets is the only master data source.
