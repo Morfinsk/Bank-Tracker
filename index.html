@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Bank Tracker index_v141: v140 + currency symbols everywhere + CSOB SK EUR budget display -->
+<!-- Bank Tracker index_v147: v146 + no settlement label + archive CZK equivalents -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -27,6 +27,48 @@
     margin: 0;
     min-height: 100vh;
   }
+
+  /* v146 CSOB SK account-currency equivalent + archive readable totals */
+  html[data-theme="light"] .tx-account-equivalent,
+  html[data-theme="light"] .tx-account-equivalent-compact,
+  html[data-theme="light"] .tx-account-equivalent.amount-income,
+  html[data-theme="light"] .tx-account-equivalent.amount-expense,
+  html[data-theme="light"] .tx-account-equivalent-compact.amount-income,
+  html[data-theme="light"] .tx-account-equivalent-compact.amount-expense {
+    color: #64748b !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  .archive-bank-spent-cell,
+  .archive-bank-income-cell {
+    font-size: clamp(12px, 3.15vw, 14px) !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.055em !important;
+  }
+
+  /* v147 archive FX equivalent line, matching Account Balance subtle CZK equivalent */
+  .archive-amount-wrap {
+    display: grid;
+    gap: 3px;
+    justify-items: end;
+    text-align: right;
+    min-width: 0;
+  }
+  .archive-bank-czk-equivalent {
+    font-family: var(--font-mono);
+    font-size: clamp(9px, 2.45vw, 10.5px);
+    line-height: 1.12;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    color: var(--muted) !important;
+    white-space: nowrap;
+    opacity: .96;
+  }
+  html[data-theme="light"] .archive-bank-czk-equivalent {
+    color: #64748b !important;
+  }
+
 </style>
 
 <link rel="manifest" href="./manifest.json?v=171">
@@ -226,6 +268,28 @@
   .tx-row-top { display: flex; justify-content: space-between; align-items: center; padding-right: 20px; }
   .tx-merchant-compact { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px; }
   .tx-amt-compact { font-size: 13px; font-weight: 600; font-family: var(--font-mono); }
+  .tx-amt-compact-wrap {
+    display: grid;
+    gap: 3px;
+    justify-items: end;
+    text-align: right;
+    flex: 0 0 auto;
+  }
+  .tx-account-equivalent-compact {
+    display: block;
+    width: max-content;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    line-height: 1.12;
+    font-weight: 700;
+    color: var(--muted) !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    white-space: nowrap;
+  }
   .tx-meta-compact { font-size: 10px; color: var(--muted); margin-top: 1px; font-family: var(--font-mono); }
 
   /* Tlačidlá pre vymazanie transakcií */
@@ -912,6 +976,33 @@
     gap: 12px;
   }
   .tx-amount { font-size: 15px; font-weight: 600; font-family: var(--font-mono); text-align: right; }
+  .tx-amount-wrap {
+    display: grid;
+    gap: 4px;
+    justify-items: end;
+    text-align: right;
+    min-width: max-content;
+  }
+  .tx-account-equivalent {
+    display: block;
+    width: max-content;
+    max-width: 150px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.15;
+    font-weight: 700;
+    color: var(--muted) !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    white-space: nowrap;
+    box-shadow: none !important;
+  }
+  .tx-account-equivalent.amount-expense,
+  .tx-account-equivalent.amount-income,
+  .tx-account-equivalent-compact.amount-expense,
+  .tx-account-equivalent-compact.amount-income { color: var(--muted) !important; }
   .tx-delete-main {
     background: transparent;
     border: none;
@@ -6077,6 +6168,11 @@ html[data-theme="light"] body::before {
     text-overflow: clip !important;
     font-variant-numeric: tabular-nums;
   }
+  .archive-bank-spent-cell .archive-bank-czk-equivalent,
+  .archive-bank-income-cell .archive-bank-czk-equivalent {
+    font-size: clamp(9px, 2.45vw, 10.5px) !important;
+    letter-spacing: -0.035em !important;
+  }
 
   .archive-bank-limit-cell {
     font-size: clamp(13px, 3.25vw, 14.5px) !important;
@@ -7360,6 +7456,40 @@ function formatCurrencyAmount(amount, currency) {
   const symbol = currencySymbol(currency || getAppCurrency() || 'Kč');
   if (symbol === '$' || symbol === '£') return `${symbol}${value}`;
   return `${value} ${symbol}`;
+}
+
+
+function getTransactionAccountCurrency(tx) {
+  const bankKey = getBankKey(tx);
+  const bankCurrency = getBankBalanceCurrency(bankKey) || getBankInfo(bankKey)?.primaryCurrency || tx?.currency || getAppCurrency() || 'CZK';
+  return currencyCode(bankCurrency);
+}
+
+function shouldShowAccountCurrencyEquivalent(tx) {
+  if (!tx) return false;
+  const txCurrency = currencyCode(tx.currency || getAppCurrency() || 'CZK');
+  const accountCurrency = getTransactionAccountCurrency(tx);
+  if (!txCurrency || !accountCurrency || txCurrency === accountCurrency) return false;
+  // Especially important for EUR accounts such as ČSOB SK where card tx can arrive in CZK.
+  return true;
+}
+
+function renderAccountCurrencyEquivalent(tx, options = {}) {
+  if (!shouldShowAccountCurrencyEquivalent(tx)) return '';
+  const accountCurrency = getTransactionAccountCurrency(tx);
+  const converted = convertTransactionAmount(tx, accountCurrency);
+  const isIncome = Number(tx.amount) > 0;
+  const sign = isIncome ? '+' : '-';
+  const cls = isIncome ? 'amount-income' : 'amount-expense';
+  const compact = options.compact === true;
+  const label = '';
+  const className = compact ? 'tx-account-equivalent-compact' : 'tx-account-equivalent';
+  return `<div class="${className} ${cls}" title="Account currency: ${escapeAttr(accountCurrency)}">${label}${sign}${formatCurrencyAmount(converted, accountCurrency)}</div>`;
+}
+
+function getArchiveBankCurrency(bankKey) {
+  const currency = getBankBalanceCurrency(bankKey) || getArchiveBankInfo(bankKey)?.primaryCurrency || 'CZK';
+  return currencyCode(currency);
 }
 
 function formatFxDateShort(dateStr) {
@@ -9022,7 +9152,7 @@ function renderRecentBankColumns(byBank) {
       <div class="tx-item-compact" data-tx-id="${escapeAttr(txId)}">
         <div class="tx-row-top">
           <div class="tx-merchant-compact">${escapeHtml(t.merchant)}</div>
-          <div class="tx-amt-compact ${Number(t.amount) > 0 ? 'amount-income' : 'amount-expense'}">${Number(t.amount) > 0 ? '+' : '-'}${formatCurrencyAmount(t.amount, t.currency)}</div>
+          <div class="tx-amt-compact-wrap"><div class="tx-amt-compact ${Number(t.amount) > 0 ? 'amount-income' : 'amount-expense'}">${Number(t.amount) > 0 ? '+' : '-'}${formatCurrencyAmount(t.amount, t.currency)}</div>${renderAccountCurrencyEquivalent(t, { compact: true })}</div>
         </div>
         <div class="tx-meta-compact">${escapeHtml((t.date || '').split(' ')[0])}</div>
       </div>`;
@@ -9754,7 +9884,8 @@ function updateTxnPage(monthTxns) {
     const source = getPaymentSourceMasked(t);
     const dayHeader = dayLabel !== lastDayLabel ? `<div class="txn-day-header">${escapeHtml(dayLabel)}</div>` : '';
     lastDayLabel = dayLabel;
-    return `${dayHeader}<div class="tx-item" data-tx-id="${escapeAttr(txId)}"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${escapeHtml(t.merchant)}</div><div class="tx-meta">${escapeHtml(timeLabel)} · <span class="tx-payment-source" data-label="${escapeAttr(paymentLabel)}" data-source="${escapeAttr(source)}" onclick="event.stopPropagation(); togglePaymentSourceDetail(this)">${escapeHtml(paymentLabel)}</span></div></div></div><div class="tx-right-side"><div class="tx-amount ${amountClass}">${sign}${formatCurrencyAmount(t.amount, t.currency)}</div>${bankLogoImg(bankKey, 'tx-bank-logo')}</div></div>`;
+    const accountEquivalent = renderAccountCurrencyEquivalent(t);
+    return `${dayHeader}<div class="tx-item" data-tx-id="${escapeAttr(txId)}"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${escapeHtml(t.merchant)}</div><div class="tx-meta">${escapeHtml(timeLabel)} · <span class="tx-payment-source" data-label="${escapeAttr(paymentLabel)}" data-source="${escapeAttr(source)}" onclick="event.stopPropagation(); togglePaymentSourceDetail(this)">${escapeHtml(paymentLabel)}</span></div></div></div><div class="tx-right-side"><div class="tx-amount-wrap"><div class="tx-amount ${amountClass}">${sign}${formatCurrencyAmount(t.amount, t.currency)}</div>${accountEquivalent}</div>${bankLogoImg(bankKey, 'tx-bank-logo')}</div></div>`;
   }).join('');
 
   if (cashflowSlot) cashflowSlot.innerHTML = renderTransactionDailyCashflow(scoped);
@@ -12204,8 +12335,47 @@ function getArchiveMonthlyStatKey(bankKey, monthStr, field) {
   return `bank_monthly_${field}_${bankKey}_${normalizeMonthStr(monthStr)}`;
 }
 
-function getArchiveMonthlyStat(bankKey, monthStr, field) {
+function getArchiveMonthlyStatFromTransactions(bankKey, monthStr, field, targetCurrency) {
   const normalizedMonth = normalizeMonthStr(monthStr);
+  const target = currencyCode(targetCurrency || getArchiveBankCurrency(bankKey));
+  return allTransactions.reduce((sum, tx) => {
+    if (normalizeMonthStr(tx.month) !== normalizedMonth) return sum;
+    if (getArchiveBankKeyFromTransaction(tx) !== bankKey) return sum;
+    if (typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)) return sum;
+    const amount = Number(tx.amount) || 0;
+    const converted = convertTransactionAmount(tx, target);
+    if (field === 'spending' && amount < 0) return sum + Math.abs(converted);
+    if (field === 'income' && amount > 0) return sum + Math.abs(converted);
+    if (field === 'net') return sum + (amount < 0 ? -Math.abs(converted) : Math.abs(converted));
+    return sum;
+  }, 0);
+}
+
+function hasArchiveTransactionsForBank(bankKey, monthStr, field) {
+  const normalizedMonth = normalizeMonthStr(monthStr);
+  return allTransactions.some(tx => {
+    if (normalizeMonthStr(tx.month) !== normalizedMonth) return false;
+    if (getArchiveBankKeyFromTransaction(tx) !== bankKey) return false;
+    const amount = Number(tx.amount) || 0;
+    if (field === 'spending') return amount < 0;
+    if (field === 'income') return amount > 0;
+    if (field === 'net') return amount !== 0;
+    return false;
+  });
+}
+
+function getArchiveMonthlyStat(bankKey, monthStr, field, targetCurrency) {
+  const normalizedMonth = normalizeMonthStr(monthStr);
+  const target = currencyCode(targetCurrency || getArchiveBankCurrency(bankKey));
+
+  // v146: ČSOB SK is an EUR account. For archive totals we must sum the actual
+  // Transactions rows in the account currency, otherwise an old cached/monthly
+  // value can override the two live transactions and show the wrong total.
+  // Example: -230 Kč card tx + -41.40 € account movement => about -50.91 €.
+  if (bankKey === 'csob_sk' && hasArchiveTransactionsForBank(bankKey, normalizedMonth, field)) {
+    return getArchiveMonthlyStatFromTransactions(bankKey, normalizedMonth, field, target || 'EUR');
+  }
+
   let total = 0;
   let hasStored = false;
   const stored = localStorage.getItem(getArchiveMonthlyStatKey(bankKey, normalizedMonth, field));
@@ -12220,37 +12390,58 @@ function getArchiveMonthlyStat(bankKey, monthStr, field) {
       if (Number.isFinite(n)) { total += n; hasStored = true; }
     }
   }
-  if (hasStored) return total;
-  return allTransactions.reduce((sum, tx) => {
-    if (normalizeMonthStr(tx.month) !== normalizedMonth) return sum;
-    if (getArchiveBankKeyFromTransaction(tx) !== bankKey) return sum;
-    if (typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)) return sum;
-    const amount = Number(tx.amount) || 0;
-    if (field === 'spending' && amount < 0) return sum + Math.abs(convertTransactionAmount(tx, 'CZK'));
-    if (field === 'income' && amount > 0) return sum + convertTransactionAmount(tx, 'CZK');
-    if (field === 'net') return sum + convertTransactionAmount(tx, 'CZK');
-    return sum;
-  }, 0);
+  if (hasStored) {
+    // Bank_Settings monthly archive totals were historically stored in CZK.
+    // Display them in the bank account currency, e.g. ČSOB SK in EUR.
+    return target === 'CZK' ? total : convertAmountCurrency(total, 'CZK', target);
+  }
+  return getArchiveMonthlyStatFromTransactions(bankKey, normalizedMonth, field, target);
 }
 
 function getMonthlyArchiveSpentForBank(bankKey, monthStr) {
-  return getArchiveMonthlyStat(bankKey, monthStr, 'spending');
+  return getArchiveMonthlyStat(bankKey, monthStr, 'spending', getArchiveBankCurrency(bankKey));
 }
 
 function formatMonthlyArchiveSpentCell(bankKey, monthStr) {
+  const currency = getArchiveBankCurrency(bankKey);
   const spent = Number(getMonthlyArchiveSpentForBank(bankKey, monthStr) || 0);
-  const value = spent ? ('-' + formatCurrencyAmount(Math.abs(spent), 'CZK')) : formatCurrencyAmount(0, 'CZK');
-  return String(value).replace(/CZK/g, currencySymbol('CZK'));
+  return spent ? ('-' + formatCurrencyAmount(Math.abs(spent), currency)) : formatCurrencyAmount(0, currency);
+}
+
+function renderArchiveCzkEquivalentHtml(amount, sourceCurrency, direction) {
+  const source = currencyCode(sourceCurrency || 'CZK');
+  if (source === 'CZK') return '';
+  const value = Math.abs(Number(amount) || 0);
+  const czk = convertAmountCurrency(value, source, 'CZK');
+  const formatted = formatCurrencyAmount(czk, 'CZK');
+  const text = (direction === 'spent' && value > 0) ? ('-' + formatted) : formatted;
+  return `<div class="archive-bank-czk-equivalent">${escapeHtml(text)}</div>`;
+}
+
+function renderMonthlyArchiveSpentCellHtml(bankKey, monthStr) {
+  const currency = getArchiveBankCurrency(bankKey);
+  const spent = Number(getMonthlyArchiveSpentForBank(bankKey, monthStr) || 0);
+  const main = spent ? ('-' + formatCurrencyAmount(Math.abs(spent), currency)) : formatCurrencyAmount(0, currency);
+  const equivalent = renderArchiveCzkEquivalentHtml(spent, currency, 'spent');
+  return `<div class="archive-amount-wrap"><div>${escapeHtml(main)}</div>${equivalent}</div>`;
 }
 
 function getMonthlyArchiveIncomeForBank(bankKey, monthStr) {
-  return getArchiveMonthlyStat(bankKey, monthStr, 'income');
+  return getArchiveMonthlyStat(bankKey, monthStr, 'income', getArchiveBankCurrency(bankKey));
 }
 
 function formatMonthlyArchiveIncomeCell(bankKey, monthStr) {
+  const currency = getArchiveBankCurrency(bankKey);
   const income = Number(getMonthlyArchiveIncomeForBank(bankKey, monthStr) || 0);
-  const value = income ? formatCurrencyAmount(income, 'CZK') : formatCurrencyAmount(0, 'CZK');
-  return String(value).replace(/CZK/g, currencySymbol('CZK'));
+  return income ? formatCurrencyAmount(income, currency) : formatCurrencyAmount(0, currency);
+}
+
+function renderMonthlyArchiveIncomeCellHtml(bankKey, monthStr) {
+  const currency = getArchiveBankCurrency(bankKey);
+  const income = Number(getMonthlyArchiveIncomeForBank(bankKey, monthStr) || 0);
+  const main = income ? formatCurrencyAmount(income, currency) : formatCurrencyAmount(0, currency);
+  const equivalent = renderArchiveCzkEquivalentHtml(income, currency, 'income');
+  return `<div class="archive-amount-wrap"><div>${escapeHtml(main)}</div>${equivalent}</div>`;
 }
 
 function getArchiveCardLimitForMonth(bankKey, monthStr) {
@@ -12505,12 +12696,12 @@ function renderArchive() {
       const limit = getArchiveCardLimitForMonth(bankKey, mStr);
       const logo = bankLogoImg(bankKey);
       const title = escapeAttr(getArchiveBankName(bankKey));
-      const spent = formatMonthlyArchiveSpentCell(bankKey, mStr);
-      const income = formatMonthlyArchiveIncomeCell(bankKey, mStr);
+      const spent = renderMonthlyArchiveSpentCellHtml(bankKey, mStr);
+      const income = renderMonthlyArchiveIncomeCellHtml(bankKey, mStr);
       return `<div class="archive-bank-spent-row" title="${title} · ${formatMonthString(mStr)}">
         <div class="archive-bank-limit-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','cards')" style="color:${bank.color};" title="${title} · ${t('cardsOnly')} · ${t('transactions')}"><span class="bank-inline-logo">${logo}<span>${count}/${limit}</span></span><div>${getBankStatusText(count, limit, mStr)}</div></div>
-        <div class="archive-bank-spent-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','spent')" title="${title} · ${t('spent')} · ${t('outgoing')}">${escapeHtml(spent)}</div>
-        <div class="archive-bank-income-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','income')" title="${title} · ${t('income')} · ${t('incoming')}">${escapeHtml(income)}</div>
+        <div class="archive-bank-spent-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','spent')" title="${title} · ${t('spent')} · ${t('outgoing')}">${spent}</div>
+        <div class="archive-bank-income-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','income')" title="${title} · ${t('income')} · ${t('incoming')}">${income}</div>
       </div>`;
     }).join('');
     const header = `<div class="archive-bank-spent-header"><div>${t('bank')}</div><div>${t('spent')}</div><div>${t('income')}</div></div>`;
