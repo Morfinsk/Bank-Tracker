@@ -6282,11 +6282,11 @@ html[data-theme="light"] body::before {
     <div>
       <div class="section-title" data-i18n="appCurrency">App currency</div>
       <select class="config-input" id="app-currency-select" onchange="setAppCurrency(this.value)">
-        <option value="Kč">Kč</option>
-        <option value="€">€</option>
-        <option value="$">$</option>
-        <option value="£">£</option>
-        <option value="zł">zł</option>
+        <option value="Kč">Kč — Czech koruna</option>
+        <option value="€">€ — Euro</option>
+        <option value="$">$ — US dollar</option>
+        <option value="£">£ — British pound</option>
+        <option value="zł">zł — Polish zloty</option>
       </select>
     </div>
   </div>
@@ -6695,7 +6695,9 @@ function setAppCurrency(currency) {
 
 function updateAppCurrencySelect() {
   const select = document.getElementById('app-currency-select');
-  if (select) select.value = getAppCurrency();
+  if (!select) return;
+  fillCurrencySelect(select, getAppCurrency());
+  select.value = getAppCurrency();
 }
 
 function isGoogleSheetsConnected() {
@@ -7525,17 +7527,29 @@ function parseFxRatesSheetData(raw) {
 }
 
 async function syncFxRatesFromSheets(spreadsheetId) {
-  try {
-    if (!spreadsheetId) return false;
-    const gvizUrl = buildGvizUrl(spreadsheetId, 'FX_Rates');
-    const res = await fetchNoStore(gvizUrl);
-    if (!res.ok) throw new Error('FX_Rates fetch failed');
-    const raw = await res.text();
-    return parseFxRatesSheetData(raw);
-  } catch (e) {
-    console.warn('FX rates sync skipped:', e);
-    return false;
+  if (!spreadsheetId) return false;
+
+  // v144: primary sheet is FX_Rates, but Martin also uses/mentioned FR_rates.
+  // Try both names so app-currency conversion keeps working with either Google Sheets tab.
+  const sheetNames = ['FX_Rates', 'FR_rates'];
+  for (const sheetName of sheetNames) {
+    try {
+      const gvizUrl = buildGvizUrl(spreadsheetId, sheetName);
+      const res = await fetchNoStore(gvizUrl);
+      if (!res.ok) throw new Error(`${sheetName} fetch failed`);
+      const raw = await res.text();
+      const ok = parseFxRatesSheetData(raw);
+      if (ok) {
+        console.log(`FX rates loaded from ${sheetName}`);
+        return true;
+      }
+    } catch (e) {
+      console.warn(`${sheetName} rates sync skipped:`, e);
+    }
   }
+
+  console.warn('FX/FR rates sync skipped: no valid rates sheet found.');
+  return false;
 }
 
 
@@ -10757,6 +10771,7 @@ function fillCurrencySelect(select, selectedCurrency = 'Kč') {
 }
 
 function initCurrencyDropdowns() {
+  fillCurrencySelect(document.getElementById('app-currency-select'), getAppCurrency());
   fillCurrencySelect(document.getElementById('new-bank-currency'), document.getElementById('new-bank-currency')?.value || 'Kč');
   fillCurrencySelect(document.getElementById('manual-tx-currency'), document.getElementById('manual-tx-currency')?.value || 'Kč');
   fillCurrencySelect(document.getElementById('edit-tx-currency'), document.getElementById('edit-tx-currency')?.value || 'Kč');
