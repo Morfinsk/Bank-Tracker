@@ -15144,14 +15144,10 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     foregroundHandlerAttached = true;
     try {
       firebaseFns.onMessage(messaging, (payload) => {
-        // Android/PWA can display duplicate alerts when a foreground handler also calls
-        // showNotification for a message that the service worker already received.
-        // Keep the push delivery, but do not create a second local notification while
-        // the app is visible.
-        if (document.visibilityState === 'visible') {
-          console.log('Foreground push received without duplicate notification:', payload);
-          return;
-        }
+        // Show server push notifications even while the PWA is open.
+        // FCM web messages delivered to the foreground are not automatically shown
+        // by the service worker, so we explicitly display them here.
+        console.log('Foreground push received, showing notification:', payload);
         const title = (payload.notification && payload.notification.title) || (payload.data && payload.data.title) || "Bank Tracker";
         const body = (payload.notification && payload.notification.body) || (payload.data && payload.data.body) || "Máš novú notifikáciu.";
 
@@ -15160,8 +15156,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
             if (registration) {
               registration.showNotification(title, {
                 body: body,
-                tag: "bank-tracker-push",
-                renotify: false
+                tag: "bank-tracker-push-" + Date.now(),
+                renotify: true
               });
             }
           }).catch((err) => console.warn("Foreground notification failed:", err));
