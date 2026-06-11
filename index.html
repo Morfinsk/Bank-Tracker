@@ -4877,6 +4877,40 @@
     transform: translate(-50%, -50%) scale(1);
   }
 
+  /* v156: non-blocking top spinner for slower delete sync */
+  .large-status-toast.top-loading {
+    top: calc(16px + env(safe-area-inset-top));
+    bottom: auto;
+    transform: translate(-50%, -10px) scale(.96);
+    min-width: 170px;
+    padding: 12px 16px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .large-status-toast.top-loading.show {
+    transform: translate(-50%, 0) scale(1);
+  }
+
+  .large-status-toast.top-loading .large-status-icon {
+    width: 30px;
+    height: 30px;
+    margin: 0;
+  }
+
+  .large-status-toast.top-loading .large-status-icon::before {
+    width: 18px;
+    height: 18px;
+    border-width: 3px;
+  }
+
+  .large-status-toast.top-loading .large-status-text {
+    font-size: 13px;
+  }
+
   .large-status-icon {
     width: 54px;
     height: 54px;
@@ -4890,6 +4924,28 @@
     font-size: 32px;
     font-weight: 1000;
     line-height: 1;
+  }
+
+
+  .large-status-toast.loading .large-status-icon {
+    font-size: 0;
+    color: transparent;
+    border-color: rgba(96, 165, 250, .42);
+    background: rgba(96, 165, 250, .14);
+  }
+
+  .large-status-toast.loading .large-status-icon::before {
+    content: '';
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    border: 4px solid rgba(148, 163, 184, .42);
+    border-top-color: #60a5fa;
+    animation: bankTrackerSpin .78s linear infinite;
+  }
+
+  @keyframes bankTrackerSpin {
+    to { transform: rotate(360deg); }
   }
 
   .large-status-toast.error {
@@ -6516,7 +6572,7 @@ html[data-theme="light"] body::before {
   <div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title" data-i18n="addTransaction">Add transaction</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>
   <div class="sheet-grid">
     <label data-i18n="date">Date</label>
-    <input class="config-input" id="manual-tx-date" type="date" />
+    <input class="config-input" id="manual-tx-date" type="datetime-local" />
     <div class="budget-status-note" data-i18n="selectArchiveDate">Select date to place this transaction into the correct archive month.</div>
 
     <label data-i18n="bank">Bank</label><select class="config-input" id="manual-tx-bank"></select>
@@ -6698,7 +6754,7 @@ html[data-theme="light"] body::before {
     <input type="hidden" id="edit-tx-id" />
 
     <label data-i18n="date">Date</label>
-    <input class="config-input" id="edit-tx-date" type="date" />
+    <input class="config-input" id="edit-tx-date" type="datetime-local" />
 
     <label data-i18n="merchantDescription">Merchant / description</label>
     <input class="config-input" id="edit-tx-merchant" />
@@ -8111,6 +8167,10 @@ function bindArchiveTransactionEditGestures() {
 async function deleteSingleTransaction(txId) {
   if (!txId) return false;
 
+  // v154: show the same working spinner for every delete path
+  // (edit sheet button, manager delete, and legacy gesture delete).
+  showTopWorkingToast(t('deleting') || 'Deleting...');
+
   const targetId = String(txId);
   const tx = allTransactions.find(t => String(t.id || t.msgId || t.emailId || '') === targetId);
   const sheetId = String(tx?.msgId || tx?.emailId || tx?.id || targetId).trim();
@@ -8382,8 +8442,11 @@ function showLargeStatusToast(message, type) {
     document.body.appendChild(toast);
   }
   const isError = type === 'error';
-  toast.classList.remove('show', 'error');
+  const isLoading = type === 'loading' || type === 'top-loading';
+  toast.classList.remove('show', 'error', 'loading', 'top-loading');
   toast.classList.toggle('error', isError);
+  toast.classList.toggle('loading', isLoading);
+  toast.classList.toggle('top-loading', type === 'top-loading');
   toast.innerHTML = `
     <div class="large-status-icon">${isError ? '!' : '✓'}</div>
     <div class="large-status-text">${escapeHtml(message || '')}</div>
@@ -8392,6 +8455,12 @@ function showLargeStatusToast(message, type) {
   void toast.offsetWidth;
   toast.classList.add('show');
   if (window.__bankTrackerLargeToastTimer) clearTimeout(window.__bankTrackerLargeToastTimer);
+  if (isLoading) {
+    // Keep the spinner visible while Apps Script is still working.
+    // It will be replaced by Saved/Deleted/Error once the request finishes.
+    window.__bankTrackerLargeToastTimer = null;
+    return;
+  }
   window.__bankTrackerLargeToastTimer = window.setTimeout(() => {
     toast.classList.remove('show');
   }, 1650);
@@ -8412,6 +8481,18 @@ function showSavedToast() {
 
 function showDeletedToast() {
   showLargeStatusToast(getActionToastText('deleted'));
+}
+
+function showWorkingToast(message) {
+  const lang = (typeof getLanguage === 'function' ? getLanguage() : 'en');
+  const fallback = lang === 'sk' ? 'Ukladám...' : (lang === 'cs' ? 'Ukládám...' : 'Saving...');
+  showLargeStatusToast(message || fallback, 'loading');
+}
+
+function showTopWorkingToast(message) {
+  const lang = (typeof getLanguage === 'function' ? getLanguage() : 'en');
+  const fallback = lang === 'sk' ? 'Pracujem...' : (lang === 'cs' ? 'Pracuji...' : 'Working...');
+  showLargeStatusToast(message || fallback, 'top-loading');
 }
 
 function exitBankTrackerApp() {
@@ -11604,6 +11685,7 @@ function updateManagedTransactionFromButton(button) {
   tx.type = direction === 'incoming' ? 'manual income' : 'manual expense';
   tx.msgId = tx.msgId || tx.id;
 
+  showWorkingToast();
   allTransactions = sortTransactionsNewestFirst(allTransactions);
   applyLocalAccountBalanceFromTransaction(oldTxSnapshot, -1);
   applyLocalAccountBalanceFromTransaction(tx, 1);
@@ -11670,16 +11752,24 @@ function toDateInputValue(dateObj = new Date()) {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
 }
 
 function parseManualDateInput(value) {
   if (!value) return new Date();
-  const parts = String(value).split('-').map(Number);
-  if (parts.length === 3 && parts.every(Boolean)) {
-    return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+  const raw = String(value).trim();
+  const dtMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (dtMatch) {
+    return new Date(Number(dtMatch[1]), Number(dtMatch[2]) - 1, Number(dtMatch[3]), Number(dtMatch[4]), Number(dtMatch[5]), 0);
   }
-  return parseCustomDateStr(value);
+  const parts = raw.split('-').map(Number);
+  if (parts.length === 3 && parts.every(Boolean)) {
+    const now = new Date();
+    return new Date(parts[0], parts[1] - 1, parts[2], now.getHours(), now.getMinutes(), 0);
+  }
+  return parseCustomDateStr(raw);
 }
 
 
@@ -12182,7 +12272,7 @@ function getManualPaymentMeta(paymentKind, direction, bankKey, bankName, customB
   };
 }
 
-function saveManualTransaction(){
+async function saveManualTransaction(){
   const bankKey=document.getElementById('manual-tx-bank')?.value||'rb_cz';
   const paymentKind=document.getElementById('manual-tx-kind')?.value||'card';
   const merchant=document.getElementById('manual-tx-merchant')?.value.trim()||t('manualTransaction');
@@ -12217,7 +12307,18 @@ function saveManualTransaction(){
   allTransactions=sortTransactionsNewestFirst(allTransactions);
   applyLocalAccountBalanceFromTransaction(newTx, 1);
   localStorage.setItem('cached_txns',JSON.stringify(allTransactions));
-  postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(newTx) });
+  closeBottomSheets();
+  renderAll();
+
+  // v156: manual add feels instant because the transaction is added locally immediately.
+  // Sync to Google Sheets in the background; do not block the UI with a loading spinner.
+  showSavedToast();
+  postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(newTx) }).then(ok => {
+    if (!ok) {
+      const status = document.getElementById('limits-sync-status');
+      if (status) status.textContent = t('transactionSyncDelayed') || 'Saved locally. Google Sheets response was delayed.';
+    }
+  });
 
   document.getElementById('manual-tx-merchant').value='';
   document.getElementById('manual-tx-amount').value='';
@@ -12226,10 +12327,6 @@ function saveManualTransaction(){
   if (kindInput) kindInput.value = 'card';
   const dateInput = document.getElementById('manual-tx-date');
   if (dateInput) dateInput.value = toDateInputValue(new Date());
-
-  closeBottomSheets();
-  renderAll();
-  showSavedToast();
 }
 function filterDirection(direction){
   activeDirection=direction;
@@ -14033,6 +14130,11 @@ function getEndpointStatusMessage(action, state) {
       success: 'Zistené banky boli zosynchronizované.',
       error: 'Synchronizácia zistených bánk zlyhala.'
     },
+    saveTransaction: {
+      pending: 'Ukladám transakciu do Google Sheets...',
+      success: 'Transakcia bola uložená do Google Sheets.',
+      error: 'Transakcia ostala lokálne. Google Sheets odpoveď neprišla včas.'
+    },
     deleteTransaction: {
       pending: 'Vymazávam transakciu z Google Sheets...',
       success: 'Transakcia bola vymazaná z Google Sheets.',
@@ -14089,7 +14191,13 @@ async function postToBankTrackerEndpoint(action, payload = {}) {
   }
 
   if (status) status.textContent = getEndpointStatusMessage(action, 'pending');
-  const result = await jsonpEndpointRequest(action, payload);
+
+  // v155: save/delete transaction can take longer because the backend now also
+  // updates balance, monthly stats, notification logs and FCM token cleanup.
+  // A short timeout made the app show "transaction failed" even when Apps Script
+  // had already written the row to Google Sheets successfully.
+  const mutationTimeoutMs = ['saveTransaction', 'deleteTransaction'].includes(action) ? 60000 : 15000;
+  const result = await jsonpEndpointRequest(action, payload, mutationTimeoutMs);
   if (result.ok) {
     if (status) status.textContent = getEndpointStatusMessage(action, 'success');
     console.log('Google Sheets save OK:', action, result.data);
@@ -14154,16 +14262,24 @@ function toDateInputValue(dateObj = new Date()) {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
 }
 
 function parseManualDateInput(value) {
   if (!value) return new Date();
-  const parts = String(value).split('-').map(Number);
-  if (parts.length === 3 && parts.every(Boolean)) {
-    return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+  const raw = String(value).trim();
+  const dtMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (dtMatch) {
+    return new Date(Number(dtMatch[1]), Number(dtMatch[2]) - 1, Number(dtMatch[3]), Number(dtMatch[4]), Number(dtMatch[5]), 0);
   }
-  return parseCustomDateStr(value);
+  const parts = raw.split('-').map(Number);
+  if (parts.length === 3 && parts.every(Boolean)) {
+    const now = new Date();
+    return new Date(parts[0], parts[1] - 1, parts[2], now.getHours(), now.getMinutes(), 0);
+  }
+  return parseCustomDateStr(raw);
 }
 
 function getTxEditCategoryOptions(selectedCategory = '') {
@@ -14446,7 +14562,7 @@ function openTransactionEditSheet(txId) {
   openSheet('transaction-edit-sheet');
 }
 
-function saveEditedTransaction() {
+async function saveEditedTransaction() {
   const txId = document.getElementById('edit-tx-id')?.value || '';
   const tx = findTransactionById(txId);
   if (!tx) return;
@@ -14485,11 +14601,14 @@ function saveEditedTransaction() {
   applyLocalAccountBalanceFromTransaction(tx, 1);
   localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
 
-  postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
-
   closeBottomSheets();
   renderAll();
-  showSavedToast();
+  const ok = await postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
+  if (ok) {
+    showSavedToast();
+  } else {
+    showLargeStatusToast(t('transactionSyncDelayed') || 'Saved locally. Google Sheets response was delayed.', 'warning');
+  }
 }
 
 async function deleteEditedTransaction() {
