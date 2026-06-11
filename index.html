@@ -4899,6 +4899,8 @@
     width: 30px;
     height: 30px;
     margin: 0;
+    background: transparent;
+    border: 0;
   }
 
   .large-status-toast.top-loading .large-status-icon::before {
@@ -4942,6 +4944,19 @@
     border: 4px solid rgba(148, 163, 184, .42);
     border-top-color: #60a5fa;
     animation: bankTrackerSpin .78s linear infinite;
+  }
+
+  /* v159: top delete loader uses one spinner only, no background ring */
+  .large-status-toast.loading.top-loading .large-status-icon {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .large-status-toast.loading.top-loading .large-status-icon::before {
+    width: 18px;
+    height: 18px;
+    border-width: 3px;
   }
 
   @keyframes bankTrackerSpin {
@@ -6010,9 +6025,9 @@
 }
 .txn-day-group { margin-bottom: 14px; }
 .txn-day-header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
+  position: relative;
+  top: auto;
+  z-index: 0;
   margin: 16px 2px 9px;
   padding: 8px 11px;
   width: fit-content;
@@ -7479,9 +7494,8 @@ function dedupeTransactionsForCloud(txns) {
 }
 
 function clearDemoTransactionsCacheIfNeeded() {
-  // Cloud-first build: demo/local transaction caches are not a data source anymore.
+  // Keep the last real cloud snapshot for instant startup, but remove old demo/test-only caches.
   try {
-    localStorage.removeItem('cached_txns');
     localStorage.removeItem('demo_txns');
     localStorage.removeItem('test_txns');
     localStorage.removeItem('manual_demo_txns');
@@ -7489,13 +7503,35 @@ function clearDemoTransactionsCacheIfNeeded() {
 }
 
 function clearCloudFirstLocalData() {
-  // Keep user configuration such as URLs/theme/language, but never keep transactions as local master data.
+  // Keep user configuration and the last Google Sheets snapshot so the app can render instantly
+  // before the fresh cloud sync finishes. Google Sheets remains the master after sync.
   try {
-    localStorage.removeItem('cached_txns');
     localStorage.removeItem('demo_txns');
     localStorage.removeItem('test_txns');
     localStorage.removeItem('manual_demo_txns');
   } catch (e) {}
+}
+
+
+function loadCachedTransactionsSnapshot() {
+  try {
+    const cached = JSON.parse(localStorage.getItem('cached_txns') || '[]');
+    if (!Array.isArray(cached) || !cached.length) return false;
+    allTransactions = sortTransactionsNewestFirst(cached.map(tx => normalizeTransactionCurrency(tx)));
+    return true;
+  } catch (e) {
+    console.warn('Cached transactions snapshot could not be loaded:', e);
+    return false;
+  }
+}
+
+function saveCachedTransactionsSnapshot() {
+  try {
+    localStorage.setItem('cached_txns', JSON.stringify(allTransactions || []));
+    localStorage.setItem('cached_txns_updated_at', String(Date.now()));
+  } catch (e) {
+    console.warn('Cached transactions snapshot could not be saved:', e);
+  }
 }
 
 function formatDate(d) {
@@ -7785,8 +7821,8 @@ async function syncArchivedTransactionsFromSheets(spreadsheetId) {
 async function syncData() {
   clearCloudFirstLocalData();
   if (!isGoogleSheetsEnabled()) {
-    console.log('Google Sheets disabled — cloud-first build shows no local/demo transactions.');
-    allTransactions = [];
+    console.log('Google Sheets disabled — showing last cached snapshot if available.');
+    if (!allTransactions.length) loadCachedTransactionsSnapshot();
     renderAll();
     applyLanguage();
     updateGoogleSheetsToggleUi();
@@ -7794,7 +7830,7 @@ async function syncData() {
   }
 
   if (!SHEETS_URL || isSyncing) {
-    allTransactions = [];
+    if (!allTransactions.length) loadCachedTransactionsSnapshot();
     renderAll();
     applyLanguage();
     return;
@@ -7813,11 +7849,12 @@ async function syncData() {
     const activeTxns = await fetchSheetTransactions(match[1], 'Transactions');
     const archivedTxns = await syncArchivedTransactionsFromSheets(match[1]);
     allTransactions = sortTransactionsNewestFirst(dedupeTransactionsForCloud([...activeTxns, ...archivedTxns]));
+    saveCachedTransactionsSnapshot();
     if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa načítali správne.';
   } catch(e) {
     console.error('Google Sheets transaction sync failed:', e);
-    if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa nepodarilo načítať. Skontroluj Spreadsheet URL.';
-    allTransactions = [];
+    if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa nepodarilo načítať. Zobrazuje sa posledná uložená cache.';
+    if (!allTransactions.length) loadCachedTransactionsSnapshot();
   }
   if (btn) btn.classList.remove('spinning');
   isSyncing = false;
@@ -8164,32 +8201,49 @@ function bindArchiveTransactionEditGestures() {
   });
 }
 
+let archiveRepairDebounce = null;
+function scheduleBackgroundMonthlyArchiveRepair(reason = 'mutation') {
+  if (archiveRepairDebounce) clearTimeout(archiveRepairDebounce);
+  archiveRepairDebounce = setTimeout(() => {
+    runBackgroundMonthlyArchiveRepair(reason);
+  }, 12000);
+}
+
 async function deleteSingleTransaction(txId) {
   if (!txId) return false;
-
-  // v154: show the same working spinner for every delete path
-  // (edit sheet button, manager delete, and legacy gesture delete).
-  showTopWorkingToast(t('deleting') || 'Deleting...');
 
   const targetId = String(txId);
   const tx = allTransactions.find(t => String(t.id || t.msgId || t.emailId || '') === targetId);
   const sheetId = String(tx?.msgId || tx?.emailId || tx?.id || targetId).trim();
   if (!sheetId) return false;
 
-  const ok = await postToBankTrackerEndpoint('deleteTransaction', { id: sheetId, msgId: sheetId });
+  // v158: optimistic delete UI. Do not keep the user waiting for the full Apps Script
+  // response; remove locally immediately and let Google Sheets sync finish in background.
+  showTopWorkingToast('Deleting...');
 
-  // v142: keep the app responsive and restore the big center "Deleted" checkmark.
-  // If Apps Script times out or does not return JSONP, the local deletion still happens;
-  // the status line keeps the Google Sheets warning visible without replacing the toast by an error.
-  if (tx) applyLocalAccountBalanceFromTransaction(tx, -1);
+  if (tx) {
+    applyLocalAccountBalanceFromTransaction(tx, -1);
+    applyLocalArchiveStatsFromTransaction(tx, -1);
+  }
   allTransactions = allTransactions.filter(t => String(t.id || t.msgId || t.emailId || '') !== targetId && String(t.msgId || t.emailId || t.id || '') !== sheetId);
-  localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
+  saveCachedTransactionsSnapshot();
   renderAll();
 
-  if (!ok) {
+  // v159: local delete is instant; do not keep the top spinner visible while
+  // Apps Script finishes balance/monthly/log updates in the background.
+  window.setTimeout(() => showDeletedToast(), 450);
+
+  postToBankTrackerEndpoint('deleteTransaction', { id: sheetId, msgId: sheetId }).then(ok => {
+    if (ok) scheduleBackgroundMonthlyArchiveRepair('delete_transaction_background_repair');
+    if (!ok) {
+      const status = document.getElementById('limits-sync-status');
+      if (status) status.textContent = 'Transakcia bola vymazaná lokálne. Google Sheets sync mešká alebo sa nepodaril - skontroluj Web App /exec a Apps Script Executions.';
+    }
+  }).catch(err => {
     const status = document.getElementById('limits-sync-status');
-    if (status) status.textContent = 'Transakcia bola vymazaná lokálne. Google Sheets sync sa nepodaril - skontroluj Web App /exec a Apps Script Executions.';
-  }
+    if (status) status.textContent = 'Transakcia bola vymazaná lokálne. Google Sheets sync zlyhal: ' + String(err && err.message ? err.message : err);
+  });
+
   return true;
 }
 
@@ -9101,6 +9155,7 @@ function getTransactionsCzkEquivalentTotal(txns) {
 
 function renderAll() {
   allTransactions = sortTransactionsNewestFirst(allTransactions);
+  rebuildLocalArchiveStatsFromTransactions();
 
   const month = getAktuálneMonth();
   const monthTxns = getCurrentMonthOutgoingTransactions();
@@ -9437,14 +9492,24 @@ function renderTransactionDailyCashflow(txns) {
   txns = (txns || []).filter(tx => !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)));
   if (!txns || !txns.length) return '';
 
+  // v160: when a single bank is selected, chart values use that bank's account currency
+  // and keep the original transaction sign. convertTransactionAmount() intentionally
+  // returns an absolute value for totals elsewhere, so the chart must restore the sign.
+  const chartCurrency = activeBank && activeBank !== 'všetky'
+    ? currencyCode(getBankBalanceCurrency(activeBank) || getBankInfo(activeBank)?.primaryCurrency || 'CZK')
+    : currencyCode(getAppCurrency());
+
   const byDay = {};
   txns.forEach(tx => {
     const key = getTxnDateKey(tx);
     if (!key) return;
     if (!byDay[key]) byDay[key] = { incoming: 0, outgoing: 0 };
-    const amount = Number(tx.amount || 0);
-    if (amount > 0) byDay[key].incoming += amount;
-    if (amount < 0) byDay[key].outgoing += Math.abs(amount);
+    const rawAmount = Number(tx?.amount || 0);
+    if (!rawAmount) return;
+    const convertedAbs = Number(convertTransactionAmount(tx, chartCurrency) || 0);
+    const signedAmount = rawAmount < 0 ? -Math.abs(convertedAbs) : Math.abs(convertedAbs);
+    if (signedAmount > 0) byDay[key].incoming += signedAmount;
+    if (signedAmount < 0) byDay[key].outgoing += Math.abs(signedAmount);
   });
 
   const days = Object.keys(byDay).sort();
@@ -9509,9 +9574,9 @@ function renderTransactionDailyCashflow(txns) {
           <text class="txn-cashflow-axis-label" x="56" y="68" text-anchor="middle">${t('spent')}</text>
         </svg>
         <div class="txn-cashflow-pie-stats">
-          <div class="txn-cashflow-pie-stat"><span>${t('incoming')}</span><strong class="amount-income">+${formatCurrencyAmount(totalIncoming, getAppCurrency())}</strong></div>
-          <div class="txn-cashflow-pie-stat"><span>${t('spent')}</span><strong class="amount-expense">-${formatCurrencyAmount(totalOutgoing, getAppCurrency())}</strong></div>
-          <div class="txn-cashflow-pie-stat"><span>${t('totalNet')}</span><strong class="${netClass}">${net >= 0 ? '+' : '-'}${formatCurrencyAmount(Math.abs(net), getAppCurrency())}</strong></div>
+          <div class="txn-cashflow-pie-stat"><span>${t('incoming')}</span><strong class="amount-income">+${formatCurrencyAmount(totalIncoming, chartCurrency)}</strong></div>
+          <div class="txn-cashflow-pie-stat"><span>${t('spent')}</span><strong class="amount-expense">-${formatCurrencyAmount(totalOutgoing, chartCurrency)}</strong></div>
+          <div class="txn-cashflow-pie-stat"><span>${t('totalNet')}</span><strong class="${netClass}">${net >= 0 ? '+' : '-'}${formatCurrencyAmount(Math.abs(net), chartCurrency)}</strong></div>
         </div>
       </div>
     </div>`;
@@ -10636,7 +10701,7 @@ function ensureLimitsHistoryForLoadedTransactions() {
 
 function loadCachedOrDemoData() {
   clearDemoTransactionsCacheIfNeeded();
-  allTransactions = [];
+  loadCachedTransactionsSnapshot();
 }
 
 function prepareUiAfterDataLoad() {
@@ -10644,6 +10709,41 @@ function prepareUiAfterDataLoad() {
   populateSimulatorLimitMonthDropdown(getAktuálneMonth());
   fillSimulatorLimitInputs(getAktuálneMonth());
   renderAll();
+}
+
+let monthlyRepairTimer = null;
+let monthlyRepairInFlight = false;
+
+async function runBackgroundMonthlyArchiveRepair(reason = 'timer') {
+  if (monthlyRepairInFlight) return false;
+  const url = getCurrentWebAppUrl();
+  if (!url || !isValidAppsScriptExecUrl(url)) return false;
+  monthlyRepairInFlight = true;
+  try {
+    const result = await jsonpEndpointRequest('recomputeMonthlyBankStats', { reason }, 90000);
+    if (result && result.ok) {
+      const match = SHEETS_URL && SHEETS_URL.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (match) {
+        await syncBankSettingsFromSheets(match[1]);
+      }
+      console.log('Background monthly archive repair OK:', result.data);
+      return true;
+    }
+    console.warn('Background monthly archive repair skipped/failed:', result && result.data);
+    return false;
+  } catch (e) {
+    console.warn('Background monthly archive repair failed:', e);
+    return false;
+  } finally {
+    monthlyRepairInFlight = false;
+  }
+}
+
+function startMonthlyArchiveRepairTimer() {
+  if (monthlyRepairTimer) clearInterval(monthlyRepairTimer);
+  monthlyRepairTimer = setInterval(() => {
+    runBackgroundMonthlyArchiveRepair('5min_background_repair');
+  }, AUTO_SYNC_INTERVAL_MS);
 }
 
 function startAutoSync() {
@@ -10656,8 +10756,10 @@ function startAutoSync() {
 
   autoSyncTimer = setInterval(() => {
     ensureDefaultConfig();
-syncData();
+    syncData();
   }, AUTO_SYNC_INTERVAL_MS);
+
+  startMonthlyArchiveRepairTimer();
 }
 
 // Keď sa vrátiš do appky po uzamknutí mobilu / prepnutí tabu,
@@ -11688,8 +11790,10 @@ function updateManagedTransactionFromButton(button) {
   showWorkingToast();
   allTransactions = sortTransactionsNewestFirst(allTransactions);
   applyLocalAccountBalanceFromTransaction(oldTxSnapshot, -1);
+  applyLocalArchiveStatsFromTransaction(oldTxSnapshot, -1);
   applyLocalAccountBalanceFromTransaction(tx, 1);
-  localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
+  applyLocalArchiveStatsFromTransaction(tx, 1);
+  saveCachedTransactionsSnapshot();
 
   postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
 
@@ -12306,7 +12410,8 @@ async function saveManualTransaction(){
   allTransactions.unshift(newTx);
   allTransactions=sortTransactionsNewestFirst(allTransactions);
   applyLocalAccountBalanceFromTransaction(newTx, 1);
-  localStorage.setItem('cached_txns',JSON.stringify(allTransactions));
+  applyLocalArchiveStatsFromTransaction(newTx, 1);
+  saveCachedTransactionsSnapshot();
   closeBottomSheets();
   renderAll();
 
@@ -12314,6 +12419,7 @@ async function saveManualTransaction(){
   // Sync to Google Sheets in the background; do not block the UI with a loading spinner.
   showSavedToast();
   postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(newTx) }).then(ok => {
+    if (ok) scheduleBackgroundMonthlyArchiveRepair('save_transaction_background_repair');
     if (!ok) {
       const status = document.getElementById('limits-sync-status');
       if (status) status.textContent = t('transactionSyncDelayed') || 'Saved locally. Google Sheets response was delayed.';
@@ -12462,6 +12568,77 @@ function getArchiveMonthlyStatKey(bankKey, monthStr, field) {
   return `bank_monthly_${field}_${bankKey}_${normalizeMonthStr(monthStr)}`;
 }
 
+
+function setArchiveMonthlyStat(bankKey, monthStr, field, value) {
+  const key = getArchiveMonthlyStatKey(bankKey, monthStr, field);
+  const amount = Math.round((Number(value || 0) || 0) * 100) / 100;
+  localStorage.setItem(key, String(amount));
+  return amount;
+}
+
+function adjustArchiveMonthlyStat(bankKey, monthStr, field, delta) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const key = getArchiveMonthlyStatKey(bankKey, month, field);
+  const current = Number(localStorage.getItem(key) || '0') || 0;
+  return setArchiveMonthlyStat(bankKey, month, field, current + (Number(delta || 0) || 0));
+}
+
+function applyLocalArchiveStatsFromTransaction(tx, multiplier = 1) {
+  if (!tx) return false;
+  if (typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)) return false;
+  const amount = Number(tx.amount || 0);
+  const mult = Number(multiplier || 1);
+  if (!isFinite(amount) || amount === 0 || !isFinite(mult) || mult === 0) return false;
+  const bankKey = getArchiveBankKeyFromTransaction(tx);
+  if (!bankKey) return false;
+  const month = normalizeMonthStr(tx.month || getAktuálneMonth());
+  const targetCurrency = getArchiveBankCurrency(bankKey);
+  const converted = Math.abs(convertTransactionAmount(tx, targetCurrency));
+  if (!isFinite(converted)) return false;
+  if (amount < 0) adjustArchiveMonthlyStat(bankKey, month, 'spending', mult * converted);
+  if (amount > 0) adjustArchiveMonthlyStat(bankKey, month, 'income', mult * converted);
+  const netDelta = amount < 0 ? -converted : converted;
+  adjustArchiveMonthlyStat(bankKey, month, 'net', mult * netDelta);
+  return true;
+}
+
+function rebuildLocalArchiveStatsFromTransactions() {
+  // Rebuild frontend monthly archive cache from the loaded transaction set.
+  // This prevents stale Bank_Archive values from overriding what the user can see
+  // in the filtered Transactions tab after add/delete/edit.
+  const prefixRe = /^bank_monthly_(spending|income|net)_.+_\d{2}\/\d{4}$/;
+  try {
+    Object.keys(localStorage).forEach(key => {
+      if (prefixRe.test(String(key || ''))) localStorage.removeItem(key);
+    });
+  } catch (e) {}
+
+  const totals = {};
+  (allTransactions || []).forEach(tx => {
+    if (!tx || !tx.month) return;
+    if (typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)) return;
+    const bankKey = getArchiveBankKeyFromTransaction(tx);
+    if (!bankKey) return;
+    const month = normalizeMonthStr(tx.month);
+    const currency = getArchiveBankCurrency(bankKey);
+    const amount = Number(tx.amount || 0);
+    if (!Number.isFinite(amount) || amount === 0) return;
+    const converted = Math.abs(convertTransactionAmount(tx, currency));
+    if (!Number.isFinite(converted)) return;
+    const key = bankKey + '|' + month;
+    if (!totals[key]) totals[key] = { bankKey, month, spending: 0, income: 0, net: 0 };
+    if (amount < 0) totals[key].spending += converted;
+    if (amount > 0) totals[key].income += converted;
+    totals[key].net += amount < 0 ? -converted : converted;
+  });
+
+  Object.values(totals).forEach(item => {
+    setArchiveMonthlyStat(item.bankKey, item.month, 'spending', item.spending);
+    setArchiveMonthlyStat(item.bankKey, item.month, 'income', item.income);
+    setArchiveMonthlyStat(item.bankKey, item.month, 'net', item.net);
+  });
+}
+
 function getArchiveMonthlyStatFromTransactions(bankKey, monthStr, field, targetCurrency) {
   const normalizedMonth = normalizeMonthStr(monthStr);
   const target = currencyCode(targetCurrency || getArchiveBankCurrency(bankKey));
@@ -12483,6 +12660,7 @@ function hasArchiveTransactionsForBank(bankKey, monthStr, field) {
   return allTransactions.some(tx => {
     if (normalizeMonthStr(tx.month) !== normalizedMonth) return false;
     if (getArchiveBankKeyFromTransaction(tx) !== bankKey) return false;
+    if (typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)) return false;
     const amount = Number(tx.amount) || 0;
     if (field === 'spending') return amount < 0;
     if (field === 'income') return amount > 0;
@@ -12491,16 +12669,26 @@ function hasArchiveTransactionsForBank(bankKey, monthStr, field) {
   });
 }
 
+function hasAnyArchiveTransactionsForBankMonth(bankKey, monthStr) {
+  const normalizedMonth = normalizeMonthStr(monthStr);
+  return allTransactions.some(tx => {
+    if (normalizeMonthStr(tx.month) !== normalizedMonth) return false;
+    if (getArchiveBankKeyFromTransaction(tx) !== bankKey) return false;
+    if (typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)) return false;
+    return Number(tx.amount || 0) !== 0;
+  });
+}
+
 function getArchiveMonthlyStat(bankKey, monthStr, field, targetCurrency) {
   const normalizedMonth = normalizeMonthStr(monthStr);
   const target = currencyCode(targetCurrency || getArchiveBankCurrency(bankKey));
 
-  // v146: ČSOB SK is an EUR account. For archive totals we must sum the actual
-  // Transactions rows in the account currency, otherwise an old cached/monthly
-  // value can override the two live transactions and show the wrong total.
-  // Example: -230 Kč card tx + -41.40 € account movement => about -50.91 €.
-  if (bankKey === 'csob_sk' && hasArchiveTransactionsForBank(bankKey, normalizedMonth, field)) {
-    return getArchiveMonthlyStatFromTransactions(bankKey, normalizedMonth, field, target || 'EUR');
+  // v162: live Transactions/Archive_Transactions are the UI source of truth.
+  // Bank_Archive is a backend cache/snapshot and can be stale after local add/delete
+  // or if the backend delta had an old bug. If we have loaded transactions for this
+  // bank+month, calculate spent/income/net directly from them in the bank currency.
+  if (hasAnyArchiveTransactionsForBankMonth(bankKey, normalizedMonth)) {
+    return getArchiveMonthlyStatFromTransactions(bankKey, normalizedMonth, field, target);
   }
 
   let total = 0;
@@ -12788,7 +12976,7 @@ function renderArchive() {
 
   const txnsAll = allTransactions.filter(t => t.month);
   const storedStatMonths = Object.keys(localStorage)
-    .map(k => String(k || '').match(/^bank_monthly_(?:spending|income|net)_[^_]+_(\d{2}\/\d{4})$/))
+    .map(k => String(k || '').match(/^bank_monthly_(?:spending|income|net)_.+_(\d{2}\/\d{4})$/))
     .filter(Boolean)
     .map(m => normalizeMonthStr(m[1]));
   const monthsInSpecs = [...new Set([...txnsAll.map(t => normalizeMonthStr(t.month)).filter(Boolean), ...storedStatMonths])]
@@ -13960,7 +14148,9 @@ function parseBankSettingsSheetData(raw) {
     const outgoingAlert = parseSheetNumber(c[7]?.v, c[7]?.f);
     const monthlySpending = parseSheetNumber(c[8]?.v, c[8]?.f);
     const monthlyIncome = parseSheetNumber(c[9]?.v, c[9]?.f);
-    const monthlyNet = parseSheetNumber(c[10]?.v, c[10]?.f);
+    // Bank_Archive no longer has a Monthly net column; column 11 is Updated.
+    // Keep a derived net value in cache only for old UI helpers.
+    const monthlyNet = Math.round((monthlyIncome - monthlySpending) * 100) / 100;
     localStorage.setItem(getArchiveMonthlyStatKey(bankId, month, 'spending'), String(monthlySpending));
     localStorage.setItem(getArchiveMonthlyStatKey(bankId, month, 'income'), String(monthlyIncome));
     localStorage.setItem(getArchiveMonthlyStatKey(bankId, month, 'net'), String(monthlyNet));
@@ -14598,8 +14788,10 @@ async function saveEditedTransaction() {
 
   allTransactions = sortTransactionsNewestFirst(allTransactions);
   applyLocalAccountBalanceFromTransaction(oldTxSnapshot, -1);
+  applyLocalArchiveStatsFromTransaction(oldTxSnapshot, -1);
   applyLocalAccountBalanceFromTransaction(tx, 1);
-  localStorage.setItem('cached_txns', JSON.stringify(allTransactions));
+  applyLocalArchiveStatsFromTransaction(tx, 1);
+  saveCachedTransactionsSnapshot();
 
   closeBottomSheets();
   renderAll();
@@ -14792,14 +14984,16 @@ window.addEventListener('DOMContentLoaded', async () => {
   migrateCurrencyStorageToSymbols();
   updateGoogleSheetsToggleUi();
 
-  // Cloud-first: Google Sheets is the only master data source.
+  // Instant startup: render the last cached Google Sheets snapshot and balances first,
+  // then refresh from Google Sheets in the background. Google Sheets remains the master after sync.
   clearCloudFirstLocalData();
-  allTransactions = [];
+  loadCachedTransactionsSnapshot();
   prepareUiAfterDataLoad();
   if (SHEETS_URL && isGoogleSheetsEnabled()) {
-    await syncData();
-    prepareUiAfterDataLoad();
-    startAutoSync();
+    syncData().then(() => {
+      prepareUiAfterDataLoad();
+      startAutoSync();
+    });
   }
 });
 
@@ -15143,24 +15337,44 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (foregroundHandlerAttached || !firebaseFns || !messaging) return;
     foregroundHandlerAttached = true;
     try {
-      firebaseFns.onMessage(messaging, (payload) => {
-        // Show server push notifications even while the PWA is open.
-        // FCM web messages delivered to the foreground are not automatically shown
-        // by the service worker, so we explicitly display them here.
+      firebaseFns.onMessage(messaging, async (payload) => {
+        // v160: show server push notifications even while the PWA is open.
+        // Some Android/PWA sessions receive FCM in the page foreground and the
+        // service worker will not auto-display it, so use a robust dual fallback.
         console.log('Foreground push received, showing notification:', payload);
-        const title = (payload.notification && payload.notification.title) || (payload.data && payload.data.title) || "Bank Tracker";
-        const body = (payload.notification && payload.notification.body) || (payload.data && payload.data.body) || "Máš novú notifikáciu.";
+        const data = payload && payload.data ? payload.data : {};
+        const notif = payload && payload.notification ? payload.notification : {};
+        const title = notif.title || data.title || "Bank Tracker";
+        const body = notif.body || data.body || data.message || "Máš novú notifikáciu.";
+        const icon = notif.icon || data.icon || "./icon-192.png";
+        const tag = data.tag || data.msgId || ("bank-tracker-push-" + Date.now());
+        const options = {
+          body: body,
+          icon: icon,
+          badge: icon,
+          tag: String(tag),
+          renotify: true,
+          data: data
+        };
 
-        if (typeof Notification !== "undefined" && Notification.permission === "granted" && navigator.serviceWorker) {
-          navigator.serviceWorker.getRegistration("./").then((registration) => {
-            if (registration) {
-              registration.showNotification(title, {
-                body: body,
-                tag: "bank-tracker-push-" + Date.now(),
-                renotify: true
-              });
+        if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+
+        try {
+          if (navigator.serviceWorker) {
+            const registration = (await navigator.serviceWorker.getRegistration("./")) || (await navigator.serviceWorker.ready);
+            if (registration && registration.showNotification) {
+              await registration.showNotification(title, options);
+              return;
             }
-          }).catch((err) => console.warn("Foreground notification failed:", err));
+          }
+        } catch (err) {
+          console.warn("Foreground SW notification failed, falling back to Notification():", err);
+        }
+
+        try {
+          new Notification(title, options);
+        } catch (err) {
+          console.warn("Foreground Notification() fallback failed:", err);
         }
       });
     } catch (err) {
@@ -15169,9 +15383,27 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     }
   }
 
+  async function autoInitPushIfAlreadyEnabled() {
+    try {
+      const token = localStorage.getItem("fcm_token");
+      const pushEnabled = localStorage.getItem("push_enabled") === "true";
+      const permission = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
+      if (!token || !pushEnabled || permission !== "granted" || !window.isSecureContext) return;
+
+      // v159: attach foreground onMessage handler after normal app startup.
+      // Without this, pushes received while the PWA is open can be accepted by FCM
+      // but never shown as a system notification.
+      await loadFirebasePushOnDemand();
+      try { await getServiceWorkerRegistration(); } catch (swErr) { console.warn("Auto push SW registration failed:", swErr); }
+    } catch (err) {
+      console.warn("Auto push init skipped/failed:", err);
+    }
+  }
+
   window.addEventListener("DOMContentLoaded", function () {
-    // Do not load Firebase here. Only update UI.
+    // Keep startup light: update UI immediately, initialize push shortly after if already enabled.
     try { updatePushStatus(); } catch (e) { console.warn("updatePushStatus failed:", e); }
+    window.setTimeout(autoInitPushIfAlreadyEnabled, 1200);
   });
 })();
 </script>
