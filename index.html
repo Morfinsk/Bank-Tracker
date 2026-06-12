@@ -7853,23 +7853,39 @@ async function syncData() {
   try {
     const match = SHEETS_URL.match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (!match) throw new Error('Neplatné URL');
-    await syncBanksFromSheets(match[1]);
-    await syncFxRatesFromSheets(match[1]);
-    await syncBankSettingsFromSheets(match[1]);
-    const activeTxns = await fetchSheetTransactions(match[1], 'Transactions');
-    const archivedTxns = await syncArchivedTransactionsFromSheets(match[1]);
+    const spreadsheetId = match[1];
+    const bankSyncPromise = syncBanksFromSheets(spreadsheetId);
+    const fxSyncPromise = syncFxRatesFromSheets(spreadsheetId);
+    const bankSettingsPromise = syncBankSettingsFromSheets(spreadsheetId);
+    const activeTxnsPromise = fetchSheetTransactions(spreadsheetId, 'Transactions');
+    const archivedTxnsPromise = syncArchivedTransactionsFromSheets(spreadsheetId);
+
+    // Render fresh current transactions as soon as possible. Bank_Settings, FX,
+    // Archive_Transactions and Bank_Archive can be slower, so they should not block
+    // the first useful screen. Cached bank/FX values are good enough until refresh settles.
+    const activeTxns = await activeTxnsPromise;
+    const cachedArchivedTxns = (allTransactions || []).filter(tx => tx && tx.archived);
+    allTransactions = sortTransactionsNewestFirst(dedupeTransactionsForCloud([...activeTxns, ...cachedArchivedTxns]));
+    saveCachedTransactionsSnapshot();
+    renderAll();
+    applyLanguage();
+    if (loadStatus) loadStatus.textContent = 'Aktuálne transakcie sa načítali. Archív sa doťahuje na pozadí...';
+
+    const archivedTxns = await archivedTxnsPromise;
     allTransactions = sortTransactionsNewestFirst(dedupeTransactionsForCloud([...activeTxns, ...archivedTxns]));
     saveCachedTransactionsSnapshot();
+    await Promise.allSettled([bankSyncPromise, fxSyncPromise, bankSettingsPromise]);
     if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa načítali správne.';
   } catch(e) {
     console.error('Google Sheets transaction sync failed:', e);
     if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa nepodarilo načítať. Zobrazuje sa posledná uložená cache.';
     if (!allTransactions.length) loadCachedTransactionsSnapshot();
+  } finally {
+    if (btn) btn.classList.remove('spinning');
+    isSyncing = false;
+    renderAll();
+    applyLanguage();
   }
-  if (btn) btn.classList.remove('spinning');
-  isSyncing = false;
-  renderAll();
-  applyLanguage();
 }
 
 function loadDemoData() {
