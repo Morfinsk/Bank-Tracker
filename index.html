@@ -3103,16 +3103,25 @@
     min-height: 100dvh;
   }
 
+  html[data-theme="dark"],
+  html:not([data-theme="light"]) {
+    --system-bar-color: #08111f;
+  }
+
+  html[data-theme="light"] {
+    --system-bar-color: #f8fafc;
+  }
+
   .android-system-bar-bg {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
-    height: max(48px, env(safe-area-inset-bottom));
-    background:
-      linear-gradient(180deg, rgba(8,17,31,.94), #08111f);
+    height: max(72px, calc(56px + env(safe-area-inset-bottom)));
+    background: var(--system-bar-color, #08111f) !important;
     pointer-events: none;
-    z-index: 1;
+    z-index: 80;
+    transform: translateZ(0);
   }
 
   .bottom-nav {
@@ -6816,6 +6825,7 @@ html[data-theme="light"] body::before {
 </div>
 <div id="back-exit-toast" class="back-exit-toast" data-i18n="backAgainToExit">Press Back again to exit</div>
 <div id="large-status-toast" class="large-status-toast" aria-live="polite"></div>
+<div class="android-system-bar-bg" aria-hidden="true"></div>
 <nav class="bottom-nav">
   <div class="nav-item active" id="nav-overview" onclick="showPage('overview')">
     <span class="nav-icon nav-icon-overview" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="11" width="2" height="9" rx="1" fill="currentColor"/><rect x="10.5" y="4" width="2" height="16" rx="1" fill="currentColor"/><rect x="17" y="8" width="2" height="12" rx="1" fill="currentColor"/></svg></span>
@@ -14937,8 +14947,11 @@ function updateThemeMeta(theme) {
   }
   colorSchemeMeta.setAttribute('content', config.colorScheme);
 
+  document.documentElement.style.colorScheme = config.colorScheme;
+  document.body.style.colorScheme = config.colorScheme;
   document.documentElement.style.backgroundColor = config.backgroundColor;
   document.body.style.backgroundColor = config.backgroundColor;
+  document.documentElement.style.setProperty('--system-bar-color', config.backgroundColor);
 }
 
 function applyAppTheme(theme = getAppTheme()) {
