@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<!-- Bank Tracker index_v164: Codex base + Android PWA system bar theme fix -->
+<!-- Bank Tracker index_v165: dark-only mobile shell test -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="theme-color" content="#020617">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#020617">
-<meta name="msapplication-navbutton-color" content="#020617">
-<meta name="color-scheme" content="dark light">
-<meta name="supported-color-schemes" content="dark light">
+<meta name="theme-color" content="#0d1117">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0d1117">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1117">
+<meta name="msapplication-navbutton-color" content="#0d1117">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -71,43 +71,21 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=172">
+<link rel="manifest" href="./manifest.json?v=173">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
 <script>
 (function(){
-  function setMeta(name, value) {
-    var metas = Array.prototype.slice.call(document.querySelectorAll('meta[name="' + name + '"]'));
-    if (!metas.length) {
-      var meta = document.createElement('meta');
-      meta.setAttribute('name', name);
-      document.head.appendChild(meta);
-      metas = [meta];
-    }
-    metas.forEach(function(meta){ meta.setAttribute('content', value); });
-  }
   try {
-    var defaultVersion = 'v104';
-    if (localStorage.getItem('app_theme_default_version') !== defaultVersion) {
-      localStorage.setItem('app_theme', 'dark');
-      localStorage.setItem('app_theme_default_version', defaultVersion);
-    }
-    var theme = localStorage.getItem('app_theme') === 'light' ? 'light' : 'dark';
-    var shellColor = theme === 'light' ? '#ffffff' : '#020617';
-    var scheme = theme === 'light' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', theme);
-    document.documentElement.style.backgroundColor = shellColor;
-    document.documentElement.style.colorScheme = scheme;
-    document.documentElement.style.setProperty('--system-bar-color', shellColor);
-    document.documentElement.style.setProperty('--app-shell-bg', shellColor);
-    setMeta('theme-color', shellColor);
-    setMeta('msapplication-navbutton-color', shellColor);
-    setMeta('color-scheme', scheme);
+    // v165 dark-only shell: keep Android/iOS/Chrome system bars stable.
+    localStorage.setItem('app_theme', 'dark');
+    localStorage.setItem('app_theme_default_version', 'v165_dark_only');
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.style.colorScheme = 'dark';
+    document.documentElement.style.backgroundColor = '#08111f';
   } catch(e) {
     document.documentElement.setAttribute('data-theme', 'dark');
-    document.documentElement.style.backgroundColor = '#020617';
-    document.documentElement.style.colorScheme = 'dark';
   }
 })();
 </script>
@@ -6251,74 +6229,6 @@ html[data-theme="light"] body::before {
   background: #ffffff !important;
 }
 
-/* v164 Android/PWA system bar hardening: full-width shell behind status/nav bars */
-:root {
-  --system-bar-color: #020617;
-  --app-shell-bg: #020617;
-}
-
-html[data-theme="dark"],
-html:not([data-theme="light"]) {
-  --system-bar-color: #020617;
-  --app-shell-bg: #020617;
-  color-scheme: dark !important;
-  background: #020617 !important;
-  background-color: #020617 !important;
-}
-
-html[data-theme="light"] {
-  --system-bar-color: #ffffff;
-  --app-shell-bg: #ffffff;
-  color-scheme: light !important;
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-}
-
-html::before {
-  content: "";
-  position: fixed;
-  z-index: 2147483000;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: max(30px, env(safe-area-inset-top));
-  background: var(--system-bar-color, #020617) !important;
-  pointer-events: none;
-  transform: translateZ(0);
-}
-
-html::after {
-  content: "";
-  position: fixed;
-  z-index: 79;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: max(46px, calc(34px + env(safe-area-inset-bottom)));
-  background: var(--system-bar-color, #020617) !important;
-  pointer-events: none;
-  transform: translateZ(0);
-}
-
-body::before,
-.android-system-bar-bg {
-  background: var(--system-bar-color, #020617) !important;
-}
-
-.android-system-bar-bg {
-  position: fixed !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  height: max(86px, calc(62px + env(safe-area-inset-bottom))) !important;
-  z-index: 79 !important;
-  pointer-events: none !important;
-}
-
-.bottom-nav {
-  z-index: 120 !important;
-}
-
 
   /* v143 archive readability + save/delete center toast polish */
   .archive-bank-spent-header,
@@ -6395,6 +6305,66 @@ body::before,
     color: #64748b !important;
   }
 </style>
+
+<style>
+  /* v165 dark-only mobile shell override */
+  :root,
+  html,
+  html[data-theme="dark"],
+  html[data-theme="light"] {
+    color-scheme: dark !important;
+    supported-color-schemes: dark !important;
+    --system-bar-color: #08111f !important;
+    --bg: #0b1020;
+    --surface: #101827;
+    --surface2: #172238;
+    --border: rgba(148, 163, 184, 0.18);
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --danger: #fb7185;
+    --ok: #4ade80;
+    --accent: #58a6ff;
+    --warn: #facc15;
+    background: #08111f !important;
+    background-color: #08111f !important;
+  }
+  html body,
+  html[data-theme="light"] body,
+  html[data-theme="dark"] body {
+    color: var(--text) !important;
+    background:
+      radial-gradient(circle at top left, rgba(88,166,255,.18), transparent 42%),
+      linear-gradient(180deg, #08111f 0%, #07101f 45%, #050b16 100%) !important;
+    background-color: #08111f !important;
+  }
+  html body::before,
+  html[data-theme="light"] body::before,
+  html[data-theme="dark"] body::before {
+    background: #08111f !important;
+  }
+  html::after,
+  html[data-theme="light"]::after,
+  html[data-theme="dark"]::after {
+    background: #08111f !important;
+  }
+  .android-system-bar-bg,
+  html[data-theme="light"] .android-system-bar-bg,
+  html[data-theme="dark"] .android-system-bar-bg {
+    background: #08111f !important;
+  }
+  .bottom-nav,
+  html[data-theme="light"] .bottom-nav,
+  html[data-theme="dark"] .bottom-nav {
+    background:
+      radial-gradient(circle at top, rgba(88,166,255,.14), transparent 55%),
+      linear-gradient(180deg, rgba(12,23,42,.99), rgba(5,12,24,.99)) !important;
+    border-top-color: rgba(88,166,255,.20) !important;
+  }
+  .dark-only-theme-card {
+    border-color: rgba(88,166,255,.22) !important;
+  }
+</style>
+
 </head>
 <body>
 
@@ -6577,20 +6547,6 @@ body::before,
         <option value="£">£ — British pound</option>
         <option value="zł">zł — Polish zloty</option>
       </select>
-    </div>
-  </div>
-
-  <div class="section-title" data-i18n="appearance">Appearance</div>
-  <div class="theme-mode-card">
-    <div class="theme-mode-top">
-      <div>
-        <div class="theme-mode-title" data-i18n="themeMode">Theme mode</div>
-        <div class="theme-mode-sub" data-i18n="themeModeHint">Choose the app theme. It also updates the browser/PWA system bars where supported.</div>
-      </div>
-    </div>
-    <div class="theme-mode-toggle">
-      <button id="theme-dark-btn" onclick="setAppTheme('dark')"><span class="theme-icon">☾</span><span data-i18n="darkTheme">Dark</span></button>
-      <button id="theme-light-btn" onclick="setAppTheme('light')"><span class="theme-icon">☀</span><span data-i18n="lightTheme">White</span></button>
     </div>
   </div>
 
@@ -13977,7 +13933,7 @@ function applyLanguage() {
   updateAppCurrencySelect();
   if (typeof updateGoogleSheetsToggleUi === 'function') updateGoogleSheetsToggleUi();
 
-  if (typeof applyAppTheme === 'function') applyAppTheme(getAppTheme());
+  if (typeof applyAppTheme === 'function') applyAppTheme();
 
   if (typeof initCurrencyDropdowns === 'function') initCurrencyDropdowns();
 }
@@ -15002,27 +14958,21 @@ function initPageSwipeNavigation() {
 }
 
 
-// ── APP LIGHT / DARK THEME SWITCH ──────────────────────────
+// ── APP DARK-ONLY THEME SHELL ──────────────────────────
 const APP_THEMES = {
   dark: {
     themeColor: '#08111f',
     backgroundColor: '#08111f',
     colorScheme: 'dark'
-  },
-  light: {
-    themeColor: '#f8fafc',
-    backgroundColor: '#f8fafc',
-    colorScheme: 'light'
   }
 };
 
 function getAppTheme() {
-  const saved = localStorage.getItem('app_theme');
-  return saved === 'light' ? 'light' : 'dark';
+  return 'dark';
 }
 
 function updateThemeMeta(theme) {
-  const config = APP_THEMES[theme] || APP_THEMES.dark;
+  const config = APP_THEMES.dark;
 
   let metas = Array.from(document.querySelectorAll('meta[name="theme-color"]'));
   if (!metas.length) {
@@ -15034,6 +14984,7 @@ function updateThemeMeta(theme) {
 
   metas.forEach(meta => {
     meta.setAttribute('content', config.themeColor);
+    meta.removeAttribute('media');
   });
 
   let navMeta = document.querySelector('meta[name="msapplication-navbutton-color"]');
@@ -15050,7 +15001,7 @@ function updateThemeMeta(theme) {
     colorSchemeMeta.setAttribute('name', 'color-scheme');
     document.head.appendChild(colorSchemeMeta);
   }
-  colorSchemeMeta.setAttribute('content', config.colorScheme);
+  colorSchemeMeta.setAttribute('content', 'dark');
 
   let supportedMeta = document.querySelector('meta[name="supported-color-schemes"]');
   if (!supportedMeta) {
@@ -15058,43 +15009,32 @@ function updateThemeMeta(theme) {
     supportedMeta.setAttribute('name', 'supported-color-schemes');
     document.head.appendChild(supportedMeta);
   }
-  supportedMeta.setAttribute('content', config.colorScheme);
+  supportedMeta.setAttribute('content', 'dark');
 
-  const appleStatus = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-  if (appleStatus) {
-    appleStatus.setAttribute('content', theme === 'light' ? 'default' : 'black-translucent');
-  }
-
-  document.documentElement.style.colorScheme = config.colorScheme;
-  document.body.style.colorScheme = config.colorScheme;
+  document.documentElement.setAttribute('data-theme', 'dark');
+  document.documentElement.style.colorScheme = 'dark';
+  document.body.style.colorScheme = 'dark';
   document.documentElement.style.backgroundColor = config.backgroundColor;
   document.body.style.backgroundColor = config.backgroundColor;
   document.documentElement.style.setProperty('--system-bar-color', config.backgroundColor);
-  document.documentElement.style.setProperty('--app-shell-bg', config.backgroundColor);
+  try { localStorage.setItem('app_theme', 'dark'); } catch (_) {}
 }
 
-function applyAppTheme(theme = getAppTheme()) {
-  const normalized = theme === 'light' ? 'light' : 'dark';
-  localStorage.setItem('app_theme', normalized);
-  document.documentElement.setAttribute('data-theme', normalized);
-  updateThemeMeta(normalized);
-
-  const darkBtn = document.getElementById('theme-dark-btn');
-  const lightBtn = document.getElementById('theme-light-btn');
-  if (darkBtn) darkBtn.classList.toggle('active', normalized === 'dark');
-  if (lightBtn) lightBtn.classList.toggle('active', normalized === 'light');
+function applyAppTheme() {
+  updateThemeMeta('dark');
 }
 
-function setAppTheme(theme) {
-  localStorage.setItem('app_theme_user_selected', 'true');
-  applyAppTheme(theme);
+function setAppTheme() {
+  // Dark-only test build: ignore light requests to keep system bars stable.
+  try { localStorage.setItem('app_theme_user_selected', 'true'); } catch (_) {}
+  applyAppTheme();
   renderAll();
   applyLanguage();
 }
 
 // Keep system bars synced after Chrome/PWA focus changes.
 (function keepThemeSystemBarsSynced() {
-  const repaint = () => applyAppTheme(getAppTheme());
+  const repaint = () => applyAppTheme();
 
   repaint();
   ['pageshow','focus','blur','resize','orientationchange','visibilitychange','touchend','pointerup','click'].forEach(eventName => {
@@ -15110,7 +15050,7 @@ function setAppTheme(theme) {
 
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
-  applyAppTheme(getAppTheme());
+  applyAppTheme();
   clearDemoTransactionsCacheIfNeeded();
   applyLanguage();
   migrateCurrencyStorageToSymbols();
