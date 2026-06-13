@@ -69,7 +69,7 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=175">
+<link rel="manifest" href="./manifest.json?v=176">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -15679,6 +15679,147 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     // Keep startup light: update UI immediately, initialize push shortly after if already enabled.
     try { updatePushStatus(); } catch (e) { console.warn("updatePushStatus failed:", e); }
     window.setTimeout(autoInitPushIfAlreadyEnabled, 1200);
+  });
+})();
+</script>
+
+
+
+<style id="rb-style-dark-grey-shell-v169">
+  /* v169 RB-style dark grey shell test: solid surfaces, no transparent bottom-bar guessing */
+  :root,
+  html,
+  html[data-theme="dark"],
+  html:not([data-theme="light"]) {
+    color-scheme: dark !important;
+    supported-color-schemes: dark !important;
+    --system-bar-color: #4f545c !important;
+    --rb-shell: #22252a !important;
+    --rb-shell-top: #4f545c !important;
+    --rb-bottom: #51565e !important;
+    --rb-card: #30343a !important;
+    --bg: #22252a !important;
+  }
+
+  html,
+  body {
+    background: #22252a !important;
+    background-color: #22252a !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+  }
+
+  body {
+    background: linear-gradient(180deg, #22252a 0%, #202329 62%, #22252a 100%) !important;
+  }
+
+  body::before {
+    background: #4f545c !important;
+  }
+
+  html::before {
+    content: "";
+    position: fixed;
+    z-index: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: max(92px, calc(80px + env(safe-area-inset-top)));
+    background: #4f545c !important;
+    pointer-events: none;
+  }
+
+  html::after,
+  body::after,
+  .android-system-bar-bg {
+    content: "" !important;
+    position: fixed !important;
+    z-index: 70 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: max(96px, calc(78px + env(safe-area-inset-bottom))) !important;
+    background: #51565e !important;
+    background-color: #51565e !important;
+    pointer-events: none !important;
+    transform: translateZ(0) !important;
+  }
+
+  .bottom-nav {
+    background: #51565e !important;
+    background-color: #51565e !important;
+    border-top: 1px solid rgba(255,255,255,.12) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    color: #ffffff !important;
+    z-index: 130 !important;
+  }
+
+  .nav-item {
+    color: rgba(255,255,255,.76) !important;
+  }
+
+  .nav-item.active {
+    color: #ffffff !important;
+    background: rgba(255,255,255,.10) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.12) !important;
+  }
+
+  .nav-item.active::before {
+    background: #ffffff !important;
+    box-shadow: 0 0 12px rgba(255,255,255,.55) !important;
+  }
+
+  .header {
+    background: transparent !important;
+  }
+</style>
+
+<script id="rb-style-dark-grey-shell-system-bars-v169">
+(function(){
+  var TOP = '#4f545c';
+  var BOTTOM = '#51565e';
+  var BODY = '#22252a';
+
+  function ensureMeta(name, value) {
+    var nodes = document.querySelectorAll('meta[name="' + name + '"]');
+    for (var i = 1; i < nodes.length; i++) nodes[i].parentNode && nodes[i].parentNode.removeChild(nodes[i]);
+    var meta = nodes[0] || document.createElement('meta');
+    meta.setAttribute('name', name);
+    meta.setAttribute('content', value);
+    if (!meta.parentNode) document.head.appendChild(meta);
+    return meta;
+  }
+
+  function syncRbStyleBars() {
+    try {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.style.colorScheme = 'dark';
+      document.documentElement.style.backgroundColor = BODY;
+      document.body && (document.body.style.backgroundColor = BODY);
+      ensureMeta('theme-color', TOP);
+      ensureMeta('msapplication-navbutton-color', TOP);
+      ensureMeta('color-scheme', 'dark');
+      ensureMeta('supported-color-schemes', 'dark');
+      var shell = document.querySelector('.android-system-bar-bg');
+      if (!shell) {
+        shell = document.createElement('div');
+        shell.className = 'android-system-bar-bg';
+        document.body && document.body.appendChild(shell);
+      }
+      shell.style.backgroundColor = BOTTOM;
+      shell.style.background = BOTTOM;
+    } catch(e) {}
+  }
+
+  syncRbStyleBars();
+  ['DOMContentLoaded','pageshow','visibilitychange','focus','resize','orientationchange'].forEach(function(evt){
+    window.addEventListener(evt, function(){
+      syncRbStyleBars();
+      setTimeout(syncRbStyleBars, 80);
+      setTimeout(syncRbStyleBars, 450);
+    }, { passive: true });
   });
 })();
 </script>
