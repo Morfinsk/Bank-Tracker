@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<!-- Bank Tracker index_v147: v146 + no settlement label + archive CZK equivalents -->
+<!-- Bank Tracker index_v164: Codex base + Android PWA system bar theme fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="theme-color" content="#0d1117">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0d1117">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1117">
-<meta name="msapplication-navbutton-color" content="#0d1117">
-<meta name="color-scheme" content="dark">
-<meta name="supported-color-schemes" content="dark">
+<meta name="theme-color" content="#020617">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#020617">
+<meta name="msapplication-navbutton-color" content="#020617">
+<meta name="color-scheme" content="dark light">
+<meta name="supported-color-schemes" content="dark light">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -71,12 +71,22 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=171">
+<link rel="manifest" href="./manifest.json?v=172">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
 <script>
 (function(){
+  function setMeta(name, value) {
+    var metas = Array.prototype.slice.call(document.querySelectorAll('meta[name="' + name + '"]'));
+    if (!metas.length) {
+      var meta = document.createElement('meta');
+      meta.setAttribute('name', name);
+      document.head.appendChild(meta);
+      metas = [meta];
+    }
+    metas.forEach(function(meta){ meta.setAttribute('content', value); });
+  }
   try {
     var defaultVersion = 'v104';
     if (localStorage.getItem('app_theme_default_version') !== defaultVersion) {
@@ -84,9 +94,20 @@
       localStorage.setItem('app_theme_default_version', defaultVersion);
     }
     var theme = localStorage.getItem('app_theme') === 'light' ? 'light' : 'dark';
+    var shellColor = theme === 'light' ? '#ffffff' : '#020617';
+    var scheme = theme === 'light' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.style.backgroundColor = shellColor;
+    document.documentElement.style.colorScheme = scheme;
+    document.documentElement.style.setProperty('--system-bar-color', shellColor);
+    document.documentElement.style.setProperty('--app-shell-bg', shellColor);
+    setMeta('theme-color', shellColor);
+    setMeta('msapplication-navbutton-color', shellColor);
+    setMeta('color-scheme', scheme);
   } catch(e) {
     document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.style.backgroundColor = '#020617';
+    document.documentElement.style.colorScheme = 'dark';
   }
 })();
 </script>
@@ -6228,6 +6249,74 @@ html[data-theme="dark"] body::before {
 
 html[data-theme="light"] body::before {
   background: #ffffff !important;
+}
+
+/* v164 Android/PWA system bar hardening: full-width shell behind status/nav bars */
+:root {
+  --system-bar-color: #020617;
+  --app-shell-bg: #020617;
+}
+
+html[data-theme="dark"],
+html:not([data-theme="light"]) {
+  --system-bar-color: #020617;
+  --app-shell-bg: #020617;
+  color-scheme: dark !important;
+  background: #020617 !important;
+  background-color: #020617 !important;
+}
+
+html[data-theme="light"] {
+  --system-bar-color: #ffffff;
+  --app-shell-bg: #ffffff;
+  color-scheme: light !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+html::before {
+  content: "";
+  position: fixed;
+  z-index: 2147483000;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: max(30px, env(safe-area-inset-top));
+  background: var(--system-bar-color, #020617) !important;
+  pointer-events: none;
+  transform: translateZ(0);
+}
+
+html::after {
+  content: "";
+  position: fixed;
+  z-index: 79;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: max(46px, calc(34px + env(safe-area-inset-bottom)));
+  background: var(--system-bar-color, #020617) !important;
+  pointer-events: none;
+  transform: translateZ(0);
+}
+
+body::before,
+.android-system-bar-bg {
+  background: var(--system-bar-color, #020617) !important;
+}
+
+.android-system-bar-bg {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: max(86px, calc(62px + env(safe-area-inset-bottom))) !important;
+  z-index: 79 !important;
+  pointer-events: none !important;
+}
+
+.bottom-nav {
+  z-index: 120 !important;
 }
 
 
@@ -14963,11 +15052,25 @@ function updateThemeMeta(theme) {
   }
   colorSchemeMeta.setAttribute('content', config.colorScheme);
 
+  let supportedMeta = document.querySelector('meta[name="supported-color-schemes"]');
+  if (!supportedMeta) {
+    supportedMeta = document.createElement('meta');
+    supportedMeta.setAttribute('name', 'supported-color-schemes');
+    document.head.appendChild(supportedMeta);
+  }
+  supportedMeta.setAttribute('content', config.colorScheme);
+
+  const appleStatus = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+  if (appleStatus) {
+    appleStatus.setAttribute('content', theme === 'light' ? 'default' : 'black-translucent');
+  }
+
   document.documentElement.style.colorScheme = config.colorScheme;
   document.body.style.colorScheme = config.colorScheme;
   document.documentElement.style.backgroundColor = config.backgroundColor;
   document.body.style.backgroundColor = config.backgroundColor;
   document.documentElement.style.setProperty('--system-bar-color', config.backgroundColor);
+  document.documentElement.style.setProperty('--app-shell-bg', config.backgroundColor);
 }
 
 function applyAppTheme(theme = getAppTheme()) {
