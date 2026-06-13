@@ -3,7 +3,7 @@
   "short_name": "BankTracker",
   "description": "Track bank card usage, budgets and transactions",
   "id": "/Bank-Tracker/",
-  "start_url": "/Bank-Tracker/?v=176",
+  "start_url": "/Bank-Tracker/?v=172",
   "scope": "/Bank-Tracker/",
   "display": "standalone",
   "background_color": "#000000",
