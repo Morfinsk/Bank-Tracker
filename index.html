@@ -69,7 +69,7 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=178">
+<link rel="manifest" href="./manifest.json?v=179">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -15179,6 +15179,8 @@ function applyAppTheme(theme = getAppTheme()) {
   if (lightBtn) lightBtn.classList.toggle('active', normalized === 'light');
 }
 
+let systemBarRepaintBatch = 0;
+
 function forceSystemBarRepaint(theme = getAppTheme()) {
   const normalized = theme === 'light' ? 'light' : 'dark';
   const config = APP_THEMES[normalized] || APP_THEMES.dark;
@@ -15205,9 +15207,25 @@ function forceSystemBarRepaint(theme = getAppTheme()) {
   });
 }
 
+function scheduleSystemBarRepaint(theme = getAppTheme()) {
+  const normalized = theme === 'light' ? 'light' : 'dark';
+  const batch = ++systemBarRepaintBatch;
+  const repaint = () => {
+    if (batch !== systemBarRepaintBatch) return;
+    applyAppTheme(normalized);
+    forceSystemBarRepaint(normalized);
+  };
+
+  repaint();
+  [70, 160, 320, 650, 1000].forEach(delay => {
+    window.setTimeout(repaint, delay);
+  });
+}
+
 function setAppTheme(theme) {
   localStorage.setItem('app_theme_user_selected', 'true');
   applyAppTheme(theme);
+  scheduleSystemBarRepaint(theme);
   renderAll();
   applyLanguage();
 }
@@ -15217,17 +15235,7 @@ function setAppTheme(theme) {
   const repaint = () => applyAppTheme(getAppTheme());
   const repaintHard = () => {
     repaint();
-    forceSystemBarRepaint(getAppTheme());
-  };
-  let hardRepaintBatch = 0;
-  const repaintHardAfterViewportSettles = () => {
-    const batch = ++hardRepaintBatch;
-    repaintHard();
-    [80, 180, 360, 700, 1100].forEach(delay => {
-      window.setTimeout(() => {
-        if (batch === hardRepaintBatch) repaintHard();
-      }, delay);
-    });
+    scheduleSystemBarRepaint(getAppTheme());
   };
 
   repaintHard();
@@ -15239,17 +15247,17 @@ function setAppTheme(theme) {
     window.addEventListener(eventName, repaintHard, { passive: true });
   });
   ['resize','orientationchange'].forEach(eventName => {
-    window.addEventListener(eventName, repaintHardAfterViewportSettles, { passive: true });
+    window.addEventListener(eventName, repaintHard, { passive: true });
   });
   if (window.screen && screen.orientation && screen.orientation.addEventListener) {
-    screen.orientation.addEventListener('change', repaintHardAfterViewportSettles, { passive: true });
+    screen.orientation.addEventListener('change', repaintHard, { passive: true });
   }
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) repaintHardAfterViewportSettles();
+    if (!document.hidden) repaintHard();
   }, { passive: true });
 
   if (window.visualViewport) {
-    visualViewport.addEventListener('resize', repaintHardAfterViewportSettles, { passive: true });
+    visualViewport.addEventListener('resize', repaintHard, { passive: true });
     visualViewport.addEventListener('scroll', repaint, { passive: true });
   }
 })();
