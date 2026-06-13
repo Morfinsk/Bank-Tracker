@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<!-- Bank Tracker index_v165: dark-only mobile shell test -->
+<!-- Bank Tracker index_v164: Codex base + Android PWA system bar theme fix -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="theme-color" content="#000000">
-<meta name="msapplication-navbutton-color" content="#000000">
-<meta name="color-scheme" content="dark">
-<meta name="supported-color-schemes" content="dark">
+<meta name="theme-color" content="#020617">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#020617">
+<meta name="msapplication-navbutton-color" content="#020617">
+<meta name="color-scheme" content="dark light">
+<meta name="supported-color-schemes" content="dark light">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -69,21 +71,43 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=176">
+<link rel="manifest" href="./manifest.json?v=172">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
 <script>
 (function(){
+  function setMeta(name, value) {
+    var metas = Array.prototype.slice.call(document.querySelectorAll('meta[name="' + name + '"]'));
+    if (!metas.length) {
+      var meta = document.createElement('meta');
+      meta.setAttribute('name', name);
+      document.head.appendChild(meta);
+      metas = [meta];
+    }
+    metas.forEach(function(meta){ meta.setAttribute('content', value); });
+  }
   try {
-    // v165 dark-only shell: keep Android/iOS/Chrome system bars stable.
-    localStorage.setItem('app_theme', 'dark');
-    localStorage.setItem('app_theme_default_version', 'v167_dark_only_aggressive_system_bar_resync');
-    document.documentElement.setAttribute('data-theme', 'dark');
-    document.documentElement.style.colorScheme = 'dark';
-    document.documentElement.style.backgroundColor = '#08111f';
+    var defaultVersion = 'v104';
+    if (localStorage.getItem('app_theme_default_version') !== defaultVersion) {
+      localStorage.setItem('app_theme', 'dark');
+      localStorage.setItem('app_theme_default_version', defaultVersion);
+    }
+    var theme = localStorage.getItem('app_theme') === 'light' ? 'light' : 'dark';
+    var shellColor = theme === 'light' ? '#ffffff' : '#020617';
+    var scheme = theme === 'light' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.style.backgroundColor = shellColor;
+    document.documentElement.style.colorScheme = scheme;
+    document.documentElement.style.setProperty('--system-bar-color', shellColor);
+    document.documentElement.style.setProperty('--app-shell-bg', shellColor);
+    setMeta('theme-color', shellColor);
+    setMeta('msapplication-navbutton-color', shellColor);
+    setMeta('color-scheme', scheme);
   } catch(e) {
     document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.style.backgroundColor = '#020617';
+    document.documentElement.style.colorScheme = 'dark';
   }
 })();
 </script>
@@ -6227,6 +6251,74 @@ html[data-theme="light"] body::before {
   background: #ffffff !important;
 }
 
+/* v164 Android/PWA system bar hardening: full-width shell behind status/nav bars */
+:root {
+  --system-bar-color: #020617;
+  --app-shell-bg: #020617;
+}
+
+html[data-theme="dark"],
+html:not([data-theme="light"]) {
+  --system-bar-color: #020617;
+  --app-shell-bg: #020617;
+  color-scheme: dark !important;
+  background: #020617 !important;
+  background-color: #020617 !important;
+}
+
+html[data-theme="light"] {
+  --system-bar-color: #ffffff;
+  --app-shell-bg: #ffffff;
+  color-scheme: light !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+html::before {
+  content: "";
+  position: fixed;
+  z-index: 2147483000;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: max(30px, env(safe-area-inset-top));
+  background: var(--system-bar-color, #020617) !important;
+  pointer-events: none;
+  transform: translateZ(0);
+}
+
+html::after {
+  content: "";
+  position: fixed;
+  z-index: 79;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: max(46px, calc(34px + env(safe-area-inset-bottom)));
+  background: var(--system-bar-color, #020617) !important;
+  pointer-events: none;
+  transform: translateZ(0);
+}
+
+body::before,
+.android-system-bar-bg {
+  background: var(--system-bar-color, #020617) !important;
+}
+
+.android-system-bar-bg {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: max(86px, calc(62px + env(safe-area-inset-bottom))) !important;
+  z-index: 79 !important;
+  pointer-events: none !important;
+}
+
+.bottom-nav {
+  z-index: 120 !important;
+}
+
 
   /* v143 archive readability + save/delete center toast polish */
   .archive-bank-spent-header,
@@ -6303,257 +6395,6 @@ html[data-theme="light"] body::before {
     color: #64748b !important;
   }
 </style>
-
-<style>
-  /* v165 dark-only mobile shell override */
-  :root,
-  html,
-  html[data-theme="dark"],
-  html[data-theme="light"] {
-    color-scheme: dark !important;
-    supported-color-schemes: dark !important;
-    --system-bar-color: #08111f !important;
-    --bg: #0b1020;
-    --surface: #101827;
-    --surface2: #172238;
-    --border: rgba(148, 163, 184, 0.18);
-    --text: #f8fafc;
-    --muted: #94a3b8;
-    --danger: #fb7185;
-    --ok: #4ade80;
-    --accent: #58a6ff;
-    --warn: #facc15;
-    background: #08111f !important;
-    background-color: #08111f !important;
-  }
-  html body,
-  html[data-theme="light"] body,
-  html[data-theme="dark"] body {
-    color: var(--text) !important;
-    background:
-      radial-gradient(circle at top left, rgba(88,166,255,.18), transparent 42%),
-      linear-gradient(180deg, #08111f 0%, #07101f 45%, #050b16 100%) !important;
-    background-color: #08111f !important;
-  }
-  html body::before,
-  html[data-theme="light"] body::before,
-  html[data-theme="dark"] body::before {
-    background: #08111f !important;
-  }
-  html::after,
-  html[data-theme="light"]::after,
-  html[data-theme="dark"]::after {
-    background: #08111f !important;
-  }
-  .android-system-bar-bg,
-  html[data-theme="light"] .android-system-bar-bg,
-  html[data-theme="dark"] .android-system-bar-bg {
-    background: #08111f !important;
-  }
-  .bottom-nav,
-  html[data-theme="light"] .bottom-nav,
-  html[data-theme="dark"] .bottom-nav {
-    background:
-      radial-gradient(circle at top, rgba(88,166,255,.14), transparent 55%),
-      linear-gradient(180deg, rgba(12,23,42,.99), rgba(5,12,24,.99)) !important;
-    border-top-color: rgba(88,166,255,.20) !important;
-  }
-  .dark-only-theme-card {
-    border-color: rgba(88,166,255,.22) !important;
-  }
-</style>
-
-<style>
-  /* v167 Android/PWA aggressive dark system-bar shell */
-  :root,
-  html,
-  html[data-theme="dark"],
-  html[data-theme="light"] {
-    color-scheme: dark !important;
-    supported-color-schemes: dark !important;
-    --system-bar-color: #050b16 !important;
-    background: #050b16 !important;
-    background-color: #050b16 !important;
-  }
-
-  html body,
-  html[data-theme="light"] body,
-  html[data-theme="dark"] body {
-    background:
-      radial-gradient(circle at top left, rgba(88,166,255,.16), transparent 42%),
-      linear-gradient(180deg, #08111f 0%, #07101f 46%, #050b16 100%) !important;
-    background-color: #050b16 !important;
-  }
-
-  html body::before,
-  html[data-theme="light"] body::before,
-  html[data-theme="dark"] body::before,
-  html::after,
-  html[data-theme="light"]::after,
-  html[data-theme="dark"]::after,
-  .android-system-bar-bg,
-  html[data-theme="light"] .android-system-bar-bg,
-  html[data-theme="dark"] .android-system-bar-bg {
-    background: #050b16 !important;
-    background-color: #050b16 !important;
-  }
-
-  .android-system-bar-bg {
-    height: max(160px, calc(130px + env(safe-area-inset-bottom))) !important;
-    z-index: 90 !important;
-  }
-
-  .bottom-nav {
-    z-index: 130 !important;
-  }
-
-  html.system-bars-repaint,
-  html.system-bars-repaint body {
-    background-color: #050b16 !important;
-  }
-</style>
-
-
-<style id="v168-hard-black-system-shell">
-  /* v168 hard black outer shell test: no gradients/transparency for Chrome/Android system-bar detection */
-  :root,
-  html,
-  html[data-theme="dark"],
-  html:not([data-theme="light"]),
-  html[data-theme="light"] {
-    color-scheme: dark !important;
-    --system-bar-color: #000000 !important;
-    background: #000000 !important;
-    background-color: #000000 !important;
-  }
-
-  body {
-    color-scheme: dark !important;
-    background: #000000 !important;
-    background-color: #000000 !important;
-    min-height: 100vh;
-    min-height: 100dvh;
-  }
-
-  html::before,
-  html::after,
-  body::before,
-  body::after,
-  .android-system-bar-bg,
-  .pwa-system-bar-bg,
-  .system-bar-bg,
-  #android-system-bar-bg,
-  #pwa-system-bar-bg {
-    background: #000000 !important;
-    background-color: #000000 !important;
-  }
-
-  .android-system-bar-bg,
-  .pwa-system-bar-bg,
-  .system-bar-bg,
-  #android-system-bar-bg,
-  #pwa-system-bar-bg {
-    position: fixed !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    height: max(120px, calc(96px + env(safe-area-inset-bottom))) !important;
-    pointer-events: none !important;
-    z-index: 70 !important;
-    transform: translateZ(0) !important;
-  }
-
-  .bottom-nav {
-    background: #000000 !important;
-    background-color: #000000 !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    border-top-color: rgba(255,255,255,.10) !important;
-    box-shadow: 0 -12px 28px rgba(0,0,0,.72) !important;
-  }
-
-  .bottom-sheet-backdrop {
-    background: rgba(0,0,0,.78) !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  @supports (padding: max(0px)) {
-    body {
-      padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important;
-    }
-    .bottom-nav {
-      padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
-    }
-  }
-</style>
-
-
-<script id="v168-hard-black-system-shell-js">
-(function(){
-  'use strict';
-  var HARD_BLACK = '#000000';
-
-  function ensureMeta(name, content) {
-    var existing = Array.prototype.slice.call(document.querySelectorAll('meta[name="' + name + '"]'));
-    var primary = existing.shift();
-    existing.forEach(function(node) {
-      if (node && node.parentNode) node.parentNode.removeChild(node);
-    });
-    if (!primary) {
-      primary = document.createElement('meta');
-      primary.setAttribute('name', name);
-      document.head.appendChild(primary);
-    }
-    primary.removeAttribute('media');
-    primary.setAttribute('content', content);
-    return primary;
-  }
-
-  function forceHardBlackShell() {
-    try {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      try { localStorage.setItem('app_theme', 'dark'); } catch (_) {}
-      ensureMeta('theme-color', HARD_BLACK);
-      ensureMeta('msapplication-navbutton-color', HARD_BLACK);
-      ensureMeta('color-scheme', 'dark');
-      ensureMeta('supported-color-schemes', 'dark');
-      document.documentElement.style.setProperty('color-scheme', 'dark', 'important');
-      document.documentElement.style.setProperty('background', HARD_BLACK, 'important');
-      document.documentElement.style.setProperty('background-color', HARD_BLACK, 'important');
-      document.documentElement.style.setProperty('--system-bar-color', HARD_BLACK, 'important');
-      if (document.body) {
-        document.body.style.setProperty('color-scheme', 'dark', 'important');
-        document.body.style.setProperty('background', HARD_BLACK, 'important');
-        document.body.style.setProperty('background-color', HARD_BLACK, 'important');
-      }
-      // Force a cheap style/layout flush so Chrome has to re-read the shell color.
-      void document.documentElement.offsetHeight;
-    } catch (_) {}
-  }
-
-  forceHardBlackShell();
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', forceHardBlackShell, { once: true });
-  }
-  ['pageshow','focus','resize','orientationchange'].forEach(function(evt) {
-    window.addEventListener(evt, function() {
-      forceHardBlackShell();
-      setTimeout(forceHardBlackShell, 80);
-      setTimeout(forceHardBlackShell, 350);
-      setTimeout(forceHardBlackShell, 1000);
-    }, { passive: true });
-  });
-  document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-      forceHardBlackShell();
-      setTimeout(forceHardBlackShell, 80);
-      setTimeout(forceHardBlackShell, 350);
-    }
-  });
-})();
-</script>
-
 </head>
 <body>
 
@@ -6736,6 +6577,20 @@ html[data-theme="light"] body::before {
         <option value="£">£ — British pound</option>
         <option value="zł">zł — Polish zloty</option>
       </select>
+    </div>
+  </div>
+
+  <div class="section-title" data-i18n="appearance">Appearance</div>
+  <div class="theme-mode-card">
+    <div class="theme-mode-top">
+      <div>
+        <div class="theme-mode-title" data-i18n="themeMode">Theme mode</div>
+        <div class="theme-mode-sub" data-i18n="themeModeHint">Choose the app theme. It also updates the browser/PWA system bars where supported.</div>
+      </div>
+    </div>
+    <div class="theme-mode-toggle">
+      <button id="theme-dark-btn" onclick="setAppTheme('dark')"><span class="theme-icon">☾</span><span data-i18n="darkTheme">Dark</span></button>
+      <button id="theme-light-btn" onclick="setAppTheme('light')"><span class="theme-icon">☀</span><span data-i18n="lightTheme">White</span></button>
     </div>
   </div>
 
@@ -14122,7 +13977,7 @@ function applyLanguage() {
   updateAppCurrencySelect();
   if (typeof updateGoogleSheetsToggleUi === 'function') updateGoogleSheetsToggleUi();
 
-  if (typeof applyAppTheme === 'function') applyAppTheme();
+  if (typeof applyAppTheme === 'function') applyAppTheme(getAppTheme());
 
   if (typeof initCurrencyDropdowns === 'function') initCurrencyDropdowns();
 }
@@ -15147,103 +15002,105 @@ function initPageSwipeNavigation() {
 }
 
 
-// ── APP DARK-ONLY THEME SHELL ──────────────────────────
+// ── APP LIGHT / DARK THEME SWITCH ──────────────────────────
 const APP_THEMES = {
   dark: {
-    themeColor: '#050b16',
-    backgroundColor: '#050b16',
+    themeColor: '#08111f',
+    backgroundColor: '#08111f',
     colorScheme: 'dark'
+  },
+  light: {
+    themeColor: '#f8fafc',
+    backgroundColor: '#f8fafc',
+    colorScheme: 'light'
   }
 };
 
 function getAppTheme() {
-  return 'dark';
-}
-
-function ensureSingleMeta_(name) {
-  const metas = Array.from(document.querySelectorAll('meta[name="' + name + '"]'));
-  let meta = metas[0];
-  if (!meta) {
-    meta = document.createElement('meta');
-    meta.setAttribute('name', name);
-    document.head.appendChild(meta);
-  }
-  metas.slice(1).forEach(extra => extra.remove());
-  meta.removeAttribute('media');
-  return meta;
-}
-
-function writeSystemBarMeta_(color) {
-  ensureSingleMeta_('theme-color').setAttribute('content', color);
-  ensureSingleMeta_('msapplication-navbutton-color').setAttribute('content', color);
-  ensureSingleMeta_('color-scheme').setAttribute('content', 'dark');
-  ensureSingleMeta_('supported-color-schemes').setAttribute('content', 'dark');
-}
-
-function forceSystemBarPaint_(color) {
-  const root = document.documentElement;
-  const body = document.body;
-
-  writeSystemBarMeta_(color);
-  root.setAttribute('data-theme', 'dark');
-  root.style.colorScheme = 'dark';
-  root.style.backgroundColor = color;
-  root.style.setProperty('--system-bar-color', color);
-
-  if (body) {
-    body.style.colorScheme = 'dark';
-    body.style.backgroundColor = color;
-  }
-
-  root.classList.add('system-bars-repaint');
-  try { void root.offsetHeight; } catch (_) {}
-  setTimeout(() => root.classList.remove('system-bars-repaint'), 180);
+  const saved = localStorage.getItem('app_theme');
+  return saved === 'light' ? 'light' : 'dark';
 }
 
 function updateThemeMeta(theme) {
-  const config = APP_THEMES.dark;
+  const config = APP_THEMES[theme] || APP_THEMES.dark;
 
-  // Android Chrome sometimes repaints the top bar but leaves the navigation bar
-  // with the previous system color until a focus/resize/layout cycle. Pulse black
-  // first, then the real dark shell color, and repeat shortly after lifecycle events.
-  forceSystemBarPaint_('#000000');
-  requestAnimationFrame(() => forceSystemBarPaint_(config.themeColor));
-  setTimeout(() => forceSystemBarPaint_(config.themeColor), 80);
-  setTimeout(() => forceSystemBarPaint_(config.themeColor), 300);
+  let metas = Array.from(document.querySelectorAll('meta[name="theme-color"]'));
+  if (!metas.length) {
+    const meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    document.head.appendChild(meta);
+    metas = [meta];
+  }
 
-  try { localStorage.setItem('app_theme', 'dark'); } catch (_) {}
+  metas.forEach(meta => {
+    meta.setAttribute('content', config.themeColor);
+  });
+
+  let navMeta = document.querySelector('meta[name="msapplication-navbutton-color"]');
+  if (!navMeta) {
+    navMeta = document.createElement('meta');
+    navMeta.setAttribute('name', 'msapplication-navbutton-color');
+    document.head.appendChild(navMeta);
+  }
+  navMeta.setAttribute('content', config.themeColor);
+
+  let colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
+  if (!colorSchemeMeta) {
+    colorSchemeMeta = document.createElement('meta');
+    colorSchemeMeta.setAttribute('name', 'color-scheme');
+    document.head.appendChild(colorSchemeMeta);
+  }
+  colorSchemeMeta.setAttribute('content', config.colorScheme);
+
+  let supportedMeta = document.querySelector('meta[name="supported-color-schemes"]');
+  if (!supportedMeta) {
+    supportedMeta = document.createElement('meta');
+    supportedMeta.setAttribute('name', 'supported-color-schemes');
+    document.head.appendChild(supportedMeta);
+  }
+  supportedMeta.setAttribute('content', config.colorScheme);
+
+  const appleStatus = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+  if (appleStatus) {
+    appleStatus.setAttribute('content', theme === 'light' ? 'default' : 'black-translucent');
+  }
+
+  document.documentElement.style.colorScheme = config.colorScheme;
+  document.body.style.colorScheme = config.colorScheme;
+  document.documentElement.style.backgroundColor = config.backgroundColor;
+  document.body.style.backgroundColor = config.backgroundColor;
+  document.documentElement.style.setProperty('--system-bar-color', config.backgroundColor);
+  document.documentElement.style.setProperty('--app-shell-bg', config.backgroundColor);
 }
 
-function applyAppTheme() {
-  updateThemeMeta('dark');
+function applyAppTheme(theme = getAppTheme()) {
+  const normalized = theme === 'light' ? 'light' : 'dark';
+  localStorage.setItem('app_theme', normalized);
+  document.documentElement.setAttribute('data-theme', normalized);
+  updateThemeMeta(normalized);
+
+  const darkBtn = document.getElementById('theme-dark-btn');
+  const lightBtn = document.getElementById('theme-light-btn');
+  if (darkBtn) darkBtn.classList.toggle('active', normalized === 'dark');
+  if (lightBtn) lightBtn.classList.toggle('active', normalized === 'light');
 }
 
-function setAppTheme() {
-  // Dark-only test build: ignore light requests to keep system bars stable.
-  try { localStorage.setItem('app_theme_user_selected', 'true'); } catch (_) {}
-  applyAppTheme();
+function setAppTheme(theme) {
+  localStorage.setItem('app_theme_user_selected', 'true');
+  applyAppTheme(theme);
   renderAll();
   applyLanguage();
 }
 
-// Keep Android/Chrome/PWA system bars synced after browser UI and lifecycle changes.
+// Keep system bars synced after Chrome/PWA focus changes.
 (function keepThemeSystemBarsSynced() {
-  const repaint = () => {
-    applyAppTheme();
-    setTimeout(applyAppTheme, 120);
-    setTimeout(applyAppTheme, 650);
-    setTimeout(applyAppTheme, 1400);
-  };
+  const repaint = () => applyAppTheme(getAppTheme());
 
   repaint();
-  ['pageshow','focus','blur','resize','orientationchange','touchend','pointerup','click'].forEach(eventName => {
+  ['pageshow','focus','blur','resize','orientationchange','visibilitychange','touchend','pointerup','click'].forEach(eventName => {
     window.addEventListener(eventName, repaint, { passive: true });
     document.addEventListener(eventName, repaint, { passive: true });
   });
-
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) repaint();
-  }, { passive: true });
 
   if (window.visualViewport) {
     visualViewport.addEventListener('resize', repaint, { passive: true });
@@ -15253,7 +15110,7 @@ function setAppTheme() {
 
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
-  applyAppTheme();
+  applyAppTheme(getAppTheme());
   clearDemoTransactionsCacheIfNeeded();
   applyLanguage();
   migrateCurrencyStorageToSymbols();
@@ -15679,147 +15536,6 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     // Keep startup light: update UI immediately, initialize push shortly after if already enabled.
     try { updatePushStatus(); } catch (e) { console.warn("updatePushStatus failed:", e); }
     window.setTimeout(autoInitPushIfAlreadyEnabled, 1200);
-  });
-})();
-</script>
-
-
-
-<style id="rb-style-dark-grey-shell-v169">
-  /* v169 RB-style dark grey shell test: solid surfaces, no transparent bottom-bar guessing */
-  :root,
-  html,
-  html[data-theme="dark"],
-  html:not([data-theme="light"]) {
-    color-scheme: dark !important;
-    supported-color-schemes: dark !important;
-    --system-bar-color: #4f545c !important;
-    --rb-shell: #22252a !important;
-    --rb-shell-top: #4f545c !important;
-    --rb-bottom: #51565e !important;
-    --rb-card: #30343a !important;
-    --bg: #22252a !important;
-  }
-
-  html,
-  body {
-    background: #22252a !important;
-    background-color: #22252a !important;
-    min-height: 100vh !important;
-    min-height: 100dvh !important;
-  }
-
-  body {
-    background: linear-gradient(180deg, #22252a 0%, #202329 62%, #22252a 100%) !important;
-  }
-
-  body::before {
-    background: #4f545c !important;
-  }
-
-  html::before {
-    content: "";
-    position: fixed;
-    z-index: 0;
-    left: 0;
-    right: 0;
-    top: 0;
-    height: max(92px, calc(80px + env(safe-area-inset-top)));
-    background: #4f545c !important;
-    pointer-events: none;
-  }
-
-  html::after,
-  body::after,
-  .android-system-bar-bg {
-    content: "" !important;
-    position: fixed !important;
-    z-index: 70 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    height: max(96px, calc(78px + env(safe-area-inset-bottom))) !important;
-    background: #51565e !important;
-    background-color: #51565e !important;
-    pointer-events: none !important;
-    transform: translateZ(0) !important;
-  }
-
-  .bottom-nav {
-    background: #51565e !important;
-    background-color: #51565e !important;
-    border-top: 1px solid rgba(255,255,255,.12) !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    color: #ffffff !important;
-    z-index: 130 !important;
-  }
-
-  .nav-item {
-    color: rgba(255,255,255,.76) !important;
-  }
-
-  .nav-item.active {
-    color: #ffffff !important;
-    background: rgba(255,255,255,.10) !important;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.12) !important;
-  }
-
-  .nav-item.active::before {
-    background: #ffffff !important;
-    box-shadow: 0 0 12px rgba(255,255,255,.55) !important;
-  }
-
-  .header {
-    background: transparent !important;
-  }
-</style>
-
-<script id="rb-style-dark-grey-shell-system-bars-v169">
-(function(){
-  var TOP = '#4f545c';
-  var BOTTOM = '#51565e';
-  var BODY = '#22252a';
-
-  function ensureMeta(name, value) {
-    var nodes = document.querySelectorAll('meta[name="' + name + '"]');
-    for (var i = 1; i < nodes.length; i++) nodes[i].parentNode && nodes[i].parentNode.removeChild(nodes[i]);
-    var meta = nodes[0] || document.createElement('meta');
-    meta.setAttribute('name', name);
-    meta.setAttribute('content', value);
-    if (!meta.parentNode) document.head.appendChild(meta);
-    return meta;
-  }
-
-  function syncRbStyleBars() {
-    try {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      document.documentElement.style.colorScheme = 'dark';
-      document.documentElement.style.backgroundColor = BODY;
-      document.body && (document.body.style.backgroundColor = BODY);
-      ensureMeta('theme-color', TOP);
-      ensureMeta('msapplication-navbutton-color', TOP);
-      ensureMeta('color-scheme', 'dark');
-      ensureMeta('supported-color-schemes', 'dark');
-      var shell = document.querySelector('.android-system-bar-bg');
-      if (!shell) {
-        shell = document.createElement('div');
-        shell.className = 'android-system-bar-bg';
-        document.body && document.body.appendChild(shell);
-      }
-      shell.style.backgroundColor = BOTTOM;
-      shell.style.background = BOTTOM;
-    } catch(e) {}
-  }
-
-  syncRbStyleBars();
-  ['DOMContentLoaded','pageshow','visibilitychange','focus','resize','orientationchange'].forEach(function(evt){
-    window.addEventListener(evt, function(){
-      syncRbStyleBars();
-      setTimeout(syncRbStyleBars, 80);
-      setTimeout(syncRbStyleBars, 450);
-    }, { passive: true });
   });
 })();
 </script>
