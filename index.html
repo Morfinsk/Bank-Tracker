@@ -4,10 +4,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="theme-color" content="#020617">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#020617">
 <meta name="msapplication-navbutton-color" content="#020617">
-<meta name="color-scheme" content="dark light">
+<meta name="color-scheme" content="dark">
 <meta name="supported-color-schemes" content="dark light">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
@@ -71,12 +69,30 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=172">
+<link rel="manifest" href="./manifest.json?v=178">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
 <script>
 (function(){
+  var THEME_SHELL = {
+    dark: { color: '#020617', scheme: 'dark' },
+    light: { color: '#ffffff', scheme: 'light' }
+  };
+  function setThemeColor(value) {
+    var metas = Array.prototype.slice.call(document.querySelectorAll('meta[name="theme-color"]'));
+    var meta = metas[0];
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
+    }
+    meta.removeAttribute('media');
+    meta.setAttribute('content', value);
+    metas.slice(1).forEach(function(extra) {
+      if (extra.parentNode) extra.parentNode.removeChild(extra);
+    });
+  }
   function setMeta(name, value) {
     var metas = Array.prototype.slice.call(document.querySelectorAll('meta[name="' + name + '"]'));
     if (!metas.length) {
@@ -94,16 +110,16 @@
       localStorage.setItem('app_theme_default_version', defaultVersion);
     }
     var theme = localStorage.getItem('app_theme') === 'light' ? 'light' : 'dark';
-    var shellColor = theme === 'light' ? '#ffffff' : '#020617';
-    var scheme = theme === 'light' ? 'light' : 'dark';
+    var shell = THEME_SHELL[theme] || THEME_SHELL.dark;
     document.documentElement.setAttribute('data-theme', theme);
-    document.documentElement.style.backgroundColor = shellColor;
-    document.documentElement.style.colorScheme = scheme;
-    document.documentElement.style.setProperty('--system-bar-color', shellColor);
-    document.documentElement.style.setProperty('--app-shell-bg', shellColor);
-    setMeta('theme-color', shellColor);
-    setMeta('msapplication-navbutton-color', shellColor);
-    setMeta('color-scheme', scheme);
+    document.documentElement.style.backgroundColor = shell.color;
+    document.documentElement.style.colorScheme = shell.scheme;
+    document.documentElement.style.setProperty('--system-bar-color', shell.color);
+    document.documentElement.style.setProperty('--app-shell-bg', shell.color);
+    setThemeColor(shell.color);
+    setMeta('msapplication-navbutton-color', shell.color);
+    setMeta('color-scheme', shell.scheme);
+    setMeta('supported-color-schemes', 'dark light');
   } catch(e) {
     document.documentElement.setAttribute('data-theme', 'dark');
     document.documentElement.style.backgroundColor = '#020617';
@@ -1112,6 +1128,15 @@
   }
 
 
+  /* v172 account balance: negative current/debit balances are shown red and keep the minus sign */
+  .account-balance-value.is-negative-balance {
+    color: var(--danger) !important;
+  }
+  html[data-theme="light"] .account-balance-value.is-negative-balance {
+    color: #be123c !important;
+  }
+
+
   .account-balance-title-row {
     display: flex;
     align-items: center;
@@ -1129,16 +1154,29 @@
     color: var(--muted);
     font-family: var(--font-mono);
     font-size: 10px;
+    line-height: 1.25;
     font-weight: 800;
     border: 1px solid rgba(88,166,255,.16);
     background: rgba(88,166,255,.07);
-    border-radius: 999px;
-    padding: 4px 8px;
+    border-radius: 12px;
+    padding: 5px 8px;
     white-space: nowrap;
+    text-align: right;
   }
 
   .account-balance-fx-badge.show {
-    display: inline-flex;
+    display: grid;
+    gap: 2px;
+  }
+
+  .account-balance-fx-date {
+    color: var(--muted);
+  }
+
+  .account-balance-fx-pairs {
+    color: var(--accent);
+    font-size: 9.5px;
+    letter-spacing: -0.025em;
   }
   .account-balance-rollup-btn {
     width: 22px;
@@ -6319,6 +6357,24 @@ body::before,
   z-index: 120 !important;
 }
 
+html.android-device[data-theme="dark"],
+html.android-device:not([data-theme="light"]),
+html.android-device[data-theme="dark"] body,
+html.android-device:not([data-theme="light"]) body,
+html.android-device[data-theme="dark"] .bottom-nav,
+html.android-device:not([data-theme="light"]) .bottom-nav,
+html.android-device[data-theme="dark"] .android-system-bar-bg,
+html.android-device:not([data-theme="light"]) .android-system-bar-bg {
+  color-scheme: dark !important;
+}
+
+html.android-device[data-theme="light"],
+html.android-device[data-theme="light"] body,
+html.android-device[data-theme="light"] .bottom-nav,
+html.android-device[data-theme="light"] .android-system-bar-bg {
+  color-scheme: light !important;
+}
+
 
   /* v143 archive readability + save/delete center toast polish */
   .archive-bank-spent-header,
@@ -7673,6 +7729,12 @@ function formatCurrencyAmount(amount, currency) {
   return `${value} ${symbol}`;
 }
 
+function formatSignedCurrencyAmount(amount, currency) {
+  const n = Number(amount) || 0;
+  const formatted = formatCurrencyAmount(Math.abs(n), currency);
+  return n < 0 ? `-${formatted}` : formatted;
+}
+
 
 function getTransactionAccountCurrency(tx) {
   const bankKey = getBankKey(tx);
@@ -7714,6 +7776,30 @@ function formatFxDateShort(dateStr) {
   return `${Number(match[3])}.${Number(match[2])}.${String(match[1]).slice(-2)}`;
 }
 
+function getAccountBalanceFxPairsForBadge() {
+  const target = currencyCode(getAppCurrency() || 'CZK');
+  const symbolMap = { EUR: '€', CZK: 'Kč', USD: '$', GBP: '£' };
+  const labelFor = (curr) => symbolMap[curr] || curr;
+  const currencies = new Set();
+
+  try {
+    getAllManagedBanksForBalance().forEach(bank => {
+      const curr = currencyCode(bank.currency || 'CZK');
+      if (curr && curr !== target) currencies.add(curr);
+    });
+  } catch (_) {}
+
+  return Array.from(currencies).sort().map(curr => {
+    const rate = convertAmountCurrency(1, curr, target);
+    const decimals = rate >= 10 ? 2 : 4;
+    const formattedRate = Number(rate || 0).toLocaleString('sk-SK', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+    return `${labelFor(target)}/${labelFor(curr)} ${formattedRate}`;
+  });
+}
+
 function updateAccountBalanceFxBadge() {
   const badge = document.getElementById('account-balance-fx-badge');
   if (!badge) return;
@@ -7722,7 +7808,11 @@ function updateAccountBalanceFxBadge() {
     badge.classList.remove('show');
     return;
   }
-  badge.textContent = `FX ${formatFxDateShort(fxRatesDate)}`;
+  const pairs = getAccountBalanceFxPairsForBadge();
+  badge.innerHTML = `
+    <div class="account-balance-fx-date">FX ${escapeHtml(formatFxDateShort(fxRatesDate))}</div>
+    ${pairs.length ? `<div class="account-balance-fx-pairs">${escapeHtml(pairs.join(' · '))}</div>` : ''}
+  `;
   badge.classList.add('show');
 }
 
@@ -7732,7 +7822,7 @@ function getCzkEquivalentText(amount, currency) {
   if (curr === target) return '';
   const converted = convertAmountCurrency(amount, curr, target);
   if (converted === Math.abs(Number(amount) || 0)) return '';
-  return `≈ ${formatCurrencyAmount(converted, target)}`;
+  return `≈ ${formatSignedCurrencyAmount(converted, target)}`;
 }
 
 function getCurrencyTotals(txns) {
@@ -9143,15 +9233,16 @@ function renderAccountBalanceWidget() {
             <div class="budget-status-note">${escapeHtml(t('accountBalanceTotalHint'))}</div>
           </div>
           <div class="account-balance-value-wrap">
-            <div class="budget-status-value account-balance-value">${escapeHtml(maskAccountBalanceValue(formatCurrencyAmount(totalBalance, targetCurrency)))}</div>
+            <div class="budget-status-value account-balance-value ${totalBalance < 0 ? 'is-negative-balance' : ''}">${escapeHtml(maskAccountBalanceValue(formatSignedCurrencyAmount(totalBalance, targetCurrency)))}</div>
           </div>
         </div>
       </div>` : '';
 
   const renderSubaccountRow = (item) => {
     const currency = item.currency || 'CZK';
-    const value = formatCurrencyAmount(item.balance || 0, currency);
+    const value = formatSignedCurrencyAmount(item.balance || 0, currency);
     const czkEquivalent = getCzkEquivalentText(item.balance || 0, currency);
+    const isNegativeBalance = Number(item.balance || 0) < 0 && !item.liability;
     return `
       <div class="budget-bank-row account-balance-row account-balance-sub-row" style="padding:9px 0 9px 18px;border-bottom:1px solid var(--border);">
         <div class="budget-status-main">
@@ -9159,7 +9250,7 @@ function renderAccountBalanceWidget() {
             <div class="budget-status-value account-balance-name" style="color:var(--accent);font-size:14px;">└ ${escapeHtml(item.name)}</div>
           </div>
           <div class="account-balance-value-wrap">
-            <div class="budget-status-value account-balance-value" style="color:var(--accent);">${escapeHtml(maskAccountBalanceValue(value))}</div>
+            <div class="budget-status-value account-balance-value ${isNegativeBalance ? 'is-negative-balance' : ''}" style="color:${isNegativeBalance ? 'var(--danger)' : 'var(--accent)'};">${escapeHtml(maskAccountBalanceValue(value))}</div>
             ${maskAccountBalanceNote(czkEquivalent) ? `<div class="budget-status-note account-balance-equivalent">${escapeHtml(czkEquivalent)}</div>` : ''}
           </div>
         </div>
@@ -9168,8 +9259,9 @@ function renderAccountBalanceWidget() {
 
   const rows = banks.map(bank => {
     const currency = bank.currency || 'CZK';
-    const value = formatCurrencyAmount(bank.balance || 0, currency);
+    const value = formatSignedCurrencyAmount(bank.balance || 0, currency);
     const czkEquivalent = getCzkEquivalentText(bank.balance || 0, currency);
+    const isNegativeBalance = Number(bank.balance || 0) < 0 && !bank.liability;
     const children = creditChildrenByParent[bank.id] || [];
     const hasCreditChildren = children.length > 0;
     const creditExpanded = hasCreditChildren ? isCreditSubaccountExpanded(bank.id) : false;
@@ -9183,7 +9275,7 @@ function renderAccountBalanceWidget() {
             ${childHint}
           </div>
           <div class="account-balance-value-wrap">
-            <div class="budget-status-value account-balance-value" style="color:var(--accent);">${escapeHtml(maskAccountBalanceValue(value))}</div>
+            <div class="budget-status-value account-balance-value ${isNegativeBalance ? 'is-negative-balance' : ''}" style="color:${isNegativeBalance ? 'var(--danger)' : 'var(--accent)'};">${escapeHtml(maskAccountBalanceValue(value))}</div>
             ${maskAccountBalanceNote(czkEquivalent) ? `<div class="budget-status-note account-balance-equivalent">${escapeHtml(czkEquivalent)}</div>` : ''}
           </div>
         </div>
@@ -12158,7 +12250,7 @@ function renderBankManager(){
 
   const row = (b) => {
     const isCreditCardStandalone = b.id === 'csob_cz_credit';
-    const managedSubLine = `${escapeHtml(currencySymbol(b.currency))}${b.account ? ` · Účty ${escapeHtml(b.account)}` : ''}${b.cards ? ` · Karty ${escapeHtml(b.cards.split(',').map(v => v.trim().replace(/\D/g,'').slice(-4)).filter(Boolean).join(', '))}` : ''}${isCreditCardStandalone ? ` · ${escapeHtml(t('creditCardBalanceAlertsOnly', 'credit card balance + alerts only'))}` : ` · ${t('cardLimitShort')} ${b.cardLimit || 0} · ${t('budgetLabel')} ${formatCurrencyAmount(b.budget || 0, b.currency || 'CZK')}`} · ${t('accountBalanceTitle')} ${escapeHtml(formatCurrencyAmount(b.balance || 0, b.currency || 'CZK'))}${getCzkEquivalentText(b.balance || 0, b.currency || 'CZK') ? ` · ${escapeHtml(getCzkEquivalentText(b.balance || 0, b.currency || 'CZK'))}` : ''} · ${escapeHtml(t('incomingAlertShort'))} ${formatCurrencyAmount(b.incomingAlert || 0, b.currency || 'CZK')} · ${escapeHtml(t('outgoingAlertShort'))} ${formatCurrencyAmount(b.outgoingAlert || 0, b.currency || 'CZK')}`;
+    const managedSubLine = `${escapeHtml(currencySymbol(b.currency))}${b.account ? ` · Účty ${escapeHtml(b.account)}` : ''}${b.cards ? ` · Karty ${escapeHtml(b.cards.split(',').map(v => v.trim().replace(/\D/g,'').slice(-4)).filter(Boolean).join(', '))}` : ''}${isCreditCardStandalone ? ` · ${escapeHtml(t('creditCardBalanceAlertsOnly', 'credit card balance + alerts only'))}` : ` · ${t('cardLimitShort')} ${b.cardLimit || 0} · ${t('budgetLabel')} ${formatCurrencyAmount(b.budget || 0, b.currency || 'CZK')}`} · ${t('accountBalanceTitle')} ${escapeHtml(formatSignedCurrencyAmount(b.balance || 0, b.currency || 'CZK'))}${getCzkEquivalentText(b.balance || 0, b.currency || 'CZK') ? ` · ${escapeHtml(getCzkEquivalentText(b.balance || 0, b.currency || 'CZK'))}` : ''} · ${escapeHtml(t('incomingAlertShort'))} ${formatCurrencyAmount(b.incomingAlert || 0, b.currency || 'CZK')} · ${escapeHtml(t('outgoingAlertShort'))} ${formatCurrencyAmount(b.outgoingAlert || 0, b.currency || 'CZK')}`;
     return `
     <div class="managed-bank-row" id="bank-row-${b.id}">
       <div class="managed-bank-top">
@@ -15005,13 +15097,13 @@ function initPageSwipeNavigation() {
 // ── APP LIGHT / DARK THEME SWITCH ──────────────────────────
 const APP_THEMES = {
   dark: {
-    themeColor: '#08111f',
-    backgroundColor: '#08111f',
+    themeColor: '#020617',
+    backgroundColor: '#020617',
     colorScheme: 'dark'
   },
   light: {
-    themeColor: '#f8fafc',
-    backgroundColor: '#f8fafc',
+    themeColor: '#ffffff',
+    backgroundColor: '#ffffff',
     colorScheme: 'light'
   }
 };
@@ -15025,16 +15117,16 @@ function updateThemeMeta(theme) {
   const config = APP_THEMES[theme] || APP_THEMES.dark;
 
   let metas = Array.from(document.querySelectorAll('meta[name="theme-color"]'));
-  if (!metas.length) {
+  let themeMeta = metas[0];
+  if (!themeMeta) {
     const meta = document.createElement('meta');
     meta.setAttribute('name', 'theme-color');
     document.head.appendChild(meta);
-    metas = [meta];
+    themeMeta = meta;
   }
-
-  metas.forEach(meta => {
-    meta.setAttribute('content', config.themeColor);
-  });
+  themeMeta.removeAttribute('media');
+  themeMeta.setAttribute('content', config.themeColor);
+  metas.slice(1).forEach(meta => meta.remove());
 
   let navMeta = document.querySelector('meta[name="msapplication-navbutton-color"]');
   if (!navMeta) {
@@ -15058,7 +15150,7 @@ function updateThemeMeta(theme) {
     supportedMeta.setAttribute('name', 'supported-color-schemes');
     document.head.appendChild(supportedMeta);
   }
-  supportedMeta.setAttribute('content', config.colorScheme);
+  supportedMeta.setAttribute('content', 'dark light');
 
   const appleStatus = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
   if (appleStatus) {
@@ -15071,6 +15163,8 @@ function updateThemeMeta(theme) {
   document.body.style.backgroundColor = config.backgroundColor;
   document.documentElement.style.setProperty('--system-bar-color', config.backgroundColor);
   document.documentElement.style.setProperty('--app-shell-bg', config.backgroundColor);
+  document.body.style.setProperty('--system-bar-color', config.backgroundColor);
+  document.body.style.setProperty('--app-shell-bg', config.backgroundColor);
 }
 
 function applyAppTheme(theme = getAppTheme()) {
@@ -15085,6 +15179,32 @@ function applyAppTheme(theme = getAppTheme()) {
   if (lightBtn) lightBtn.classList.toggle('active', normalized === 'light');
 }
 
+function forceSystemBarRepaint(theme = getAppTheme()) {
+  const normalized = theme === 'light' ? 'light' : 'dark';
+  const config = APP_THEMES[normalized] || APP_THEMES.dark;
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (!themeMeta) return;
+
+  const setShellColor = (color) => {
+    themeMeta.setAttribute('content', color);
+    document.documentElement.style.backgroundColor = color;
+    document.documentElement.style.setProperty('--system-bar-color', color);
+    document.documentElement.style.setProperty('--app-shell-bg', color);
+    if (document.body) {
+      document.body.style.backgroundColor = color;
+      document.body.style.setProperty('--system-bar-color', color);
+      document.body.style.setProperty('--app-shell-bg', color);
+    }
+  };
+
+  const repaintColor = normalized === 'light' ? '#fffefe' : '#020618';
+  setShellColor(repaintColor);
+
+  requestAnimationFrame(() => {
+    setShellColor(config.backgroundColor);
+  });
+}
+
 function setAppTheme(theme) {
   localStorage.setItem('app_theme_user_selected', 'true');
   applyAppTheme(theme);
@@ -15095,15 +15215,41 @@ function setAppTheme(theme) {
 // Keep system bars synced after Chrome/PWA focus changes.
 (function keepThemeSystemBarsSynced() {
   const repaint = () => applyAppTheme(getAppTheme());
+  const repaintHard = () => {
+    repaint();
+    forceSystemBarRepaint(getAppTheme());
+  };
+  let hardRepaintBatch = 0;
+  const repaintHardAfterViewportSettles = () => {
+    const batch = ++hardRepaintBatch;
+    repaintHard();
+    [80, 180, 360, 700, 1100].forEach(delay => {
+      window.setTimeout(() => {
+        if (batch === hardRepaintBatch) repaintHard();
+      }, delay);
+    });
+  };
 
-  repaint();
-  ['pageshow','focus','blur','resize','orientationchange','visibilitychange','touchend','pointerup','click'].forEach(eventName => {
+  repaintHard();
+  ['focus','blur','touchend','pointerup','click'].forEach(eventName => {
     window.addEventListener(eventName, repaint, { passive: true });
     document.addEventListener(eventName, repaint, { passive: true });
   });
+  ['pageshow','popstate','hashchange'].forEach(eventName => {
+    window.addEventListener(eventName, repaintHard, { passive: true });
+  });
+  ['resize','orientationchange'].forEach(eventName => {
+    window.addEventListener(eventName, repaintHardAfterViewportSettles, { passive: true });
+  });
+  if (window.screen && screen.orientation && screen.orientation.addEventListener) {
+    screen.orientation.addEventListener('change', repaintHardAfterViewportSettles, { passive: true });
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) repaintHardAfterViewportSettles();
+  }, { passive: true });
 
   if (window.visualViewport) {
-    visualViewport.addEventListener('resize', repaint, { passive: true });
+    visualViewport.addEventListener('resize', repaintHardAfterViewportSettles, { passive: true });
     visualViewport.addEventListener('scroll', repaint, { passive: true });
   }
 })();
