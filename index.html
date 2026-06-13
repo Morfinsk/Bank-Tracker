@@ -3,10 +3,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="theme-color" content="#0d1117">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0d1117">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1117">
-<meta name="msapplication-navbutton-color" content="#0d1117">
+<meta name="theme-color" content="#050b16">
+
+
+<meta name="msapplication-navbutton-color" content="#050b16">
 <meta name="color-scheme" content="dark">
 <meta name="supported-color-schemes" content="dark">
 
@@ -71,7 +71,7 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=173">
+<link rel="manifest" href="./manifest.json?v=174">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -80,7 +80,7 @@
   try {
     // v165 dark-only shell: keep Android/iOS/Chrome system bars stable.
     localStorage.setItem('app_theme', 'dark');
-    localStorage.setItem('app_theme_default_version', 'v165_dark_only');
+    localStorage.setItem('app_theme_default_version', 'v167_dark_only_aggressive_system_bar_resync');
     document.documentElement.setAttribute('data-theme', 'dark');
     document.documentElement.style.colorScheme = 'dark';
     document.documentElement.style.backgroundColor = '#08111f';
@@ -6362,6 +6362,56 @@ html[data-theme="light"] body::before {
   }
   .dark-only-theme-card {
     border-color: rgba(88,166,255,.22) !important;
+  }
+</style>
+
+<style>
+  /* v167 Android/PWA aggressive dark system-bar shell */
+  :root,
+  html,
+  html[data-theme="dark"],
+  html[data-theme="light"] {
+    color-scheme: dark !important;
+    supported-color-schemes: dark !important;
+    --system-bar-color: #050b16 !important;
+    background: #050b16 !important;
+    background-color: #050b16 !important;
+  }
+
+  html body,
+  html[data-theme="light"] body,
+  html[data-theme="dark"] body {
+    background:
+      radial-gradient(circle at top left, rgba(88,166,255,.16), transparent 42%),
+      linear-gradient(180deg, #08111f 0%, #07101f 46%, #050b16 100%) !important;
+    background-color: #050b16 !important;
+  }
+
+  html body::before,
+  html[data-theme="light"] body::before,
+  html[data-theme="dark"] body::before,
+  html::after,
+  html[data-theme="light"]::after,
+  html[data-theme="dark"]::after,
+  .android-system-bar-bg,
+  html[data-theme="light"] .android-system-bar-bg,
+  html[data-theme="dark"] .android-system-bar-bg {
+    background: #050b16 !important;
+    background-color: #050b16 !important;
+  }
+
+  .android-system-bar-bg {
+    height: max(160px, calc(130px + env(safe-area-inset-bottom))) !important;
+    z-index: 90 !important;
+  }
+
+  .bottom-nav {
+    z-index: 130 !important;
+  }
+
+  html.system-bars-repaint,
+  html.system-bars-repaint body {
+    background-color: #050b16 !important;
   }
 </style>
 
@@ -14961,8 +15011,8 @@ function initPageSwipeNavigation() {
 // ── APP DARK-ONLY THEME SHELL ──────────────────────────
 const APP_THEMES = {
   dark: {
-    themeColor: '#08111f',
-    backgroundColor: '#08111f',
+    themeColor: '#050b16',
+    backgroundColor: '#050b16',
     colorScheme: 'dark'
   }
 };
@@ -14971,52 +15021,57 @@ function getAppTheme() {
   return 'dark';
 }
 
+function ensureSingleMeta_(name) {
+  const metas = Array.from(document.querySelectorAll('meta[name="' + name + '"]'));
+  let meta = metas[0];
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.setAttribute('name', name);
+    document.head.appendChild(meta);
+  }
+  metas.slice(1).forEach(extra => extra.remove());
+  meta.removeAttribute('media');
+  return meta;
+}
+
+function writeSystemBarMeta_(color) {
+  ensureSingleMeta_('theme-color').setAttribute('content', color);
+  ensureSingleMeta_('msapplication-navbutton-color').setAttribute('content', color);
+  ensureSingleMeta_('color-scheme').setAttribute('content', 'dark');
+  ensureSingleMeta_('supported-color-schemes').setAttribute('content', 'dark');
+}
+
+function forceSystemBarPaint_(color) {
+  const root = document.documentElement;
+  const body = document.body;
+
+  writeSystemBarMeta_(color);
+  root.setAttribute('data-theme', 'dark');
+  root.style.colorScheme = 'dark';
+  root.style.backgroundColor = color;
+  root.style.setProperty('--system-bar-color', color);
+
+  if (body) {
+    body.style.colorScheme = 'dark';
+    body.style.backgroundColor = color;
+  }
+
+  root.classList.add('system-bars-repaint');
+  try { void root.offsetHeight; } catch (_) {}
+  setTimeout(() => root.classList.remove('system-bars-repaint'), 180);
+}
+
 function updateThemeMeta(theme) {
   const config = APP_THEMES.dark;
 
-  let metas = Array.from(document.querySelectorAll('meta[name="theme-color"]'));
-  if (!metas.length) {
-    const meta = document.createElement('meta');
-    meta.setAttribute('name', 'theme-color');
-    document.head.appendChild(meta);
-    metas = [meta];
-  }
+  // Android Chrome sometimes repaints the top bar but leaves the navigation bar
+  // with the previous system color until a focus/resize/layout cycle. Pulse black
+  // first, then the real dark shell color, and repeat shortly after lifecycle events.
+  forceSystemBarPaint_('#000000');
+  requestAnimationFrame(() => forceSystemBarPaint_(config.themeColor));
+  setTimeout(() => forceSystemBarPaint_(config.themeColor), 80);
+  setTimeout(() => forceSystemBarPaint_(config.themeColor), 300);
 
-  metas.forEach(meta => {
-    meta.setAttribute('content', config.themeColor);
-    meta.removeAttribute('media');
-  });
-
-  let navMeta = document.querySelector('meta[name="msapplication-navbutton-color"]');
-  if (!navMeta) {
-    navMeta = document.createElement('meta');
-    navMeta.setAttribute('name', 'msapplication-navbutton-color');
-    document.head.appendChild(navMeta);
-  }
-  navMeta.setAttribute('content', config.themeColor);
-
-  let colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
-  if (!colorSchemeMeta) {
-    colorSchemeMeta = document.createElement('meta');
-    colorSchemeMeta.setAttribute('name', 'color-scheme');
-    document.head.appendChild(colorSchemeMeta);
-  }
-  colorSchemeMeta.setAttribute('content', 'dark');
-
-  let supportedMeta = document.querySelector('meta[name="supported-color-schemes"]');
-  if (!supportedMeta) {
-    supportedMeta = document.createElement('meta');
-    supportedMeta.setAttribute('name', 'supported-color-schemes');
-    document.head.appendChild(supportedMeta);
-  }
-  supportedMeta.setAttribute('content', 'dark');
-
-  document.documentElement.setAttribute('data-theme', 'dark');
-  document.documentElement.style.colorScheme = 'dark';
-  document.body.style.colorScheme = 'dark';
-  document.documentElement.style.backgroundColor = config.backgroundColor;
-  document.body.style.backgroundColor = config.backgroundColor;
-  document.documentElement.style.setProperty('--system-bar-color', config.backgroundColor);
   try { localStorage.setItem('app_theme', 'dark'); } catch (_) {}
 }
 
@@ -15032,15 +15087,24 @@ function setAppTheme() {
   applyLanguage();
 }
 
-// Keep system bars synced after Chrome/PWA focus changes.
+// Keep Android/Chrome/PWA system bars synced after browser UI and lifecycle changes.
 (function keepThemeSystemBarsSynced() {
-  const repaint = () => applyAppTheme();
+  const repaint = () => {
+    applyAppTheme();
+    setTimeout(applyAppTheme, 120);
+    setTimeout(applyAppTheme, 650);
+    setTimeout(applyAppTheme, 1400);
+  };
 
   repaint();
-  ['pageshow','focus','blur','resize','orientationchange','visibilitychange','touchend','pointerup','click'].forEach(eventName => {
+  ['pageshow','focus','blur','resize','orientationchange','touchend','pointerup','click'].forEach(eventName => {
     window.addEventListener(eventName, repaint, { passive: true });
     document.addEventListener(eventName, repaint, { passive: true });
   });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) repaint();
+  }, { passive: true });
 
   if (window.visualViewport) {
     visualViewport.addEventListener('resize', repaint, { passive: true });
