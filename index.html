@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<!-- Bank Tracker index_v164: Codex base + Android PWA system bar theme fix -->
+<!-- Bank Tracker index_v147: v146 + no settlement label + archive CZK equivalents -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="theme-color" content="#020617">
-<meta name="msapplication-navbutton-color" content="#020617">
+<meta name="theme-color" content="#0d1117">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0d1117">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1117">
+<meta name="msapplication-navbutton-color" content="#0d1117">
 <meta name="color-scheme" content="dark">
-<meta name="supported-color-schemes" content="dark light">
+<meta name="supported-color-schemes" content="dark">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -67,42 +69,491 @@
     color: #64748b !important;
   }
 
+
+  /* v173-v175 overview wealth cards */
+  .wealth-dashboard {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin: 18px 0 18px;
+  }
+  .wealth-card {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(29,46,84,.96), rgba(19,31,58,.96));
+    border-radius: 22px;
+    padding: 16px;
+    text-align: left;
+    color: var(--text);
+    box-shadow: 0 10px 24px rgba(0,0,0,.18);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 160px;
+    width: 100%;
+  }
+  .wealth-card:active { transform: scale(.992); }
+  .wealth-card-net {
+    grid-column: 1 / -1;
+    min-height: 112px;
+    background: linear-gradient(135deg, rgba(49,31,78,.96), rgba(28,34,73,.96));
+  }
+  .wealth-card-cash,
+  .wealth-card-trend {
+    min-height: 138px;
+  }
+  .wealth-card-head {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .wealth-card-title {
+    font-size: 13px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(226,236,255,.86);
+    font-weight: 700;
+  }
+  .wealth-card-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(113,180,255,.15);
+    font-size: 17px;
+  }
+  .wealth-card-value {
+    font-size: 33px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    color: #f8fbff;
+    line-height: 1.08;
+    word-break: break-word;
+  }
+  .wealth-card-value-green { color: #73ffb0; }
+  .wealth-card-trend .wealth-card-value { color: #dff6ff; }
+  .mini-gauge-wrap {
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    margin-top: 4px;
+  }
+  .mini-half-gauge {
+    position: relative;
+    width: 170px;
+    height: 110px;
+    margin: 0 auto;
+  }
+  .mini-half-gauge svg {
+    width: 100%;
+    height: 100%;
+    display:block;
+  }
+  .mini-half-gauge-center {
+    position: absolute;
+    left: 50%;
+    top: 58%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    min-width: 82px;
+  }
+  .mini-half-gauge-center .pct {
+    display:block;
+    font-size: 32px;
+    font-weight: 900;
+    line-height: 1;
+    color: #ffffff;
+  }
+  .mini-half-gauge-center .caption {
+    display:block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+  .wealth-inline-progress {
+    margin-top: auto;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .wealth-inline-progress-labels {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: #f4fbff;
+  }
+  .wealth-inline-progress-status {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .wealth-inline-progress-track {
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(110,148,208,.17);
+    overflow: hidden;
+  }
+  .wealth-inline-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #72f6a5 0%, #58cfff 100%);
+  }
+  .wealth-inline-progress-fill.is-ok {
+    background: linear-gradient(90deg, #72f6a5 0%, #72f6a5 100%);
+  }
+  .wealth-inline-progress-fill.is-empty {
+    background: linear-gradient(90deg, #59c2ff 0%, #59c2ff 100%);
+    width: 8px !important;
+  }
+  .wealth-trend {
+    margin-top: auto;
+    min-height: 64px;
+  }
+  .wealth-trend svg {
+    width: 100%;
+    height: 64px;
+    display:block;
+  }
+  .overview-details-button {
+    width: 100%;
+    border-radius: 18px;
+    border: 1px solid rgba(110,166,255,.3);
+    background: rgba(15,25,48,.72);
+    color: #d9eaff;
+    font-weight: 700;
+    letter-spacing: .02em;
+    padding: 14px 16px;
+    margin: 0 0 18px;
+  }
+  .overview-details-page {
+    padding-bottom: 110px;
+  }
+  .overview-details-back {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: rgba(16,29,55,.86);
+    color: #fff;
+    font-size: 28px;
+    line-height: 1;
+  }
+  .header-subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  html[data-theme="light"] .wealth-card {
+    background: linear-gradient(180deg, rgba(238,244,252,.98), rgba(228,237,249,.98));
+    box-shadow: 0 10px 24px rgba(77,109,168,.10);
+  }
+  html[data-theme="light"] .wealth-card-net {
+    background: linear-gradient(135deg, rgba(242,232,255,.98), rgba(226,236,255,.98));
+  }
+  html[data-theme="light"] .wealth-card-title { color: #3c5a87; }
+  html[data-theme="light"] .wealth-card-value { color: #12203f; }
+  html[data-theme="light"] .wealth-card-value-green { color: #149d56; }
+  html[data-theme="light"] .wealth-card-trend .wealth-card-value { color: #1b315e; }
+  html[data-theme="light"] .mini-half-gauge-center .pct,
+  html[data-theme="light"] .wealth-inline-progress-labels { color: #173055; }
+  html[data-theme="light"] .overview-details-button {
+    background: rgba(231,239,250,.95);
+    color: #1a3b6b;
+  }
+  @media (max-width: 420px) {
+    .wealth-dashboard {
+      grid-template-columns: 1fr;
+    }
+    .wealth-card-net {
+      grid-column: auto;
+    }
+    .wealth-card {
+      min-height: 148px;
+    }
+    .mini-half-gauge {
+      width: 158px;
+      height: 102px;
+    }
+  }
+
+
+  /* v176 overview visual polish + fixes */
+  .wealth-card-blue {
+    background: linear-gradient(135deg, rgba(21,45,96,.98), rgba(16,32,68,.98));
+  }
+  .wealth-card-cash .wealth-trend-compact {
+    min-height: 54px;
+  }
+  .wealth-card-cash .wealth-trend-compact svg {
+    height: 54px;
+  }
+  .wealth-inline-progress-labels.no-status {
+    justify-content: space-between;
+  }
+  .wealth-inline-progress-labels.no-status .wealth-inline-progress-status {
+    display: none;
+  }
+  .overview-recent-widget {
+    margin-top: 8px;
+    border-radius: 24px;
+    border: 1px solid rgba(108,154,222,.24);
+    background: linear-gradient(180deg, rgba(24,39,72,.94), rgba(15,24,47,.96));
+    box-shadow: 0 14px 34px rgba(0,0,0,.16);
+    padding: 18px;
+  }
+  .overview-recent-widget .section-title {
+    margin-bottom: 6px;
+  }
+  .overview-recent-widget .overview-recent-hint {
+    color: rgba(197,215,245,.72);
+    margin-bottom: 14px;
+  }
+  .overview-recent-widget .tx-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .overview-recent-widget .tx-column {
+    border: 1px solid rgba(110,156,228,.16);
+    background: linear-gradient(180deg, rgba(27,44,82,.86), rgba(18,30,55,.86));
+    border-radius: 18px;
+    padding: 12px;
+    min-width: 0;
+  }
+  .overview-recent-widget .tx-col-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(86, 152, 255, .10);
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .overview-recent-widget .tx-item-compact {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(126,160,214,.12);
+    cursor: pointer;
+  }
+  .overview-recent-widget .tx-item-compact:active {
+    opacity: .85;
+  }
+  .overview-recent-widget .tx-merchant-compact {
+    font-weight: 700;
+  }
+  .overview-recent-widget .tx-meta-compact {
+    color: rgba(194,211,240,.72);
+  }
+  html[data-theme="light"] .overview-recent-widget {
+    background: linear-gradient(180deg, rgba(236,243,252,.98), rgba(229,237,249,.98));
+    box-shadow: 0 10px 28px rgba(77,109,168,.09);
+  }
+  html[data-theme="light"] .overview-recent-widget .overview-recent-hint,
+  html[data-theme="light"] .overview-recent-widget .tx-meta-compact {
+    color: #5c7093;
+  }
+  html[data-theme="light"] .overview-recent-widget .tx-column {
+    background: linear-gradient(180deg, rgba(244,248,252,.96), rgba(236,242,249,.96));
+  }
+  @media (max-width: 640px) {
+    .overview-recent-widget .tx-columns {
+      grid-template-columns: 1fr;
+    }
+  }
+
+
+  /* v177 overview dashboard sizing + Bank_Archive card-limit correctness */
+  .wealth-card-wide {
+    grid-column: 1 / -1;
+    min-height: 154px;
+  }
+  .wealth-card-wide .wealth-card-value {
+    font-size: clamp(30px, 9vw, 42px);
+    line-height: 1.02;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .wealth-card-blue {
+    background:
+      radial-gradient(circle at top right, rgba(88,166,255,.24), transparent 38%),
+      linear-gradient(135deg, rgba(22,47,96,.98), rgba(13,28,61,.98)) !important;
+  }
+  .wealth-card-gauge {
+    min-height: 186px;
+  }
+  .wealth-card-gauge .mini-half-gauge {
+    width: 158px;
+    height: 100px;
+  }
+  .wealth-card-gauge .mini-half-gauge-center .pct {
+    font-size: 27px;
+  }
+  .wealth-inline-progress-track {
+    background: #58a6ff !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+  }
+  .wealth-inline-progress-fill {
+    background: #72f6a5 !important;
+  }
+  .wealth-inline-progress-fill.is-ok {
+    background: #72f6a5 !important;
+  }
+  .wealth-inline-progress-fill.is-empty {
+    background: #58a6ff !important;
+  }
+  html[data-theme="light"] .wealth-inline-progress-track {
+    background: #60a5fa !important;
+  }
+  html[data-theme="light"] .wealth-inline-progress-fill {
+    background: #16a34a !important;
+  }
+
+
+
+  /* v178 overview final polish: compact money, clean cards, archive/nav safety */
+  .summary {
+    background:
+      radial-gradient(circle at top right, rgba(88,166,255,.18), transparent 42%),
+      linear-gradient(180deg, rgba(22,38,72,.96), rgba(13,26,52,.96)) !important;
+    border-color: rgba(88,166,255,.22) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,.18) !important;
+  }
+  .summary-val {
+    color: #dff4ff !important;
+    font-size: clamp(18px, 5.2vw, 23px) !important;
+    letter-spacing: -0.035em;
+  }
+  .summary-label {
+    color: rgba(199,218,246,.74) !important;
+    text-transform: uppercase;
+    letter-spacing: .08em !important;
+    font-weight: 800;
+  }
+  .summary-divider {
+    background: rgba(88,166,255,.18) !important;
+  }
+  .wealth-card-cash,
+  .wealth-card-trend {
+    min-height: 126px !important;
+  }
+  .wealth-card-cash .wealth-card-value,
+  .wealth-card-trend .wealth-card-value {
+    margin-top: auto;
+  }
+  .wealth-card-gauge .wealth-inline-progress-labels {
+    font-size: 12px !important;
+    letter-spacing: -0.045em;
+  }
+  .wealth-card-gauge .wealth-inline-progress-status {
+    font-size: 9px !important;
+    letter-spacing: .035em;
+  }
+  .wealth-inline-progress-track {
+    position: relative;
+    background: #58a6ff !important;
+  }
+  .wealth-inline-progress-fill {
+    background: #72f6a5 !important;
+  }
+  .wealth-inline-progress-fill.is-empty {
+    width: 0 !important;
+  }
+  .overview-recent-widget {
+    border-radius: 24px !important;
+    background:
+      radial-gradient(circle at top right, rgba(88,166,255,.16), transparent 42%),
+      linear-gradient(180deg, rgba(23,39,73,.96), rgba(12,23,45,.98)) !important;
+  }
+  .overview-recent-widget .section-title {
+    color: #8fdcff !important;
+    font-size: 12px !important;
+    letter-spacing: .12em !important;
+  }
+  .overview-recent-widget .tx-column {
+    background: rgba(9,18,36,.52) !important;
+    border-color: rgba(88,166,255,.16) !important;
+  }
+  .overview-recent-widget .tx-col-title {
+    width: 100%;
+    justify-content: center;
+    background: rgba(88,166,255,.12) !important;
+    border: 1px solid rgba(88,166,255,.18);
+  }
+  html[data-theme="light"] .summary {
+    background: linear-gradient(180deg, #ffffff 0%, #eaf3ff 100%) !important;
+    border-color: rgba(37,99,235,.16) !important;
+  }
+  html[data-theme="light"] .summary-val { color: #0b1220 !important; }
+  html[data-theme="light"] .summary-label { color: #31547d !important; }
+  html[data-theme="light"] .summary-divider { background: rgba(37,99,235,.14) !important; }
+
+
+  /* v179 Overview data + layout tuning */
+  .wealth-card-budget-linear {
+    min-height: 148px !important;
+  }
+  .wealth-linear-card-value {
+    margin-top: auto;
+    font-family: var(--font-mono);
+    font-size: clamp(14px, 3.8vw, 17px);
+    font-weight: 850;
+    letter-spacing: 0;
+    color: #f8fbff;
+    white-space: nowrap;
+  }
+  .wealth-card-budget-linear .wealth-inline-progress {
+    margin-top: 10px;
+    min-height: 58px;
+  }
+  .wealth-card-budget-linear .wealth-inline-progress-labels {
+    display: none !important;
+  }
+  .wealth-card-budget-linear .wealth-inline-progress-track {
+    display: none !important;
+  }
+  .wealth-budget-sparkline {
+    width: 100%;
+    height: 62px;
+  }
+  .wealth-budget-sparkline svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+  }
+  .wealth-budget-sparkline .budget-area {
+    opacity: .9;
+  }
+  .wealth-budget-sparkline .budget-line {
+    filter: drop-shadow(0 4px 8px rgba(114,246,165,.22));
+  }
+  .wealth-card-cash .wealth-trend,
+  .wealth-card-trend .wealth-trend {
+    display: none !important;
+  }
+  html[data-theme="light"] .wealth-linear-card-value {
+    color: #173055;
+  }
+
 </style>
 
-<link rel="manifest" href="./manifest.json?v=179">
+<link rel="manifest" href="./manifest.json?v=178">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
 <script>
 (function(){
-  var THEME_SHELL = {
-    dark: { color: '#020617', scheme: 'dark' },
-    light: { color: '#ffffff', scheme: 'light' }
-  };
-  function setThemeColor(value) {
-    var metas = Array.prototype.slice.call(document.querySelectorAll('meta[name="theme-color"]'));
-    var meta = metas[0];
-    if (!meta) {
-      meta = document.createElement('meta');
-      meta.setAttribute('name', 'theme-color');
-      document.head.appendChild(meta);
-    }
-    meta.removeAttribute('media');
-    meta.setAttribute('content', value);
-    metas.slice(1).forEach(function(extra) {
-      if (extra.parentNode) extra.parentNode.removeChild(extra);
-    });
-  }
-  function setMeta(name, value) {
-    var metas = Array.prototype.slice.call(document.querySelectorAll('meta[name="' + name + '"]'));
-    if (!metas.length) {
-      var meta = document.createElement('meta');
-      meta.setAttribute('name', name);
-      document.head.appendChild(meta);
-      metas = [meta];
-    }
-    metas.forEach(function(meta){ meta.setAttribute('content', value); });
-  }
   try {
     var defaultVersion = 'v104';
     if (localStorage.getItem('app_theme_default_version') !== defaultVersion) {
@@ -110,20 +561,9 @@
       localStorage.setItem('app_theme_default_version', defaultVersion);
     }
     var theme = localStorage.getItem('app_theme') === 'light' ? 'light' : 'dark';
-    var shell = THEME_SHELL[theme] || THEME_SHELL.dark;
     document.documentElement.setAttribute('data-theme', theme);
-    document.documentElement.style.backgroundColor = shell.color;
-    document.documentElement.style.colorScheme = shell.scheme;
-    document.documentElement.style.setProperty('--system-bar-color', shell.color);
-    document.documentElement.style.setProperty('--app-shell-bg', shell.color);
-    setThemeColor(shell.color);
-    setMeta('msapplication-navbutton-color', shell.color);
-    setMeta('color-scheme', shell.scheme);
-    setMeta('supported-color-schemes', 'dark light');
   } catch(e) {
     document.documentElement.setAttribute('data-theme', 'dark');
-    document.documentElement.style.backgroundColor = '#020617';
-    document.documentElement.style.colorScheme = 'dark';
   }
 })();
 </script>
@@ -1128,15 +1568,6 @@
   }
 
 
-  /* v172 account balance: negative current/debit balances are shown red and keep the minus sign */
-  .account-balance-value.is-negative-balance {
-    color: var(--danger) !important;
-  }
-  html[data-theme="light"] .account-balance-value.is-negative-balance {
-    color: #be123c !important;
-  }
-
-
   .account-balance-title-row {
     display: flex;
     align-items: center;
@@ -1154,29 +1585,16 @@
     color: var(--muted);
     font-family: var(--font-mono);
     font-size: 10px;
-    line-height: 1.25;
     font-weight: 800;
     border: 1px solid rgba(88,166,255,.16);
     background: rgba(88,166,255,.07);
-    border-radius: 12px;
-    padding: 5px 8px;
+    border-radius: 999px;
+    padding: 4px 8px;
     white-space: nowrap;
-    text-align: right;
   }
 
   .account-balance-fx-badge.show {
-    display: grid;
-    gap: 2px;
-  }
-
-  .account-balance-fx-date {
-    color: var(--muted);
-  }
-
-  .account-balance-fx-pairs {
-    color: var(--accent);
-    font-size: 9.5px;
-    letter-spacing: -0.025em;
+    display: inline-flex;
   }
   .account-balance-rollup-btn {
     width: 22px;
@@ -6289,92 +6707,6 @@ html[data-theme="light"] body::before {
   background: #ffffff !important;
 }
 
-/* v164 Android/PWA system bar hardening: full-width shell behind status/nav bars */
-:root {
-  --system-bar-color: #020617;
-  --app-shell-bg: #020617;
-}
-
-html[data-theme="dark"],
-html:not([data-theme="light"]) {
-  --system-bar-color: #020617;
-  --app-shell-bg: #020617;
-  color-scheme: dark !important;
-  background: #020617 !important;
-  background-color: #020617 !important;
-}
-
-html[data-theme="light"] {
-  --system-bar-color: #ffffff;
-  --app-shell-bg: #ffffff;
-  color-scheme: light !important;
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-}
-
-html::before {
-  content: "";
-  position: fixed;
-  z-index: 2147483000;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: max(30px, env(safe-area-inset-top));
-  background: var(--system-bar-color, #020617) !important;
-  pointer-events: none;
-  transform: translateZ(0);
-}
-
-html::after {
-  content: "";
-  position: fixed;
-  z-index: 79;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: max(46px, calc(34px + env(safe-area-inset-bottom)));
-  background: var(--system-bar-color, #020617) !important;
-  pointer-events: none;
-  transform: translateZ(0);
-}
-
-body::before,
-.android-system-bar-bg {
-  background: var(--system-bar-color, #020617) !important;
-}
-
-.android-system-bar-bg {
-  position: fixed !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  height: max(86px, calc(62px + env(safe-area-inset-bottom))) !important;
-  z-index: 79 !important;
-  pointer-events: none !important;
-}
-
-.bottom-nav {
-  z-index: 120 !important;
-}
-
-html.android-device[data-theme="dark"],
-html.android-device:not([data-theme="light"]),
-html.android-device[data-theme="dark"] body,
-html.android-device:not([data-theme="light"]) body,
-html.android-device[data-theme="dark"] .bottom-nav,
-html.android-device:not([data-theme="light"]) .bottom-nav,
-html.android-device[data-theme="dark"] .android-system-bar-bg,
-html.android-device:not([data-theme="light"]) .android-system-bar-bg {
-  color-scheme: dark !important;
-}
-
-html.android-device[data-theme="light"],
-html.android-device[data-theme="light"] body,
-html.android-device[data-theme="light"] .bottom-nav,
-html.android-device[data-theme="light"] .android-system-bar-bg {
-  color-scheme: light !important;
-}
-
 
   /* v143 archive readability + save/delete center toast polish */
   .archive-bank-spent-header,
@@ -6450,6 +6782,345 @@ html.android-device[data-theme="light"] .android-system-bar-bg {
   html[data-theme="light"] .tx-item.tx-credit-repayment .tx-amount {
     color: #64748b !important;
   }
+
+
+  /* v180 overview data source + tab theme unification */
+  #page-txns .txn-filter-topbar,
+  #page-txns .txn-advanced-card,
+  #page-txns .txn-cashflow-card,
+  #page-archive .archive-trend-card,
+  #page-archive .archive-container,
+  #page-settings .theme-mode-card,
+  #page-settings .settings-plan-row,
+  #page-settings .push-toggle-card,
+  #page-settings .config-banner,
+  #page-settings .sheets-toggle-card,
+  #page-settings .manager-tabs,
+  #page-settings .managed-bank-row,
+  .overview-details-page .budget-status,
+  .overview-details-page .card-widget {
+    background: linear-gradient(180deg, rgba(23,39,73,.96), rgba(12,23,45,.98)) !important;
+    border: 1px solid rgba(88,166,255,.18) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,.18) !important;
+  }
+
+  #page-txns .tx-item,
+  #page-archive .archive-item {
+    background: rgba(9,18,36,.50) !important;
+    border: 1px solid rgba(88,166,255,.12) !important;
+    border-radius: 18px !important;
+    margin-bottom: 10px !important;
+    box-shadow: 0 10px 24px rgba(0,0,0,.12) !important;
+  }
+
+  #page-txns .txn-day-header,
+  #page-archive .archive-month-top,
+  #page-settings .section-title,
+  .overview-details-page .section-title,
+  .overview-details-page .budget-status-title {
+    color: #8fdcff !important;
+    letter-spacing: 0 !important;
+  }
+
+  #page-txns .cat-chip,
+  #page-txns .txn-filter-pill,
+  #page-settings .theme-mode-toggle button,
+  #page-settings .config-input,
+  #page-settings .toggle-switch,
+  #page-settings .sheets-toggle-switch {
+    background: rgba(88,166,255,.10) !important;
+    border-color: rgba(88,166,255,.20) !important;
+  }
+
+  #page-txns .cat-chip.active,
+  #page-txns .txn-filter-pill.active,
+  #page-settings .theme-mode-toggle button.active,
+  #page-settings .toggle-switch.on,
+  #page-settings .sheets-toggle-switch.on {
+    background: rgba(114,246,165,.16) !important;
+    border-color: rgba(114,246,165,.34) !important;
+    color: #dfffee !important;
+  }
+
+  #page-txns .config-input,
+  #page-settings .config-input {
+    color: #f8fbff !important;
+  }
+
+  #page-archive .archive-bank-spent-header,
+  #page-archive .archive-bank-spent-row {
+    border-color: rgba(88,166,255,.12) !important;
+  }
+
+  html[data-theme="light"] #page-txns .txn-filter-topbar,
+  html[data-theme="light"] #page-txns .txn-advanced-card,
+  html[data-theme="light"] #page-txns .txn-cashflow-card,
+  html[data-theme="light"] #page-archive .archive-trend-card,
+  html[data-theme="light"] #page-archive .archive-container,
+  html[data-theme="light"] #page-settings .theme-mode-card,
+  html[data-theme="light"] #page-settings .settings-plan-row,
+  html[data-theme="light"] #page-settings .push-toggle-card,
+  html[data-theme="light"] #page-settings .config-banner,
+  html[data-theme="light"] #page-settings .sheets-toggle-card,
+  html[data-theme="light"] #page-settings .manager-tabs,
+  html[data-theme="light"] #page-settings .managed-bank-row,
+  html[data-theme="light"] .overview-details-page .budget-status,
+  html[data-theme="light"] .overview-details-page .card-widget {
+    background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(234,243,255,.98)) !important;
+    border-color: rgba(37,99,235,.14) !important;
+    box-shadow: 0 10px 28px rgba(77,109,168,.09) !important;
+  }
+
+  html[data-theme="light"] #page-txns .tx-item,
+  html[data-theme="light"] #page-archive .archive-item {
+    background: rgba(255,255,255,.92) !important;
+    border-color: rgba(37,99,235,.10) !important;
+    box-shadow: 0 8px 20px rgba(77,109,168,.08) !important;
+  }
+
+  html[data-theme="light"] #page-txns .txn-day-header,
+  html[data-theme="light"] #page-archive .archive-month-top,
+  html[data-theme="light"] #page-settings .section-title,
+  html[data-theme="light"] .overview-details-page .section-title,
+  html[data-theme="light"] .overview-details-page .budget-status-title {
+    color: #1d4ed8 !important;
+  }
+
+  html[data-theme="light"] #page-txns .cat-chip,
+  html[data-theme="light"] #page-txns .txn-filter-pill,
+  html[data-theme="light"] #page-settings .theme-mode-toggle button,
+  html[data-theme="light"] #page-settings .config-input,
+  html[data-theme="light"] #page-settings .toggle-switch,
+  html[data-theme="light"] #page-settings .sheets-toggle-switch {
+    background: rgba(37,99,235,.08) !important;
+    border-color: rgba(37,99,235,.16) !important;
+    color: #173055 !important;
+  }
+
+  html[data-theme="light"] #page-txns .cat-chip.active,
+  html[data-theme="light"] #page-txns .txn-filter-pill.active,
+  html[data-theme="light"] #page-settings .theme-mode-toggle button.active,
+  html[data-theme="light"] #page-settings .toggle-switch.on,
+  html[data-theme="light"] #page-settings .sheets-toggle-switch.on {
+    background: rgba(22,163,74,.12) !important;
+    border-color: rgba(22,163,74,.28) !important;
+    color: #166534 !important;
+  }
+
+  /* v181 credit-card limit bar + overview-style tab finish */
+  .wealth-inline-progress-track {
+    background: linear-gradient(90deg, rgba(88,166,255,.58), rgba(56,139,255,.34)) !important;
+    box-shadow: inset 0 0 0 1px rgba(88,166,255,.16) !important;
+  }
+
+  .wealth-inline-progress-fill {
+    background: linear-gradient(90deg, #72f6a5 0%, #4ade80 100%) !important;
+  }
+
+  .wealth-inline-progress-fill.is-empty {
+    background: #58a6ff !important;
+  }
+
+  .wealth-credit-progress-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    font-family: var(--font-mono);
+  }
+
+  .wealth-credit-progress-pair {
+    min-width: 0;
+    color: #f4fbff;
+    font-size: 14px;
+    font-weight: 900;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .wealth-credit-progress-status {
+    flex: 0 1 auto;
+    max-width: 50%;
+    color: #86d8ff;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .04em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .wealth-credit-progress-status.is-ok {
+    color: #72f6a5;
+  }
+
+  .wealth-credit-progress-track {
+    height: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(88,166,255,.22);
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(88,166,255,.90), rgba(56,139,255,.58));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+  }
+
+  .wealth-credit-progress-used {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #72f6a5 0%, #4ade80 100%);
+    box-shadow: 0 0 18px rgba(114,246,165,.18);
+  }
+
+  .wealth-credit-progress-used.is-empty {
+    width: 0 !important;
+  }
+
+  #page-txns .txn-filter-topbar,
+  #page-txns .txn-advanced-card,
+  #page-txns .txn-cashflow-card,
+  #page-archive .archive-trend-card,
+  #page-archive .archive-container,
+  #page-settings .settings-locale-row,
+  #page-settings .theme-mode-card,
+  #page-settings .settings-plan-row,
+  #page-settings .push-toggle-card,
+  #page-settings .config-banner,
+  #page-settings .sheets-toggle-card,
+  #page-settings .app-info-card,
+  #page-settings .manager-tabs,
+  #page-settings .managed-bank-row,
+  .bottom-sheet {
+    background: linear-gradient(180deg, rgba(23,39,73,.97), rgba(9,19,38,.99)) !important;
+    border-color: rgba(88,166,255,.18) !important;
+    box-shadow: 0 16px 40px rgba(0,0,0,.20) !important;
+  }
+
+  #page-settings .settings-locale-row {
+    margin: 0 20px 18px;
+    padding: 16px;
+    border: 1px solid rgba(88,166,255,.18);
+    border-radius: 24px;
+  }
+
+  #page-settings .app-info-card {
+    border: 1px solid rgba(88,166,255,.18);
+    border-radius: 24px;
+  }
+
+  #page-txns #txn-list {
+    margin: 0 20px 110px !important;
+  }
+
+  #page-txns .tx-item,
+  #page-archive .archive-item {
+    padding: 13px 14px !important;
+    background: linear-gradient(180deg, rgba(13,27,53,.86), rgba(8,17,35,.92)) !important;
+    border: 1px solid rgba(88,166,255,.12) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 10px 24px rgba(0,0,0,.12) !important;
+  }
+
+  #page-txns .tx-icon,
+  #page-settings .managed-bank-icon {
+    background: rgba(88,166,255,.12) !important;
+    border: 1px solid rgba(88,166,255,.18) !important;
+    border-radius: 12px !important;
+    color: #86d8ff !important;
+  }
+
+  #page-txns .filter-group-title,
+  #page-archive .archive-hint,
+  #page-settings label,
+  #page-settings .theme-mode-sub,
+  #page-settings .sheets-toggle-sub {
+    color: #9db9d8 !important;
+  }
+
+  #page-settings .managed-bank-form {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(88,166,255,.12);
+  }
+
+  #page-settings .managed-bank-monthly-settings {
+    padding: 12px;
+    border: 1px solid rgba(88,166,255,.12);
+    border-radius: 18px;
+    background: rgba(8,17,35,.38);
+  }
+
+  #page-txns .empty-state,
+  #page-archive .empty-state {
+    margin: 0 20px 110px;
+    border: 1px solid rgba(88,166,255,.14);
+    border-radius: 22px;
+    background: rgba(9,19,38,.72);
+  }
+
+  html[data-theme="light"] .wealth-credit-progress-pair {
+    color: #173055;
+  }
+
+  html[data-theme="light"] .wealth-credit-progress-status {
+    color: #2563eb;
+  }
+
+  html[data-theme="light"] .wealth-credit-progress-status.is-ok {
+    color: #15803d;
+  }
+
+  html[data-theme="light"] .wealth-credit-progress-track {
+    background: linear-gradient(90deg, rgba(37,99,235,.42), rgba(96,165,250,.25));
+    border-color: rgba(37,99,235,.16);
+  }
+
+  html[data-theme="light"] .wealth-credit-progress-used,
+  html[data-theme="light"] .wealth-inline-progress-fill {
+    background: linear-gradient(90deg, #16a34a 0%, #22c55e 100%) !important;
+  }
+
+  html[data-theme="light"] #page-txns .txn-filter-topbar,
+  html[data-theme="light"] #page-txns .txn-advanced-card,
+  html[data-theme="light"] #page-txns .txn-cashflow-card,
+  html[data-theme="light"] #page-archive .archive-trend-card,
+  html[data-theme="light"] #page-archive .archive-container,
+  html[data-theme="light"] #page-settings .settings-locale-row,
+  html[data-theme="light"] #page-settings .theme-mode-card,
+  html[data-theme="light"] #page-settings .settings-plan-row,
+  html[data-theme="light"] #page-settings .push-toggle-card,
+  html[data-theme="light"] #page-settings .config-banner,
+  html[data-theme="light"] #page-settings .sheets-toggle-card,
+  html[data-theme="light"] #page-settings .app-info-card,
+  html[data-theme="light"] #page-settings .manager-tabs,
+  html[data-theme="light"] #page-settings .managed-bank-row,
+  html[data-theme="light"] .bottom-sheet {
+    background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(235,244,255,.98)) !important;
+    border-color: rgba(37,99,235,.14) !important;
+    box-shadow: 0 12px 30px rgba(77,109,168,.10) !important;
+  }
+
+  html[data-theme="light"] #page-txns .tx-item,
+  html[data-theme="light"] #page-archive .archive-item {
+    background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(240,247,255,.94)) !important;
+    border-color: rgba(37,99,235,.11) !important;
+  }
+
+  html[data-theme="light"] #page-txns .tx-icon,
+  html[data-theme="light"] #page-settings .managed-bank-icon {
+    background: rgba(37,99,235,.08) !important;
+    border-color: rgba(37,99,235,.16) !important;
+    color: #2563eb !important;
+  }
+
+  html[data-theme="light"] #page-settings .managed-bank-monthly-settings,
+  html[data-theme="light"] #page-txns .empty-state,
+  html[data-theme="light"] #page-archive .empty-state {
+    background: rgba(255,255,255,.78);
+    border-color: rgba(37,99,235,.12);
+  }
 </style>
 </head>
 <body>
@@ -6487,7 +7158,75 @@ html.android-device[data-theme="light"] .android-system-bar-bg {
     </div>
   </div>
 
-  <div class="account-balance-title-row">
+  <div id="overview-dashboard" class="wealth-dashboard">
+    <button class="wealth-card wealth-card-net wealth-card-blue" type="button" onclick="openOverviewDetailsSection('account-balance-anchor')">
+      <div class="wealth-card-head">
+        <div class="wealth-card-title">Total net worth</div>
+      </div>
+      <div class="wealth-card-value" id="overview-net-worth">0 Kč</div>
+    </button>
+
+    <button class="wealth-card wealth-card-cash wealth-card-wide" type="button" onclick="openOverviewDetailsSection('account-balance-anchor')">
+      <div class="wealth-card-head">
+        <div class="wealth-card-title">Available cash</div>
+        <div class="wealth-card-icon" aria-hidden="true">💶</div>
+      </div>
+      <div class="wealth-card-value wealth-card-value-green" id="overview-available-cash">0 Kč</div>
+    </button>
+
+    <button class="wealth-card wealth-card-gauge" type="button" onclick="openOverviewDetailsSection('card-limits-anchor')">
+      <div class="wealth-card-head">
+        <div class="wealth-card-title">Bank card limits</div>
+        <div class="wealth-card-icon" aria-hidden="true">💳</div>
+      </div>
+      <div id="overview-card-limits-gauge" class="mini-gauge-wrap"></div>
+      <div id="overview-card-limits-line" class="wealth-inline-progress"></div>
+    </button>
+
+    <button id="overview-credit-widget" class="wealth-card wealth-card-gauge" type="button" onclick="openOverviewDetailsSection('account-balance-anchor')" style="display:none;">
+      <div class="wealth-card-head">
+        <div class="wealth-card-title">Credit card</div>
+        <div class="wealth-card-icon" aria-hidden="true">🪪</div>
+      </div>
+      <div id="overview-credit-gauge" class="mini-gauge-wrap"></div>
+      <div id="overview-credit-line" class="wealth-inline-progress"></div>
+    </button>
+
+    <button class="wealth-card wealth-card-gauge wealth-card-budget-linear" type="button" onclick="openOverviewDetailsSection('bank-budget-anchor')">
+      <div class="wealth-card-head">
+        <div class="wealth-card-title">Bank budget</div>
+        <div class="wealth-card-icon" aria-hidden="true">◎</div>
+      </div>
+      <div class="wealth-linear-card-value" id="overview-bank-budget-value">0 Kč / 0 Kč</div>
+      <div id="overview-bank-budget-line" class="wealth-inline-progress"></div>
+    </button>
+
+    <button class="wealth-card wealth-card-trend" type="button" onclick="openOverviewDetailsSection('account-balance-anchor')">
+      <div class="wealth-card-head">
+        <div class="wealth-card-title">Hotovosť</div>
+        <div class="wealth-card-icon" aria-hidden="true">💵</div>
+      </div>
+      <div class="wealth-card-value" id="overview-cash-total">0 Kč</div>
+    </button>
+  </div>
+
+  <button class="overview-details-button" type="button" onclick="openOverviewDetailsSection()">Open details</button>
+
+
+</div>
+
+<div id="page-overview-details" class="page overview-details-page">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="overview-details-back" type="button" onclick="closeOverviewDetails()" aria-label="Back">‹</button>
+      <div>
+        <div class="header-title">Overview details</div>
+        <div class="header-subtitle" id="overview-details-month">Month details</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="account-balance-anchor" class="account-balance-title-row">
     <div class="section-title" data-i18n="accountBalanceTitle">Zostatok na účte</div>
     <div style="display:flex;align-items:center;gap:8px;">
       <button id="account-balance-privacy-btn" class="account-balance-privacy-btn" type="button" onclick="toggleAccountBalancePrivacy()" title="Hide balances" aria-label="Hide balances"></button>
@@ -6496,17 +7235,12 @@ html.android-device[data-theme="light"] .android-system-bar-bg {
   </div>
   <div id="account-balance-widget" class="budget-status" style="margin-top:0;"></div>
 
-  <div class="section-title" data-i18n="bankCardLimitsTitle">Bank card limits</div>
+  <div id="card-limits-anchor" class="section-title" data-i18n="bankCardLimitsTitle" style="margin-top:18px;">Bank card limits</div>
   <div id="cards-container"></div>
   <div id="csob-container"></div>
 
-  <div id="budget-status" class="budget-status" style="margin-top:18px;"></div>  <div class="overview-recent-widget">
-    <div class="section-title" data-i18n="recentTransactions">recent transactions</div>
-    <div class="overview-recent-hint" data-i18n="tapRecentBank">Tap a bank name to open its transactions.</div>
-    <div class="tx-columns" id="recent-bank-columns"></div>
-  </div>
-
-
+  <div id="bank-budget-anchor"></div>
+  <div id="budget-status" class="budget-status" style="margin-top:18px;"></div>
 </div>
 
 <div id="page-txns" class="page">
@@ -6994,8 +7728,8 @@ html.android-device[data-theme="light"] .android-system-bar-bg {
 // ── CONFIG & HISTÓRIA LIMITOV ──────────────────────────────
 const DEFAULT_SHEETS_URL = '';
 const DEFAULT_LIMITS_WEBAPP_URL = '';
-let SHEETS_URL = localStorage.getItem('sheets_url') || '';
-let LIMITS_WEBAPP_URL = localStorage.getItem('limits_webapp_url') || '';
+let SHEETS_URL = localStorage.getItem('sheets_url') || DEFAULT_SHEETS_URL || '';
+let LIMITS_WEBAPP_URL = localStorage.getItem('limits_webapp_url') || DEFAULT_LIMITS_WEBAPP_URL || '';
 let RB_LIMIT = parseInt(localStorage.getItem('rb_limit') || '10');
 let CSOB_LIMIT = parseInt(localStorage.getItem('csob_limit') || '5');
 let limitsHistory = JSON.parse(localStorage.getItem('limits_history') || '{}');
@@ -7320,6 +8054,58 @@ function getLimitsForMonth(monthStr) {
     airBankCz: saved.airBankCz ?? 0
   };
 }
+
+function getMonthlyCardLimitStorageKey(bankKey, monthStr = getAktuálneMonth()) {
+  return 'bank_card_limit_' + String(bankKey || '').trim() + '_' + normalizeMonthStr(monthStr || getAktuálneMonth());
+}
+
+function setMonthlyCardLimitForBank(bankKey, limit, monthStr = getAktuálneMonth()) {
+  const id = String(bankKey || '').trim();
+  if (!id) return false;
+  const numeric = Number(limit || 0) || 0;
+  localStorage.setItem(getMonthlyCardLimitStorageKey(id, monthStr), String(numeric));
+  return true;
+}
+
+function getMonthlyCardLimitForBank(bankKey, monthStr = getAktuálneMonth()) {
+  const id = String(bankKey || '').trim();
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const explicit = localStorage.getItem(getMonthlyCardLimitStorageKey(id, month));
+  if (explicit !== null) return Number(explicit || 0) || 0;
+
+  const bank = getBankInfo(id);
+  const limits = getLimitsForMonth(month);
+  if (bank && bank.limitKey) return Number(limits[bank.limitKey] ?? bank.defaultLimit ?? 0) || 0;
+
+  const custom = getCustomBanks().find(b => b && b.id === id);
+  return Number(custom?.cardLimit || custom?.limit || 0) || 0;
+}
+
+function getCreditCardLimitStorageKey(bankKey = 'csob_cz_credit', monthStr = getAktuálneMonth()) {
+  return 'bank_credit_card_limit_' + String(bankKey || 'csob_cz_credit').trim() + '_' + normalizeMonthStr(monthStr || getAktuálneMonth());
+}
+
+function setCreditCardLimitForBank(bankKey, limit, monthStr = getAktuálneMonth()) {
+  const id = String(bankKey || 'csob_cz_credit').trim();
+  if (!id) return false;
+  const numeric = Number(limit || 0) || 0;
+  localStorage.setItem(getCreditCardLimitStorageKey(id, monthStr), String(numeric));
+  return true;
+}
+
+function getCreditCardLimitForBank(bankKey = 'csob_cz_credit', monthStr = getAktuálneMonth()) {
+  const id = String(bankKey || 'csob_cz_credit').trim();
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const testSetting = getLocalTestOverviewBankSetting(id, month);
+  if (testSetting && testSetting.creditCardLimit !== undefined) return Number(testSetting.creditCardLimit || 0) || 0;
+  const explicit = localStorage.getItem(getCreditCardLimitStorageKey(id, month));
+  if (explicit !== null) return Number(explicit || 0) || 0;
+  const legacy = localStorage.getItem('bank_credit_card_limit_' + id);
+  if (legacy !== null) return Number(legacy || 0) || 0;
+  const custom = getCustomBanks().find(b => b && b.id === id);
+  return Number(custom?.creditCardLimit || custom?.creditLimit || 0) || 0;
+}
+
 
 function getMonthFromDate(dateObj) {
   return `${String(dateObj.getMonth()+1).padStart(2,'0')}/${dateObj.getFullYear()}`;
@@ -7667,6 +8453,14 @@ function clearCloudFirstLocalData() {
   } catch (e) {}
 }
 
+function normalizeTransactionCurrency(tx) {
+  if (!tx) return tx;
+  return {
+    ...tx,
+    currency: normalizeCurrencyForStorage(tx.currency || 'CZK')
+  };
+}
+
 
 function loadCachedTransactionsSnapshot() {
   try {
@@ -7729,12 +8523,6 @@ function formatCurrencyAmount(amount, currency) {
   return `${value} ${symbol}`;
 }
 
-function formatSignedCurrencyAmount(amount, currency) {
-  const n = Number(amount) || 0;
-  const formatted = formatCurrencyAmount(Math.abs(n), currency);
-  return n < 0 ? `-${formatted}` : formatted;
-}
-
 
 function getTransactionAccountCurrency(tx) {
   const bankKey = getBankKey(tx);
@@ -7776,30 +8564,6 @@ function formatFxDateShort(dateStr) {
   return `${Number(match[3])}.${Number(match[2])}.${String(match[1]).slice(-2)}`;
 }
 
-function getAccountBalanceFxPairsForBadge() {
-  const target = currencyCode(getAppCurrency() || 'CZK');
-  const symbolMap = { EUR: '€', CZK: 'Kč', USD: '$', GBP: '£' };
-  const labelFor = (curr) => symbolMap[curr] || curr;
-  const currencies = new Set();
-
-  try {
-    getAllManagedBanksForBalance().forEach(bank => {
-      const curr = currencyCode(bank.currency || 'CZK');
-      if (curr && curr !== target) currencies.add(curr);
-    });
-  } catch (_) {}
-
-  return Array.from(currencies).sort().map(curr => {
-    const rate = convertAmountCurrency(1, curr, target);
-    const decimals = rate >= 10 ? 2 : 4;
-    const formattedRate = Number(rate || 0).toLocaleString('sk-SK', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals
-    });
-    return `${labelFor(target)}/${labelFor(curr)} ${formattedRate}`;
-  });
-}
-
 function updateAccountBalanceFxBadge() {
   const badge = document.getElementById('account-balance-fx-badge');
   if (!badge) return;
@@ -7808,11 +8572,7 @@ function updateAccountBalanceFxBadge() {
     badge.classList.remove('show');
     return;
   }
-  const pairs = getAccountBalanceFxPairsForBadge();
-  badge.innerHTML = `
-    <div class="account-balance-fx-date">FX ${escapeHtml(formatFxDateShort(fxRatesDate))}</div>
-    ${pairs.length ? `<div class="account-balance-fx-pairs">${escapeHtml(pairs.join(' · '))}</div>` : ''}
-  `;
+  badge.textContent = `FX ${formatFxDateShort(fxRatesDate)}`;
   badge.classList.add('show');
 }
 
@@ -7822,7 +8582,7 @@ function getCzkEquivalentText(amount, currency) {
   if (curr === target) return '';
   const converted = convertAmountCurrency(amount, curr, target);
   if (converted === Math.abs(Number(amount) || 0)) return '';
-  return `≈ ${formatSignedCurrencyAmount(converted, target)}`;
+  return `≈ ${formatCurrencyAmount(converted, target)}`;
 }
 
 function getCurrencyTotals(txns) {
@@ -7911,7 +8671,65 @@ function buildGvizUrl(spreadsheetId, sheetName) {
   return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json;reqId=${cacheBust}&headers=1&sheet=${encodeURIComponent(sheetName)}&tq=${encodeURIComponent('select *')}&cacheBust=${cacheBust}`;
 }
 
+function isGoogleSheetsGvizUrl(url) {
+  return /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[^/]+\/gviz\/tq/i.test(String(url || ''));
+}
+
+function fetchGvizViaJsonp(url, timeoutMs = 20000) {
+  return new Promise((resolve, reject) => {
+    const callbackName = `__btGvizCb_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement('script');
+    let done = false;
+    let timer = null;
+    const cleanup = () => {
+      window.clearTimeout(timer);
+      try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
+      if (script.parentNode) script.parentNode.removeChild(script);
+    };
+    const finish = (data, error = null) => {
+      if (done) return;
+      done = true;
+      cleanup();
+      if (error) {
+        reject(error);
+        return;
+      }
+      const ok = !!data && data.status !== 'error';
+      const raw = `google.visualization.Query.setResponse(${JSON.stringify(data || {})});`;
+      resolve({
+        ok,
+        status: ok ? 200 : 400,
+        text: async () => raw,
+        json: async () => data
+      });
+    };
+
+    window[callbackName] = (data) => finish(data);
+    script.onerror = () => finish(null, new Error('Google Sheets JSONP script load failed'));
+
+    try {
+      const gvizUrl = new URL(url);
+      const rawTqx = gvizUrl.searchParams.get('tqx') || 'out:json';
+      const tqx = rawTqx
+        .split(';')
+        .map(part => part.trim())
+        .filter(part => part && !/^responseHandler:/i.test(part))
+        .join(';') || 'out:json';
+      gvizUrl.searchParams.set('tqx', `${tqx};responseHandler:${callbackName}`);
+      gvizUrl.searchParams.set('cacheBust', String(Date.now()) + '_' + Math.random().toString(36).slice(2));
+      script.src = gvizUrl.toString();
+      document.head.appendChild(script);
+      timer = window.setTimeout(() => finish(null, new Error('Google Sheets JSONP timeout')), timeoutMs);
+    } catch (e) {
+      finish(null, e);
+    }
+  });
+}
+
 async function fetchNoStore(url) {
+  if (isGoogleSheetsGvizUrl(url)) {
+    return fetchGvizViaJsonp(url);
+  }
   return fetch(url, {
     cache: 'no-store',
     headers: {
@@ -8019,6 +8837,11 @@ async function syncData() {
   }
 
   if (!SHEETS_URL || isSyncing) {
+    if (!SHEETS_URL) {
+      const loadStatus = document.getElementById('limits-sync-status');
+      if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
+      console.warn('Google Sheets sync skipped: missing sheets_url for this origin.');
+    }
     if (!allTransactions.length) loadCachedTransactionsSnapshot();
     renderAll();
     applyLanguage();
@@ -8488,6 +9311,8 @@ function resetSimFields() {
 
 
 function getTransactionPaymentKind(tx) {
+  const explicitKind = normalizePaymentKindValue(tx?.paymentKind || '');
+  if (explicitKind === 'card' || explicitKind === 'account' || explicitKind === 'cash') return explicitKind;
   const card = String(tx?.card || '');
   const type = String(tx?.type || '');
   const category = String(tx?.category || '');
@@ -8535,6 +9360,15 @@ function getTransactionPaymentKind(tx) {
   }
 
   return 'card';
+}
+
+function normalizePaymentKindValue(value) {
+  const text = String(value || '').trim().toLowerCase();
+  if (!text || text === 'all') return text;
+  if (text.includes('cash') || text.includes('hotov')) return 'cash';
+  if (text.includes('account') || text.includes('transfer') || text.includes('ucet') || text.includes('uctu') || text.includes('bankomat')) return 'account';
+  if (text.includes('card') || text.includes('karta')) return 'card';
+  return text === 'cash' || text === 'account' || text === 'card' ? text : 'card';
 }
 
 function isCardTransaction(tx) {
@@ -8776,7 +9610,7 @@ function pushTabHistory(pageId) {
 
 function getTransactionsByBank(monthOnly = true, cardOnly = false, includeIncoming = false) {
   const month = getAktuálneMonth();
-  let base = allTransactions.filter(t => (includeIncoming || Number(t.amount) < 0) && (!monthOnly || t.month === month));
+  let base = allTransactions.filter(t => (includeIncoming || Number(t.amount) < 0) && (!monthOnly || normalizeMonthStr(t.month) === normalizeMonthStr(month)));
 
   if (cardOnly) {
     base = base.filter(t => isCardTransaction(t));
@@ -8915,9 +9749,11 @@ function renderBudgetStatus() {
     .filter(bankKey => bankKey !== 'csob_cz_credit')
     .map(bankKey => {
     const bank = BANKS[bankKey];
-    const { budget, warning } = getBudgetSettingsForBank(bankKey);
+    const month = getAktuálneMonth();
+    const budget = getOverviewBudgetLimitForBank(bankKey, month);
+    const warning = getOverviewBudgetWarningForBank(bankKey, month);
     const budgetCurrency = getBankBudgetCurrency(bankKey);
-    const spent = getCurrentMonthSpentInBankCurrency(bankKey);
+    const spent = getOverviewBudgetSpentForBank(bankKey, month);
 
     if (!budget) {
       return `
@@ -9154,7 +9990,8 @@ function getCreditOutstandingCurrency(id) {
   return config ? getCreditBalanceSubaccountData(config).currency : 'CZK';
 }
 
-function getAllManagedBanksForBalance() {
+function getAllManagedBanksForBalance(monthStr = getAktuálneMonth()) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
   const system = BANK_ORDER.map(k => {
     const info = getBankInfo(k);
     return {
@@ -9163,7 +10000,7 @@ function getAllManagedBanksForBalance() {
       logo: bankLogoImg(k),
       color: info?.color || 'var(--accent)',
       currency: getBankBalanceCurrency(k),
-      balance: getAccountBalance(k),
+      balance: getLatestStoredAccountBalanceForBank(k, month),
       type: info?.primaryType || 'account',
       liability: info?.primaryType === 'credit' || k === 'csob_cz_credit'
     };
@@ -9177,7 +10014,7 @@ function getAllManagedBanksForBalance() {
       logo: '🏦',
       color: 'var(--accent)',
       currency: b.currency || 'CZK',
-      balance: getAccountBalance(b.id),
+      balance: getLatestStoredAccountBalanceForBank(b.id, month),
       type: b.type || 'account',
       liability: b.type === 'credit' || b.id === 'csob_cz_credit'
     }));
@@ -9221,7 +10058,7 @@ function renderAccountBalanceWidget() {
     if (!expanded) return sum;
     return sum + children.reduce((childSum, child) => {
       const value = convertAmountCurrency(child.balance || 0, child.currency || targetCurrency, targetCurrency);
-      return childSum - value;
+      return childSum - Math.abs(value);
     }, 0);
   }, 0);
 
@@ -9233,16 +10070,15 @@ function renderAccountBalanceWidget() {
             <div class="budget-status-note">${escapeHtml(t('accountBalanceTotalHint'))}</div>
           </div>
           <div class="account-balance-value-wrap">
-            <div class="budget-status-value account-balance-value ${totalBalance < 0 ? 'is-negative-balance' : ''}">${escapeHtml(maskAccountBalanceValue(formatSignedCurrencyAmount(totalBalance, targetCurrency)))}</div>
+            <div class="budget-status-value account-balance-value">${escapeHtml(maskAccountBalanceValue(formatCurrencyAmount(totalBalance, targetCurrency)))}</div>
           </div>
         </div>
       </div>` : '';
 
   const renderSubaccountRow = (item) => {
     const currency = item.currency || 'CZK';
-    const value = formatSignedCurrencyAmount(item.balance || 0, currency);
+    const value = formatCurrencyAmount(item.balance || 0, currency);
     const czkEquivalent = getCzkEquivalentText(item.balance || 0, currency);
-    const isNegativeBalance = Number(item.balance || 0) < 0 && !item.liability;
     return `
       <div class="budget-bank-row account-balance-row account-balance-sub-row" style="padding:9px 0 9px 18px;border-bottom:1px solid var(--border);">
         <div class="budget-status-main">
@@ -9250,7 +10086,7 @@ function renderAccountBalanceWidget() {
             <div class="budget-status-value account-balance-name" style="color:var(--accent);font-size:14px;">└ ${escapeHtml(item.name)}</div>
           </div>
           <div class="account-balance-value-wrap">
-            <div class="budget-status-value account-balance-value ${isNegativeBalance ? 'is-negative-balance' : ''}" style="color:${isNegativeBalance ? 'var(--danger)' : 'var(--accent)'};">${escapeHtml(maskAccountBalanceValue(value))}</div>
+            <div class="budget-status-value account-balance-value" style="color:var(--accent);">${escapeHtml(maskAccountBalanceValue(value))}</div>
             ${maskAccountBalanceNote(czkEquivalent) ? `<div class="budget-status-note account-balance-equivalent">${escapeHtml(czkEquivalent)}</div>` : ''}
           </div>
         </div>
@@ -9259,9 +10095,8 @@ function renderAccountBalanceWidget() {
 
   const rows = banks.map(bank => {
     const currency = bank.currency || 'CZK';
-    const value = formatSignedCurrencyAmount(bank.balance || 0, currency);
+    const value = formatCurrencyAmount(bank.balance || 0, currency);
     const czkEquivalent = getCzkEquivalentText(bank.balance || 0, currency);
-    const isNegativeBalance = Number(bank.balance || 0) < 0 && !bank.liability;
     const children = creditChildrenByParent[bank.id] || [];
     const hasCreditChildren = children.length > 0;
     const creditExpanded = hasCreditChildren ? isCreditSubaccountExpanded(bank.id) : false;
@@ -9275,7 +10110,7 @@ function renderAccountBalanceWidget() {
             ${childHint}
           </div>
           <div class="account-balance-value-wrap">
-            <div class="budget-status-value account-balance-value ${isNegativeBalance ? 'is-negative-balance' : ''}" style="color:${isNegativeBalance ? 'var(--danger)' : 'var(--accent)'};">${escapeHtml(maskAccountBalanceValue(value))}</div>
+            <div class="budget-status-value account-balance-value" style="color:var(--accent);">${escapeHtml(maskAccountBalanceValue(value))}</div>
             ${maskAccountBalanceNote(czkEquivalent) ? `<div class="budget-status-note account-balance-equivalent">${escapeHtml(czkEquivalent)}</div>` : ''}
           </div>
         </div>
@@ -9360,6 +10195,410 @@ function getTransactionsCzkEquivalentTotal(txns) {
   }, 0);
 }
 
+
+
+function getLatestStoredAccountBalanceForBank(bankKey, selectedMonth = getAktuálneMonth()) {
+  const id = String(bankKey || '').trim();
+  if (!id) return 0;
+  const normalizedSelected = normalizeMonthStr(selectedMonth || getAktuálneMonth());
+  const testSetting = getLocalTestOverviewBankSetting(id, normalizedSelected);
+  if (testSetting && testSetting.balance !== undefined) return Number(testSetting.balance || 0) || 0;
+  const exactKey = getAccountBalanceStorageKey(id, normalizedSelected);
+  const exact = localStorage.getItem(exactKey);
+  if (exact !== null) return Number(exact || 0) || 0;
+
+  const base = localStorage.getItem(getAccountBalanceStorageKey(id));
+  if (base !== null) return Number(base || 0) || 0;
+
+  const prefix = 'bank_account_balance_' + id + '_';
+  const rows = [];
+  Object.keys(localStorage).forEach(key => {
+    if (!key.startsWith(prefix)) return;
+    const month = normalizeMonthStr(key.slice(prefix.length));
+    const value = Number(localStorage.getItem(key) || 0) || 0;
+    if (month) rows.push({ month, value });
+  });
+  rows.sort((a, b) => monthSortValue(b.month) - monthSortValue(a.month));
+  const selectedSort = monthSortValue(normalizedSelected);
+  const sameOrOlder = rows.find(r => monthSortValue(r.month) <= selectedSort);
+  if (sameOrOlder) return sameOrOlder.value;
+  return rows[0]?.value || 0;
+}
+
+function getOverviewBankCardLimitForBank(bankKey, monthStr = getAktuálneMonth()) {
+  const testSetting = getLocalTestOverviewBankSetting(bankKey, monthStr);
+  if (testSetting && testSetting.cardLimit !== undefined) return Number(testSetting.cardLimit || 0) || 0;
+  const fromArchive = Number(getArchiveCardLimitForMonth(bankKey, monthStr) || 0) || 0;
+  if (fromArchive) return fromArchive;
+  return Number(getMonthlyCardLimitForBank(bankKey, monthStr) || 0) || 0;
+}
+
+function getOverviewBudgetLimitForBank(bankKey, monthStr = getAktuálneMonth()) {
+  const testSetting = getLocalTestOverviewBankSetting(bankKey, monthStr);
+  if (testSetting && testSetting.budget !== undefined) return Number(testSetting.budget || 0) || 0;
+  const settings = getBudgetSettingsForBank(bankKey, monthStr);
+  return Number(settings?.budget || 0) || 0;
+}
+
+function getOverviewBudgetWarningForBank(bankKey, monthStr = getAktuálneMonth()) {
+  const testSetting = getLocalTestOverviewBankSetting(bankKey, monthStr);
+  if (testSetting && testSetting.warning !== undefined) return Number(testSetting.warning || 0) || 0;
+  const settings = getBudgetSettingsForBank(bankKey, monthStr);
+  return Number(settings?.warning || 0) || 0;
+}
+
+function getOverviewBudgetSpentForBank(bankKey, monthStr = getAktuálneMonth()) {
+  const overviewStored = getStoredOverviewMonthlyStat(bankKey, monthStr, 'spending');
+  if (overviewStored !== null) return overviewStored;
+  const archive = Number(getMonthlyArchiveSpentForBank(bankKey, monthStr) || 0) || 0;
+  if (archive) return archive;
+  return Number(getCurrentMonthSpentInBankCurrency(bankKey) || 0) || 0;
+}
+
+function getOverviewMonthSpentInCurrency(targetCurrency = getAppCurrency(), bankKey = null) {
+  const month = normalizeMonthStr(getAktuálneMonth());
+  const target = currencyCode(targetCurrency || getAppCurrency());
+  return (allTransactions || [])
+    .filter(tx => normalizeMonthStr(tx.month) === month && Number(tx.amount || 0) < 0)
+    .filter(tx => !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)))
+    .filter(tx => !bankKey || getBudgetBankKeyFromTransaction(tx) === bankKey)
+    .reduce((sum, tx) => sum + Math.abs(convertTransactionAmount(tx, target)), 0);
+}
+
+function getOverviewCardUsedCountForBank(bankKey, monthStr = getAktuálneMonth()) {
+  const normalizedMonth = normalizeMonthStr(monthStr || getAktuálneMonth());
+  return (allTransactions || []).filter(tx => {
+    if (normalizeMonthStr(tx.month) !== normalizedMonth) return false;
+    if (Number(tx.amount || 0) >= 0) return false;
+    if (!isCardTransaction(tx)) return false;
+    const key = getBankKey(tx);
+    if (bankKey === 'csob_cz') return key === 'csob_cz' || key === 'csob_cz_credit';
+    return key === bankKey;
+  }).length;
+}
+
+function getOverviewCreditCardLimit(monthStr = getAktuálneMonth()) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const testSetting = getLocalTestOverviewBankSetting('csob_cz_credit', month);
+  if (testSetting && testSetting.creditCardLimit !== undefined) return Number(testSetting.creditCardLimit || 0) || 0;
+  const explicit = localStorage.getItem(getCreditCardLimitStorageKey('csob_cz_credit', month));
+  if (explicit !== null) return Number(explicit || 0) || 0;
+  const custom = getCustomBanks().find(b => b && b.id === 'csob_cz_credit');
+  if (custom && (custom.creditCardLimit !== undefined || custom.creditLimit !== undefined)) {
+    return Number(custom.creditCardLimit || custom.creditLimit || 0) || 0;
+  }
+  const legacyMonthly = localStorage.getItem(getMonthlyCardLimitStorageKey('csob_cz_credit', month));
+  if (legacyMonthly !== null) return Number(legacyMonthly || 0) || 0;
+  const legacyArchive = Number(getArchiveCardLimitForMonth('csob_cz_credit', month) || 0) || 0;
+  return legacyArchive;
+}
+
+function getOverviewDashboardMetrics() {
+  const appCurrency = getAppCurrency();
+  const month = normalizeMonthStr(getAktuálneMonth());
+  const allBanks = getAllManagedBanksForBalance();
+  const creditChildrenByParent = {};
+  CREDIT_BALANCE_SUBACCOUNTS.forEach(config => {
+    const item = getCreditBalanceSubaccountData(config);
+    if (!item || !item.parentId) return;
+    const balanceBank = allBanks.find(b => b.id === item.id);
+    const child = {
+      ...item,
+      balance: balanceBank ? getLatestStoredAccountBalanceForBank(item.id, month) : getCreditOutstandingBalance(item.id),
+      currency: balanceBank?.currency || item.currency || 'CZK',
+      liability: true
+    };
+    if (!creditChildrenByParent[item.parentId]) creditChildrenByParent[item.parentId] = [];
+    creditChildrenByParent[item.parentId].push(child);
+  });
+  const parentedCreditIds = new Set(CREDIT_BALANCE_SUBACCOUNTS.map(item => item.id));
+  const banks = allBanks.filter(bank => !parentedCreditIds.has(bank.id));
+
+  const creditChildren = Object.values(creditChildrenByParent).flat();
+  const creditOutstanding = creditChildren.reduce((sum, child) => {
+    return sum + Math.max(0, convertAmountCurrency(Math.abs(child.balance || 0), child.currency || appCurrency, appCurrency));
+  }, 0);
+  const creditMonthlyUsed = getCreditCardMonthlyUsedAmount(appCurrency);
+  const creditUsed = creditOutstanding > 0 ? creditOutstanding : creditMonthlyUsed;
+  const creditLimitRaw = getOverviewCreditCardLimit(month);
+  const creditLimit = convertAmountCurrency(creditLimitRaw || 0, getCreditOutstandingCurrency('csob_cz_credit') || appCurrency, appCurrency);
+  const creditAvailable = Math.max((Number(creditLimit || 0) || 0) - (Number(creditUsed || 0) || 0), 0);
+  const creditPct = creditLimit > 0 ? Math.min(creditUsed / creditLimit, 1) : 0;
+  const hasCreditWidget = creditLimit > 0 || creditUsed > 0 || creditOutstanding > 0 || getSheetCreditBankRows().length > 0;
+
+  const totalAssets = banks.reduce((sum, bank) => {
+    if (bank.liability) return sum;
+    const balance = getLatestStoredAccountBalanceForBank(bank.id, month);
+    const value = convertAmountCurrency(balance || 0, bank.currency || appCurrency, appCurrency);
+    return sum + value;
+  }, 0);
+  const totalNetWorth = totalAssets - creditOutstanding;
+
+  const availableCash = banks.reduce((sum, bank) => {
+    if (bank.liability) return sum;
+    const balance = getLatestStoredAccountBalanceForBank(bank.id, month);
+    return sum + convertAmountCurrency(balance || 0, bank.currency || appCurrency, appCurrency);
+  }, 0) + creditAvailable;
+
+  const visibleBankKeys = BANK_ORDER.filter(bankKey => bankKey !== 'csob_cz_credit');
+  const byBankMonth = getTransactionsByBank(true, true);
+  const mergedCardTxns = { ...(byBankMonth || {}) };
+  mergedCardTxns.csob_cz = [ ...(mergedCardTxns.csob_cz || []), ...(mergedCardTxns.csob_cz_credit || []) ];
+  const cardUsed = visibleBankKeys.reduce((sum, bankKey) => sum + ((mergedCardTxns[bankKey] || []).length), 0);
+  const cardLimit = visibleBankKeys.reduce((sum, bankKey) => sum + Math.max(0, getOverviewBankCardLimitForBank(bankKey, month)), 0);
+  const cardPct = cardLimit > 0 ? Math.min(cardUsed / cardLimit, 1) : 0;
+
+  let budgetSpent = 0;
+  let budgetLimit = 0;
+  visibleBankKeys.forEach(bankKey => {
+    const bankCurrency = getBankBudgetCurrency(bankKey);
+    const spent = getOverviewBudgetSpentForBank(bankKey, month);
+    const budget = getOverviewBudgetLimitForBank(bankKey, month);
+    budgetSpent += convertAmountCurrency(spent || 0, bankCurrency || appCurrency, appCurrency);
+    budgetLimit += convertAmountCurrency(budget || 0, bankCurrency || appCurrency, appCurrency);
+  });
+  const budgetPct = budgetLimit > 0 ? Math.min(budgetSpent / budgetLimit, 1) : 0;
+
+  const monthTxns = allTransactions.filter(t => normalizeMonthStr(t.month) === month);
+  const cashTxns = monthTxns.filter(t => normalizePaymentKindValue(t.paymentKind || t.type) === 'cash' && Number(t.amount || 0) < 0);
+  const cashSpent = cashTxns.reduce((sum, tx) => sum + Math.abs(convertTransactionAmount(tx, appCurrency)), 0);
+
+  return { appCurrency, totalNetWorth, availableCash, cardUsed, cardLimit, cardPct, budgetSpent, budgetLimit, budgetPct, cashSpent, creditOutstanding, creditUsed, creditLimit, creditAvailable, creditPct, hasCreditWidget };
+}
+function createOverviewHalfGauge(percent, caption, mainText = '') {
+  const pct = Math.max(0, Math.min(100, Math.round((Number(percent || 0) || 0) * 100)));
+  const radius = 44;
+  const circumference = Math.PI * radius;
+  const progress = circumference * (pct / 100);
+  const centerText = mainText ? escapeHtml(String(mainText)) : `${pct}%`;
+  return `
+    <div class="mini-half-gauge">
+      <svg viewBox="0 0 120 72" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="wealthGaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#72f6a5"></stop>
+            <stop offset="100%" stop-color="#58cfff"></stop>
+          </linearGradient>
+        </defs>
+        <path d="M16 56 A44 44 0 0 1 104 56" fill="none" stroke="rgba(112,145,204,.18)" stroke-width="10" stroke-linecap="round"></path>
+        <path d="M16 56 A44 44 0 0 1 104 56" fill="none" stroke="url(#wealthGaugeGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${progress} ${circumference}"></path>
+      </svg>
+      <div class="mini-half-gauge-center">
+        <span class="pct">${centerText}</span>
+        <span class="caption">${escapeHtml(caption || '')}</span>
+      </div>
+    </div>`;
+}
+
+function createOverviewInlineProgress(leftText, rightText, ratio, statusText, statusClass) {
+  const width = Math.max(0, Math.min(100, Math.round((Number(ratio || 0) || 0) * 100)));
+  const noStatus = !String(statusText || '').trim();
+  return `
+    <div class="wealth-inline-progress-labels ${noStatus ? 'no-status' : ''}">
+      <span>${escapeHtml(String(leftText || '0'))}</span>
+      <span class="wealth-inline-progress-status ${escapeAttr(statusClass || '')}">${escapeHtml(String(statusText || ''))}</span>
+      <span>${escapeHtml(String(rightText || '0'))}</span>
+    </div>
+    <div class="wealth-inline-progress-track">
+      <div class="wealth-inline-progress-fill ${escapeAttr(statusClass || '')}" style="width:${Math.max(width, statusClass === 'is-empty' ? 4 : 0)}%;"></div>
+    </div>`;
+}
+
+function createCreditCardLimitProgress(used, limit, available, currency) {
+  const usedNum = Math.max(0, Number(used || 0) || 0);
+  const limitNum = Math.max(0, Number(limit || 0) || 0);
+  const availableNum = Math.max(0, Number(available || 0) || 0);
+  const ratio = limitNum > 0 ? Math.min(1, usedNum / limitNum) : 0;
+  const width = Math.round(ratio * 100);
+  const isCompleted = limitNum > 0 && usedNum >= limitNum;
+  const isEmpty = usedNum <= 0 || limitNum <= 0;
+  const statusText = limitNum > 0
+    ? (isCompleted ? 'Completed' : `${formatOverviewCompactCurrency(availableNum, currency)} ${t('leftWord')}`)
+    : `${formatOverviewCompactCurrency(0, currency)} ${t('leftWord')}`;
+  const pairText = formatOverviewCompactCurrencyPair(usedNum, limitNum, currency);
+  const usedText = formatOverviewCompactCurrency(usedNum, currency);
+  const limitText = formatOverviewCompactCurrency(limitNum, currency);
+  const fillClass = isCompleted ? 'is-ok' : (isEmpty ? 'is-empty' : '');
+  const fillWidth = Math.max(width, !isEmpty ? 3 : 0);
+  return `
+    <div class="wealth-credit-progress-summary">
+      <span class="wealth-credit-progress-pair">${escapeHtml(pairText)}</span>
+      <span class="wealth-credit-progress-status ${escapeAttr(fillClass)}">${escapeHtml(statusText)}</span>
+    </div>
+    <div class="wealth-credit-progress-track" title="${escapeAttr(`${usedText} / ${limitText}`)}">
+      <div class="wealth-credit-progress-used ${escapeAttr(fillClass)}" style="width:${fillWidth}%;"></div>
+    </div>`;
+}
+
+function formatOverviewCompactCurrency(value, currency) {
+  const symbol = currencySymbol(currency || getAppCurrency());
+  const n = Math.abs(Number(value || 0));
+  const sign = Number(value || 0) < 0 ? '-' : '';
+  let out;
+  if (n >= 1000000) out = (n / 1000000).toFixed(n >= 10000000 ? 0 : 1).replace('.', ',') + 'M';
+  else if (n >= 1000) out = Math.round(n / 1000).toLocaleString('cs-CZ') + 'k';
+  else out = Math.round(n).toLocaleString('cs-CZ');
+  return `${sign}${out} ${symbol}`;
+}
+
+function formatOverviewCompactNumber(value) {
+  const n = Math.abs(Number(value || 0));
+  const sign = Number(value || 0) < 0 ? '-' : '';
+  if (n >= 1000000) return sign + (n / 1000000).toFixed(n >= 10000000 ? 0 : 1).replace('.', ',') + 'M';
+  if (n >= 1000) return sign + Math.round(n / 1000).toLocaleString('cs-CZ') + 'k';
+  return sign + Math.round(n).toLocaleString('cs-CZ');
+}
+
+function formatOverviewCompactCurrencyPair(leftValue, rightValue, currency) {
+  return `${formatOverviewCompactNumber(leftValue)} / ${formatOverviewCompactNumber(rightValue)} ${currencySymbol(currency || getAppCurrency())}`;
+}
+
+function getCreditCardMonthlyUsedAmount(appCurrency) {
+  const month = normalizeMonthStr(getAktuálneMonth());
+  const target = appCurrency || getAppCurrency();
+  const last4 = typeof getCsobCzCreditCardLast4 === 'function' ? getCsobCzCreditCardLast4() : '';
+  const creditTxns = (allTransactions || []).filter(tx => {
+    if (normalizeMonthStr(tx.month) !== month) return false;
+    if (Number(tx.amount || 0) >= 0) return false;
+    if (!isCardTransaction(tx)) return false;
+    const bankKey = getBankKey(tx);
+    if (bankKey === 'csob_cz_credit') return true;
+    const text = [tx.bank, tx.card, tx.type, tx.category, tx.merchant, tx.merchantRaw, tx.paymentKind].join(' ').toLowerCase();
+    if (last4 && text.includes(String(last4).toLowerCase())) return true;
+    return bankKey === 'csob_cz' && (text.includes('credit') || text.includes('kredit'));
+  });
+  return creditTxns.reduce((sum, tx) => sum + Math.abs(convertTransactionAmount(tx, target)), 0);
+}
+
+function createWealthTrendSvg() {
+  return `
+    <svg viewBox="0 0 180 64" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="wealthLineGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#72f6a5"></stop>
+          <stop offset="100%" stop-color="#56b6ff"></stop>
+        </linearGradient>
+        <linearGradient id="wealthAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="rgba(114,246,165,.45)"></stop>
+          <stop offset="100%" stop-color="rgba(86,182,255,.06)"></stop>
+        </linearGradient>
+      </defs>
+      <path d="M8 56 C22 50, 34 46, 44 32 S72 8, 89 12 S121 30, 137 26 S160 16, 172 12 L172 64 L8 64 Z" fill="url(#wealthAreaGradient)"></path>
+      <path d="M8 56 C22 50, 34 46, 44 32 S72 8, 89 12 S121 30, 137 26 S160 16, 172 12" fill="none" stroke="url(#wealthLineGradient)" stroke-width="4" stroke-linecap="round"></path>
+    </svg>`;
+}
+
+function createOverviewBudgetSparkline(ratio = 0) {
+  const pct = Math.max(0, Math.min(1, Number(ratio || 0) || 0));
+  const lift = Math.round(22 * pct);
+  const endY = Math.max(12, 42 - lift);
+  const midY = Math.max(12, 30 - Math.round(lift * .55));
+  const path = `M6 50 C17 46, 23 32, 36 30 S54 17, 69 ${midY} S91 ${endY + 4}, 108 ${endY}`;
+  const area = `${path} L108 62 L6 62 Z`;
+  return `
+    <div class="wealth-budget-sparkline">
+      <svg viewBox="0 0 114 64" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="wealthBudgetLineGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#72f6a5"></stop>
+            <stop offset="100%" stop-color="#58cfff"></stop>
+          </linearGradient>
+          <linearGradient id="wealthBudgetAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#72f6a5" stop-opacity=".38"></stop>
+            <stop offset="56%" stop-color="#5fe6c7" stop-opacity=".18"></stop>
+            <stop offset="100%" stop-color="#58cfff" stop-opacity=".04"></stop>
+          </linearGradient>
+        </defs>
+        <path class="budget-area" d="${area}" fill="url(#wealthBudgetAreaGradient)"></path>
+        <path class="budget-line" d="${path}" fill="none" stroke="url(#wealthBudgetLineGradient)" stroke-width="5" stroke-linecap="round"></path>
+      </svg>
+    </div>`;
+}
+
+function renderOverviewDashboard() {
+  const netWorthEl = document.getElementById('overview-net-worth');
+  if (!netWorthEl) return;
+  const detailsMonth = document.getElementById('overview-details-month');
+  if (detailsMonth) detailsMonth.textContent = getMonthLabel();
+  const metrics = getOverviewDashboardMetrics();
+  const appCurrency = metrics.appCurrency;
+  document.documentElement.setAttribute('data-overview-metrics', JSON.stringify({
+    net: Math.round(Number(metrics.totalNetWorth || 0)),
+    cash: Math.round(Number(metrics.availableCash || 0)),
+    budgetSpent: Math.round(Number(metrics.budgetSpent || 0)),
+    budgetLimit: Math.round(Number(metrics.budgetLimit || 0)),
+    txns: (allTransactions || []).length
+  }));
+
+  netWorthEl.textContent = formatCurrencyAmount(metrics.totalNetWorth, appCurrency);
+  netWorthEl.style.color = Number(metrics.totalNetWorth || 0) < 0 ? 'var(--danger)' : '#f8fbff';
+
+  const availableEl = document.getElementById('overview-available-cash');
+  if (availableEl) {
+    availableEl.textContent = formatCurrencyAmount(metrics.availableCash, appCurrency);
+    availableEl.style.color = Number(metrics.availableCash || 0) < 0 ? 'var(--danger)' : '#73ffb0';
+  }
+  const cardGauge = document.getElementById('overview-card-limits-gauge');
+  if (cardGauge) cardGauge.innerHTML = createOverviewHalfGauge(metrics.cardPct, 'used');
+  const cardLine = document.getElementById('overview-card-limits-line');
+  if (cardLine) {
+    let statusText = 'Missing';
+    let statusClass = '';
+    if (metrics.cardUsed <= 0) { statusText = ''; statusClass = 'is-empty'; }
+    else if (metrics.cardLimit > 0 && metrics.cardUsed >= metrics.cardLimit) { statusText = 'Completed'; statusClass = 'is-ok'; }
+    cardLine.innerHTML = createOverviewInlineProgress(`${metrics.cardUsed}`, `${metrics.cardLimit}`, metrics.cardPct, statusText, statusClass);
+  }
+
+  const budgetValue = document.getElementById('overview-bank-budget-value');
+  if (budgetValue) budgetValue.textContent = formatOverviewCompactCurrencyPair(metrics.budgetSpent, metrics.budgetLimit, appCurrency);
+  const budgetLine = document.getElementById('overview-bank-budget-line');
+  if (budgetLine) {
+    budgetLine.innerHTML = createCreditCardLimitProgress(
+      metrics.budgetSpent,
+      metrics.budgetLimit,
+      Math.max(0, Number(metrics.budgetLimit || 0) - Number(metrics.budgetSpent || 0)),
+      appCurrency
+    );
+  }
+
+  const cashEl = document.getElementById('overview-cash-total');
+  if (cashEl) {
+    cashEl.textContent = formatCurrencyAmount(metrics.cashSpent, appCurrency);
+    cashEl.style.color = Number(metrics.cashSpent || 0) > 0 ? '#f8fbff' : 'var(--muted)';
+  }
+  const creditWidget = document.getElementById('overview-credit-widget');
+  const creditGauge = document.getElementById('overview-credit-gauge');
+  const creditLine = document.getElementById('overview-credit-line');
+  if (creditWidget) {
+    creditWidget.style.display = metrics.hasCreditWidget ? '' : 'none';
+    if (metrics.hasCreditWidget) {
+      if (creditGauge) creditGauge.innerHTML = createOverviewHalfGauge(metrics.creditPct, 'used');
+      if (creditLine) creditLine.innerHTML = createCreditCardLimitProgress(
+        metrics.creditUsed,
+        metrics.creditLimit,
+        metrics.creditAvailable,
+        appCurrency
+      );
+    }
+  }
+}
+
+function openOverviewDetailsSection(anchorId = '') {
+  renderAccountBalanceWidget();
+  renderBudgetStatus();
+  renderBankCards(getTransactionsByBank(true, true));
+  showPage('overview-details');
+  requestAnimationFrame(() => {
+    if (!anchorId) return;
+    const anchor = document.getElementById(anchorId);
+    if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+function closeOverviewDetails() {
+  showPage('overview');
+}
+
 function renderAll() {
   allTransactions = sortTransactionsNewestFirst(allTransactions);
   rebuildLocalArchiveStatsFromTransactions();
@@ -9384,15 +10623,35 @@ function renderAll() {
   document.getElementById('sum-days').textContent = getDaysRemaining();
 
   // Bank budget intentionally includes every payment kind: cards, account payments and cash.
-  renderBudgetStatus();
-  renderAccountBalanceWidget();
+  try {
+    renderBudgetStatus();
+  } catch (e) {
+    document.documentElement.setAttribute('data-render-budget-error', String(e && e.message ? e.message : e));
+    console.error('Budget status render failed:', e);
+  }
+  try {
+    renderAccountBalanceWidget();
+  } catch (e) {
+    document.documentElement.setAttribute('data-render-balance-error', String(e && e.message ? e.message : e));
+    console.error('Account balance render failed:', e);
+  }
 
   // Bank card limits intentionally use card-only transactions.
-  const byBankMonth = getTransactionsByBank(true, true);
-  renderBankCards(byBankMonth);
+  let byBankMonth = {};
+  try {
+    byBankMonth = getTransactionsByBank(true, true);
+    renderBankCards(byBankMonth);
+  } catch (e) {
+    document.documentElement.setAttribute('data-render-cards-error', String(e && e.message ? e.message : e));
+    console.error('Bank cards render failed:', e);
+  }
+  try {
+    renderOverviewDashboard();
+  } catch (e) {
+    document.documentElement.setAttribute('data-render-overview-error', String(e && e.message ? e.message : e));
+    console.error('Overview dashboard render failed:', e);
+  }
 
-  const byBankAll = getTransactionsByBank(false, false, true);
-  renderRecentBankColumns(byBankAll);
 
   updateTxnPage(monthTxns);
   renderArchive();
@@ -9469,8 +10728,7 @@ function getBankCardDisplayLabel(bankKey, txns) {
 
 function renderBankCard(bankKey, txns) {
   const bank = getBankInfo(bankKey);
-  const limits = getLimitsForMonth(getAktuálneMonth());
-  const limit = limits[bank.limitKey] ?? bank.defaultLimit;
+  const limit = getOverviewBankCardLimitForBank(bankKey, getAktuálneMonth()) || bank.defaultLimit || 0;
   const used = txns.length;
   const fillPct = limit > 0 ? Math.min(used / limit, 1) : 0;
   const barColor = getCardColor(used, limit);
@@ -9516,7 +10774,7 @@ function renderRecentBankColumns(byBank) {
     const items = txns.length === 0 ? `<div class="tx-meta-compact">${t('emptyMovements')}</div>` : txns.map(t => {
       const txId = typeof getTransactionId === 'function' ? getTransactionId(t) : (t.id || t.msgId || '');
       return `
-      <div class="tx-item-compact" data-tx-id="${escapeAttr(txId)}">
+      <div class="tx-item-compact" data-tx-id="${escapeAttr(txId)}" onclick="openRecentBankTransactions('${bankKey}')">
         <div class="tx-row-top">
           <div class="tx-merchant-compact">${escapeHtml(t.merchant)}</div>
           <div class="tx-amt-compact-wrap"><div class="tx-amt-compact ${Number(t.amount) > 0 ? 'amount-income' : 'amount-expense'}">${Number(t.amount) > 0 ? '+' : '-'}${formatCurrencyAmount(t.amount, t.currency)}</div>${renderAccountCurrencyEquivalent(t, { compact: true })}</div>
@@ -10911,6 +12169,139 @@ function loadCachedOrDemoData() {
   loadCachedTransactionsSnapshot();
 }
 
+const LOCAL_TEST_DATA_VERSION = 'local-test-v1';
+let localTestOverviewDetails = null;
+
+function getLocalTestOverviewBankSetting(bankKey, monthStr = getAktuálneMonth()) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  if (!localTestOverviewDetails || localTestOverviewDetails.month !== month) return null;
+  return localTestOverviewDetails.settings?.[bankKey] || null;
+}
+
+function isLocalTestDataHost() {
+  const host = String(location.hostname || '').toLowerCase();
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1' || location.protocol === 'file:';
+}
+
+function makeLocalTestDate(monthStr, day, hour, minute = 0) {
+  const [m, y] = normalizeMonthStr(monthStr || getAktuálneMonth()).split('/').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  return new Date(y, m - 1, Math.min(Number(day) || 1, lastDay), Number(hour) || 12, Number(minute) || 0);
+}
+
+function createLocalTestTransactions(monthStr = getAktuálneMonth()) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const cardByBank = {
+    rb_cz: '**** 3553',
+    csob_sk: '**** 2424',
+    csob_cz: '**** 4214',
+    moneta: '**** 8899',
+    air_bank_cz: '**** 7788'
+  };
+  const rows = [
+    { day: 1, hour: 8, bankId: 'rb_cz', kind: 'account', amount: 65000, direction: 'incoming', currency: 'CZK', merchant: 'Salary ACME', category: 'Salary' },
+    { day: 1, hour: 11, bankId: 'rb_cz', kind: 'account', amount: 18000, direction: 'outgoing', currency: 'CZK', merchant: 'Rent transfer', category: 'Housing' },
+    { day: 2, hour: 17, bankId: 'rb_cz', kind: 'card', amount: 1250, direction: 'outgoing', currency: 'CZK', merchant: 'Tesco groceries', category: 'Groceries' },
+    { day: 3, hour: 18, bankId: 'csob_cz', kind: 'card', amount: 740, direction: 'outgoing', currency: 'CZK', merchant: 'Lidl', category: 'Groceries' },
+    { day: 4, hour: 10, bankId: 'rb_cz', kind: 'cash', amount: 2000, direction: 'outgoing', currency: 'CZK', merchant: 'ATM cash withdrawal', category: 'Cash' },
+    { day: 4, hour: 16, bankId: 'rb_cz', kind: 'cash', amount: 500, direction: 'incoming', currency: 'CZK', merchant: 'Cash refund', category: 'Cash' },
+    { day: 5, hour: 9, bankId: 'moneta', kind: 'card', amount: 1550, direction: 'outgoing', currency: 'CZK', merchant: 'OMV fuel', category: 'Fuel' },
+    { day: 5, hour: 20, bankId: 'csob_cz', kind: 'card', amount: 920, direction: 'outgoing', currency: 'CZK', merchant: 'Restaurant', category: 'Food' },
+    { day: 6, hour: 13, bankId: 'air_bank_cz', kind: 'account', amount: 5000, direction: 'outgoing', currency: 'CZK', merchant: 'Transfer to savings', category: 'Transfer' },
+    { day: 6, hour: 15, bankId: 'air_bank_cz', kind: 'account', amount: 1200, direction: 'incoming', currency: 'CZK', merchant: 'Transfer from friend', category: 'Transfer' },
+    { day: 7, hour: 8, bankId: 'rb_cz', kind: 'card', amount: 110, direction: 'outgoing', currency: 'CZK', merchant: 'Coffee', category: 'Coffee' },
+    { day: 7, hour: 12, bankId: 'csob_sk', kind: 'card', amount: 14, direction: 'outgoing', currency: 'EUR', merchant: 'Pharmacy SK', category: 'Health' },
+    { day: 8, hour: 9, bankId: 'csob_sk', kind: 'account', amount: 2200, direction: 'incoming', currency: 'EUR', merchant: 'Salary SK', category: 'Salary' },
+    { day: 8, hour: 10, bankId: 'csob_sk', kind: 'account', amount: 780, direction: 'outgoing', currency: 'EUR', merchant: 'Rent SK transfer', category: 'Housing' },
+    { day: 9, hour: 14, bankId: 'moneta', kind: 'cash', amount: 680, direction: 'outgoing', currency: 'CZK', merchant: 'Cash groceries', category: 'Cash' },
+    { day: 10, hour: 17, bankId: 'moneta', kind: 'card', amount: 2350, direction: 'outgoing', currency: 'CZK', merchant: 'Clothes store', category: 'Shopping' },
+    { day: 11, hour: 7, bankId: 'csob_cz', kind: 'card', amount: 299, direction: 'outgoing', currency: 'CZK', merchant: 'Streaming subscription', category: 'Subscription' },
+    { day: 12, hour: 12, bankId: 'csob_cz', kind: 'account', amount: 8500, direction: 'incoming', currency: 'CZK', merchant: 'Invoice paid', category: 'Income' },
+    { day: 13, hour: 22, bankId: 'air_bank_cz', kind: 'card', amount: 430, direction: 'outgoing', currency: 'CZK', merchant: 'Taxi', category: 'Transport' },
+    { day: 14, hour: 18, bankId: 'rb_cz', kind: 'card', amount: 899, direction: 'outgoing', currency: 'CZK', merchant: 'Gym membership', category: 'Sport' }
+  ];
+
+  return rows.map((row, idx) => {
+    const txDate = makeLocalTestDate(month, row.day, row.hour, idx % 2 ? 35 : 10);
+    const isIncome = row.direction === 'incoming';
+    const amount = isIncome ? Math.abs(row.amount) : -Math.abs(row.amount);
+    const currency = normalizeCurrencyForStorage(row.currency);
+    const bankName = plainBankName(row.bankId);
+    const paymentKind = row.kind;
+    return {
+      id: `local-test-${LOCAL_TEST_DATA_VERSION}-${month.replace('/', '-')}-${idx + 1}`,
+      msgId: `local-test-${idx + 1}`,
+      emailId: '',
+      date: formatDate(txDate),
+      amount,
+      currency,
+      merchant: row.merchant,
+      category: row.category,
+      card: paymentKind === 'card' ? cardByBank[row.bankId] : paymentKind,
+      type: paymentKind === 'card' ? 'Card payment' : (paymentKind === 'cash' ? 'Cash payment' : 'Transfer'),
+      paymentKind,
+      month,
+      bank: bankName,
+      bankId: row.bankId,
+      timestamp: txDate.getTime()
+    };
+  });
+}
+
+function seedOverviewDetailsFromLocalTestData(txns, monthStr = getAktuálneMonth()) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const settings = {
+    rb_cz: { cardLimit: 8, budget: 30000, warning: 3000, balance: 92000 },
+    csob_sk: { cardLimit: 4, budget: 1800, warning: 150, balance: 3600 },
+    csob_cz: { cardLimit: 6, budget: 18000, warning: 2000, balance: 48500 },
+    csob_cz_credit: { cardLimit: 0, creditCardLimit: 60000, budget: 0, warning: 0, balance: 0 },
+    moneta: { cardLimit: 5, budget: 12000, warning: 1500, balance: 28400 },
+    air_bank_cz: { cardLimit: 4, budget: 9000, warning: 1000, balance: 17600 }
+  };
+
+  const totals = {};
+  Object.keys(settings).forEach(bankKey => {
+    totals[bankKey] = { spending: 0, income: 0, net: 0 };
+  });
+
+  (txns || []).forEach(tx => {
+    const bankKey = getArchiveBankKeyFromTransaction(tx);
+    if (!totals[bankKey]) totals[bankKey] = { spending: 0, income: 0, net: 0 };
+    const currency = getArchiveBankCurrency(bankKey);
+    const converted = Math.abs(convertTransactionAmount(tx, currency));
+    if (!Number.isFinite(converted)) return;
+    const amount = Number(tx.amount || 0);
+    if (amount < 0) totals[bankKey].spending += converted;
+    if (amount > 0) totals[bankKey].income += converted;
+    totals[bankKey].net += amount < 0 ? -converted : converted;
+  });
+
+  localTestOverviewDetails = { month, settings, totals };
+  document.documentElement.setAttribute('data-local-test-overview-month', month);
+  document.documentElement.setAttribute('data-local-test-overview-spending', String(Math.round(Object.values(totals).reduce((sum, item) => sum + Number(item.spending || 0), 0))));
+}
+
+function seedBankTrackerLocalTestData(force = false) {
+  document.documentElement.setAttribute('data-local-test-seed-attempt', force ? 'force' : 'auto');
+  if (!force && (!isLocalTestDataHost() || SHEETS_URL)) {
+    document.documentElement.setAttribute('data-local-test-seed', 'skipped-config');
+    return false;
+  }
+  if (localStorage.getItem('bank_tracker_test_data_enabled') === 'false' && !force) {
+    document.documentElement.setAttribute('data-local-test-seed', 'disabled');
+    return false;
+  }
+  const month = normalizeMonthStr(getAktuálneMonth());
+  const expectedSeed = `${LOCAL_TEST_DATA_VERSION}:${month}`;
+
+  const txns = createLocalTestTransactions(month);
+  allTransactions = sortTransactionsNewestFirst(txns.map(tx => normalizeTransactionCurrency(tx)));
+  seedOverviewDetailsFromLocalTestData(allTransactions, month);
+  document.documentElement.setAttribute('data-local-test-seed-version', expectedSeed);
+  document.documentElement.setAttribute('data-local-test-seed', String(allTransactions.length));
+  return true;
+}
+
 function prepareUiAfterDataLoad() {
   ensureLimitsHistoryForLoadedTransactions();
   populateSimulatorLimitMonthDropdown(getAktuálneMonth());
@@ -12172,6 +13563,7 @@ function updateManagedBankBudgetFields(bankId) {
   const budgetEl = document.getElementById('edit-budget-' + bankId);
   const warnEl = document.getElementById('edit-warning-' + bankId);
   const limitEl = document.getElementById('edit-card-limit-' + bankId);
+  const creditLimitEl = document.getElementById('edit-credit-card-limit-' + bankId);
   const balanceEl = document.getElementById('edit-balance-' + bankId);
   const incomingEl = document.getElementById('edit-incoming-alert-' + bankId);
   const outgoingEl = document.getElementById('edit-outgoing-alert-' + bankId);
@@ -12179,6 +13571,7 @@ function updateManagedBankBudgetFields(bankId) {
   if (budgetEl) budgetEl.value = settings.budget || 0;
   if (warnEl) warnEl.value = settings.warning || 0;
   if (limitEl) limitEl.value = getArchiveCardLimitForMonth(bankId, month) || 0;
+  if (creditLimitEl) creditLimitEl.value = getCreditCardLimitForBank(bankId, month) || 0;
   if (balanceEl) balanceEl.value = getAccountBalance(bankId, month) || 0;
   if (incomingEl) incomingEl.value = alerts.incoming || 0;
   if (outgoingEl) outgoingEl.value = alerts.outgoing || 0;
@@ -12215,7 +13608,8 @@ function renderBankManager(){
       currency:getBankBalanceCurrency(k),
       account: cleanBankAccountValue(localStorage.getItem('bank_account_' + k) || bank.account || ''),
       cards: cleanBankCardsValue(localStorage.getItem('bank_cards_' + k) || bank.cards || ''),
-      cardLimit: currentLimits[bank.limitKey] ?? bank.defaultLimit,
+      cardLimit: getArchiveCardLimitForMonth(k, currentMonth) || getMonthlyCardLimitForBank(k, currentMonth) || (currentLimits[bank.limitKey] ?? bank.defaultLimit) || 0,
+      creditCardLimit: getCreditCardLimitForBank(k, currentMonth),
       budget: budgetSettings.budget || 0,
       warning: budgetSettings.warning || 0,
       budgetMonth: currentMonth,
@@ -12234,6 +13628,7 @@ function renderBankManager(){
     currency:b.currency || 'CZK',
     account:b.account||'',
     cardLimit:getArchiveCardLimitForMonth(b.id, currentMonth) || b.cardLimit || 0,
+    creditCardLimit:getCreditCardLimitForBank(b.id, currentMonth) || b.creditCardLimit || 0,
     budget:(getBudgetSettingsForBank(b.id, currentMonth).budget || b.budget || 0),
     warning:(getBudgetSettingsForBank(b.id, currentMonth).warning || b.warning || 0),
     budgetMonth: currentMonth,
@@ -12245,12 +13640,14 @@ function renderBankManager(){
 
   const allBanks = [...system, ...custom].filter(b => {
     if (!query) return true;
-    return [b.name, b.currency, b.account, b.cardLimit, b.budget, b.incomingAlert, b.outgoingAlert].some(v => matchesSearch(v, query));
+    return [b.name, b.currency, b.account, b.cardLimit, b.creditCardLimit, b.budget, b.incomingAlert, b.outgoingAlert].some(v => matchesSearch(v, query));
   });
 
   const row = (b) => {
     const isCreditCardStandalone = b.id === 'csob_cz_credit';
-    const managedSubLine = `${escapeHtml(currencySymbol(b.currency))}${b.account ? ` · Účty ${escapeHtml(b.account)}` : ''}${b.cards ? ` · Karty ${escapeHtml(b.cards.split(',').map(v => v.trim().replace(/\D/g,'').slice(-4)).filter(Boolean).join(', '))}` : ''}${isCreditCardStandalone ? ` · ${escapeHtml(t('creditCardBalanceAlertsOnly', 'credit card balance + alerts only'))}` : ` · ${t('cardLimitShort')} ${b.cardLimit || 0} · ${t('budgetLabel')} ${formatCurrencyAmount(b.budget || 0, b.currency || 'CZK')}`} · ${t('accountBalanceTitle')} ${escapeHtml(formatSignedCurrencyAmount(b.balance || 0, b.currency || 'CZK'))}${getCzkEquivalentText(b.balance || 0, b.currency || 'CZK') ? ` · ${escapeHtml(getCzkEquivalentText(b.balance || 0, b.currency || 'CZK'))}` : ''} · ${escapeHtml(t('incomingAlertShort'))} ${formatCurrencyAmount(b.incomingAlert || 0, b.currency || 'CZK')} · ${escapeHtml(t('outgoingAlertShort'))} ${formatCurrencyAmount(b.outgoingAlert || 0, b.currency || 'CZK')}`;
+    const monthlyLimitLabel = isCreditCardStandalone ? t('creditCardMonthlyLimitShort', 'monthly limit') : t('cardLimitShort');
+    const creditLimitSummary = `${monthlyLimitLabel} ${formatCurrencyAmount(b.creditCardLimit || 0, b.currency || 'CZK')}`;
+    const managedSubLine = `${escapeHtml(currencySymbol(b.currency))}${b.account ? ` · Účty ${escapeHtml(b.account)}` : ''}${b.cards ? ` · Karty ${escapeHtml(b.cards.split(',').map(v => v.trim().replace(/\D/g,'').slice(-4)).filter(Boolean).join(', '))}` : ''}${isCreditCardStandalone ? ` · ${creditLimitSummary}` : ` · ${monthlyLimitLabel} ${b.cardLimit || 0} · ${t('budgetLabel')} ${formatCurrencyAmount(b.budget || 0, b.currency || 'CZK')}`} · ${isCreditCardStandalone ? t('creditCardOutstandingBalance', 'Outstanding balance') : t('accountBalanceTitle')} ${escapeHtml(formatCurrencyAmount(b.balance || 0, b.currency || 'CZK'))}${getCzkEquivalentText(b.balance || 0, b.currency || 'CZK') ? ` · ${escapeHtml(getCzkEquivalentText(b.balance || 0, b.currency || 'CZK'))}` : ''} · ${escapeHtml(t('incomingAlertShort'))} ${formatCurrencyAmount(b.incomingAlert || 0, b.currency || 'CZK')} · ${escapeHtml(t('outgoingAlertShort'))} ${formatCurrencyAmount(b.outgoingAlert || 0, b.currency || 'CZK')}`;
     return `
     <div class="managed-bank-row" id="bank-row-${b.id}">
       <div class="managed-bank-top">
@@ -12305,13 +13702,22 @@ function renderBankManager(){
         </select>
 
         <div class="managed-bank-monthly-settings open" id="edit-monthly-settings-${b.id}">
-          ${isCreditCardStandalone ? `<div class="budget-status-note" style="margin-bottom:8px;">${escapeHtml(t('creditCardSharedBudgetLimitHint', 'Monthly card limit and budget are shared under ČSOB CZ. Only credit-card balance and push alerts are editable here.'))}</div>` : `
+          ${isCreditCardStandalone ? `<div class="budget-status-note" style="margin-bottom:8px;">${escapeHtml(t('creditCardBalanceAlertsOnly', 'Monthly limit, outstanding balance and push alerts are editable here.'))}</div>` : ''}
+          ${isCreditCardStandalone ? `
+          <label>${t('creditCardMonthlyLimit', 'Monthly limit')}</label>
+          <div class="save-field-wrap">
+            <input class="config-input" id="edit-credit-card-limit-${b.id}" type="number" value="${b.creditCardLimit||0}" placeholder="50000" oninput="scheduleManagedBankAutoSave('${b.id}', 'credit-card-limit')" onchange="scheduleManagedBankAutoSave('${b.id}', 'credit-card-limit', true)" />
+            <span class="field-save-check" id="save-check-credit-card-limit-${b.id}">✓</span>
+          </div>
+          ` : `
           <label>${t('monthlyCardLimit')}</label>
           <div class="save-field-wrap">
             <input class="config-input" id="edit-card-limit-${b.id}" type="number" value="${b.cardLimit||0}" placeholder="10" oninput="scheduleManagedBankAutoSave('${b.id}', 'card-limit')" onchange="scheduleManagedBankAutoSave('${b.id}', 'card-limit', true)" />
             <span class="field-save-check" id="save-check-card-limit-${b.id}">✓</span>
           </div>
+          `}
 
+          ${isCreditCardStandalone ? '' : `
           <label>${t('budgetLabel')}</label>
           <div class="sheet-grid-2">
             <div class="save-field-wrap">
@@ -12325,7 +13731,7 @@ function renderBankManager(){
           </div>
           `}
 
-          <label>${t('accountBalanceTitle')}</label>
+          <label>${isCreditCardStandalone ? t('creditCardOutstandingBalance', 'Outstanding balance') : t('accountBalanceTitle')}</label>
           <div class="save-field-wrap">
             <input class="config-input" id="edit-balance-${b.id}" type="number" step="0.01" value="${b.balance||0}" placeholder="0" oninput="scheduleManagedBankAutoSave('${b.id}', 'balance')" onchange="scheduleManagedBankAutoSave('${b.id}', 'balance', true)" />
             <span class="field-save-check" id="save-check-balance-${b.id}">✓</span>
@@ -12370,6 +13776,7 @@ function getManagedBankMonthlyValues(bankKey) {
   return {
     month: normalizeMonthStr(budgetMonth),
     cardLimit: parseInt(document.getElementById('edit-card-limit-' + bankKey)?.value || '0', 10) || 0,
+    creditCardLimit: parseFloat(document.getElementById('edit-credit-card-limit-' + bankKey)?.value || '0') || 0,
     budget: parseFloat(document.getElementById('edit-budget-' + bankKey)?.value || '0') || 0,
     warning: parseFloat(document.getElementById('edit-warning-' + bankKey)?.value || '0') || 0,
     balance: parseFloat(document.getElementById('edit-balance-' + bankKey)?.value || '0') || 0,
@@ -12440,9 +13847,6 @@ async function autoSaveManagedBankDetails(bankKey, fieldKey = 'name') {
     saveCustomBanks(customBanks);
   }
 
-  setManagedSaveCheck(bankKey, fieldKey, 'saved');
-  showSavedToast();
-
   const ok = await postToBankTrackerEndpoint('saveBank', {
     bank: {
       id: bankKey,
@@ -12456,8 +13860,13 @@ async function autoSaveManagedBankDetails(bankKey, fieldKey = 'name') {
   });
 
   if (!ok) {
+    setManagedSaveCheck(bankKey, fieldKey, 'error');
     const status = document.getElementById('limits-sync-status');
     if (status) status.textContent = 'Zmeny sú uložené lokálne. Google Sheets sync sa nepodaril - skontroluj Web App /exec a Apps Script Executions.';
+  }
+  if (ok) {
+    setManagedSaveCheck(bankKey, fieldKey, 'saved');
+    showSavedToast();
   }
   renderOverview();
   renderArchive();
@@ -12470,6 +13879,7 @@ async function autoSaveManagedBankMonthlyField(bankKey, fieldKey = 'settings') {
 
   // Update local state first so the UI reacts immediately.
   localStorage.setItem(`bank_card_limit_${bankKey}_${values.month}`, String(values.cardLimit));
+  if (bankKey === 'csob_cz_credit') setCreditCardLimitForBank(bankKey, values.creditCardLimit, values.month);
   const limits = getLimitsForMonth(values.month);
   const bank = getBankInfo(bankKey);
   if (bank && bank.limitKey) {
@@ -12480,14 +13890,16 @@ async function autoSaveManagedBankMonthlyField(bankKey, fieldKey = 'settings') {
   setAccountBalance(bankKey, values.balance, values.month);
   setTransactionAlertSettingsForBank(bankKey, values.incomingAlert, values.outgoingAlert, values.month);
 
-  setManagedSaveCheck(bankKey, fieldKey, 'saved');
-  showSavedToast();
-
-  let ok = await saveBankSettingsEndpoint(bankKey, values.month, values.cardLimit, values.budget, values.warning, values.balance, values.incomingAlert, values.outgoingAlert);
+  let ok = await saveBankSettingsEndpoint(bankKey, values.month, values.cardLimit, values.budget, values.warning, values.balance, values.incomingAlert, values.outgoingAlert, values.creditCardLimit);
 
   if (!ok) {
+    setManagedSaveCheck(bankKey, fieldKey, 'error');
     const status = document.getElementById('limits-sync-status');
     if (status) status.textContent = 'Zmeny sú uložené lokálne. Google Sheets sync sa nepodaril - skontroluj Web App /exec a Apps Script Executions.';
+  }
+  if (ok) {
+    setManagedSaveCheck(bankKey, fieldKey, 'saved');
+    showSavedToast();
   }
   renderOverview();
   renderArchive();
@@ -12510,6 +13922,7 @@ async function updateSystemBankSettings(bankKey) {
   const newAccount = cleanBankAccountValue(document.getElementById('edit-account-' + bankKey)?.value || bank.account || '');
   const newCards = removeAccountPartsFromCards(cleanBankCardsValue(document.getElementById('edit-cards-' + bankKey)?.value || bank.cards || ''), newAccount);
   const newLimit = parseInt(document.getElementById('edit-card-limit-' + bankKey)?.value || '0', 10) || 0;
+  const newCreditCardLimit = parseFloat(document.getElementById('edit-credit-card-limit-' + bankKey)?.value || '0') || 0;
   const newBudget = parseFloat(document.getElementById('edit-budget-' + bankKey)?.value || '0') || 0;
   const newWarning = parseFloat(document.getElementById('edit-warning-' + bankKey)?.value || '0') || 0;
   const newBalance = parseFloat(document.getElementById('edit-balance-' + bankKey)?.value || '0') || 0;
@@ -12523,6 +13936,7 @@ async function updateSystemBankSettings(bankKey) {
 
   limits[bank.limitKey] = newLimit;
   saveLimitsForMonth(monthStr, limits);
+  if (bankKey === 'csob_cz_credit') setCreditCardLimitForBank(bankKey, newCreditCardLimit, monthStr);
 
   setBudgetSettingsForBank(bankKey, newBudget, newWarning, budgetMonth);
   setAccountBalance(bankKey, newBalance, monthStr);
@@ -12541,7 +13955,7 @@ async function updateSystemBankSettings(bankKey) {
       active: true
     }
   });
-  const settingsOk = await saveBankSettingsEndpoint(bankKey, budgetMonth, newLimit, newBudget, newWarning, newBalance, newIncomingAlert, newOutgoingAlert);
+  const settingsOk = await saveBankSettingsEndpoint(bankKey, budgetMonth, newLimit, newBudget, newWarning, newBalance, newIncomingAlert, newOutgoingAlert, newCreditCardLimit);
 
   renderBankManager();
   renderAll();
@@ -12775,6 +14189,45 @@ function getArchiveMonthlyStatKey(bankKey, monthStr, field) {
   return `bank_monthly_${field}_${bankKey}_${normalizeMonthStr(monthStr)}`;
 }
 
+function getOverviewMonthlyStatKey(bankKey, monthStr, field) {
+  return `overview_monthly_${field}_${bankKey}_${normalizeMonthStr(monthStr)}`;
+}
+
+function getStoredOverviewMonthlyStat(bankKey, monthStr, field) {
+  const normalizedMonth = normalizeMonthStr(monthStr || getAktuálneMonth());
+  if (localTestOverviewDetails && localTestOverviewDetails.month === normalizedMonth) {
+    let value = null;
+    if (localTestOverviewDetails.totals?.[bankKey] && localTestOverviewDetails.totals[bankKey][field] !== undefined) {
+      value = Number(localTestOverviewDetails.totals[bankKey][field] || 0) || 0;
+    }
+    if (bankKey === 'csob_cz' && localTestOverviewDetails.totals?.csob_cz_credit && localTestOverviewDetails.totals.csob_cz_credit[field] !== undefined) {
+      value = (value || 0) + (Number(localTestOverviewDetails.totals.csob_cz_credit[field] || 0) || 0);
+    }
+    if (value !== null) return value;
+  }
+  let total = 0;
+  let found = false;
+  const stored = localStorage.getItem(getOverviewMonthlyStatKey(bankKey, normalizedMonth, field));
+  if (stored !== null) {
+    const n = Number(stored || 0);
+    if (Number.isFinite(n)) { total += n; found = true; }
+  }
+  if (bankKey === 'csob_cz') {
+    const creditStored = localStorage.getItem(getOverviewMonthlyStatKey('csob_cz_credit', normalizedMonth, field));
+    if (creditStored !== null) {
+      const n = Number(creditStored || 0);
+      if (Number.isFinite(n)) { total += n; found = true; }
+    }
+  }
+  return found ? total : null;
+}
+
+function setOverviewMonthlyStat(bankKey, monthStr, field, value) {
+  const amount = Math.round((Number(value || 0) || 0) * 100) / 100;
+  localStorage.setItem(getOverviewMonthlyStatKey(bankKey, monthStr, field), String(amount));
+  return amount;
+}
+
 
 function setArchiveMonthlyStat(bankKey, monthStr, field, value) {
   const key = getArchiveMonthlyStatKey(bankKey, monthStr, field);
@@ -12910,6 +14363,20 @@ function getArchiveMonthlyStat(bankKey, monthStr, field, targetCurrency) {
     if (creditStored !== null) {
       const n = Number(creditStored || 0);
       if (Number.isFinite(n)) { total += n; hasStored = true; }
+    }
+  }
+  if (!hasStored) {
+    const overviewStored = localStorage.getItem(getOverviewMonthlyStatKey(bankKey, normalizedMonth, field));
+    if (overviewStored !== null) {
+      const n = Number(overviewStored || 0);
+      if (Number.isFinite(n)) { total += n; hasStored = true; }
+    }
+    if (bankKey === 'csob_cz') {
+      const overviewCreditStored = localStorage.getItem(getOverviewMonthlyStatKey('csob_cz_credit', normalizedMonth, field));
+      if (overviewCreditStored !== null) {
+        const n = Number(overviewCreditStored || 0);
+        if (Number.isFinite(n)) { total += n; hasStored = true; }
+      }
     }
   }
   if (hasStored) {
@@ -13323,6 +14790,11 @@ const I18N = {
     monthlyBudget: 'Monthly budget',
     warnWhenRemaining: 'Warn when remaining',
     monthlyCardLimit: 'Monthly card limit',
+    monthlyBalanceLimit: 'Monthly balance limit',
+    monthlyBalanceLimitShort: 'balance limit',
+    creditCardMonthlyLimit: 'Monthly limit',
+    creditCardMonthlyLimitShort: 'monthly limit',
+    creditCardOutstandingBalance: 'Outstanding balance',
     monthLabel: 'Month',
     chooseMonth: 'Choose month',
     merchantDescription: 'Merchant / description',
@@ -13583,6 +15055,11 @@ const I18N = {
     monthlyBudget: 'Mesačný budget',
     warnWhenRemaining: 'Upozorniť keď zostáva',
     monthlyCardLimit: 'Mesačný limit karty',
+    monthlyBalanceLimit: 'Mesačný limit zostatku',
+    monthlyBalanceLimitShort: 'limit zostatku',
+    creditCardMonthlyLimit: 'Mesačný limit',
+    creditCardMonthlyLimitShort: 'mesačný limit',
+    creditCardOutstandingBalance: 'Dlžný zostatok',
     monthLabel: 'Mesiac',
     chooseMonth: 'Vyber mesiac',
     merchantDescription: 'Obchodník / popis',
@@ -13836,6 +15313,11 @@ const I18N = {
     monthlyBudget: 'Měsíční budget',
     warnWhenRemaining: 'Upozornit když zbývá',
     monthlyCardLimit: 'Měsíční limit karty',
+    monthlyBalanceLimit: 'Měsíční limit zůstatku',
+    monthlyBalanceLimitShort: 'limit zůstatku',
+    creditCardMonthlyLimit: 'Měsíční limit',
+    creditCardMonthlyLimitShort: 'měsíční limit',
+    creditCardOutstandingBalance: 'Dlužný zůstatek',
     monthLabel: 'Měsíc',
     chooseMonth: 'Vyber měsíc',
     merchantDescription: 'Obchodník / popis',
@@ -14116,12 +15598,12 @@ function updateGoogleSheetsToggleUi() {
 
 function ensureDefaultConfig() {
   try {
-    SHEETS_URL = localStorage.getItem('sheets_url') || '';
-    LIMITS_WEBAPP_URL = localStorage.getItem('limits_webapp_url') || '';
+    SHEETS_URL = localStorage.getItem('sheets_url') || DEFAULT_SHEETS_URL || '';
+    LIMITS_WEBAPP_URL = localStorage.getItem('limits_webapp_url') || DEFAULT_LIMITS_WEBAPP_URL || '';
   } catch (err) {
     console.warn('Config storage unavailable:', err);
-    SHEETS_URL = '';
-    LIMITS_WEBAPP_URL = '';
+    SHEETS_URL = DEFAULT_SHEETS_URL || '';
+    LIMITS_WEBAPP_URL = DEFAULT_LIMITS_WEBAPP_URL || '';
   }
 }
 
@@ -14146,11 +15628,21 @@ function setTransactionAlertSettingsForBank(bankId, incomingAlert, outgoingAlert
   localStorage.setItem(getTransactionAlertStorageKey(bankId, 'outgoing', month), String(parseAmountValue(outgoingAlert)));
 }
 
-function getBankSettingsPayload(bankId, monthStr, cardLimit, budget, warning, accountBalance, incomingAlert, outgoingAlert) {
+function getBankSettingsPayload(bankId, monthStr, cardLimit, budget, warning, accountBalance, incomingAlert, outgoingAlert, creditCardLimit = undefined) {
+  const parsedCardLimit = parseAmountValue(cardLimit);
+  const parsedCreditCardLimit = parseAmountValue(creditCardLimit);
+  const isCreditCardStandalone = bankId === 'csob_cz_credit';
   return {
     bankId,
     month: normalizeMonthStr(monthStr || getAktuálneMonth()),
-    cardLimit: parseAmountValue(cardLimit),
+    cardLimit: parsedCardLimit,
+    creditCardLimit: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
+    creditCardLimits: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
+    creditLimit: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
+    credit_card_limit: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
+    monthlyLimit: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
+    monthly_limit: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
+    creditMonthlyLimit: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
     budget: parseAmountValue(budget),
     warning: parseAmountValue(warning),
     accountBalance: parseAmountValue(accountBalance),
@@ -14159,8 +15651,8 @@ function getBankSettingsPayload(bankId, monthStr, cardLimit, budget, warning, ac
   };
 }
 
-async function saveBankSettingsEndpoint(bankId, monthStr, cardLimit, budget, warning, accountBalance, incomingAlert, outgoingAlert) {
-  const payload = getBankSettingsPayload(bankId, monthStr, cardLimit, budget, warning, accountBalance, incomingAlert, outgoingAlert);
+async function saveBankSettingsEndpoint(bankId, monthStr, cardLimit, budget, warning, accountBalance, incomingAlert, outgoingAlert, creditCardLimit = undefined) {
+  const payload = getBankSettingsPayload(bankId, monthStr, cardLimit, budget, warning, accountBalance, incomingAlert, outgoingAlert, creditCardLimit);
   return postToBankTrackerEndpoint('saveBankSettings', { ...payload, settings: payload });
 }
 
@@ -14339,36 +15831,127 @@ async function syncBanksFromSheets(spreadsheetId) {
 function parseBankSettingsSheetData(raw) {
   const data = parseGvizJson(raw);
   const rows = data?.table?.rows || [];
+  const cols = data?.table?.cols || [];
+  const headerFromCols = cols.map(col => String(col?.label || '').trim());
+  const firstRowHeaders = rows[0]?.c?.map(cell => String(cell?.v ?? cell?.f ?? '').trim()) || [];
+  const normalizeHeader = (value) => String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[\s_\-./()]+/g, ' ')
+    .replace(/\s+/g, ' ');
+  const hasHeaderLabels = headerFromCols.some(Boolean);
+  const firstRowLooksLikeHeader = firstRowHeaders
+    .map(normalizeHeader)
+    .some(h => /month|mesiac|mesic|obdobi|bank|banka|budget|balance|zostatok|zustatek|limit|spending|spent|income|vydav|prijem/i.test(h));
+  const headerMode = hasHeaderLabels || firstRowLooksLikeHeader;
+  const headers = (hasHeaderLabels ? headerFromCols : firstRowHeaders).map(normalizeHeader);
+  const dataRows = firstRowLooksLikeHeader && !hasHeaderLabels ? rows.slice(1) : rows;
+  const headerIndex = (names, fallback) => {
+    const list = (Array.isArray(names) ? names : [names]).map(normalizeHeader).filter(Boolean);
+    const exact = headers.findIndex(h => list.includes(h));
+    if (exact >= 0) return exact;
+    const contains = headers.findIndex(h => list.some(name => {
+      if (name.length < 8 || h.length < 8) return false;
+      return h.includes(name) || name.includes(h);
+    }));
+    return contains >= 0 ? contains : (headerMode ? -1 : fallback);
+  };
+  const idx = {
+    month: headerIndex(['Month', 'Mesiac', 'Mesic', 'Period', 'Obdobi', 'Obdobie'], 0),
+    bank: headerIndex(['Bank ID', 'BankID', 'Bank', 'Banka'], 1),
+    cardLimit: headerIndex(['Card limit', 'Card Limit', 'Cards limit', 'Limit', 'Payment limit', 'Limit karty', 'Kartovy limit', 'Limit kariet'], 2),
+    creditCardLimit: headerIndex(['Credit card limits', 'Credit card limit', 'Credit limit', 'Monthly credit limit', 'Monthly limit', 'monthlyLimit', 'monthly_limit', 'creditMonthlyLimit', 'credit_monthly_limit', 'credit_card_limit', 'credit_card_limits', 'Limit kreditky', 'Limit kreditnej karty', 'Limit kreditni karty'], -1),
+    budget: headerIndex(['Budget', 'Bank budget', 'Monthly budget', 'Mesacny budget', 'Mesicni budget', 'Rozpocet'], 3),
+    warning: headerIndex(['Warning', 'Warn', 'Budget warning', 'Warning threshold', 'Upozornenie', 'Varovani'], 4),
+    balance: headerIndex(['Balance', 'Account balance', 'Zostatok', 'Zustatek', 'Zostatok uctu', 'Zustatek uctu'], 5),
+    incomingAlert: headerIndex(['Incoming alert', 'Income alert', 'Incoming limit', 'Prijem alert', 'Prichozi alert'], 6),
+    outgoingAlert: headerIndex(['Outgoing alert', 'Spending alert', 'Outgoing limit', 'Vydavky alert', 'Odchozi alert'], 7),
+    monthlySpending: headerIndex(['Monthly spending', 'Spending', 'Spent', 'Monthly spent', 'Mesacne vydavky', 'Mesicni vydaje', 'Vydavky', 'Vydaje', 'Minute'], 8),
+    monthlyIncome: headerIndex(['Monthly income', 'Income', 'Mesacny prijem', 'Mesicni prijem', 'Prijem', 'Prijmy'], 9),
+    monthlyNet: headerIndex(['Monthly net', 'Net', 'Cisty vysledok', 'Netto'], -1)
+  };
+  const cellText = (cells, i) => i >= 0 ? String(cells[i]?.v ?? cells[i]?.f ?? '').trim() : '';
+  const hasCell = (cells, i) => i >= 0 && !!cells[i] && String(cells[i].v ?? cells[i].f ?? '').trim() !== '';
+  const cellNumber = (cells, i) => parseSheetNumber(cells[i]?.v, cells[i]?.f);
+  const parseSheetMonth = (cells, i) => {
+    const raw = cells[i]?.v ?? cells[i]?.f ?? '';
+    if (!String(raw || '').trim()) return '';
+    const date = parseGSheetDate(raw);
+    if (date) return getMonthFromDate(date);
+    const text = String(raw || '').trim();
+    const iso = text.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?/);
+    if (iso) return `${String(Number(iso[2])).padStart(2, '0')}/${iso[1]}`;
+    return normalizeMonthStr(text);
+  };
   let count = 0;
-  rows.forEach(row => {
+  dataRows.forEach(row => {
     const c = row.c || [];
-    const month = normalizeMonthStr(c[0]?.v || c[0]?.f || '');
-    const rawBankId = String(c[1]?.v || c[1]?.f || '').trim();
+    const firstCell = cellText(c, idx.month).toLowerCase();
+    const secondCell = cellText(c, idx.bank).toLowerCase();
+    if (/^(month|mesiac|mesic|period)$/.test(firstCell) || /^(bank|banka|bank id|bankid)$/.test(secondCell)) return;
+    const month = parseSheetMonth(c, idx.month);
+    const rawBankId = cellText(c, idx.bank);
     const relatedCustom = getCustomBanks().find(b => b.id === rawBankId) || {};
     const bankId = canonicalBankIdFromSheetRow(rawBankId, relatedCustom.name, relatedCustom.account);
     if (!bankId || !month) return;
-    const cardLimit = parseSheetNumber(c[2]?.v, c[2]?.f);
-    const budget = parseSheetNumber(c[3]?.v, c[3]?.f);
-    const warning = parseSheetNumber(c[4]?.v, c[4]?.f);
-    const balance = parseSheetNumber(c[5]?.v, c[5]?.f);
-    const incomingAlert = parseSheetNumber(c[6]?.v, c[6]?.f);
-    const outgoingAlert = parseSheetNumber(c[7]?.v, c[7]?.f);
-    const monthlySpending = parseSheetNumber(c[8]?.v, c[8]?.f);
-    const monthlyIncome = parseSheetNumber(c[9]?.v, c[9]?.f);
-    // Bank_Archive no longer has a Monthly net column; column 11 is Updated.
-    // Keep a derived net value in cache only for old UI helpers.
-    const monthlyNet = Math.round((monthlyIncome - monthlySpending) * 100) / 100;
-    localStorage.setItem(getArchiveMonthlyStatKey(bankId, month, 'spending'), String(monthlySpending));
-    localStorage.setItem(getArchiveMonthlyStatKey(bankId, month, 'income'), String(monthlyIncome));
-    localStorage.setItem(getArchiveMonthlyStatKey(bankId, month, 'net'), String(monthlyNet));
-    localStorage.setItem(getBudgetStorageKey(bankId, 'limit', month), String(budget));
-    localStorage.setItem(getBudgetStorageKey(bankId, 'warn', month), String(warning));
-    if (balance || localStorage.getItem(getAccountBalanceStorageKey(bankId)) === null) setAccountBalance(bankId, balance, month);
-    setTransactionAlertSettingsForBank(bankId, incomingAlert, outgoingAlert, month);
+    const hasCardLimit = hasCell(c, idx.cardLimit);
+    const hasCreditCardLimit = hasCell(c, idx.creditCardLimit);
+    const hasBudget = hasCell(c, idx.budget);
+    const hasWarning = hasCell(c, idx.warning);
+    const hasBalance = hasCell(c, idx.balance);
+    const hasIncomingAlert = hasCell(c, idx.incomingAlert);
+    const hasOutgoingAlert = hasCell(c, idx.outgoingAlert);
+    const hasSpending = hasCell(c, idx.monthlySpending);
+    const hasIncome = hasCell(c, idx.monthlyIncome);
+    const hasNet = hasCell(c, idx.monthlyNet);
+    const hasOverviewDetailValue = hasCardLimit || hasCreditCardLimit || hasBudget || hasWarning || hasBalance || hasIncomingAlert || hasOutgoingAlert || hasSpending || hasIncome || hasNet;
+    if (!hasOverviewDetailValue) return;
+
+    const cardLimit = hasCardLimit ? cellNumber(c, idx.cardLimit) : null;
+    const creditCardLimit = hasCreditCardLimit ? cellNumber(c, idx.creditCardLimit) : null;
+    const budget = hasBudget ? cellNumber(c, idx.budget) : null;
+    const warning = hasWarning ? cellNumber(c, idx.warning) : null;
+    const balance = hasBalance ? cellNumber(c, idx.balance) : null;
+    const incomingAlert = hasIncomingAlert ? cellNumber(c, idx.incomingAlert) : null;
+    const outgoingAlert = hasOutgoingAlert ? cellNumber(c, idx.outgoingAlert) : null;
+    const monthlySpending = hasSpending ? cellNumber(c, idx.monthlySpending) : null;
+    const monthlyIncome = hasIncome ? cellNumber(c, idx.monthlyIncome) : null;
+    const monthlyNet = hasNet
+      ? cellNumber(c, idx.monthlyNet)
+      : Math.round(((monthlyIncome || 0) - (monthlySpending || 0)) * 100) / 100;
+
+    if (hasCardLimit) setMonthlyCardLimitForBank(bankId, cardLimit, month);
+    if (hasCreditCardLimit) setCreditCardLimitForBank(bankId, creditCardLimit, month);
+    if (hasSpending) {
+      setOverviewMonthlyStat(bankId, month, 'spending', monthlySpending);
+      localStorage.setItem(getArchiveMonthlyStatKey(bankId, month, 'spending'), String(monthlySpending));
+    }
+    if (hasIncome) {
+      setOverviewMonthlyStat(bankId, month, 'income', monthlyIncome);
+      localStorage.setItem(getArchiveMonthlyStatKey(bankId, month, 'income'), String(monthlyIncome));
+    }
+    if (hasSpending || hasIncome || hasNet) {
+      setOverviewMonthlyStat(bankId, month, 'net', monthlyNet);
+      localStorage.setItem(getArchiveMonthlyStatKey(bankId, month, 'net'), String(monthlyNet));
+    }
+    if (hasBudget) localStorage.setItem(getBudgetStorageKey(bankId, 'limit', month), String(budget));
+    if (hasWarning) localStorage.setItem(getBudgetStorageKey(bankId, 'warn', month), String(warning));
+    if (hasBalance && Number.isFinite(balance)) setAccountBalance(bankId, balance, month);
+    if (hasIncomingAlert || hasOutgoingAlert) {
+      const currentAlerts = getTransactionAlertSettingsForBank(bankId, month);
+      setTransactionAlertSettingsForBank(
+        bankId,
+        hasIncomingAlert ? incomingAlert : currentAlerts.incoming,
+        hasOutgoingAlert ? outgoingAlert : currentAlerts.outgoing,
+        month
+      );
+    }
 
     const limits = getLimitsForMonth(month);
     const info = getBankInfo(bankId);
-    if (BANK_ORDER.includes(bankId) && info?.limitKey) {
+    if (hasCardLimit && BANK_ORDER.includes(bankId) && info?.limitKey) {
       limits[info.limitKey] = cardLimit;
       saveLimitsForMonth(month, limits);
     }
@@ -14376,15 +15959,16 @@ function parseBankSettingsSheetData(raw) {
     const banks = getCustomBanks();
     const custom = banks.find(b => b.id === bankId);
     if (custom) {
-      custom.cardLimit = cardLimit;
-      custom.budget = budget;
-      custom.warning = warning;
-      custom.balance = balance;
-      custom.incomingAlert = incomingAlert;
-      custom.outgoingAlert = outgoingAlert;
-      custom.monthlySpending = monthlySpending;
-      custom.monthlyIncome = monthlyIncome;
-      custom.monthlyNet = monthlyNet;
+      if (hasCardLimit) custom.cardLimit = cardLimit;
+      if (hasCreditCardLimit) custom.creditCardLimit = creditCardLimit;
+      if (hasBudget) custom.budget = budget;
+      if (hasWarning) custom.warning = warning;
+      if (hasBalance) custom.balance = balance;
+      if (hasIncomingAlert) custom.incomingAlert = incomingAlert;
+      if (hasOutgoingAlert) custom.outgoingAlert = outgoingAlert;
+      if (hasSpending) custom.monthlySpending = monthlySpending;
+      if (hasIncome) custom.monthlyIncome = monthlyIncome;
+      if (hasSpending || hasIncome || hasNet) custom.monthlyNet = monthlyNet;
       custom.budgetMonth = month;
       saveCustomBanks(banks);
     }
@@ -14394,18 +15978,35 @@ function parseBankSettingsSheetData(raw) {
 }
 
 async function syncBankSettingsFromSheets(spreadsheetId) {
-  try {
-    if (!spreadsheetId) return false;
-    const gvizUrl = buildGvizUrl(spreadsheetId, 'Bank_Archive');
-    const res = await fetchNoStore(gvizUrl);
-    if (!res.ok) throw new Error('Bank_Archive fetch failed');
-    const raw = await res.text();
-    parseBankSettingsSheetData(raw);
-    return true;
-  } catch (e) {
-    console.warn('Bank_Archive sync skipped:', e);
-    return false;
+  if (!spreadsheetId) return false;
+  const sheetNames = [
+    'Overview details',
+    'Overview Details',
+    'overview details',
+    'Overview_Details',
+    'overview_details',
+    'Bank_Overview',
+    'Bank_Archive'
+  ];
+  let lastError = null;
+  for (const sheetName of sheetNames) {
+    try {
+      const gvizUrl = buildGvizUrl(spreadsheetId, sheetName);
+      const res = await fetchNoStore(gvizUrl);
+      if (!res.ok) throw new Error(`${sheetName} fetch failed`);
+      const raw = await res.text();
+      const count = parseBankSettingsSheetData(raw);
+      if (count > 0) {
+        console.log(`${sheetName} sync loaded ${count} overview detail rows.`);
+        return true;
+      }
+      console.warn(`${sheetName} sync returned no overview detail rows.`);
+    } catch (e) {
+      lastError = e;
+    }
   }
+  console.warn('Overview details sync skipped:', lastError);
+  return false;
 }
 
 
@@ -14464,6 +16065,13 @@ function flattenEndpointPayload(action, payload = {}) {
     add('bankId', payload.settings.bankId);
     add('month', payload.settings.month);
     add('cardLimit', payload.settings.cardLimit);
+    add('creditCardLimit', payload.settings.creditCardLimit);
+    add('creditCardLimits', payload.settings.creditCardLimits);
+    add('creditLimit', payload.settings.creditLimit);
+    add('credit_card_limit', payload.settings.credit_card_limit);
+    add('monthlyLimit', payload.settings.monthlyLimit);
+    add('monthly_limit', payload.settings.monthly_limit);
+    add('creditMonthlyLimit', payload.settings.creditMonthlyLimit);
     add('budget', payload.settings.budget);
     add('warning', payload.settings.warning);
     add('accountBalance', payload.settings.accountBalance);
@@ -14593,7 +16201,7 @@ async function postToBankTrackerEndpoint(action, payload = {}) {
   // updates balance, monthly stats, notification logs and FCM token cleanup.
   // A short timeout made the app show "transaction failed" even when Apps Script
   // had already written the row to Google Sheets successfully.
-  const mutationTimeoutMs = ['saveTransaction', 'deleteTransaction'].includes(action) ? 60000 : 15000;
+  const mutationTimeoutMs = ['saveTransaction', 'deleteTransaction', 'saveBankSettings'].includes(action) ? 60000 : 15000;
   const result = await jsonpEndpointRequest(action, payload, mutationTimeoutMs);
   if (result.ok) {
     if (status) status.textContent = getEndpointStatusMessage(action, 'success');
@@ -15097,13 +16705,13 @@ function initPageSwipeNavigation() {
 // ── APP LIGHT / DARK THEME SWITCH ──────────────────────────
 const APP_THEMES = {
   dark: {
-    themeColor: '#020617',
-    backgroundColor: '#020617',
+    themeColor: '#08111f',
+    backgroundColor: '#08111f',
     colorScheme: 'dark'
   },
   light: {
-    themeColor: '#ffffff',
-    backgroundColor: '#ffffff',
+    themeColor: '#f8fafc',
+    backgroundColor: '#f8fafc',
     colorScheme: 'light'
   }
 };
@@ -15117,16 +16725,16 @@ function updateThemeMeta(theme) {
   const config = APP_THEMES[theme] || APP_THEMES.dark;
 
   let metas = Array.from(document.querySelectorAll('meta[name="theme-color"]'));
-  let themeMeta = metas[0];
-  if (!themeMeta) {
+  if (!metas.length) {
     const meta = document.createElement('meta');
     meta.setAttribute('name', 'theme-color');
     document.head.appendChild(meta);
-    themeMeta = meta;
+    metas = [meta];
   }
-  themeMeta.removeAttribute('media');
-  themeMeta.setAttribute('content', config.themeColor);
-  metas.slice(1).forEach(meta => meta.remove());
+
+  metas.forEach(meta => {
+    meta.setAttribute('content', config.themeColor);
+  });
 
   let navMeta = document.querySelector('meta[name="msapplication-navbutton-color"]');
   if (!navMeta) {
@@ -15144,27 +16752,11 @@ function updateThemeMeta(theme) {
   }
   colorSchemeMeta.setAttribute('content', config.colorScheme);
 
-  let supportedMeta = document.querySelector('meta[name="supported-color-schemes"]');
-  if (!supportedMeta) {
-    supportedMeta = document.createElement('meta');
-    supportedMeta.setAttribute('name', 'supported-color-schemes');
-    document.head.appendChild(supportedMeta);
-  }
-  supportedMeta.setAttribute('content', 'dark light');
-
-  const appleStatus = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-  if (appleStatus) {
-    appleStatus.setAttribute('content', theme === 'light' ? 'default' : 'black-translucent');
-  }
-
   document.documentElement.style.colorScheme = config.colorScheme;
   document.body.style.colorScheme = config.colorScheme;
   document.documentElement.style.backgroundColor = config.backgroundColor;
   document.body.style.backgroundColor = config.backgroundColor;
   document.documentElement.style.setProperty('--system-bar-color', config.backgroundColor);
-  document.documentElement.style.setProperty('--app-shell-bg', config.backgroundColor);
-  document.body.style.setProperty('--system-bar-color', config.backgroundColor);
-  document.body.style.setProperty('--app-shell-bg', config.backgroundColor);
 }
 
 function applyAppTheme(theme = getAppTheme()) {
@@ -15179,53 +16771,9 @@ function applyAppTheme(theme = getAppTheme()) {
   if (lightBtn) lightBtn.classList.toggle('active', normalized === 'light');
 }
 
-let systemBarRepaintBatch = 0;
-
-function forceSystemBarRepaint(theme = getAppTheme()) {
-  const normalized = theme === 'light' ? 'light' : 'dark';
-  const config = APP_THEMES[normalized] || APP_THEMES.dark;
-  const themeMeta = document.querySelector('meta[name="theme-color"]');
-  if (!themeMeta) return;
-
-  const setShellColor = (color) => {
-    themeMeta.setAttribute('content', color);
-    document.documentElement.style.backgroundColor = color;
-    document.documentElement.style.setProperty('--system-bar-color', color);
-    document.documentElement.style.setProperty('--app-shell-bg', color);
-    if (document.body) {
-      document.body.style.backgroundColor = color;
-      document.body.style.setProperty('--system-bar-color', color);
-      document.body.style.setProperty('--app-shell-bg', color);
-    }
-  };
-
-  const repaintColor = normalized === 'light' ? '#fffefe' : '#020618';
-  setShellColor(repaintColor);
-
-  requestAnimationFrame(() => {
-    setShellColor(config.backgroundColor);
-  });
-}
-
-function scheduleSystemBarRepaint(theme = getAppTheme()) {
-  const normalized = theme === 'light' ? 'light' : 'dark';
-  const batch = ++systemBarRepaintBatch;
-  const repaint = () => {
-    if (batch !== systemBarRepaintBatch) return;
-    applyAppTheme(normalized);
-    forceSystemBarRepaint(normalized);
-  };
-
-  repaint();
-  [70, 160, 320, 650, 1000].forEach(delay => {
-    window.setTimeout(repaint, delay);
-  });
-}
-
 function setAppTheme(theme) {
   localStorage.setItem('app_theme_user_selected', 'true');
   applyAppTheme(theme);
-  scheduleSystemBarRepaint(theme);
   renderAll();
   applyLanguage();
 }
@@ -15233,31 +16781,15 @@ function setAppTheme(theme) {
 // Keep system bars synced after Chrome/PWA focus changes.
 (function keepThemeSystemBarsSynced() {
   const repaint = () => applyAppTheme(getAppTheme());
-  const repaintHard = () => {
-    repaint();
-    scheduleSystemBarRepaint(getAppTheme());
-  };
 
-  repaintHard();
-  ['focus','blur','touchend','pointerup','click'].forEach(eventName => {
+  repaint();
+  ['pageshow','focus','blur','resize','orientationchange','visibilitychange','touchend','pointerup','click'].forEach(eventName => {
     window.addEventListener(eventName, repaint, { passive: true });
     document.addEventListener(eventName, repaint, { passive: true });
   });
-  ['pageshow','popstate','hashchange'].forEach(eventName => {
-    window.addEventListener(eventName, repaintHard, { passive: true });
-  });
-  ['resize','orientationchange'].forEach(eventName => {
-    window.addEventListener(eventName, repaintHard, { passive: true });
-  });
-  if (window.screen && screen.orientation && screen.orientation.addEventListener) {
-    screen.orientation.addEventListener('change', repaintHard, { passive: true });
-  }
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) repaintHard();
-  }, { passive: true });
 
   if (window.visualViewport) {
-    visualViewport.addEventListener('resize', repaintHard, { passive: true });
+    visualViewport.addEventListener('resize', repaint, { passive: true });
     visualViewport.addEventListener('scroll', repaint, { passive: true });
   }
 })();
@@ -15274,12 +16806,23 @@ window.addEventListener('DOMContentLoaded', async () => {
   // then refresh from Google Sheets in the background. Google Sheets remains the master after sync.
   clearCloudFirstLocalData();
   loadCachedTransactionsSnapshot();
+  try {
+    if (!SHEETS_URL && isLocalTestDataHost()) seedBankTrackerLocalTestData(true);
+  } catch (e) {
+    document.documentElement.setAttribute('data-local-test-seed', 'error');
+    document.documentElement.setAttribute('data-local-test-seed-error', String(e && e.message ? e.message : e));
+    console.error('Local test data seed failed:', e);
+  }
   prepareUiAfterDataLoad();
   if (SHEETS_URL && isGoogleSheetsEnabled()) {
     syncData().then(() => {
       prepareUiAfterDataLoad();
       startAutoSync();
     });
+  } else if (!SHEETS_URL) {
+    const loadStatus = document.getElementById('limits-sync-status');
+    if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
+    console.warn('Google Sheets sync skipped on startup: missing sheets_url for this origin.');
   }
 });
 
