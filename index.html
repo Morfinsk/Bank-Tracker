@@ -97,6 +97,14 @@
     grid-column: 1 / -1;
     min-height: 112px;
     background: linear-gradient(135deg, rgba(49,31,78,.96), rgba(28,34,73,.96));
+    align-items: center;
+    text-align: center;
+  }
+  .wealth-card-net .wealth-card-head {
+    justify-content: center;
+  }
+  .wealth-card-net .wealth-card-value {
+    width: 100%;
   }
   .wealth-card-cash,
   .wealth-card-trend {
@@ -126,12 +134,21 @@
     font-size: 17px;
   }
   .wealth-card-value {
-    font-size: 33px;
+    font-size: clamp(24px, 6vw, 33px);
     font-weight: 800;
     letter-spacing: -.02em;
     color: #f8fbff;
     line-height: 1.08;
-    word-break: break-word;
+    word-break: normal;
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+  .wealth-card-value-cash {
+    font-size: clamp(14px, 4vw, 24px);
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
+    max-width: 100%;
   }
   .wealth-card-value-green { color: #73ffb0; }
   .wealth-card-trend .wealth-card-value { color: #dff6ff; }
@@ -447,9 +464,17 @@
   .wealth-card-trend {
     min-height: 126px !important;
   }
+  .wealth-card-cash {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
   .wealth-card-cash .wealth-card-value,
   .wealth-card-trend .wealth-card-value {
-    margin-top: auto;
+    margin-top: 0;
+    white-space: nowrap;
   }
   .wealth-card-gauge .wealth-inline-progress-labels {
     font-size: 12px !important;
@@ -522,21 +547,36 @@
   .wealth-card-budget-linear .wealth-inline-progress-track {
     display: none !important;
   }
+  .wealth-budget-widget {
+    width: 100%;
+    display: grid;
+    gap: 2px;
+  }
+  .wealth-card-budget-linear .wealth-budget-widget {
+    margin-top: 2px;
+    min-height: 72px;
+  }
   .wealth-budget-sparkline {
     width: 100%;
-    height: 62px;
+    display: grid;
+    gap: 1px;
+  }
+  .wealth-budget-sparkline-label {
+    margin-top: -12px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 800;
+    color: #f8fbff;
+    text-align: left;
+    white-space: nowrap;
+    position: relative;
+    top: -6px;
   }
   .wealth-budget-sparkline svg {
     width: 100%;
-    height: 100%;
+    height: 84px;
     display: block;
     overflow: visible;
-  }
-  .wealth-budget-sparkline .budget-area {
-    opacity: .9;
-  }
-  .wealth-budget-sparkline .budget-line {
-    filter: drop-shadow(0 4px 8px rgba(114,246,165,.22));
   }
   .wealth-card-cash .wealth-trend,
   .wealth-card-trend .wealth-trend {
@@ -7197,16 +7237,15 @@ html[data-theme="light"] body::before {
         <div class="wealth-card-title">Bank budget</div>
         <div class="wealth-card-icon" aria-hidden="true">◎</div>
       </div>
-      <div class="wealth-linear-card-value" id="overview-bank-budget-value">0 Kč / 0 Kč</div>
-      <div id="overview-bank-budget-line" class="wealth-inline-progress"></div>
+      <div id="overview-bank-budget-line" class="wealth-budget-widget"></div>
     </button>
 
     <button class="wealth-card wealth-card-trend" type="button" onclick="openOverviewDetailsSection('account-balance-anchor')">
       <div class="wealth-card-head">
-        <div class="wealth-card-title">Hotovosť</div>
+        <div class="wealth-card-title">Cash</div>
         <div class="wealth-card-icon" aria-hidden="true">💵</div>
       </div>
-      <div class="wealth-card-value" id="overview-cash-total">0 Kč</div>
+      <div class="wealth-card-value wealth-card-value-cash" id="overview-cash-total">0 Kč</div>
     </button>
   </div>
 
@@ -10255,6 +10294,31 @@ function getOverviewBudgetSpentForBank(bankKey, monthStr = getAktuálneMonth()) 
   return Number(getCurrentMonthSpentInBankCurrency(bankKey) || 0) || 0;
 }
 
+function getOverviewBudgetDailySeries(monthStr = getAktuálneMonth(), currency = getAppCurrency()) {
+  const normalizedMonth = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const [month, year] = normalizedMonth.split('/').map(Number);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const targetCurrency = currencyCode(currency || getAppCurrency() || 'CZK');
+  const daily = Array.from({ length: daysInMonth }, (_, idx) => ({ day: idx + 1, value: 0 }));
+
+  (allTransactions || []).forEach(tx => {
+    if (normalizeMonthStr(tx.month) !== normalizedMonth) return;
+    if (Number(tx.amount || 0) >= 0) return;
+    if (typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)) return;
+    const parsed = parseCustomDateStr(tx.rawDate || tx.date);
+    if (!parsed || isNaN(parsed.getTime())) return;
+    const day = parsed.getDate();
+    if (day < 1 || day > daysInMonth) return;
+    daily[day - 1].value += Math.abs(convertTransactionAmount(tx, targetCurrency));
+  });
+
+  let cumulative = 0;
+  return daily.map(item => {
+    cumulative += item.value;
+    return { day: item.day, value: cumulative };
+  });
+}
+
 function getOverviewMonthSpentInCurrency(targetCurrency = getAppCurrency(), bankKey = null) {
   const month = normalizeMonthStr(getAktuálneMonth());
   const target = currencyCode(targetCurrency || getAppCurrency());
@@ -10263,6 +10327,34 @@ function getOverviewMonthSpentInCurrency(targetCurrency = getAppCurrency(), bank
     .filter(tx => !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)))
     .filter(tx => !bankKey || getBudgetBankKeyFromTransaction(tx) === bankKey)
     .reduce((sum, tx) => sum + Math.abs(convertTransactionAmount(tx, target)), 0);
+}
+
+function getOverviewBudgetTransactionSeries(monthStr = getAktuálneMonth(), currency = getAppCurrency()) {
+  const normalizedMonth = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const targetCurrency = currencyCode(currency || getAppCurrency() || 'CZK');
+  const monthStart = new Date(normalizedMonth.split('/')[1], Number(normalizedMonth.split('/')[0]) - 1, 1, 0, 0, 0, 0).getTime();
+  const monthEnd = new Date(normalizedMonth.split('/')[1], Number(normalizedMonth.split('/')[0]), 0, 23, 59, 59, 999).getTime();
+
+  const txns = (allTransactions || [])
+    .filter(tx => normalizeMonthStr(tx.month) === normalizedMonth)
+    .filter(tx => Number(tx.amount || 0) < 0)
+    .filter(tx => !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)))
+    .map(tx => ({
+      tx,
+      date: parseCustomDateStr(tx.rawDate || tx.date)
+    }))
+    .filter(item => item.date && !isNaN(item.date.getTime()))
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  let cumulative = 0;
+  return txns.map(item => {
+    cumulative += Math.abs(convertTransactionAmount(item.tx, targetCurrency));
+    const time = Math.min(Math.max(item.date.getTime(), monthStart), monthEnd);
+    return {
+      timestamp: time,
+      value: cumulative
+    };
+  });
 }
 
 function getOverviewCardUsedCountForBank(bankKey, monthStr = getAktuálneMonth()) {
@@ -10358,12 +10450,13 @@ function getOverviewDashboardMetrics() {
     budgetLimit += convertAmountCurrency(budget || 0, bankCurrency || appCurrency, appCurrency);
   });
   const budgetPct = budgetLimit > 0 ? Math.min(budgetSpent / budgetLimit, 1) : 0;
+  const budgetTransactionSeries = getOverviewBudgetTransactionSeries(month, appCurrency);
 
   const monthTxns = allTransactions.filter(t => normalizeMonthStr(t.month) === month);
   const cashTxns = monthTxns.filter(t => normalizePaymentKindValue(t.paymentKind || t.type) === 'cash' && Number(t.amount || 0) < 0);
   const cashSpent = cashTxns.reduce((sum, tx) => sum + Math.abs(convertTransactionAmount(tx, appCurrency)), 0);
 
-  return { appCurrency, totalNetWorth, availableCash, cardUsed, cardLimit, cardPct, budgetSpent, budgetLimit, budgetPct, cashSpent, creditOutstanding, creditUsed, creditLimit, creditAvailable, creditPct, hasCreditWidget };
+  return { appCurrency, totalNetWorth, availableCash, cardUsed, cardLimit, cardPct, budgetSpent, budgetLimit, budgetPct, budgetTransactionSeries, budgetDailySeries: budgetTransactionSeries, cashSpent, creditOutstanding, creditUsed, creditLimit, creditAvailable, creditPct, hasCreditWidget };
 }
 function createOverviewHalfGauge(percent, caption, mainText = '') {
   const pct = Math.max(0, Math.min(100, Math.round((Number(percent || 0) || 0) * 100)));
@@ -10488,29 +10581,91 @@ function createWealthTrendSvg() {
     </svg>`;
 }
 
-function createOverviewBudgetSparkline(ratio = 0) {
-  const pct = Math.max(0, Math.min(1, Number(ratio || 0) || 0));
-  const lift = Math.round(22 * pct);
-  const endY = Math.max(12, 42 - lift);
-  const midY = Math.max(12, 30 - Math.round(lift * .55));
-  const path = `M6 50 C17 46, 23 32, 36 30 S54 17, 69 ${midY} S91 ${endY + 4}, 108 ${endY}`;
-  const area = `${path} L108 62 L6 62 Z`;
+function createOverviewBudgetSparkline(used = 0, limit = 0, currency, txSeries = []) {
+  const usedNum = Math.max(0, Number(used || 0) || 0);
+  const limitNum = Math.max(0, Number(limit || 0) || 0);
+  const series = Array.isArray(txSeries) ? txSeries : [];
+  const normalizedMonth = normalizeMonthStr(getAktuálneMonth());
+  const [monthNum, yearNum] = normalizedMonth.split('/').map(Number);
+  const monthStart = new Date(yearNum, monthNum - 1, 1, 0, 0, 0, 0).getTime();
+  const monthEnd = new Date(yearNum, monthNum, 0, 23, 59, 59, 999).getTime();
+
+  const startX = 8;
+  const startY = 62;
+  const endX = 106;
+  const endY = 4;
+  const width = endX - startX;
+  const height = startY - endY;
+  const finalSpent = series.length ? series[series.length - 1].value : 0;
+  const maxValue = limitNum > 0 ? Math.max(limitNum, finalSpent, 1) : Math.max(finalSpent, 1);
+
+  const points = [{ timestamp: monthStart, value: 0 }, ...series, { timestamp: monthEnd, value: finalSpent }]
+    .map(point => {
+      const time = Math.min(Math.max(point.timestamp, monthStart), monthEnd);
+      const x = startX + ((time - monthStart) / Math.max(1, monthEnd - monthStart)) * width;
+      const y = startY - (point.value / maxValue) * height;
+      return { x, y, value: point.value };
+    });
+
+  const actualPoints = points.slice(0, points.length - 1);
+  const currentPoint = actualPoints.length ? actualPoints[actualPoints.length - 1] : points[0];
+  const spentLinePath = actualPoints.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(' ');
+  const spentAreaPath = `${spentLinePath} L${currentPoint.x.toFixed(2)} ${startY} L${startX} ${startY} Z`;
+
+  const remainingPoints = [];
+  if (currentPoint) {
+    const deltaX = endX - currentPoint.x;
+    const deltaY = endY - currentPoint.y;
+    const amplitude = Math.min(12, Math.abs(deltaY) * 0.2);
+    const steps = 6;
+    remainingPoints.push(currentPoint);
+    for (let i = 1; i <= steps; i += 1) {
+      const t = i / steps;
+      const x = currentPoint.x + deltaX * t;
+      const yStraight = currentPoint.y + deltaY * t;
+      const wave = Math.sin(t * Math.PI * 2 * 1.2) * amplitude * (1 - t);
+      const y = Math.max(endY, Math.min(startY, yStraight + wave));
+      remainingPoints.push({ x, y });
+    }
+  }
+
+  const remainingLinePath = remainingPoints.length
+    ? remainingPoints.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(' ')
+    : '';
+  const remainingAreaPath = remainingPoints.length
+    ? `${remainingLinePath} L${endX} ${startY} L${currentPoint.x.toFixed(2)} ${startY} Z`
+    : '';
+
+  const knob = currentPoint;
+
   return `
     <div class="wealth-budget-sparkline">
+      <div class="wealth-budget-sparkline-label">
+        ${escapeHtml(formatOverviewCompactCurrencyPair(usedNum, limitNum, currency))}
+      </div>
       <svg viewBox="0 0 114 64" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         <defs>
-          <linearGradient id="wealthBudgetLineGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+          <linearGradient id="budgetUsedGradient" x1="0%" y1="100%" x2="100%" y2="0%">
             <stop offset="0%" stop-color="#72f6a5"></stop>
-            <stop offset="100%" stop-color="#58cfff"></stop>
+            <stop offset="100%" stop-color="#22c55e"></stop>
           </linearGradient>
-          <linearGradient id="wealthBudgetAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#72f6a5" stop-opacity=".38"></stop>
-            <stop offset="56%" stop-color="#5fe6c7" stop-opacity=".18"></stop>
-            <stop offset="100%" stop-color="#58cfff" stop-opacity=".04"></stop>
+          <linearGradient id="budgetRemainingGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="rgba(88,166,255,0.72)"></stop>
+            <stop offset="100%" stop-color="rgba(30,64,175,0.95)"></stop>
           </linearGradient>
+          <filter id="budgetUsedShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#72f6a5" flood-opacity="0.18"></feDropShadow>
+          </filter>
+          <filter id="budgetRemainingShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#58a6ff" flood-opacity="0.14"></feDropShadow>
+          </filter>
         </defs>
-        <path class="budget-area" d="${area}" fill="url(#wealthBudgetAreaGradient)"></path>
-        <path class="budget-line" d="${path}" fill="none" stroke="url(#wealthBudgetLineGradient)" stroke-width="5" stroke-linecap="round"></path>
+        <path d="${spentAreaPath}" fill="url(#budgetUsedGradient)" opacity="0.22"></path>
+        <path d="${remainingAreaPath}" fill="url(#budgetRemainingGradient)" opacity="0.35"></path>
+        <path d="${remainingLinePath}" fill="none" stroke="#58a6ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.75"></path>
+        <path d="${spentLinePath}" fill="none" stroke="url(#budgetUsedGradient)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+        <circle cx="${knob.x.toFixed(2)}" cy="${knob.y.toFixed(2)}" r="1.4" fill="#ffffff" stroke="rgba(114,246,165,0.9)" stroke-width="1.2"></circle>
+        <circle cx="${knob.x.toFixed(2)}" cy="${knob.y.toFixed(2)}" r="1" fill="url(#budgetUsedGradient)"></circle>
       </svg>
     </div>`;
 }
@@ -10549,16 +10704,9 @@ function renderOverviewDashboard() {
     cardLine.innerHTML = createOverviewInlineProgress(`${metrics.cardUsed}`, `${metrics.cardLimit}`, metrics.cardPct, statusText, statusClass);
   }
 
-  const budgetValue = document.getElementById('overview-bank-budget-value');
-  if (budgetValue) budgetValue.textContent = formatOverviewCompactCurrencyPair(metrics.budgetSpent, metrics.budgetLimit, appCurrency);
   const budgetLine = document.getElementById('overview-bank-budget-line');
   if (budgetLine) {
-    budgetLine.innerHTML = createCreditCardLimitProgress(
-      metrics.budgetSpent,
-      metrics.budgetLimit,
-      Math.max(0, Number(metrics.budgetLimit || 0) - Number(metrics.budgetSpent || 0)),
-      appCurrency
-    );
+    budgetLine.innerHTML = createOverviewBudgetSparkline(metrics.budgetSpent, metrics.budgetLimit, appCurrency, metrics.budgetTransactionSeries);
   }
 
   const cashEl = document.getElementById('overview-cash-total');
@@ -13200,6 +13348,11 @@ async function updateCustomBank(bankId) {
   bank.budget = parseFloat(document.getElementById('edit-budget-' + bankId)?.value || '0') || 0;
   bank.warning = parseFloat(document.getElementById('edit-warning-' + bankId)?.value || '0') || 0;
   bank.cardLimit = parseInt(document.getElementById('edit-card-limit-' + bankId)?.value || '0', 10) || 0;
+  bank.creditCardLimit = parseFloat(document.getElementById('edit-credit-card-limit-' + bankId)?.value || '0') || 0;
+  if (bankId === 'csob_cz_credit') {
+    bank.cardLimit = 0;
+    setCreditCardLimitForBank(bankId, bank.creditCardLimit, budgetMonth);
+  }
   bank.balance = parseFloat(document.getElementById('edit-balance-' + bankId)?.value || '0') || 0;
   bank.incomingAlert = parseFloat(document.getElementById('edit-incoming-alert-' + bankId)?.value || '0') || 0;
   bank.outgoingAlert = parseFloat(document.getElementById('edit-outgoing-alert-' + bankId)?.value || '0') || 0;
@@ -13213,7 +13366,7 @@ async function updateCustomBank(bankId) {
   // v50 hotfix: saveBank must only update the Banky tab.
   // Limits, budgets and balances are saved only via saveBankSettingsEndpoint below.
   const bankOk = await postToBankTrackerEndpoint('saveBank', { bank: getEndpointBankPayload(bankId, bank) });
-  const settingsOk = await saveBankSettingsEndpoint(bankId, budgetMonth, bank.cardLimit, bank.budget, bank.warning, bank.balance, bank.incomingAlert, bank.outgoingAlert);
+  const settingsOk = await saveBankSettingsEndpoint(bankId, budgetMonth, bank.cardLimit, bank.budget, bank.warning, bank.balance, bank.incomingAlert, bank.outgoingAlert, bank.creditCardLimit);
   renderBankManager();
   renderAll();
   if (!(bankOk && settingsOk)) {
@@ -13515,6 +13668,7 @@ async function saveNewBank(){
     budget:parseFloat(document.getElementById('new-bank-budget')?.value||'0')||0,
     warning:parseFloat(document.getElementById('new-bank-warning')?.value||'0')||0,
     cardLimit:parseInt(document.getElementById('new-bank-card-limit')?.value||'0',10)||0,
+    creditCardLimit:0,
     balance:0,
     incomingAlert:0,
     outgoingAlert:0,
@@ -13525,7 +13679,7 @@ async function saveNewBank(){
   // v50 hotfix: send a clean Banky payload only.
   // Do not send budget/warning/cardLimit/balance through saveBank.
   const bankOk = await postToBankTrackerEndpoint('saveBank', { bank: getEndpointBankPayload(bank.id, bank) });
-  const settingsOk = await saveBankSettingsEndpoint(bank.id, bank.budgetMonth, bank.cardLimit, bank.budget, bank.warning, bank.balance, bank.incomingAlert, bank.outgoingAlert);
+  const settingsOk = await saveBankSettingsEndpoint(bank.id, bank.budgetMonth, bank.cardLimit, bank.budget, bank.warning, bank.balance, bank.incomingAlert, bank.outgoingAlert, bank.creditCardLimit);
   alert(bankOk || settingsOk
     ? 'Banka bola uložená lokálne a odoslaná do Google Sheets endpointu.'
     : 'Banka bola uložená lokálne, ale Google Sheets zápis neprebehol. Skontroluj Web App /exec URL.');
@@ -13773,10 +13927,16 @@ const managedBankAutoSaveTimers = {};
 
 function getManagedBankMonthlyValues(bankKey) {
   const budgetMonth = document.getElementById('edit-budget-month-' + bankKey)?.value || getAktuálneMonth();
+  const month = normalizeMonthStr(budgetMonth);
+  const isCreditCardBank = bankKey === 'csob_cz_credit';
+  const rawCardLimit = parseInt(document.getElementById('edit-card-limit-' + bankKey)?.value || '0', 10) || 0;
+  const rawCreditLimit = parseFloat(document.getElementById('edit-credit-card-limit-' + bankKey)?.value || '0') || 0;
   return {
-    month: normalizeMonthStr(budgetMonth),
-    cardLimit: parseInt(document.getElementById('edit-card-limit-' + bankKey)?.value || '0', 10) || 0,
-    creditCardLimit: parseFloat(document.getElementById('edit-credit-card-limit-' + bankKey)?.value || '0') || 0,
+    month,
+    // Credit-card monthly limit is saved into Bank_Archive / Credit card limits.
+    // Keep normal Card limits at 0 for credit-card banks so it never mixes with debit card-payment limits.
+    cardLimit: isCreditCardBank ? 0 : rawCardLimit,
+    creditCardLimit: isCreditCardBank ? rawCreditLimit : rawCreditLimit,
     budget: parseFloat(document.getElementById('edit-budget-' + bankKey)?.value || '0') || 0,
     warning: parseFloat(document.getElementById('edit-warning-' + bankKey)?.value || '0') || 0,
     balance: parseFloat(document.getElementById('edit-balance-' + bankKey)?.value || '0') || 0,
@@ -13879,7 +14039,23 @@ async function autoSaveManagedBankMonthlyField(bankKey, fieldKey = 'settings') {
 
   // Update local state first so the UI reacts immediately.
   localStorage.setItem(`bank_card_limit_${bankKey}_${values.month}`, String(values.cardLimit));
-  if (bankKey === 'csob_cz_credit') setCreditCardLimitForBank(bankKey, values.creditCardLimit, values.month);
+  if (bankKey === 'csob_cz_credit') {
+    setCreditCardLimitForBank(bankKey, values.creditCardLimit, values.month);
+    localStorage.setItem('bank_credit_card_limit_' + bankKey, String(values.creditCardLimit));
+  }
+  const banks = getCustomBanks();
+  const custom = banks.find(b => b && b.id === bankKey);
+  if (custom) {
+    custom.cardLimit = values.cardLimit;
+    custom.creditCardLimit = values.creditCardLimit;
+    custom.balance = values.balance;
+    custom.budget = values.budget;
+    custom.warning = values.warning;
+    custom.incomingAlert = values.incomingAlert;
+    custom.outgoingAlert = values.outgoingAlert;
+    custom.budgetMonth = values.month;
+    saveCustomBanks(banks);
+  }
   const limits = getLimitsForMonth(values.month);
   const bank = getBankInfo(bankKey);
   if (bank && bank.limitKey) {
@@ -13934,9 +14110,14 @@ async function updateSystemBankSettings(bankKey) {
   localStorage.setItem('bank_account_' + bankKey, newAccount);
   localStorage.setItem('bank_cards_' + bankKey, newCards);
 
-  limits[bank.limitKey] = newLimit;
-  saveLimitsForMonth(monthStr, limits);
-  if (bankKey === 'csob_cz_credit') setCreditCardLimitForBank(bankKey, newCreditCardLimit, monthStr);
+  if (bank && bank.limitKey) {
+    limits[bank.limitKey] = newLimit;
+    saveLimitsForMonth(monthStr, limits);
+  }
+  if (bankKey === 'csob_cz_credit') {
+    setCreditCardLimitForBank(bankKey, newCreditCardLimit, monthStr);
+    localStorage.setItem('bank_credit_card_limit_' + bankKey, String(newCreditCardLimit));
+  }
 
   setBudgetSettingsForBank(bankKey, newBudget, newWarning, budgetMonth);
   setAccountBalance(bankKey, newBalance, monthStr);
@@ -15629,20 +15810,22 @@ function setTransactionAlertSettingsForBank(bankId, incomingAlert, outgoingAlert
 }
 
 function getBankSettingsPayload(bankId, monthStr, cardLimit, budget, warning, accountBalance, incomingAlert, outgoingAlert, creditCardLimit = undefined) {
+  const isCreditCardBank = String(bankId || '').trim() === 'csob_cz_credit';
   const parsedCardLimit = parseAmountValue(cardLimit);
-  const parsedCreditCardLimit = parseAmountValue(creditCardLimit);
-  const isCreditCardStandalone = bankId === 'csob_cz_credit';
+  const parsedCreditCardLimit = parseAmountValue(creditCardLimit !== undefined ? creditCardLimit : (isCreditCardBank ? cardLimit : undefined));
+  const hasCreditCardLimit = creditCardLimit !== undefined || isCreditCardBank;
   return {
     bankId,
     month: normalizeMonthStr(monthStr || getAktuálneMonth()),
-    cardLimit: parsedCardLimit,
-    creditCardLimit: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
-    creditCardLimits: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
-    creditLimit: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
-    credit_card_limit: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
-    monthlyLimit: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
-    monthly_limit: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
-    creditMonthlyLimit: isCreditCardStandalone ? parsedCreditCardLimit : undefined,
+    cardLimit: isCreditCardBank ? 0 : parsedCardLimit,
+    creditCardLimit: hasCreditCardLimit ? parsedCreditCardLimit : undefined,
+    creditCardLimits: hasCreditCardLimit ? parsedCreditCardLimit : undefined,
+    creditLimit: hasCreditCardLimit ? parsedCreditCardLimit : undefined,
+    credit_card_limit: hasCreditCardLimit ? parsedCreditCardLimit : undefined,
+    monthlyLimit: hasCreditCardLimit ? parsedCreditCardLimit : undefined,
+    monthly_limit: hasCreditCardLimit ? parsedCreditCardLimit : undefined,
+    creditMonthlyLimit: hasCreditCardLimit ? parsedCreditCardLimit : undefined,
+    credit_monthly_limit: hasCreditCardLimit ? parsedCreditCardLimit : undefined,
     budget: parseAmountValue(budget),
     warning: parseAmountValue(warning),
     accountBalance: parseAmountValue(accountBalance),
