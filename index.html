@@ -150,7 +150,7 @@
     overflow-wrap: normal;
     max-width: 100%;
   }
-  .wealth-card-value-green { color: #73ffb0; }
+  .wealth-card-value-green { color: #00E5A0; }
   .wealth-card-trend .wealth-card-value { color: #dff6ff; }
   .mini-gauge-wrap {
     display:flex;
@@ -222,10 +222,10 @@
   .wealth-inline-progress-fill {
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #72f6a5 0%, #58cfff 100%);
+    background: linear-gradient(90deg, #00E5A0 0%, #58cfff 100%);
   }
   .wealth-inline-progress-fill.is-ok {
-    background: linear-gradient(90deg, #72f6a5 0%, #72f6a5 100%);
+    background: linear-gradient(90deg, #00E5A0 0%, #00E5A0 100%);
   }
   .wealth-inline-progress-fill.is-empty {
     background: linear-gradient(90deg, #59c2ff 0%, #59c2ff 100%);
@@ -420,10 +420,10 @@
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
   }
   .wealth-inline-progress-fill {
-    background: #72f6a5 !important;
+    background: #00E5A0 !important;
   }
   .wealth-inline-progress-fill.is-ok {
-    background: #72f6a5 !important;
+    background: #00E5A0 !important;
   }
   .wealth-inline-progress-fill.is-empty {
     background: #58a6ff !important;
@@ -489,7 +489,7 @@
     background: #58a6ff !important;
   }
   .wealth-inline-progress-fill {
-    background: #72f6a5 !important;
+    background: #00E5A0 !important;
   }
   .wealth-inline-progress-fill.is-empty {
     width: 0 !important;
@@ -586,16 +586,112 @@
     color: #173055;
   }
 
+
+
+  /* v190 Bank Budget compact monthly timeline widget */
+  .wealth-card-budget-linear {
+    min-height: 148px !important;
+    padding-bottom: 12px !important;
+  }
+  .wealth-card-budget-linear .wealth-card-head {
+    margin-bottom: 0 !important;
+  }
+  .wealth-card-budget-linear .wealth-card-icon {
+    display: none !important;
+  }
+  .wealth-card-budget-linear .wealth-budget-widget {
+    margin-top: auto !important;
+    min-height: 86px !important;
+    display: flex !important;
+    align-items: end !important;
+  }
+  .wealth-budget-sparkline {
+    width: 100%;
+    display: grid;
+    gap: 0;
+  }
+  .wealth-budget-sparkline-label {
+    margin: 0 0 -5px 0 !important;
+    top: 0 !important;
+    position: relative;
+    font-family: var(--font-mono);
+    font-size: clamp(13px, 3.4vw, 16px) !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.045em;
+    color: #f8fbff;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .wealth-budget-sparkline svg {
+    width: 100%;
+    height: 78px !important;
+    display: block;
+    overflow: visible;
+  }
+  html[data-theme="light"] .wealth-budget-sparkline-label {
+    color: #173055 !important;
+  }
+
+  /* v200 keep Overview mobile layout closer to desktop / Android */
+  @media (max-width: 430px) {
+    .wealth-dashboard {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 12px !important;
+    }
+    .wealth-card-net,
+    .wealth-card-wide {
+      grid-column: 1 / -1 !important;
+    }
+    .wealth-card {
+      min-height: 144px;
+      padding: 14px;
+    }
+    .wealth-card-value {
+      font-size: clamp(20px, 5.1vw, 28px);
+    }
+    .wealth-card-value-cash {
+      font-size: clamp(13px, 3.7vw, 20px);
+    }
+    .wealth-budget-sparkline-label {
+      font-size: clamp(12px, 3vw, 14px) !important;
+    }
+    .wealth-budget-sparkline svg {
+      height: 72px !important;
+    }
+    .mini-half-gauge {
+      width: 150px;
+      height: 96px;
+    }
+    .mini-half-gauge-center .pct {
+      font-size: 24px;
+    }
+  }
+
+
+  /* v192 archive graph repair: bank lines/bars open exact month range + clearer chart hit areas */
+  .archive-bank-line-hit {
+    cursor: pointer;
+    pointer-events: stroke;
+  }
+  .archive-bank-point,
+  .archive-trend-bar-segment,
+  .archive-bank-legend-item {
+    cursor: pointer;
+  }
+  .archive-trend-bar-total {
+    pointer-events: none;
+  }
+
 </style>
 
-<link rel="manifest" href="./manifest.json?v=178">
+<link rel="manifest" href="./manifest.json?v=191">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
 <script>
 (function(){
   try {
-    var defaultVersion = 'v104';
+    var defaultVersion = 'v192';
     if (localStorage.getItem('app_theme_default_version') !== defaultVersion) {
       localStorage.setItem('app_theme', 'dark');
       localStorage.setItem('app_theme_default_version', defaultVersion);
@@ -651,13 +747,13 @@
     --border: rgba(255,255,255,0.08);
     --text: #f0f0f0;
     --muted: #666;
-    --danger: #ff5a5a;
-    --ok: #4ade80;
+    --danger: #E5005F;
+    --ok: #00E5A0;
     --font-display: 'Syne', sans-serif;
     --font-mono: 'DM Mono', monospace;
     
     --accent: #77e0f3; 
-    --warn: #ffca28;
+    --warn: #FFB86B;
     
     --rb-color: #dada36; 
     --csob-color: #3b9eff; 
@@ -1214,8 +1310,8 @@
     border-radius: 999px;
     display: none;
     place-items: center;
-    background: rgba(74, 222, 128, .16);
-    border: 1px solid rgba(74, 222, 128, .38);
+    background: rgba(0, 229, 160, .16);
+    border: 1px solid rgba(0, 229, 160, .38);
     color: var(--ok);
     font-size: 13px;
     font-weight: 900;
@@ -1299,12 +1395,12 @@
     color: var(--muted);
   }
   .edit-mode-notice.online { border-color: rgba(255, 202, 40, 0.35); color: var(--warn); }
-  .edit-mode-notice.offline { border-color: rgba(74, 222, 128, 0.35); color: var(--ok); }
+  .edit-mode-notice.offline { border-color: rgba(0, 229, 160, 0.35); color: var(--ok); }
 
 
   .push-banner {
-    background: rgba(74, 222, 128, 0.08) !important;
-    border-color: rgba(74, 222, 128, 0.45) !important;
+    background: rgba(0, 229, 160, 0.08) !important;
+    border-color: rgba(0, 229, 160, 0.45) !important;
   }
   .push-banner h3 { color: var(--ok) !important; }
   .push-save {
@@ -2189,10 +2285,10 @@
     --border: rgba(148, 163, 184, 0.18);
     --text: #f8fafc;
     --muted: #94a3b8;
-    --danger: #fb7185;
-    --ok: #4ade80;
+    --danger: #E5005F;
+    --ok: #00E5A0;
     --accent: #58a6ff;
-    --warn: #facc15;
+    --warn: #FFB86B;
   }
 
   body {
@@ -3352,7 +3448,8 @@
   }
 
   .daily-bar-income,
-  .daily-bar-expense {
+  .daily-bar-expense,
+  .daily-bar-face {
     cursor: pointer;
     transition: opacity .12s ease, transform .12s ease, filter .12s ease;
     transform-box: fill-box;
@@ -3365,6 +3462,32 @@
 
   .daily-bar-expense {
     fill: var(--danger);
+  }
+
+  .daily-bar-income-side,
+  .daily-bar-expense-side {
+    opacity: .75;
+  }
+
+  .daily-bar-income-top,
+  .daily-bar-expense-top {
+    opacity: .85;
+  }
+
+  .daily-bar-income-top {
+    fill: rgba(255,255,255,.28);
+  }
+
+  .daily-bar-expense-top {
+    fill: rgba(255,255,255,.18);
+  }
+
+  .daily-bar-income-side {
+    fill: rgba(255,255,255,.14);
+  }
+
+  .daily-bar-expense-side {
+    fill: rgba(255,255,255,.10);
   }
 
   .daily-bar-income:hover,
@@ -3753,9 +3876,9 @@
     --text: #0f172a;
     --muted: #64748b;
     --accent: #2563eb;
-    --warn: #d97706;
-    --danger: #dc2626;
-    --ok: #16a34a;
+    --warn: #FFB86B;
+    --danger: #E5005F;
+    --ok: #00E5A0;
   }
 
   html[data-theme="light"] body {
@@ -4341,7 +4464,7 @@
   }
 
   html[data-theme="light"] .amount-expense {
-    color: #be123c !important;
+    color: #E5005F !important;
   }
 
   html[data-theme="light"] .amount-income {
@@ -4544,7 +4667,7 @@
   }
 
   .txn-cashflow-bar-out {
-    fill: #ff3b43;
+    fill: #E5005F;
   }
 
   .txn-cashflow-label {
@@ -4648,7 +4771,7 @@
     height: 17px;
     border-radius: 999px;
     display: block;
-    background: conic-gradient(var(--ok) 0 45%, #ff3b43 45% 100%);
+    background: conic-gradient(var(--ok) 0 45%, #E5005F 45% 100%);
     box-shadow: inset 0 0 0 2px rgba(15,23,42,.92);
   }
 
@@ -4656,7 +4779,7 @@
     border-radius: 3px;
     background:
       linear-gradient(to top, var(--ok) 0 75%, transparent 75%) 1px 0/5px 17px no-repeat,
-      linear-gradient(to top, #ff3b43 0 48%, transparent 48%) 7px 0/5px 17px no-repeat,
+      linear-gradient(to top, #E5005F 0 48%, transparent 48%) 7px 0/5px 17px no-repeat,
       linear-gradient(to top, var(--ok) 0 60%, transparent 60%) 13px 0/5px 17px no-repeat;
     box-shadow: none;
   }
@@ -4924,7 +5047,7 @@
   }
 
   html[data-theme="light"] .txn-total-values .amount-expense {
-    color: #be123c !important;
+    color: #E5005F !important;
   }
 
 
@@ -5389,7 +5512,7 @@
     padding: 22px 24px 20px;
     border-radius: 24px;
     background: rgba(15, 24, 42, .96);
-    border: 1px solid rgba(74, 222, 128, .36);
+    border: 1px solid rgba(0, 229, 160, .36);
     box-shadow: 0 28px 90px rgba(0,0,0,.44), inset 0 1px 0 rgba(255,255,255,.06);
     color: #f8fafc;
     text-align: center;
@@ -5446,8 +5569,8 @@
     display: grid;
     place-items: center;
     margin: 0 auto 12px;
-    background: rgba(74, 222, 128, .16);
-    border: 1px solid rgba(74, 222, 128, .42);
+    background: rgba(0, 229, 160, .16);
+    border: 1px solid rgba(0, 229, 160, .42);
     color: var(--ok);
     font-size: 32px;
     font-weight: 1000;
@@ -6955,7 +7078,7 @@ html[data-theme="light"] body::before {
   }
 
   .wealth-inline-progress-fill {
-    background: linear-gradient(90deg, #72f6a5 0%, #4ade80 100%) !important;
+    background: linear-gradient(90deg, #00E5A0 0%, #00E5A0 100%) !important;
   }
 
   .wealth-inline-progress-fill.is-empty {
@@ -6965,10 +7088,11 @@ html[data-theme="light"] body::before {
   .wealth-credit-progress-summary {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 8px;
     min-width: 0;
     font-family: var(--font-mono);
+    text-align: center;
   }
 
   .wealth-credit-progress-pair {
@@ -6995,7 +7119,7 @@ html[data-theme="light"] body::before {
   }
 
   .wealth-credit-progress-status.is-ok {
-    color: #72f6a5;
+    color: #00E5A0;
   }
 
   .wealth-credit-progress-track {
@@ -7010,7 +7134,7 @@ html[data-theme="light"] body::before {
   .wealth-credit-progress-used {
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #72f6a5 0%, #4ade80 100%);
+    background: linear-gradient(90deg, #00E5A0 0%, #00E5A0 100%);
     box-shadow: 0 0 18px rgba(114,246,165,.18);
   }
 
@@ -7160,6 +7284,76 @@ html[data-theme="light"] body::before {
   html[data-theme="light"] #page-archive .empty-state {
     background: rgba(255,255,255,.78);
     border-color: rgba(37,99,235,.12);
+  }
+</style>
+
+<style>
+  /* v194 scoped number colors - Overview tab untouched */
+  #page-overview-details .amount-income,
+  #page-overview-details .account-balance-value.amount-income,
+  #page-overview-details .budget-status-value.amount-income,
+  #page-overview-details .stat-val.amount-income,
+  #page-txns .amount-income,
+  #page-txns .tx-amount.amount-income,
+  #page-txns .tx-amt-compact.amount-income,
+  #page-txns .daily-tx-amount.amount-income,
+  #page-txns .txn-total-values .amount-income,
+  #page-archive .amount-income,
+  #page-archive .archive-bank-income-cell,
+  #page-archive .daily-tx-amount.amount-income {
+    color: #00E5A0 !important;
+    -webkit-text-fill-color: #00E5A0 !important;
+  }
+
+  #page-overview-details .amount-expense,
+  #page-overview-details .account-balance-value.amount-expense,
+  #page-overview-details .budget-status-value.amount-expense,
+  #page-overview-details .stat-val.amount-expense,
+  #page-txns .amount-expense,
+  #page-txns .tx-amount.amount-expense,
+  #page-txns .tx-amt-compact.amount-expense,
+  #page-txns .daily-tx-amount.amount-expense,
+  #page-txns .txn-total-values .amount-expense,
+  #page-archive .amount-expense,
+  #page-archive .archive-bank-spent-cell,
+  #page-archive .daily-tx-amount.amount-expense {
+    color: #E5005F !important;
+    -webkit-text-fill-color: #E5005F !important;
+  }
+
+  #page-overview-details .account-balance-equivalent,
+  #page-txns .tx-account-equivalent,
+  #page-txns .tx-account-equivalent-compact,
+  #page-archive .archive-bank-czk-equivalent {
+    -webkit-text-fill-color: currentColor !important;
+  }
+</style>
+
+
+<style>
+  /* v195 Overview details account-balance colors */
+  #page-overview-details .account-balance-row:not(.account-balance-total-row) .account-balance-value {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  #page-overview-details .account-balance-total-row .account-balance-value {
+    color: #00E5A0 !important;
+    -webkit-text-fill-color: #00E5A0 !important;
+  }
+
+
+  /* v202 Transactions: remove unnecessary BANK label/top padding above filters */
+  #page-txns .txn-filter-all-slot .filter-group-title {
+    display: none !important;
+  }
+  #page-txns .txn-filter-all-slot,
+  #page-txns .txn-search-inline,
+  #page-txns .txn-filter-toggle-wrap {
+    padding-top: 0 !important;
+  }
+  #page-txns .txn-filter-head-row {
+    align-items: center !important;
   }
 </style>
 </head>
@@ -7442,7 +7636,7 @@ html[data-theme="light"] body::before {
     </div>
     <div id="push-status" class="edit-mode-notice" style="margin-top:14px;" data-i18n="notificationsOff">Push notifications are not enabled yet.</div>
     <div id="push-token-preview" class="push-token-box" style="display:none;"></div>
-    <button class="sim-submit" onclick="copyNotificationToken()" style="margin-top:10px; border-color: rgba(74,222,128,0.45); color: var(--ok);" data-i18n="copyFcmToken">Copy FCM token</button>
+    <button class="sim-submit" onclick="copyNotificationToken()" style="margin-top:10px; border-color: rgba(0,229,160,0.45); color: var(--ok);" data-i18n="copyFcmToken">Copy FCM token</button>
     <button id="android-push-reset-btn" class="sim-submit" onclick="resetAndroidNotifications()" style="margin-top:8px; border-color: rgba(88,166,255,0.45); color: var(--accent);" data-i18n="resetAndroidNotifications">Reset Android notifications</button>
   </div>
 
@@ -8898,6 +9092,7 @@ async function syncData() {
     const bankSyncPromise = syncBanksFromSheets(spreadsheetId);
     const fxSyncPromise = syncFxRatesFromSheets(spreadsheetId);
     const bankSettingsPromise = syncBankSettingsFromSheets(spreadsheetId);
+    const balanceLogPromise = bankSettingsPromise.then(() => syncBalanceLogFromSheets(spreadsheetId));
     const activeTxnsPromise = fetchSheetTransactions(spreadsheetId, 'Transactions');
     const archivedTxnsPromise = syncArchivedTransactionsFromSheets(spreadsheetId);
 
@@ -8915,7 +9110,7 @@ async function syncData() {
     const archivedTxns = await archivedTxnsPromise;
     allTransactions = sortTransactionsNewestFirst(dedupeTransactionsForCloud([...activeTxns, ...archivedTxns]));
     saveCachedTransactionsSnapshot();
-    await Promise.allSettled([bankSyncPromise, fxSyncPromise, bankSettingsPromise]);
+    await Promise.allSettled([bankSyncPromise, fxSyncPromise, bankSettingsPromise, balanceLogPromise]);
     if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa načítali správne.';
   } catch(e) {
     console.error('Google Sheets transaction sync failed:', e);
@@ -9136,6 +9331,11 @@ function renderArchiveBankDetail() {
     const xCenter = padL + (d.day - 0.5) * dayBand;
     const incomeH = barHeight(d.income);
     const expenseH = barHeight(d.expense);
+    const depth = 4;
+    const incomeX = xCenter - barW - barGap / 2;
+    const expenseX = xCenter + barGap / 2;
+    const incomeTopY = axisY - incomeH;
+    const expenseTopY = axisY - expenseH;
     const incomeActive = selected && selected.day === d.day && selected.type === 'income';
     const expenseActive = selected && selected.day === d.day && selected.type === 'expense';
     const hasSelected = !!selected;
@@ -9143,8 +9343,12 @@ function renderArchiveBankDetail() {
     const expenseMuted = hasSelected && !expenseActive ? ' daily-bar-muted' : '';
 
     return `
-      <rect class="daily-bar-income${incomeActive ? ' active' : ''}${incomeMuted}" x="${xCenter - barW - barGap / 2}" y="${axisY - incomeH}" width="${barW}" height="${incomeH}" rx="2" onclick="setArchiveDetailFilter(${d.day}, 'income')"></rect>
-      <rect class="daily-bar-expense${expenseActive ? ' active' : ''}${expenseMuted}" x="${xCenter + barGap / 2}" y="${axisY - expenseH}" width="${barW}" height="${expenseH}" rx="2" onclick="setArchiveDetailFilter(${d.day}, 'expense')"></rect>
+      ${incomeH > 0 ? `<polygon class="daily-bar-income-side daily-bar-face${incomeActive ? ' active' : ''}${incomeMuted}" points="${incomeX + barW},${axisY} ${incomeX + barW + depth},${axisY - depth} ${incomeX + barW + depth},${incomeTopY - depth} ${incomeX + barW},${incomeTopY}"></polygon>
+      <polygon class="daily-bar-income-top daily-bar-face${incomeActive ? ' active' : ''}${incomeMuted}" points="${incomeX},${incomeTopY} ${incomeX + depth},${incomeTopY - depth} ${incomeX + barW + depth},${incomeTopY - depth} ${incomeX + barW},${incomeTopY}"></polygon>` : ''}
+      <rect class="daily-bar-income${incomeActive ? ' active' : ''}${incomeMuted}" x="${incomeX}" y="${incomeTopY}" width="${barW}" height="${incomeH}" rx="2" onclick="setArchiveDetailFilter(${d.day}, 'income')"></rect>
+      ${expenseH > 0 ? `<polygon class="daily-bar-expense-side daily-bar-face${expenseActive ? ' active' : ''}${expenseMuted}" points="${expenseX + barW},${axisY} ${expenseX + barW + depth},${axisY - depth} ${expenseX + barW + depth},${expenseTopY - depth} ${expenseX + barW},${expenseTopY}"></polygon>
+      <polygon class="daily-bar-expense-top daily-bar-face${expenseActive ? ' active' : ''}${expenseMuted}" points="${expenseX},${expenseTopY} ${expenseX + depth},${expenseTopY - depth} ${expenseX + barW + depth},${expenseTopY - depth} ${expenseX + barW},${expenseTopY}"></polygon>` : ''}
+      <rect class="daily-bar-expense${expenseActive ? ' active' : ''}${expenseMuted}" x="${expenseX}" y="${expenseTopY}" width="${barW}" height="${expenseH}" rx="2" onclick="setArchiveDetailFilter(${d.day}, 'expense')"></rect>
     `;
   }).join('');
 
@@ -10090,15 +10294,7 @@ function renderAccountBalanceWidget() {
 
   const totalBalance = banks.reduce((sum, bank) => {
     const value = convertAmountCurrency(bank.balance || 0, bank.currency || targetCurrency, targetCurrency);
-    return sum + (bank.liability ? -value : value);
-  }, 0) + Object.keys(creditChildrenByParent).reduce((sum, parentId) => {
-    const children = creditChildrenByParent[parentId] || [];
-    const expanded = isCreditSubaccountExpanded(parentId);
-    if (!expanded) return sum;
-    return sum + children.reduce((childSum, child) => {
-      const value = convertAmountCurrency(child.balance || 0, child.currency || targetCurrency, targetCurrency);
-      return childSum - Math.abs(value);
-    }, 0);
+    return sum + (bank.liability ? -Math.abs(value) : value);
   }, 0);
 
   const totalRow = banks.length ? `
@@ -10385,10 +10581,76 @@ function getOverviewCreditCardLimit(monthStr = getAktuálneMonth()) {
   return legacyArchive;
 }
 
+function getOverviewStoredAssetValue(keys) {
+  const list = Array.isArray(keys) ? keys : [keys];
+  for (const key of list) {
+    const raw = localStorage.getItem(String(key || ''));
+    if (raw !== null && String(raw).trim() !== '') {
+      const n = Number(String(raw).replace(/[^0-9,.-]/g, '').replace(',', '.'));
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return 0;
+}
+
+function getOverviewInvestmentsValue(appCurrency) {
+  return getOverviewStoredAssetValue([
+    'overview_investments_value_' + appCurrency,
+    'overview_assets_investments_' + appCurrency,
+    'overview_investments_value',
+    'overview_assets_investments',
+    'investments_value',
+    'asset_investments_value'
+  ]);
+}
+
+function getOverviewPropertiesValue(appCurrency) {
+  return getOverviewStoredAssetValue([
+    'overview_properties_value_' + appCurrency,
+    'overview_assets_properties_' + appCurrency,
+    'overview_properties_value',
+    'overview_assets_properties',
+    'properties_value',
+    'property_value',
+    'asset_properties_value'
+  ]);
+}
+
+function getOverviewDetailsAccountBalanceTotal(monthStr = getAktuálneMonth(), appCurrency = getAppCurrency()) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const targetCurrency = appCurrency || getAppCurrency();
+  const allBanks = getAllManagedBanksForBalance(month);
+  const creditChildrenByParent = {};
+
+  CREDIT_BALANCE_SUBACCOUNTS.forEach(config => {
+    const item = getCreditBalanceSubaccountData(config);
+    if (!item || !item.parentId) return;
+    const balanceBank = allBanks.find(b => b.id === item.id);
+    const child = {
+      ...item,
+      balance: balanceBank ? Number(balanceBank.balance || 0) : getCreditOutstandingBalance(item.id),
+      currency: balanceBank?.currency || item.currency || 'CZK',
+      liability: true
+    };
+    if (!creditChildrenByParent[item.parentId]) creditChildrenByParent[item.parentId] = [];
+    creditChildrenByParent[item.parentId].push(child);
+  });
+
+  const parentedCreditIds = new Set(CREDIT_BALANCE_SUBACCOUNTS.map(item => item.id));
+  const banks = allBanks.filter(bank => !parentedCreditIds.has(bank.id));
+
+  // Credit-card outstanding balance stays visually visible in Overview details,
+  // but it is not real available cash, so it is never counted into Total.
+  return banks.reduce((sum, bank) => {
+    const value = convertAmountCurrency(bank.balance || 0, bank.currency || targetCurrency, targetCurrency);
+    return sum + (bank.liability ? -Math.abs(value) : value);
+  }, 0);
+}
+
 function getOverviewDashboardMetrics() {
   const appCurrency = getAppCurrency();
   const month = normalizeMonthStr(getAktuálneMonth());
-  const allBanks = getAllManagedBanksForBalance();
+  const allBanks = getAllManagedBanksForBalance(month);
   const creditChildrenByParent = {};
   CREDIT_BALANCE_SUBACCOUNTS.forEach(config => {
     const item = getCreditBalanceSubaccountData(config);
@@ -10411,26 +10673,19 @@ function getOverviewDashboardMetrics() {
     return sum + Math.max(0, convertAmountCurrency(Math.abs(child.balance || 0), child.currency || appCurrency, appCurrency));
   }, 0);
   const creditMonthlyUsed = getCreditCardMonthlyUsedAmount(appCurrency);
-  const creditUsed = creditOutstanding > 0 ? creditOutstanding : creditMonthlyUsed;
+  const creditUsed = creditMonthlyUsed > 0 ? creditMonthlyUsed : creditOutstanding;
   const creditLimitRaw = getOverviewCreditCardLimit(month);
   const creditLimit = convertAmountCurrency(creditLimitRaw || 0, getCreditOutstandingCurrency('csob_cz_credit') || appCurrency, appCurrency);
   const creditAvailable = Math.max((Number(creditLimit || 0) || 0) - (Number(creditUsed || 0) || 0), 0);
   const creditPct = creditLimit > 0 ? Math.min(creditUsed / creditLimit, 1) : 0;
   const hasCreditWidget = creditLimit > 0 || creditUsed > 0 || creditOutstanding > 0 || getSheetCreditBankRows().length > 0;
 
-  const totalAssets = banks.reduce((sum, bank) => {
-    if (bank.liability) return sum;
-    const balance = getLatestStoredAccountBalanceForBank(bank.id, month);
-    const value = convertAmountCurrency(balance || 0, bank.currency || appCurrency, appCurrency);
-    return sum + value;
-  }, 0);
-  const totalNetWorth = totalAssets - creditOutstanding;
-
-  const availableCash = banks.reduce((sum, bank) => {
-    if (bank.liability) return sum;
-    const balance = getLatestStoredAccountBalanceForBank(bank.id, month);
-    return sum + convertAmountCurrency(balance || 0, bank.currency || appCurrency, appCurrency);
-  }, 0) + creditAvailable;
+  // The Overview cash number must mirror "Total balance" in Overview details.
+  // Available credit is not cash and must not inflate cash/net worth.
+  const availableCash = getOverviewDetailsAccountBalanceTotal(month, appCurrency);
+  const investmentsValue = getOverviewInvestmentsValue(appCurrency);
+  const propertiesValue = getOverviewPropertiesValue(appCurrency);
+  const totalNetWorth = availableCash + investmentsValue + propertiesValue;
 
   const visibleBankKeys = BANK_ORDER.filter(bankKey => bankKey !== 'csob_cz_credit');
   const byBankMonth = getTransactionsByBank(true, true);
@@ -10456,7 +10711,7 @@ function getOverviewDashboardMetrics() {
   const cashTxns = monthTxns.filter(t => normalizePaymentKindValue(t.paymentKind || t.type) === 'cash' && Number(t.amount || 0) < 0);
   const cashSpent = cashTxns.reduce((sum, tx) => sum + Math.abs(convertTransactionAmount(tx, appCurrency)), 0);
 
-  return { appCurrency, totalNetWorth, availableCash, cardUsed, cardLimit, cardPct, budgetSpent, budgetLimit, budgetPct, budgetTransactionSeries, budgetDailySeries: budgetTransactionSeries, cashSpent, creditOutstanding, creditUsed, creditLimit, creditAvailable, creditPct, hasCreditWidget };
+  return { appCurrency, totalNetWorth, availableCash, investmentsValue, propertiesValue, cardUsed, cardLimit, cardPct, budgetSpent, budgetLimit, budgetPct, budgetTransactionSeries, budgetDailySeries: budgetTransactionSeries, cashSpent, creditOutstanding, creditUsed, creditLimit, creditAvailable, creditPct, hasCreditWidget };
 }
 function createOverviewHalfGauge(percent, caption, mainText = '') {
   const pct = Math.max(0, Math.min(100, Math.round((Number(percent || 0) || 0) * 100)));
@@ -10469,7 +10724,7 @@ function createOverviewHalfGauge(percent, caption, mainText = '') {
       <svg viewBox="0 0 120 72" aria-hidden="true" focusable="false">
         <defs>
           <linearGradient id="wealthGaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#72f6a5"></stop>
+            <stop offset="0%" stop-color="#00E5A0"></stop>
             <stop offset="100%" stop-color="#58cfff"></stop>
           </linearGradient>
         </defs>
@@ -10505,9 +10760,6 @@ function createCreditCardLimitProgress(used, limit, available, currency) {
   const width = Math.round(ratio * 100);
   const isCompleted = limitNum > 0 && usedNum >= limitNum;
   const isEmpty = usedNum <= 0 || limitNum <= 0;
-  const statusText = limitNum > 0
-    ? (isCompleted ? 'Completed' : `${formatOverviewCompactCurrency(availableNum, currency)} ${t('leftWord')}`)
-    : `${formatOverviewCompactCurrency(0, currency)} ${t('leftWord')}`;
   const pairText = formatOverviewCompactCurrencyPair(usedNum, limitNum, currency);
   const usedText = formatOverviewCompactCurrency(usedNum, currency);
   const limitText = formatOverviewCompactCurrency(limitNum, currency);
@@ -10516,7 +10768,6 @@ function createCreditCardLimitProgress(used, limit, available, currency) {
   return `
     <div class="wealth-credit-progress-summary">
       <span class="wealth-credit-progress-pair">${escapeHtml(pairText)}</span>
-      <span class="wealth-credit-progress-status ${escapeAttr(fillClass)}">${escapeHtml(statusText)}</span>
     </div>
     <div class="wealth-credit-progress-track" title="${escapeAttr(`${usedText} / ${limitText}`)}">
       <div class="wealth-credit-progress-used ${escapeAttr(fillClass)}" style="width:${fillWidth}%;"></div>
@@ -10568,7 +10819,7 @@ function createWealthTrendSvg() {
     <svg viewBox="0 0 180 64" preserveAspectRatio="none" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="wealthLineGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#72f6a5"></stop>
+          <stop offset="0%" stop-color="#00E5A0"></stop>
           <stop offset="100%" stop-color="#56b6ff"></stop>
         </linearGradient>
         <linearGradient id="wealthAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -10581,95 +10832,186 @@ function createWealthTrendSvg() {
     </svg>`;
 }
 
+function createSmoothSvgPath(points) {
+  const safePoints = (points || []).filter(p => p && Number.isFinite(p.x) && Number.isFinite(p.y));
+  if (!safePoints.length) return '';
+  if (safePoints.length === 1) return `M${safePoints[0].x.toFixed(2)} ${safePoints[0].y.toFixed(2)}`;
+
+  let d = `M${safePoints[0].x.toFixed(2)} ${safePoints[0].y.toFixed(2)}`;
+  for (let i = 0; i < safePoints.length - 1; i += 1) {
+    const p0 = safePoints[Math.max(0, i - 1)];
+    const p1 = safePoints[i];
+    const p2 = safePoints[i + 1];
+    const p3 = safePoints[Math.min(safePoints.length - 1, i + 2)];
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+  }
+  return d;
+}
+
+
+function createBudgetWavySvgPath(points, amplitude = 2.1) {
+  const safePoints = (points || []).filter(p => p && Number.isFinite(p.x) && Number.isFinite(p.y));
+  if (!safePoints.length) return '';
+  if (safePoints.length === 1) return `M${safePoints[0].x.toFixed(2)} ${safePoints[0].y.toFixed(2)}`;
+
+  const clampY = value => Math.max(3, Math.min(61, Number(value || 0)));
+  let d = `M${safePoints[0].x.toFixed(2)} ${safePoints[0].y.toFixed(2)}`;
+  for (let i = 0; i < safePoints.length - 1; i += 1) {
+    const p1 = safePoints[i];
+    const p2 = safePoints[i + 1];
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const segment = Math.max(1, Math.hypot(dx, dy));
+    const sign = i % 2 === 0 ? -1 : 1;
+    const wave = sign * Math.min(amplitude, Math.max(0.65, segment * 0.085));
+    const cp1x = p1.x + dx * 0.34;
+    const cp2x = p1.x + dx * 0.68;
+    const cp1y = clampY(p1.y + dy * 0.18 + wave);
+    const cp2y = clampY(p1.y + dy * 0.82 - wave);
+    d += ` C${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+  }
+  return d;
+}
+
 function createOverviewBudgetSparkline(used = 0, limit = 0, currency, txSeries = []) {
   const usedNum = Math.max(0, Number(used || 0) || 0);
   const limitNum = Math.max(0, Number(limit || 0) || 0);
-  const series = Array.isArray(txSeries) ? txSeries : [];
+  const series = Array.isArray(txSeries) ? txSeries.filter(p => p && Number.isFinite(Number(p.value))) : [];
   const normalizedMonth = normalizeMonthStr(getAktuálneMonth());
   const [monthNum, yearNum] = normalizedMonth.split('/').map(Number);
   const monthStart = new Date(yearNum, monthNum - 1, 1, 0, 0, 0, 0).getTime();
   const monthEnd = new Date(yearNum, monthNum, 0, 23, 59, 59, 999).getTime();
+  const today = new Date();
+  const todayInSelectedMonth = today.getFullYear() === yearNum && (today.getMonth() + 1) === monthNum;
+  const nowInMonth = todayInSelectedMonth ? Math.min(Math.max(today.getTime(), monthStart), monthEnd) : monthEnd;
 
-  const startX = 8;
-  const startY = 62;
-  const endX = 106;
-  const endY = 4;
+  const startX = 7;
+  const startY = 61;
+  const endX = 107;
+  const endY = 5;
   const width = endX - startX;
   const height = startY - endY;
-  const finalSpent = series.length ? series[series.length - 1].value : 0;
-  const maxValue = limitNum > 0 ? Math.max(limitNum, finalSpent, 1) : Math.max(finalSpent, 1);
+  const finalSpent = series.length ? Math.max(usedNum, Number(series[series.length - 1].value || 0) || 0) : usedNum;
 
-  const points = [{ timestamp: monthStart, value: 0 }, ...series, { timestamp: monthEnd, value: finalSpent }]
-    .map(point => {
-      const time = Math.min(Math.max(point.timestamp, monthStart), monthEnd);
-      const x = startX + ((time - monthStart) / Math.max(1, monthEnd - monthStart)) * width;
-      const y = startY - (point.value / maxValue) * height;
-      return { x, y, value: point.value };
-    });
+  const dayMs = 24 * 60 * 60 * 1000;
+  const remainingDaysRaw = Math.max(0, Math.ceil((monthEnd - nowInMonth) / dayMs));
+  const projectedDailyStepValue = Math.max(0, Number(convertAmountCurrency(2000, 'CZK', currency || getAppCurrency())) || 2000);
+  const projectionCycles = Math.max(0, Math.ceil(remainingDaysRaw / 7));
+  const projectedFinalValue = Math.max(finalSpent, finalSpent + (projectedDailyStepValue * 3 * projectionCycles));
+  const maxValue = Math.max(limitNum, finalSpent, projectedFinalValue, 1) * 1.04;
 
-  const actualPoints = points.slice(0, points.length - 1);
-  const currentPoint = actualPoints.length ? actualPoints[actualPoints.length - 1] : points[0];
-  const spentLinePath = actualPoints.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(' ');
-  const spentAreaPath = `${spentLinePath} L${currentPoint.x.toFixed(2)} ${startY} L${startX} ${startY} Z`;
+  let rawSpentPoints = [{ timestamp: monthStart, value: 0 }];
+  if (series.length) {
+    rawSpentPoints = rawSpentPoints.concat(series.map(point => ({
+      timestamp: Math.min(Math.max(Number(point.timestamp || monthStart), monthStart), monthEnd),
+      value: Math.max(0, Number(point.value || 0) || 0)
+    })));
+  } else {
+    rawSpentPoints.push({ timestamp: nowInMonth, value: finalSpent });
+  }
 
+  rawSpentPoints.sort((a, b) => a.timestamp - b.timestamp);
+  const deduped = [];
+  rawSpentPoints.forEach(point => {
+    const last = deduped[deduped.length - 1];
+    if (last && Math.abs(last.timestamp - point.timestamp) < 60000) {
+      last.value = Math.max(last.value, point.value);
+      return;
+    }
+    deduped.push(point);
+  });
+
+  const spentPoints = deduped.map(point => {
+    const x = startX + ((point.timestamp - monthStart) / Math.max(1, monthEnd - monthStart)) * width;
+    const y = startY - (point.value / maxValue) * height;
+    return { x, y, value: point.value, timestamp: point.timestamp };
+  });
+  const currentPoint = spentPoints[spentPoints.length - 1] || { x: startX, y: startY, value: 0, timestamp: monthStart };
+
+  // v198: make the small Bank budget chart visually wavy/undulating, not angular.
+  const spentLinePath = createBudgetWavySvgPath(spentPoints, 1.75);
+  const spentAreaPath = spentLinePath
+    ? `${spentLinePath} L${currentPoint.x.toFixed(2)} ${startY} L${startX} ${startY} Z`
+    : '';
+
+  // v199: blue projection is connected to the last green point.
+  // Pattern: 4 days flat / 0 CZK, then 3 days adding about 2k CZK per day, repeated to month end.
+  const valueToY = value => startY - (Math.max(0, Number(value || 0) || 0) / maxValue) * height;
+  const timestampToX = timestamp => startX + ((timestamp - monthStart) / Math.max(1, monthEnd - monthStart)) * width;
   const remainingPoints = [];
-  if (currentPoint) {
-    const deltaX = endX - currentPoint.x;
-    const deltaY = endY - currentPoint.y;
-    const amplitude = Math.min(12, Math.abs(deltaY) * 0.2);
-    const steps = 6;
-    remainingPoints.push(currentPoint);
-    for (let i = 1; i <= steps; i += 1) {
-      const t = i / steps;
-      const x = currentPoint.x + deltaX * t;
-      const yStraight = currentPoint.y + deltaY * t;
-      const wave = Math.sin(t * Math.PI * 2 * 1.2) * amplitude * (1 - t);
-      const y = Math.max(endY, Math.min(startY, yStraight + wave));
-      remainingPoints.push({ x, y });
+  if (currentPoint && monthEnd > currentPoint.timestamp + 60000) {
+    let cursorTime = Math.min(Math.max(currentPoint.timestamp || nowInMonth, monthStart), monthEnd);
+    let cursorValue = Math.max(0, Number(currentPoint.value || 0) || 0);
+    remainingPoints.push({ x: currentPoint.x, y: currentPoint.y, value: cursorValue, timestamp: cursorTime });
+
+    while (cursorTime < monthEnd - 60000) {
+      const flatEnd = Math.min(cursorTime + (4 * dayMs), monthEnd);
+      if (flatEnd > cursorTime + 60000) {
+        remainingPoints.push({ x: timestampToX(flatEnd), y: valueToY(cursorValue), value: cursorValue, timestamp: flatEnd });
+      }
+      cursorTime = flatEnd;
+      if (cursorTime >= monthEnd - 60000) break;
+
+      for (let day = 1; day <= 3 && cursorTime < monthEnd - 60000; day += 1) {
+        const nextTime = Math.min(cursorTime + dayMs, monthEnd);
+        const nextValue = cursorValue + projectedDailyStepValue;
+        if (nextValue <= cursorValue + 0.01) {
+          cursorTime = nextTime;
+          break;
+        }
+
+        // Add a soft mid-point so the SVG curve looks undulating instead of staircase-like.
+        const midTime = Math.min(cursorTime + ((nextTime - cursorTime) * 0.55), monthEnd);
+        const midEase = 0.5 - (Math.cos(Math.PI * 0.55) / 2);
+        const midValue = cursorValue + ((nextValue - cursorValue) * midEase);
+        remainingPoints.push({ x: timestampToX(midTime), y: valueToY(midValue), value: midValue, timestamp: midTime });
+        remainingPoints.push({ x: timestampToX(nextTime), y: valueToY(nextValue), value: nextValue, timestamp: nextTime });
+
+        cursorTime = nextTime;
+        cursorValue = nextValue;
+      }
+    }
+
+    const lastProjectionPoint = remainingPoints[remainingPoints.length - 1];
+    if (lastProjectionPoint && lastProjectionPoint.timestamp < monthEnd) {
+      remainingPoints.push({ x: endX, y: valueToY(lastProjectionPoint.value), value: lastProjectionPoint.value, timestamp: monthEnd });
     }
   }
 
-  const remainingLinePath = remainingPoints.length
-    ? remainingPoints.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(' ')
-    : '';
-  const remainingAreaPath = remainingPoints.length
+  const remainingLinePath = createBudgetWavySvgPath(remainingPoints, 2.35);
+  const remainingAreaPath = remainingLinePath
     ? `${remainingLinePath} L${endX} ${startY} L${currentPoint.x.toFixed(2)} ${startY} Z`
     : '';
 
-  const knob = currentPoint;
-
   return `
-    <div class="wealth-budget-sparkline">
-      <div class="wealth-budget-sparkline-label">
-        ${escapeHtml(formatOverviewCompactCurrencyPair(usedNum, limitNum, currency))}
-      </div>
+    <div class="wealth-budget-sparkline" aria-label="Bank budget ${escapeAttr(formatOverviewCompactCurrencyPair(usedNum, limitNum, currency))}">
+      <div class="wealth-budget-sparkline-label">${escapeHtml(formatOverviewCompactCurrencyPair(usedNum, limitNum, currency))}</div>
       <svg viewBox="0 0 114 64" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         <defs>
-          <linearGradient id="budgetUsedGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#72f6a5"></stop>
-            <stop offset="100%" stop-color="#22c55e"></stop>
+          <linearGradient id="budgetUsedAreaV190" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(0,229,160,0.44)"></stop>
+            <stop offset="72%" stop-color="rgba(0,229,160,0.07)"></stop>
+            <stop offset="100%" stop-color="rgba(0,229,160,0)"></stop>
           </linearGradient>
-          <linearGradient id="budgetRemainingGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="rgba(88,166,255,0.72)"></stop>
-            <stop offset="100%" stop-color="rgba(30,64,175,0.95)"></stop>
+          <linearGradient id="budgetRemainAreaV190" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(56,139,253,0.44)"></stop>
+            <stop offset="72%" stop-color="rgba(56,139,253,0.07)"></stop>
+            <stop offset="100%" stop-color="rgba(56,139,253,0)"></stop>
           </linearGradient>
-          <filter id="budgetUsedShadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#72f6a5" flood-opacity="0.18"></feDropShadow>
-          </filter>
-          <filter id="budgetRemainingShadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#58a6ff" flood-opacity="0.14"></feDropShadow>
-          </filter>
         </defs>
-        <path d="${spentAreaPath}" fill="url(#budgetUsedGradient)" opacity="0.22"></path>
-        <path d="${remainingAreaPath}" fill="url(#budgetRemainingGradient)" opacity="0.35"></path>
-        <path d="${remainingLinePath}" fill="none" stroke="#58a6ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.75"></path>
-        <path d="${spentLinePath}" fill="none" stroke="url(#budgetUsedGradient)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
-        <circle cx="${knob.x.toFixed(2)}" cy="${knob.y.toFixed(2)}" r="1.4" fill="#ffffff" stroke="rgba(114,246,165,0.9)" stroke-width="1.2"></circle>
-        <circle cx="${knob.x.toFixed(2)}" cy="${knob.y.toFixed(2)}" r="1" fill="url(#budgetUsedGradient)"></circle>
+        ${spentAreaPath ? `<path d="${spentAreaPath}" fill="url(#budgetUsedAreaV190)"></path>` : ''}
+        ${remainingAreaPath ? `<path d="${remainingAreaPath}" fill="url(#budgetRemainAreaV190)"></path>` : ''}
+        ${spentLinePath ? `<path d="${spentLinePath}" fill="none" stroke="#00E5A0" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"></path>` : ''}
+        ${remainingLinePath ? `<path d="${remainingLinePath}" fill="none" stroke="#388bfd" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"></path>` : ''}
+        <circle cx="${currentPoint.x.toFixed(2)}" cy="${currentPoint.y.toFixed(2)}" r="1.55" fill="#ffffff" opacity="0.95"></circle>
+        <circle cx="${currentPoint.x.toFixed(2)}" cy="${currentPoint.y.toFixed(2)}" r="0.92" fill="#00E5A0"></circle>
       </svg>
     </div>`;
 }
-
 function renderOverviewDashboard() {
   const netWorthEl = document.getElementById('overview-net-worth');
   if (!netWorthEl) return;
@@ -10691,7 +11033,7 @@ function renderOverviewDashboard() {
   const availableEl = document.getElementById('overview-available-cash');
   if (availableEl) {
     availableEl.textContent = formatCurrencyAmount(metrics.availableCash, appCurrency);
-    availableEl.style.color = Number(metrics.availableCash || 0) < 0 ? 'var(--danger)' : '#73ffb0';
+    availableEl.style.color = Number(metrics.availableCash || 0) < 0 ? 'var(--danger)' : '#00E5A0';
   }
   const cardGauge = document.getElementById('overview-card-limits-gauge');
   if (cardGauge) cardGauge.innerHTML = createOverviewHalfGauge(metrics.cardPct, 'used');
@@ -10720,7 +11062,7 @@ function renderOverviewDashboard() {
   if (creditWidget) {
     creditWidget.style.display = metrics.hasCreditWidget ? '' : 'none';
     if (metrics.hasCreditWidget) {
-      if (creditGauge) creditGauge.innerHTML = createOverviewHalfGauge(metrics.creditPct, 'used');
+      if (creditGauge) creditGauge.innerHTML = createOverviewHalfGauge(metrics.creditPct, 'USED');
       if (creditLine) creditLine.innerHTML = createCreditCardLimitProgress(
         metrics.creditUsed,
         metrics.creditLimit,
@@ -11142,7 +11484,7 @@ function renderTransactionDailyCashflow(txns) {
         <div class="txn-cashflow-actions">
           <div class="txn-cashflow-legend">
             <span><i class="txn-cashflow-dot" style="background: var(--ok)"></i>${t('incoming')}</span>
-            <span><i class="txn-cashflow-dot" style="background: #ff3b43"></i>${t('spent')}</span>
+            <span><i class="txn-cashflow-dot" style="background: #E5005F"></i>${t('spent')}</span>
           </div>
           <button type="button" class="txn-chart-toggle-btn" onclick="toggleTxnCashflowChartType()" title="${escapeAttr(toggleTitle)}" aria-label="${escapeAttr(toggleTitle)}">
             <span class="txn-chart-toggle-icon ${toggleIconClass}"></span>
@@ -12077,6 +12419,65 @@ function openArchiveMonthFilter(bankKey, monthStr, mode = 'cards') {
   filterBank(bankKey);
 }
 
+function setTransactionDateRangeFromMonthRange(startMonthStr, endMonthStr) {
+  const start = normalizeMonthStr(startMonthStr || getAktuálneMonth());
+  const end = normalizeMonthStr(endMonthStr || start);
+  const startMatch = start.match(/^(\d{2})\/(\d{4})$/);
+  const endMatch = end.match(/^(\d{2})\/(\d{4})$/);
+  if (!startMatch || !endMatch) {
+    activeDateFrom = '';
+    activeDateTo = '';
+    return;
+  }
+  const sm = Number(startMatch[1]);
+  const sy = Number(startMatch[2]);
+  const em = Number(endMatch[1]);
+  const ey = Number(endMatch[2]);
+  const lastDay = new Date(ey, em, 0).getDate();
+  activeDateFrom = `${sy}-${String(sm).padStart(2, '0')}-01`;
+  activeDateTo = `${ey}-${String(em).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+}
+
+function openArchiveBankRangeFilter(bankKey, monthsCsv, mode = 'spent') {
+  const months = String(monthsCsv || '')
+    .split('|')
+    .map(m => normalizeMonthStr(m))
+    .filter(Boolean)
+    .sort((a, b) => monthSortValue(a) - monthSortValue(b));
+  if (!months.length) return openBankTransactions(bankKey, 'all');
+
+  showPage('txns');
+  activeCategory = 'všetky';
+  activeCardLast4 = '';
+  activeMonthFilter = '';
+  activeSearch = '';
+  activeTxnHistoryScope = 'all';
+
+  if (mode === 'cards') {
+    activePaymentKind = 'card';
+    activeDirection = 'outgoing';
+  } else if (mode === 'income') {
+    activePaymentKind = 'all';
+    activeDirection = 'incoming';
+  } else if (mode === 'all') {
+    activePaymentKind = 'all';
+    activeDirection = 'all';
+  } else {
+    activePaymentKind = 'all';
+    activeDirection = 'outgoing';
+  }
+
+  setTransactionDateRangeFromMonthRange(months[0], months[months.length - 1]);
+  const search = document.getElementById('txn-search');
+  if (search) search.value = '';
+  updatePaymentKindFilterUi();
+  updateDirectionFilterUi();
+  updateCardSourceFiltersUi();
+  updateTransactionDateInputs();
+  filterBank(bankKey);
+}
+
+
 function filterBank(bank) {
   if (bank !== 'csob_cz') activeCardLast4 = '';
   activeBank = bank;
@@ -12429,6 +12830,30 @@ function seedOverviewDetailsFromLocalTestData(txns, monthStr = getAktuálneMonth
   document.documentElement.setAttribute('data-local-test-overview-spending', String(Math.round(Object.values(totals).reduce((sum, item) => sum + Number(item.spending || 0), 0))));
 }
 
+
+
+function shiftMonthStr(monthStr, offset) {
+  const normalized = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const match = normalized.match(/^(\d{2})\/(\d{4})$/);
+  if (!match) return normalized;
+  const d = new Date(Number(match[2]), Number(match[1]) - 1 + Number(offset || 0), 1);
+  return `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+
+function createLocalTestTransactionsForArchive(monthStr = getAktuálneMonth()) {
+  const baseMonth = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const months = [-5, -4, -3, -2, -1, 0].map(offset => shiftMonthStr(baseMonth, offset));
+  const factors = [0.52, 0.68, 0.84, 0.76, 1.05, 1];
+  return months.flatMap((m, monthIdx) => createLocalTestTransactions(m).map((tx, idx) => {
+    const factor = factors[monthIdx] || 1;
+    const adjusted = { ...tx };
+    const amount = Number(tx.amount || 0);
+    adjusted.amount = Math.round(amount * factor * 100) / 100;
+    adjusted.id = `local-test-${LOCAL_TEST_DATA_VERSION}-${m.replace('/', '-')}-${monthIdx + 1}-${idx + 1}`;
+    adjusted.msgId = `local-test-${monthIdx + 1}-${idx + 1}`;
+    return adjusted;
+  }));
+}
 function seedBankTrackerLocalTestData(force = false) {
   document.documentElement.setAttribute('data-local-test-seed-attempt', force ? 'force' : 'auto');
   if (!force && (!isLocalTestDataHost() || SHEETS_URL)) {
@@ -12442,9 +12867,10 @@ function seedBankTrackerLocalTestData(force = false) {
   const month = normalizeMonthStr(getAktuálneMonth());
   const expectedSeed = `${LOCAL_TEST_DATA_VERSION}:${month}`;
 
-  const txns = createLocalTestTransactions(month);
+  const txns = createLocalTestTransactionsForArchive(month);
   allTransactions = sortTransactionsNewestFirst(txns.map(tx => normalizeTransactionCurrency(tx)));
-  seedOverviewDetailsFromLocalTestData(allTransactions, month);
+  [...new Set(allTransactions.map(tx => normalizeMonthStr(tx.month)).filter(Boolean))].forEach(m => seedOverviewDetailsFromLocalTestData(allTransactions.filter(tx => normalizeMonthStr(tx.month) === m), m));
+  seedOverviewDetailsFromLocalTestData(allTransactions.filter(tx => normalizeMonthStr(tx.month) === month), month);
   document.documentElement.setAttribute('data-local-test-seed-version', expectedSeed);
   document.documentElement.setAttribute('data-local-test-seed', String(allTransactions.length));
   return true;
@@ -14652,36 +15078,82 @@ function getArchiveBankKeyFromTransaction(tx) {
   return fallbackKey === 'csob_cz_credit' ? 'csob_cz' : fallbackKey;
 }
 
+function getArchiveTrendMonths() {
+  const months = new Set();
+  (allTransactions || []).forEach(tx => {
+    const m = normalizeMonthStr(tx && tx.month);
+    if (m) months.add(m);
+  });
+  try {
+    Object.keys(localStorage || {}).forEach(key => {
+      const match = String(key || '').match(/^(?:bank|overview)_monthly_(?:spending|income|net)_.+_(\d{2}\/\d{4})$/);
+      if (match) months.add(normalizeMonthStr(match[1]));
+    });
+  } catch (_) {}
+  return [...months]
+    .filter(Boolean)
+    .sort((a, b) => monthSortValue(a) - monthSortValue(b))
+    .slice(-8);
+}
+
+function getArchiveTrendValueCzk(bankKey, monthStr) {
+  const value = Number(getArchiveMonthlyStat(bankKey, monthStr, 'spending', 'CZK') || 0);
+  return Number.isFinite(value) ? Math.abs(value) : 0;
+}
+
+function buildArchiveTrendMonthlyData(months) {
+  const monthly = {};
+  months.forEach(month => { monthly[month] = {}; });
+
+  const bankKeys = getDynamicArchiveBankKeys(monthly).filter(bankKey => bankKey !== 'csob_cz_credit');
+  bankKeys.forEach(bankKey => {
+    months.forEach(month => {
+      const value = getArchiveTrendValueCzk(bankKey, month);
+      if (value > 0) monthly[month][bankKey] = value;
+    });
+  });
+
+  // Include any bank keys that exist only in loaded transactions/custom data.
+  (allTransactions || []).forEach(tx => {
+    const month = normalizeMonthStr(tx && tx.month);
+    if (!month || !monthly[month]) return;
+    const bankKey = getArchiveBankKeyFromTransaction(tx);
+    if (!bankKey || bankKey === 'csob_cz_credit') return;
+    if (!bankKeys.includes(bankKey)) bankKeys.push(bankKey);
+  });
+
+  bankKeys.forEach(bankKey => {
+    months.forEach(month => {
+      if (monthly[month][bankKey] === undefined) {
+        const value = getArchiveTrendValueCzk(bankKey, month);
+        if (value > 0) monthly[month][bankKey] = value;
+      }
+    });
+  });
+
+  return monthly;
+}
+
 function renderArchiveTrendChart() {
   const wrap = document.getElementById('archive-trend-chart');
   if (!wrap) return;
 
-  const targetCurrency = 'CZK';
-  const monthly = {};
-  allTransactions.forEach(t => {
-    if (!t.month || !(Number(t.amount) < 0)) return;
-    if (!isCardTransaction(t)) return;
-
-    const bankKey = getArchiveBankKeyFromTransaction(t);
-
-    const czkValue = Math.abs(convertTransactionAmount(t, targetCurrency));
-
-    if (!monthly[t.month]) monthly[t.month] = {};
-    monthly[t.month][bankKey] = (monthly[t.month][bankKey] || 0) + czkValue;
-  });
-
-  const months = Object.keys(monthly)
-    .sort((a, b) => monthSortValue(a) - monthSortValue(b))
-    .slice(-8);
-
+  const months = getArchiveTrendMonths();
   if (months.length === 0) {
     wrap.innerHTML = `<div class="empty-state" style="padding:22px 0;">${t('noTrendData')}</div>`;
     return;
   }
 
+  const monthly = buildArchiveTrendMonthlyData(months);
   const dynamicBankKeys = getDynamicArchiveBankKeys(monthly).filter(bankKey => bankKey !== 'csob_cz_credit');
   const activeBankKeys = dynamicBankKeys.filter(bankKey => months.some(month => (monthly[month]?.[bankKey] || 0) > 0));
   const chartBanks = activeBankKeys.length ? activeBankKeys : dynamicBankKeys;
+
+  if (!chartBanks.length) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:22px 0;">${t('noTrendData')}</div>`;
+    return;
+  }
+
   const chartType = archiveTrendChartType === 'bars' ? 'bars' : 'line';
   const toggle = document.getElementById('archive-trend-toggle');
   const toggleIcon = document.getElementById('archive-trend-toggle-icon');
@@ -14695,9 +15167,10 @@ function renderArchiveTrendChart() {
   }
 
   const monthLabel = (mStr) => shortArchiveMonthLabel(mStr);
+  const monthsArg = months.join('|');
   const legend = chartBanks.map(bankKey => {
     const bank = getArchiveBankInfo(bankKey);
-    return `<span class="archive-bank-legend-item" onclick="openBankTransactions('${bankKey}','card')" title="${t('transactions')}"><span class="archive-bank-legend-dot" style="background:${bank.color};"></span>${escapeHtml(getArchiveBankName(bankKey))}</span>`;
+    return `<span class="archive-bank-legend-item" onclick="openArchiveBankRangeFilter('${bankKey}','${monthsArg}','spent')" title="${escapeAttr(getArchiveBankName(bankKey))} · ${escapeAttr(t('spent'))}"><span class="archive-bank-legend-dot" style="background:${bank.color};"></span>${escapeHtml(getArchiveBankName(bankKey))}</span>`;
   }).join('');
 
   if (chartType === 'bars') {
@@ -14717,9 +15190,8 @@ function renderArchiveTrendChart() {
     const chartH = axisY - padT - 10;
     const step = chartW / Math.max(1, months.length);
     const maxValue = Math.max(1, ...months.flatMap(month => [totalsByMonth[month] || 0, ...chartBanks.map(bankKey => monthly[month]?.[bankKey] || 0)]));
-    const niceMax = Math.ceil(maxValue / 1000) * 1000 || maxValue;
-    const backBarW = Math.max(12, Math.min(22, step * 0.50));
-    const frontBarW = Math.max(14, Math.min(26, step * 0.62));
+    const magnitude = maxValue >= 100000 ? 10000 : 1000;
+    const niceMax = Math.ceil(maxValue / magnitude) * magnitude || maxValue;
 
     const axisLabels = [
       { value: niceMax, y: padT + 7 },
@@ -14732,15 +15204,15 @@ function renderArchiveTrendChart() {
       const values = chartBanks.map(bankKey => ({ bankKey, value: monthly[month]?.[bankKey] || 0 })).filter(item => item.value > 0);
       const total = totalsByMonth[month] || 0;
       const totalH = Math.max(0, (total / niceMax) * chartH);
-      const groupW = Math.min(step * 0.56, Math.max(18, values.length * 8));
+      const groupW = Math.min(step * 0.62, Math.max(18, values.length * 9));
       const miniGap = values.length > 1 ? 2 : 0;
-      const miniW = values.length > 0 ? Math.max(4, Math.min(8, (groupW - miniGap * (values.length - 1)) / values.length)) : frontBarW;
-      const startX = slotX + step * 0.38;
+      const miniW = values.length > 0 ? Math.max(5, Math.min(9, (groupW - miniGap * (values.length - 1)) / values.length)) : 8;
+      const startX = slotX + (step - groupW) / 2;
       const bankBars = values.map((item, bankIdx) => {
         const bank = getArchiveBankInfo(item.bankKey);
         const barH = Math.max(2, (item.value / niceMax) * chartH);
         const x = startX + bankIdx * (miniW + miniGap);
-        return `<rect class="archive-trend-bar-segment archive-trend-bar-animate" x="${x.toFixed(1)}" y="${(axisY - barH).toFixed(1)}" width="${miniW.toFixed(1)}" height="${barH.toFixed(1)}" rx="3" style="fill:${bank.color};animation-delay:${(idx * 80 + bankIdx * 35).toFixed(0)}ms" onclick="openBankMonthTransactions('${item.bankKey}','${month}','card')"></rect>`;
+        return `<rect class="archive-trend-bar-segment archive-trend-bar-animate" x="${x.toFixed(1)}" y="${(axisY - barH).toFixed(1)}" width="${miniW.toFixed(1)}" height="${barH.toFixed(1)}" rx="3" style="fill:${bank.color};animation-delay:${(idx * 80 + bankIdx * 35).toFixed(0)}ms" onclick="openArchiveMonthFilter('${item.bankKey}','${month}','spent')"><title>${escapeHtml(getArchiveBankName(item.bankKey))} · ${escapeHtml(formatMonthString(month))} · ${escapeHtml(formatCurrencyAmount(item.value, 'CZK'))}</title></rect>`;
       }).join('');
       return `
         ${bankBars}
@@ -14750,6 +15222,7 @@ function renderArchiveTrendChart() {
 
     wrap.innerHTML = `
       <div class="archive-bank-legend">${legend}</div>
+      <div class="archive-chart-note">CZK · ${escapeHtml(t('spent'))}</div>
       <svg class="archive-trend-bars-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
         <line class="archive-grid-line" x1="${padL}" y1="${axisY}" x2="${w - padR}" y2="${axisY}"></line>
         <line class="archive-grid-line" x1="${padL}" y1="${padT + chartH / 2}" x2="${w - padR}" y2="${padT + chartH / 2}"></line>
@@ -14777,7 +15250,8 @@ function renderArchiveTrendChart() {
     });
   });
 
-  const niceMax = Math.ceil(max / 1000) * 1000 || max;
+  const magnitude = max >= 100000 ? 10000 : 1000;
+  const niceMax = Math.ceil(max / magnitude) * magnitude || max;
   const halfLabel = formatCompactAmount(niceMax / 2);
   const maxLabel = formatCompactAmount(niceMax);
 
@@ -14796,16 +15270,21 @@ function renderArchiveTrendChart() {
   const lines = chartBanks.map(bankKey => {
     const bank = getArchiveBankInfo(bankKey);
     const points = months.map((m, i) => getPoint(m, bankKey, i));
+    const visiblePoints = points.filter(p => p.value > 0);
+    const title = `${getArchiveBankName(bankKey)} · ${t('spent')} · ${months[0]}–${months[months.length - 1]}`;
     return `
-      <polyline class="archive-bank-line" style="stroke:${bank.color};" points="${linePoints(bankKey)}" onclick="openBankTransactions('${bankKey}','card')" title="${escapeAttr(getArchiveBankName(bankKey))} · ${escapeAttr(t('cardsOnly'))}"></polyline>
-      <polyline class="archive-bank-line-hit" points="${linePoints(bankKey)}" onclick="openBankTransactions('${bankKey}','card')" title="${escapeAttr(getArchiveBankName(bankKey))} · ${escapeAttr(t('cardsOnly'))}"></polyline>
-      ${points.map((p, i) => p.value > 0 ? `<circle class="archive-bank-point" cx="${p.x}" cy="${p.y}" r="3.2" style="fill:${bank.color};" onclick="openBankMonthTransactions('${bankKey}','${months[i]}','card')"></circle>` : '').join('')}
+      <polyline class="archive-bank-line" style="stroke:${bank.color};" points="${linePoints(bankKey)}" onclick="openArchiveBankRangeFilter('${bankKey}','${monthsArg}','spent')"><title>${escapeHtml(title)}</title></polyline>
+      <polyline class="archive-bank-line-hit" points="${linePoints(bankKey)}" onclick="openArchiveBankRangeFilter('${bankKey}','${monthsArg}','spent')"><title>${escapeHtml(title)}</title></polyline>
+      ${visiblePoints.map(p => {
+        const idx = points.indexOf(p);
+        return `<circle class="archive-bank-point" cx="${p.x}" cy="${p.y}" r="3.2" style="fill:${bank.color};" onclick="openArchiveMonthFilter('${bankKey}','${months[idx]}','spent')"><title>${escapeHtml(getArchiveBankName(bankKey))} · ${escapeHtml(formatMonthString(months[idx]))} · ${escapeHtml(formatCurrencyAmount(p.value, 'CZK'))}</title></circle>`;
+      }).join('')}
     `;
   }).join('');
 
   wrap.innerHTML = `
     <div class="archive-bank-legend">${legend}</div>
-    <div class="archive-chart-note">${t('trendCurrencyNote')} · ${t('cardsOnly')}</div>
+    <div class="archive-chart-note">CZK · ${escapeHtml(t('spent'))}</div>
     <svg class="archive-multiline-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
       <line class="archive-grid-line" x1="${padL}" y1="${axisY}" x2="${w - padR}" y2="${axisY}"></line>
       <line class="archive-grid-line" x1="${padL}" y1="${Math.round(axisY / 2)}" x2="${w - padR}" y2="${Math.round(axisY / 2)}"></line>
@@ -14814,7 +15293,7 @@ function renderArchiveTrendChart() {
       <text class="archive-y-label" x="2" y="${padT + 4}">${maxLabel}</text>
       <text class="archive-y-label" x="2" y="${Math.round(axisY / 2) + 4}">${halfLabel}</text>
       <text class="archive-y-label" x="2" y="${axisY + 4}">0</text>
-      <text class="archive-axis-unit" x="${padL}" y="${h - 6}">${t('czkEquivalent')}</text>
+      <text class="archive-axis-unit" x="${padL}" y="${h - 6}">CZK</text>
 
       ${lines}
       ${months.map((m, i) => {
@@ -14824,6 +15303,7 @@ function renderArchiveTrendChart() {
     </svg>
   `;
 }
+
 
 function renderArchive() {
   const container = document.getElementById('archive-months-list');
@@ -16158,6 +16638,101 @@ function parseBankSettingsSheetData(raw) {
     count++;
   });
   return count;
+}
+
+
+function parseBalanceLogSheetData(raw) {
+  const data = parseGvizJson(raw);
+  const rows = data?.table?.rows || [];
+  const cols = data?.table?.cols || [];
+  const headerFromCols = cols.map(col => String(col?.label || '').trim());
+  const firstRowHeaders = rows[0]?.c?.map(cell => String(cell?.v ?? cell?.f ?? '').trim()) || [];
+  const normalizeHeader = (value) => String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[\s_\-./()]+/g, ' ')
+    .replace(/\s+/g, ' ');
+  const hasHeaderLabels = headerFromCols.some(Boolean);
+  const firstRowLooksLikeHeader = firstRowHeaders.map(normalizeHeader).some(h => /created|source|bank|month|balance|delta|currency|reason/.test(h));
+  const headers = (hasHeaderLabels ? headerFromCols : firstRowHeaders).map(normalizeHeader);
+  const dataRows = firstRowLooksLikeHeader && !hasHeaderLabels ? rows.slice(1) : rows;
+  const headerIndex = (names, fallback) => {
+    const list = (Array.isArray(names) ? names : [names]).map(normalizeHeader).filter(Boolean);
+    const exact = headers.findIndex(h => list.includes(h));
+    if (exact >= 0) return exact;
+    const contains = headers.findIndex(h => list.some(name => h.includes(name) || name.includes(h)));
+    return contains >= 0 ? contains : (headers.length ? -1 : fallback);
+  };
+  const idx = {
+    created: headerIndex(['Created', 'Timestamp', 'Date', 'Datum'], 0),
+    bank: headerIndex(['Bank ID', 'BankID', 'Bank', 'Banka'], 2),
+    month: headerIndex(['Month', 'Mesiac', 'Mesic', 'Period'], 3),
+    newBalance: headerIndex(['New balance', 'Balance', 'Account balance', 'Novy balance', 'Novy zostatok', 'Novy zustatek'], 6),
+    currency: headerIndex(['Currency', 'Mena'], 7)
+  };
+  const cellRaw = (cells, i) => i >= 0 ? (cells[i]?.v ?? cells[i]?.f ?? '') : '';
+  const cellText = (cells, i) => String(cellRaw(cells, i) ?? '').trim();
+  const parseCreated = (cells, i) => {
+    const raw = cellRaw(cells, i);
+    const date = parseGSheetDate(raw);
+    if (date) return date.getTime();
+    const t = Date.parse(String(raw || ''));
+    return Number.isFinite(t) ? t : 0;
+  };
+  const parseLogMonth = (cells, i, createdTime) => {
+    const raw = cellRaw(cells, i);
+    if (String(raw || '').trim()) {
+      const date = parseGSheetDate(raw);
+      if (date) return getMonthFromDate(date);
+      const text = String(raw || '').trim();
+      const iso = text.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?/);
+      if (iso) return `${String(Number(iso[2])).padStart(2, '0')}/${iso[1]}`;
+      return normalizeMonthStr(text);
+    }
+    if (createdTime) return getMonthFromDate(new Date(createdTime));
+    return '';
+  };
+
+  const latest = new Map();
+  dataRows.forEach(row => {
+    const c = row.c || [];
+    const rawBankId = cellText(c, idx.bank);
+    if (!rawBankId || /^(bank|banka|bank id|bankid)$/i.test(rawBankId)) return;
+    const bankId = canonicalBankIdFromSheetRow(rawBankId, '', '');
+    if (!bankId) return;
+    const created = parseCreated(c, idx.created);
+    const month = parseLogMonth(c, idx.month, created);
+    if (!month) return;
+    const newBalance = parseSheetNumber(cellRaw(c, idx.newBalance), cellText(c, idx.newBalance));
+    if (!Number.isFinite(newBalance)) return;
+    const key = bankId + '|' + month;
+    const prev = latest.get(key);
+    if (!prev || created >= prev.created) latest.set(key, { bankId, month, created, newBalance, currency: cellText(c, idx.currency) });
+  });
+
+  latest.forEach(item => {
+    setAccountBalance(item.bankId, item.newBalance, item.month);
+    if (item.currency) localStorage.setItem('bank_currency_' + item.bankId, normalizeCurrencyForStorage(item.currency));
+  });
+  return latest.size;
+}
+
+async function syncBalanceLogFromSheets(spreadsheetId) {
+  try {
+    if (!spreadsheetId) return false;
+    const gvizUrl = buildGvizUrl(spreadsheetId, 'Balance_Log');
+    const res = await fetchNoStore(gvizUrl);
+    if (!res.ok) throw new Error('Balance_Log fetch failed');
+    const raw = await res.text();
+    const count = parseBalanceLogSheetData(raw);
+    if (count > 0) console.log(`Balance_Log sync loaded ${count} latest balances.`);
+    return count > 0;
+  } catch (e) {
+    console.warn('Balance_Log sync skipped:', e);
+    return false;
+  }
 }
 
 async function syncBankSettingsFromSheets(spreadsheetId) {
