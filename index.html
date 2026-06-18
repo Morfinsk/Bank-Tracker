@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Bank Tracker index_v216: overview widget polish + data source amount/count -->
+<!-- Bank Tracker index_v239: multi filters, reverse linear widgets, card 0/0 green -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -7702,7 +7702,7 @@ html[data-theme="light"] body::before {
       const wrap = metric.closest('div');
       const label = wrap?.querySelector('label');
       if (label) label.textContent = 'Data source';
-      setSelectOptionText('cw-gauge-metric', { amount: 'Suma', count: 'Počet transakcií' });
+      setSelectOptionText('cw-gauge-metric', { amount: 'Amount', count: 'Number of transactions' });
     }
   }
 
@@ -7807,7 +7807,7 @@ html[data-theme="light"] body::before {
     const kindBadge = widget.paymentKind && widget.paymentKind !== 'all' && stats?.source !== 'manual'
       ? `<div class="custom-widget-period">${escapeHtml(getPaymentKindFilterLabel(widget.paymentKind === 'account' ? 'account' : widget.paymentKind))}</div>`
       : '';
-    return `<article class="custom-widget-card" data-id="${escapeAttr(widget.id)}" data-size="${escapeAttr(widget.size || 'medium')}" draggable="true" style="--widget-accent:${escapeAttr(accent)}" onclick="handleCustomWidgetCardClick(event,'${escapeAttr(widget.id)}')" ondblclick="deleteCustomWidgetQuick(event,'${escapeAttr(widget.id)}')" ondragstart="handleCustomWidgetDragStart(event,'${escapeAttr(widget.id)}')" ondragover="handleCustomWidgetDragOver(event)" ondrop="handleCustomWidgetDrop(event,'${escapeAttr(widget.id)}')" ondragend="handleCustomWidgetDragEnd(event)" onpointerdown="handleCustomWidgetPointerDown(event,'${escapeAttr(widget.id)}')" onpointermove="handleCustomWidgetPointerMove(event,'${escapeAttr(widget.id)}')" onpointerup="handleCustomWidgetPointerUp(event,'${escapeAttr(widget.id)}')" onpointercancel="handleCustomWidgetPointerUp(event,'${escapeAttr(widget.id)}')">
+    return `<article class="custom-widget-card" data-id="${escapeAttr(widget.id)}" data-size="${escapeAttr(widget.size || 'medium')}" draggable="true" style="--widget-accent:${escapeAttr(accent)}" onclick="handleCustomWidgetCardClick(event,'${escapeAttr(widget.id)}')" ondragstart="handleCustomWidgetDragStart(event,'${escapeAttr(widget.id)}')" ondragover="handleCustomWidgetDragOver(event)" ondrop="handleCustomWidgetDrop(event,'${escapeAttr(widget.id)}')" ondragend="handleCustomWidgetDragEnd(event)" onpointerdown="handleCustomWidgetPointerDown(event,'${escapeAttr(widget.id)}')" onpointermove="handleCustomWidgetPointerMove(event,'${escapeAttr(widget.id)}')" onpointerup="handleCustomWidgetPointerUp(event,'${escapeAttr(widget.id)}')" onpointercancel="handleCustomWidgetPointerUp(event,'${escapeAttr(widget.id)}')">
       <div class="custom-widget-content">
         <div class="custom-widget-head">
           <div class="custom-widget-title-wrap"><div class="custom-widget-title">${escapeHtml(widget.name)}</div><div class="custom-widget-period">${escapeHtml(stats.range.label)}</div>${kindBadge}</div>
@@ -7836,23 +7836,127 @@ html[data-theme="light"] body::before {
 })();
 </script>
 
+
+
+<!-- v236 stable overview header + full-page widget editor -->
+<style id="v236-header-widget-editor-css">
+  .overview-header-v236 {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    align-items: stretch !important;
+    padding: 56px 20px 16px !important;
+  }
+  .overview-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+  }
+  .overview-header-top-v236 .header-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .overview-header-actions-v236 {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+  .overview-header-icon-v236 {
+    border-radius: 999px !important;
+    flex: 0 0 36px;
+  }
+  .overview-login-btn-v236 {
+    font-size: 15px !important;
+  }
+  .overview-header-bottom-v236 .overview-month-row {
+    min-width: 0;
+    margin: 0;
+  }
+  .overview-header-bottom-v236 .top-upgrade-btn {
+    white-space: nowrap;
+  }
+
+  /* Widget builder is now a full-page editor, not a cramped roll-up sheet. */
+  #custom-widget-sheet.custom-widget-editor-page-v236,
+  #custom-widget-sheet.custom-widget-sheet {
+    top: 0 !important;
+    bottom: 0 !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    padding: max(12px, env(safe-area-inset-top)) 0 calc(22px + env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  #custom-widget-sheet.custom-widget-editor-page-v236 .sheet-handle,
+  #custom-widget-sheet.custom-widget-sheet .sheet-handle {
+    display: none !important;
+  }
+  #custom-widget-sheet.custom-widget-editor-page-v236 .sheet-title-row,
+  #custom-widget-sheet.custom-widget-sheet .sheet-title-row {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 8 !important;
+    min-height: 58px !important;
+    padding: 12px 20px 14px !important;
+    margin: 0 0 12px !important;
+    background: linear-gradient(180deg, rgba(17,26,45,.98), rgba(17,26,45,.92)) !important;
+    border-bottom: 1px solid rgba(88,166,255,.14) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    touch-action: pan-y !important;
+    cursor: default !important;
+  }
+  #custom-widget-sheet .custom-widget-preview {
+    margin-top: 4px !important;
+  }
+  #custom-widget-sheet .custom-widget-modal-grid,
+  #custom-widget-sheet .custom-widget-type-picker,
+  #custom-widget-sheet .custom-widget-hidden-list {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  #custom-widget-sheet .config-save {
+    min-height: 46px;
+  }
+  html[data-theme="light"] #custom-widget-sheet.custom-widget-editor-page-v236 .sheet-title-row,
+  html[data-theme="light"] #custom-widget-sheet.custom-widget-sheet .sheet-title-row {
+    background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(241,245,249,.94)) !important;
+    border-bottom-color: rgba(37,99,235,.14) !important;
+  }
+</style>
+
 </head>
 <body>
 
 <div id="page-overview" class="page active">
-  <div class="header">
-    <div>
+  <div class="header overview-header-v236">
+    <div class="overview-header-row overview-header-top-v236">
       <div class="header-title" data-i18n="appTitle">Bank Tracker</div>
+      <div class="overview-header-actions-v236">
+        <button class="sync-btn overview-header-icon-v236" id="sync-btn" type="button" onclick="syncData()" data-i18n-title="syncTitle" title="Sync" aria-label="Refresh">↻</button>
+        <button class="sync-btn overview-header-icon-v236 overview-login-btn-v236" id="overview-login-btn" type="button" onclick="openLoginPlaceholderV236()" title="Login" aria-label="Login">👤</button>
+      </div>
+    </div>
+    <div class="overview-header-row overview-header-bottom-v236">
       <div class="header-month overview-month-row" style="color: var(--accent);">
         <button class="overview-month-nav" id="overview-month-prev" onclick="shiftOverviewMonth(-1)" aria-label="Previous month">‹</button>
         <span id="header-month">05/2026</span>
         <button class="overview-month-nav" id="overview-month-next" onclick="shiftOverviewMonth(1)" aria-label="Next month">›</button>
       </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <button class="top-upgrade-btn" onclick="openUpgradeSheet()">ϟ Upgrade</button>
-      <button id="overview-privacy-btn" class="account-balance-privacy-btn overview-privacy-btn" type="button" onclick="toggleAccountBalancePrivacy()" title="Hide values" aria-label="Hide values"></button>
-      <div class="sync-btn" id="sync-btn" onclick="syncData()" data-i18n-title="syncTitle" title="Sync">↻</div>
+      <div class="overview-header-actions-v236">
+        <button class="top-upgrade-btn" type="button" onclick="openUpgradeSheet()">ϟ Upgrade</button>
+        <button id="overview-privacy-btn" class="account-balance-privacy-btn overview-privacy-btn" type="button" onclick="toggleAccountBalancePrivacy()" title="Hide values" aria-label="Hide values"></button>
+      </div>
     </div>
   </div>
 
@@ -7988,7 +8092,7 @@ html[data-theme="light"] body::before {
       <div class="cat-grid payment-kind-grid" id="payment-kind-filters">
         <div class="txn-filter-pill active" id="filter-kind-all" onclick="filterPaymentKind('all')" data-i18n="all">All</div>
         <div class="txn-filter-pill" id="filter-kind-card" onclick="filterPaymentKind('card')" data-i18n="cardsOnly">Cards</div>
-        <div class="txn-filter-pill" id="filter-kind-account" onclick="filterPaymentKind('account')" data-i18n="accountsOnly">Accounts</div>
+        <div class="txn-filter-pill" id="filter-kind-account" onclick="filterPaymentKind('account')" data-i18n="accountsOnly">Transfers</div>
         <div class="txn-filter-pill" id="filter-kind-cash" onclick="filterPaymentKind('cash')" data-i18n="cashOnly">Cash</div>
       </div>
       <div class="cat-grid" id="card-source-filters" style="display:none;"></div>
@@ -8451,7 +8555,7 @@ html[data-theme="light"] body::before {
     <div class="archive-detail-kind-filters" id="archive-detail-kind-filters">
       <button type="button" id="archive-kind-all" onclick="filterArchivePaymentKind('all')" data-i18n="paymentKindAll">All payments</button>
       <button type="button" id="archive-kind-card" onclick="filterArchivePaymentKind('card')" data-i18n="cardsOnly">Cards</button>
-      <button type="button" id="archive-kind-account" onclick="filterArchivePaymentKind('account')" data-i18n="accountsOnly">Accounts</button>
+      <button type="button" id="archive-kind-account" onclick="filterArchivePaymentKind('account')" data-i18n="accountsOnly">Transfers</button>
       <button type="button" id="archive-kind-cash" onclick="filterArchivePaymentKind('cash')" data-i18n="cashOnly">Cash</button>
     </div>
     <div class="archive-detail-kind-hint" data-i18n="archivePaymentTypeHint">Filter this bank detail by all payments, card payments or account payments.</div>
@@ -12555,14 +12659,12 @@ function updateTxnPage(monthTxns) {
 
   if (activeDirection === 'incoming') base = base.filter(t => Number(t.amount) > 0);
   if (activeDirection === 'outgoing') base = base.filter(t => Number(t.amount) < 0);
-  if (activeBank !== 'všetky') base = base.filter(t => matchesActiveBankFilter(t, activeBank));
+  if (activeBank !== 'všetky') base = base.filter(t => matchesAnyActiveBankFilterV239(t, activeBank));
   if (activeCardLast4) base = base.filter(t => transactionMatchesCardLast4(t, activeCardLast4));
   base = prepareTransactionsForCurrentView(base);
   base = dedupeTransactionsForCurrentView(base);
 
-  if (activePaymentKind === 'card') base = base.filter(t => isCardTransaction(t));
-  if (activePaymentKind === 'account') base = base.filter(t => isAccountTransaction(t));
-  if (activePaymentKind === 'cash') base = base.filter(t => isCashTransaction(t));
+  if (activePaymentKind !== 'all') base = base.filter(t => matchesAnyPaymentKindV239(t, activePaymentKind));
 
   if (activeSearch) base = base.filter(t => transactionMatchesSearch(t, activeSearch));
 
@@ -12573,7 +12675,7 @@ function updateTxnPage(monthTxns) {
   renderCategoryFilters(cats, categorySource);
 
   if (activeCategory !== 'všetky') {
-    base = base.filter(t => t.category === activeCategory);
+    base = base.filter(t => matchesAnyCategoryV239(t, activeCategory));
     scoped = filterTransactionsByHistoryScope(base);
   }
 
@@ -16204,7 +16306,7 @@ const I18N = {
     renderedForSpeed: 'Only part of the list is rendered for mobile speed. Totals use all filtered transactions.',
     transactionKind: 'Payment type',
     cardsOnly: 'Cards',
-    accountsOnly: 'Accounts',
+    accountsOnly: 'Transfers',
     cardVsAccountHint: 'Card payments count towards bank benefits. Account payments are separated.',
     spent: 'Spent',
     income: 'Income',
@@ -16466,7 +16568,7 @@ const I18N = {
     renderedForSpeed: 'Kvôli rýchlosti na mobile sa zobrazuje len časť zoznamu. Súčty počítajú všetky vyfiltrované transakcie.',
     transactionKind: 'Typ platby',
     cardsOnly: 'Karty',
-    accountsOnly: 'Účty',
+    accountsOnly: 'Transfers',
     cardVsAccountHint: 'Kartové platby sa počítajú do bankových benefitov. Účtové platby sú oddelené.',
     archiveCardsOnlyHint: 'Mesačný archív a trend počítajú iba kartové platby.',
     archivePaymentTypeHint: 'Detail banky môžeš filtrovať podľa všetkých platieb, kariet alebo účtov.',
@@ -16727,7 +16829,7 @@ const I18N = {
     renderedForSpeed: 'Kvůli rychlosti na mobilu se zobrazuje jen část seznamu. Součty počítají všechny vyfiltrované transakce.',
     transactionKind: 'Typ platby',
     cardsOnly: 'Karty',
-    accountsOnly: 'Účty',
+    accountsOnly: 'Transfers',
     cardVsAccountHint: 'Kartové platby se počítají do bankovních benefitů. Účtové platby jsou oddělené.',
     archiveCardsOnlyHint: 'Měsíční archiv a trend počítají jen karetní platby.',
     archivePaymentTypeHint: 'Detail banky můžeš filtrovat podle všech plateb, karet nebo účtů.',
@@ -18901,7 +19003,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     const kindBadge = widget.paymentKind && widget.paymentKind !== 'all' && stats?.source !== 'manual'
       ? `<div class="custom-widget-period">${escapeHtml(getPaymentKindFilterLabel(widget.paymentKind === 'account' ? 'account' : widget.paymentKind))}</div>`
       : '';
-    return `<article class="custom-widget-card" data-id="${escapeAttr(widget.id)}" data-size="${escapeAttr(widget.size || 'medium')}" draggable="true" style="--widget-accent:${escapeAttr(accent)}" onclick="handleCustomWidgetCardClick(event,'${escapeAttr(widget.id)}')" ondblclick="deleteCustomWidgetQuick(event,'${escapeAttr(widget.id)}')" ondragstart="handleCustomWidgetDragStart(event,'${escapeAttr(widget.id)}')" ondragover="handleCustomWidgetDragOver(event)" ondrop="handleCustomWidgetDrop(event,'${escapeAttr(widget.id)}')" ondragend="handleCustomWidgetDragEnd(event)" onpointerdown="handleCustomWidgetPointerDown(event,'${escapeAttr(widget.id)}')" onpointermove="handleCustomWidgetPointerMove(event,'${escapeAttr(widget.id)}')" onpointerup="handleCustomWidgetPointerUp(event,'${escapeAttr(widget.id)}')" onpointercancel="handleCustomWidgetPointerUp(event,'${escapeAttr(widget.id)}')">
+    return `<article class="custom-widget-card" data-id="${escapeAttr(widget.id)}" data-size="${escapeAttr(widget.size || 'medium')}" draggable="true" style="--widget-accent:${escapeAttr(accent)}" onclick="handleCustomWidgetCardClick(event,'${escapeAttr(widget.id)}')" ondragstart="handleCustomWidgetDragStart(event,'${escapeAttr(widget.id)}')" ondragover="handleCustomWidgetDragOver(event)" ondrop="handleCustomWidgetDrop(event,'${escapeAttr(widget.id)}')" ondragend="handleCustomWidgetDragEnd(event)" onpointerdown="handleCustomWidgetPointerDown(event,'${escapeAttr(widget.id)}')" onpointermove="handleCustomWidgetPointerMove(event,'${escapeAttr(widget.id)}')" onpointerup="handleCustomWidgetPointerUp(event,'${escapeAttr(widget.id)}')" onpointercancel="handleCustomWidgetPointerUp(event,'${escapeAttr(widget.id)}')">
       <div class="custom-widget-content">
         <div class="custom-widget-head">
           <div class="custom-widget-title-wrap"><div class="custom-widget-title">${escapeHtml(widget.name)}</div><div class="custom-widget-period">${escapeHtml(stats.range.label)}</div>${kindBadge}</div>
@@ -21500,6 +21602,813 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   window.openCustomWidgetBuilder = function(){ const r = typeof previousOpen === 'function' ? previousOpen.apply(this, arguments) : undefined; setTimeout(updateTargetVisibility, 0); setTimeout(updateTargetVisibility, 80); return r; };
   try { openCustomWidgetBuilder = window.openCustomWidgetBuilder; } catch (_) {}
   function boot(){ updateTargetVisibility(); try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch (_) {} }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true}); else boot();
+})();
+</script>
+
+
+
+<script id="v236-header-widget-editor-js">
+(function(){
+  window.openLoginPlaceholderV236 = window.openLoginPlaceholderV236 || function(){
+    if (typeof showToast === 'function') showToast('Login will be available soon.');
+    else alert('Login will be available soon.');
+  };
+
+  function promoteWidgetEditorPage(){
+    var sheet = document.getElementById('custom-widget-sheet');
+    if (!sheet) return;
+    sheet.classList.add('custom-widget-editor-page-v236');
+  }
+
+  var previousOpenCustomWidgetBuilder = window.openCustomWidgetBuilder;
+  window.openCustomWidgetBuilder = function(id){
+    promoteWidgetEditorPage();
+    var result = typeof previousOpenCustomWidgetBuilder === 'function'
+      ? previousOpenCustomWidgetBuilder.apply(this, arguments)
+      : undefined;
+    promoteWidgetEditorPage();
+    setTimeout(promoteWidgetEditorPage, 0);
+    setTimeout(function(){
+      var sheet = document.getElementById('custom-widget-sheet');
+      if (sheet) sheet.scrollTop = 0;
+    }, 40);
+    return result;
+  };
+  try { openCustomWidgetBuilder = window.openCustomWidgetBuilder; } catch (_) {}
+
+  /* Keep widget body click and widget settings click separated. */
+  document.addEventListener('click', function(ev){
+    var menuBtn = ev.target && ev.target.closest && ev.target.closest('.custom-widget-menu .custom-widget-icon-btn');
+    if (!menuBtn) return;
+    var card = menuBtn.closest('.custom-widget-card');
+    if (!card) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+    var id = card.getAttribute('data-id');
+    if (id && typeof window.openCustomWidgetBuilder === 'function') window.openCustomWidgetBuilder(id);
+  }, true);
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', promoteWidgetEditorPage, {once:true});
+  else promoteWidgetEditorPage();
+})();
+</script>
+
+
+
+<!-- v237 widget click routing + themed login + linear accent shade -->
+<style id="v237-widget-click-login-shade-css">
+  .overview-login-btn-v236 {
+    color: var(--accent) !important;
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface2)) !important;
+    border-color: color-mix(in srgb, var(--accent) 32%, transparent) !important;
+  }
+  .overview-login-btn-v236:active {
+    color: #06111f !important;
+    background: var(--accent) !important;
+  }
+  html[data-theme="light"] .overview-login-btn-v236 {
+    color: var(--accent) !important;
+    background: rgba(37,99,235,.08) !important;
+    border-color: rgba(37,99,235,.20) !important;
+  }
+  html[data-theme="light"] .overview-login-btn-v236:active {
+    background: var(--accent) !important;
+    color: #ffffff !important;
+  }
+</style>
+<script id="v237-widget-click-login-shade-js">
+(function(){
+  function attr(v){
+    try { return typeof escapeAttr === 'function' ? escapeAttr(v) : String(v ?? '').replace(/[&"'<>]/g, function(ch){ return {'&':'&amp;','"':'&quot;',"'":'&#39;','<':'&lt;','>':'&gt;'}[ch]; }); }
+    catch(_) { return String(v ?? ''); }
+  }
+  function normalizeHex(value, fallback){
+    try { if (typeof normalizeWidgetHexColor === 'function') return normalizeWidgetHexColor(value, fallback || '#00E5A0'); } catch(_) {}
+    var v = String(value || '').trim();
+    return /^#[0-9a-fA-F]{6}$/.test(v) ? v.toUpperCase() : (fallback || '#00E5A0');
+  }
+  function hexToRgba(hex, alpha){
+    hex = normalizeHex(hex, '#00E5A0').replace('#','');
+    var r = parseInt(hex.slice(0,2), 16);
+    var g = parseInt(hex.slice(2,4), 16);
+    var b = parseInt(hex.slice(4,6), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+
+  // Single tap on any dashboard widget goes to Overview details.
+  // Deleting/editing is handled only through the three-dot widget menu.
+  window.openCustomWidgetDetail = function(){
+    if (typeof openOverviewDetailsSection === 'function') openOverviewDetailsSection('overview-details-top');
+    else if (typeof showPage === 'function') showPage('overview-details');
+  };
+  try { openCustomWidgetDetail = window.openCustomWidgetDetail; } catch(_) {}
+
+  window.handleCustomWidgetCardClick = function(event, id){
+    if (event && event.target && event.target.closest && event.target.closest('.custom-widget-menu, .custom-widget-icon-btn, .custom-widget-manual-controls')) return;
+    if (typeof customWidgetSuppressClickUntil !== 'undefined' && Date.now() < customWidgetSuppressClickUntil) return;
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    window.openCustomWidgetDetail(id);
+  };
+  try { handleCustomWidgetCardClick = window.handleCustomWidgetCardClick; } catch(_) {}
+
+  // Block the old double-tap delete handler from inline ondblclick attributes.
+  document.addEventListener('dblclick', function(ev){
+    var card = ev.target && ev.target.closest && ev.target.closest('.custom-widget-card[data-id]');
+    if (!card) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+  }, true);
+
+  function scrubWidgetDblClickAttrs(){
+    document.querySelectorAll('.custom-widget-card[ondblclick]').forEach(function(card){
+      card.removeAttribute('ondblclick');
+    });
+  }
+
+  // Repaint linear widget current-value shade from widget Accent colour, not the old green default.
+  window.createCustomWidgetLineChart = function(widget, stats){
+    var accent = normalizeHex(widget && widget.accent, '#00E5A0');
+    var accentShade = hexToRgba(accent, .16);
+    var blue = '#388bfd';
+    var metric = typeof getCustomWidgetUsedLimit === 'function'
+      ? getCustomWidgetUsedLimit(widget, stats)
+      : { used: Number(stats && stats.spent || 0), limit: Number(widget && widget.limit || 1) };
+    var used = Math.max(0, Number(metric.used || 0));
+    var limit = Math.max(0, Number(metric.limit || 0));
+    var maxValue = Math.max(limit, used, 1) * 1.08;
+    var startX = 7, startY = 56, endX = 107, endY = 6;
+    var width = endX - startX, height = startY - endY;
+    var ratio = maxValue > 0 ? used / maxValue : 0;
+    var currentX = startX + Math.max(16, Math.min(78, width * 0.58));
+    var currentY = startY - ratio * height;
+    var greenPath = 'M' + startX + ' ' + startY + ' C' + (startX + 18) + ' ' + (startY - 2) + ', ' + (currentX - 20) + ' ' + (currentY + 7) + ', ' + currentX + ' ' + currentY;
+    var endTarget = Math.min(Math.max(limit, used), maxValue);
+    var endYBlue = startY - (endTarget / maxValue) * height;
+    var bluePath = 'M' + currentX + ' ' + currentY + ' C' + (currentX + 18) + ' ' + (currentY - 1) + ', ' + (endX - 22) + ' ' + (endYBlue + 4) + ', ' + endX + ' ' + endYBlue;
+    return '<svg viewBox="0 0 114 64" preserveAspectRatio="none" aria-hidden="true">'
+      + '<path d="' + attr(greenPath) + ' L' + currentX + ' ' + startY + ' L' + startX + ' ' + startY + ' Z" fill="' + attr(accentShade) + '"></path>'
+      + '<path d="' + attr(bluePath) + ' L' + endX + ' ' + startY + ' L' + currentX + ' ' + startY + ' Z" fill="rgba(56,139,253,.12)"></path>'
+      + '<path d="' + attr(greenPath) + '" fill="none" stroke="' + attr(accent) + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>'
+      + '<path d="' + attr(bluePath) + '" fill="none" stroke="' + blue + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity=".92"></path>'
+      + '<circle cx="' + currentX + '" cy="' + currentY.toFixed(2) + '" r="1.15" fill="#fff" opacity=".95"></circle>'
+      + '<circle cx="' + currentX + '" cy="' + currentY.toFixed(2) + '" r=".62" fill="' + attr(accent) + '"></circle>'
+      + '</svg>';
+  };
+  try { createCustomWidgetLineChart = window.createCustomWidgetLineChart; } catch(_) {}
+
+  var previousRenderCustomWidgets = window.renderCustomWidgets;
+  if (typeof previousRenderCustomWidgets === 'function') {
+    window.renderCustomWidgets = function(){
+      var result = previousRenderCustomWidgets.apply(this, arguments);
+      scrubWidgetDblClickAttrs();
+      return result;
+    };
+    try { renderCustomWidgets = window.renderCustomWidgets; } catch(_) {}
+  }
+
+  function boot(){
+    scrubWidgetDblClickAttrs();
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once:true });
+  else boot();
+})();
+</script>
+
+
+
+<style id="v238-login-dropdown-networth-trend-css">
+  /* v238: Header action buttons stay on the right and share the same visual language as the eye button. */
+  .overview-header-v236 .overview-header-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+  .overview-header-v236 .overview-header-actions-v236 {
+    margin-left: auto !important;
+  }
+  #overview-login-btn.overview-login-btn-v236 {
+    width: 32px !important;
+    height: 28px !important;
+    min-width: 32px !important;
+    flex: 0 0 32px !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(88,166,255,.28) !important;
+    background: rgba(88,166,255,.10) !important;
+    color: #8fdcff !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+  #overview-login-btn.overview-login-btn-v236 svg {
+    width: 16px !important;
+    height: 16px !important;
+    display: block !important;
+    stroke: currentColor !important;
+  }
+  html[data-theme="light"] #overview-login-btn.overview-login-btn-v236 {
+    background: rgba(37,99,235,.08) !important;
+    color: #2563eb !important;
+    border-color: rgba(37,99,235,.18) !important;
+  }
+
+  /* v238: Native select dropdown readability, especially on desktop dark mode. */
+  select.config-input,
+  .config-input option,
+  select option {
+    background-color: #172238 !important;
+    color: #f8fafc !important;
+  }
+  select.config-input:focus {
+    color: #f8fafc !important;
+  }
+  html[data-theme="light"] select.config-input,
+  html[data-theme="light"] .config-input option,
+  html[data-theme="light"] select option {
+    background-color: #eef6ff !important;
+    color: #0b1220 !important;
+  }
+
+  /* v238: Total net worth trend under the main value. */
+  .wealth-networth-trend-v238 {
+    width: 100%;
+    margin-top: 12px;
+    min-height: 62px;
+    display: grid;
+    gap: 4px;
+  }
+  .wealth-networth-trend-v238 svg {
+    width: 100%;
+    height: 58px;
+    display: block;
+    overflow: visible;
+  }
+  .wealth-networth-trend-line-v238 {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2.45;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .wealth-networth-trend-area-v238 {
+    fill: var(--accent);
+    opacity: .14;
+  }
+  .wealth-networth-trend-dot-v238 {
+    fill: #ffffff;
+    stroke: var(--accent);
+    stroke-width: 1.2;
+  }
+  .wealth-networth-trend-caption-v238 {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    color: rgba(220,235,255,.70);
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 800;
+  }
+  html[data-theme="light"] .wealth-networth-trend-caption-v238 { color: #31547d; }
+  .wealth-card-net.wealth-card-blue {
+    min-height: 172px !important;
+  }
+
+  /* v238: mobile spacing sanity for header and full-page widget editor. */
+  @media (max-width: 430px) {
+    .overview-header-v236 {
+      padding-left: 18px !important;
+      padding-right: 18px !important;
+    }
+    .overview-header-v236 .header-title {
+      font-size: clamp(24px, 7vw, 28px) !important;
+      min-width: 0 !important;
+    }
+    .overview-header-v236 .overview-header-actions-v236 {
+      gap: 7px !important;
+      flex-shrink: 0 !important;
+    }
+    .overview-header-bottom-v236 .top-upgrade-btn {
+      padding: 8px 11px !important;
+      font-size: 11px !important;
+    }
+    #custom-widget-sheet.custom-widget-editor-page-v236,
+    #custom-widget-sheet.custom-widget-sheet {
+      max-width: 430px !important;
+    }
+    #custom-widget-sheet .custom-widget-row-2 {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 10px !important;
+    }
+    #custom-widget-sheet .custom-widget-type-grid {
+      grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    }
+  }
+  @media (max-width: 360px) {
+    #custom-widget-sheet .custom-widget-row-2 {
+      grid-template-columns: 1fr !important;
+    }
+    .overview-header-bottom-v236 {
+      align-items: flex-start !important;
+    }
+    .overview-header-bottom-v236 .overview-header-actions-v236 {
+      gap: 6px !important;
+    }
+  }
+</style>
+
+<script id="v238-login-dropdown-networth-trend-js">
+(function(){
+  function esc(s){
+    if (typeof escapeHtml === 'function') return escapeHtml(String(s ?? ''));
+    return String(s ?? '').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+  function attr(s){ return (typeof escapeAttr === 'function') ? escapeAttr(String(s ?? '')) : esc(s); }
+  function setOptionText(id, map){
+    var el = document.getElementById(id); if (!el) return;
+    Array.prototype.forEach.call(el.options || [], function(opt){
+      if (Object.prototype.hasOwnProperty.call(map, opt.value)) opt.textContent = map[opt.value];
+    });
+  }
+  function enforceEnglishDataSource(){
+    var label = document.getElementById('cw-gauge-metric')?.closest('div')?.querySelector('label');
+    if (label) label.textContent = 'Data source';
+    setOptionText('cw-gauge-metric', { amount: 'Amount', count: 'Number of transactions' });
+    setOptionText('cw-source', { auto: 'App data', manual: 'Manual value' });
+  }
+  // Override older relabel patch that changed datasource back to Slovak.
+  var oldRelabelBuilder = window.relabelBuilder;
+  window.relabelBuilder = function(){
+    if (typeof oldRelabelBuilder === 'function') {
+      try { oldRelabelBuilder.apply(this, arguments); } catch(_) {}
+    }
+    enforceEnglishDataSource();
+  };
+  try { relabelBuilder = window.relabelBuilder; } catch(_) {}
+
+  var oldOpenCustomWidgetBuilder = window.openCustomWidgetBuilder;
+  if (typeof oldOpenCustomWidgetBuilder === 'function') {
+    window.openCustomWidgetBuilder = function(){
+      var result = oldOpenCustomWidgetBuilder.apply(this, arguments);
+      enforceEnglishDataSource();
+      setTimeout(enforceEnglishDataSource, 0);
+      return result;
+    };
+    try { openCustomWidgetBuilder = window.openCustomWidgetBuilder; } catch(_) {}
+  }
+
+  function paintLoginIcon(){
+    var btn = document.getElementById('overview-login-btn');
+    if (!btn) return;
+    btn.classList.add('account-balance-privacy-btn');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 12.2a4.1 4.1 0 1 0 0-8.2 4.1 4.1 0 0 0 0 8.2Z" fill="none" stroke-width="2"/><path d="M4.8 20.2c.9-4 3.5-6.1 7.2-6.1s6.3 2.1 7.2 6.1" fill="none" stroke-width="2" stroke-linecap="round"/></svg>';
+  }
+
+  function parseMonthKey(m){
+    var s = String(m || '').trim();
+    var match = s.match(/^(\d{1,2})\/(\d{4})$/); if (!match) return 0;
+    return Number(match[2]) * 12 + Number(match[1]);
+  }
+  function normalizeMonth(m){
+    if (typeof normalizeMonthStr === 'function') return normalizeMonthStr(m);
+    var s = String(m || '');
+    var mt = s.match(/^(\d{1,2})\/(\d{4})$/); return mt ? String(mt[1]).padStart(2,'0') + '/' + mt[2] : s;
+  }
+  function monthShort(m){
+    if (typeof shortArchiveMonthLabel === 'function') return shortArchiveMonthLabel(m);
+    var parts = String(m || '').split('/');
+    return parts.length === 2 ? parts[0] + '/' + parts[1].slice(2) : String(m || '');
+  }
+  function trendMonths(){
+    var months = [];
+    try { if (typeof getArchiveTrendMonths === 'function') months = getArchiveTrendMonths(); } catch(_) {}
+    if (!months || !months.length) {
+      var set = new Set();
+      try { (allTransactions || []).forEach(function(tx){ var m = normalizeMonth(tx && tx.month); if (m) set.add(m); }); } catch(_) {}
+      months = Array.from(set).sort(function(a,b){ return parseMonthKey(a)-parseMonthKey(b); }).slice(-6);
+    }
+    var current = normalizeMonth(typeof getAktuálneMonth === 'function' ? getAktuálneMonth() : '');
+    if (current && months.indexOf(current) < 0) months.push(current);
+    return months.filter(Boolean).sort(function(a,b){ return parseMonthKey(a)-parseMonthKey(b); }).slice(-6);
+  }
+  function monthNetMovementCzk(month){
+    var income = 0, spending = 0;
+    try {
+      if (typeof getDynamicArchiveBankKeys === 'function' && typeof getArchiveMonthlyStat === 'function') {
+        var keys = getDynamicArchiveBankKeys({}) || [];
+        keys.forEach(function(bankKey){
+          if (bankKey === 'csob_cz_credit') return;
+          spending += Math.abs(Number(getArchiveMonthlyStat(bankKey, month, 'spending', 'CZK') || 0));
+          income += Math.abs(Number(getArchiveMonthlyStat(bankKey, month, 'income', 'CZK') || 0));
+        });
+      }
+    } catch(_) {}
+    if (!income && !spending) {
+      try {
+        (allTransactions || []).forEach(function(tx){
+          if (normalizeMonth(tx && tx.month) !== month) return;
+          var val = Number(tx.amount || 0) || 0;
+          var czk = Math.abs(typeof convertTransactionAmount === 'function' ? convertTransactionAmount(tx, 'CZK') : val);
+          if (val < 0) spending += czk; else income += czk;
+        });
+      } catch(_) {}
+    }
+    return income - spending;
+  }
+  function buildNetWorthTrend(currentNet){
+    var months = trendMonths();
+    if (!months.length) return [];
+    var vals = new Array(months.length);
+    vals[months.length - 1] = Number(currentNet || 0) || 0;
+    for (var i = months.length - 2; i >= 0; i--) {
+      vals[i] = vals[i+1] - monthNetMovementCzk(months[i+1]);
+    }
+    return months.map(function(m,i){ return { month:m, value: vals[i] }; });
+  }
+  function renderNetWorthTrend(metrics){
+    var netCard = document.getElementById('overview-net-worth')?.closest('.wealth-card-net');
+    if (!netCard) return;
+    var slot = document.getElementById('overview-net-worth-trend-v238');
+    if (!slot) {
+      slot = document.createElement('div');
+      slot.id = 'overview-net-worth-trend-v238';
+      slot.className = 'wealth-networth-trend-v238';
+      var val = document.getElementById('overview-net-worth');
+      if (val && val.parentNode) val.insertAdjacentElement('afterend', slot);
+      else netCard.appendChild(slot);
+    }
+    var currentNet = Number(metrics && metrics.totalNetWorth || 0) || 0;
+    var data = buildNetWorthTrend(currentNet);
+    if (data.length < 2) {
+      data = [0,1,2,3,4,5].map(function(i){ return { month:'', value: currentNet * (0.96 + i * 0.008) }; });
+    }
+    var w=116,h=58,pad=5,baseY=48,topY=7;
+    var min = Math.min.apply(null, data.map(function(d){return d.value;}));
+    var max = Math.max.apply(null, data.map(function(d){return d.value;}));
+    if (max === min) { max += 1; min -= 1; }
+    function x(i){ return pad + i * ((w - pad*2) / Math.max(1, data.length-1)); }
+    function y(v){ return baseY - ((v - min) / (max - min)) * (baseY - topY); }
+    var pts = data.map(function(d,i){ return [x(i), y(d.value)]; });
+    var path = pts.map(function(p,i){ return (i?'L':'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
+    var area = path + ' L' + pts[pts.length-1][0].toFixed(1) + ' ' + baseY + ' L' + pts[0][0].toFixed(1) + ' ' + baseY + ' Z';
+    var last = pts[pts.length-1];
+    var firstLabel = data[0].month ? monthShort(data[0].month) : 'trend';
+    var lastLabel = data[data.length-1].month ? monthShort(data[data.length-1].month) : 'now';
+    slot.innerHTML = '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'
+      + '<path class="wealth-networth-trend-area-v238" d="'+attr(area)+'"></path>'
+      + '<path class="wealth-networth-trend-line-v238" d="'+attr(path)+'"></path>'
+      + '<circle class="wealth-networth-trend-dot-v238" cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="2"></circle>'
+      + '</svg><div class="wealth-networth-trend-caption-v238"><span>'+esc(firstLabel)+'</span><span>Net worth trend</span><span>'+esc(lastLabel)+'</span></div>';
+  }
+
+  var oldRenderOverviewDashboard = window.renderOverviewDashboard;
+  if (typeof oldRenderOverviewDashboard === 'function') {
+    window.renderOverviewDashboard = function(){
+      var result = oldRenderOverviewDashboard.apply(this, arguments);
+      try { renderNetWorthTrend(typeof getOverviewDashboardMetrics === 'function' ? getOverviewDashboardMetrics() : null); } catch(_) {}
+      return result;
+    };
+    try { renderOverviewDashboard = window.renderOverviewDashboard; } catch(_) {}
+  }
+
+  function hexToRgba(hex, alpha){
+    var h = String(hex || '').replace('#','');
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) h = '00E5A0';
+    var r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+  function norm(hex, fallback){
+    if (typeof normalizeWidgetHexColor === 'function') return normalizeWidgetHexColor(hex, fallback || '#00E5A0');
+    var h = String(hex || fallback || '#00E5A0').trim();
+    return /^#[0-9a-fA-F]{6}$/.test(h) ? h.toUpperCase() : (fallback || '#00E5A0');
+  }
+  function num(v){ return Math.max(0, Number(v || 0) || 0); }
+  window.createCustomWidgetLineChart = function(widget, stats){
+    var accent = norm(widget && widget.accent, '#00E5A0');
+    var blue = '#388bfd';
+    var metric = typeof getCustomWidgetUsedLimit === 'function' ? getCustomWidgetUsedLimit(widget, stats) : { used: num(stats && stats.spent), limit: num(widget && widget.limit) || 1 };
+    var used = num(metric.used), limit = num(metric.limit);
+    var maxValue = Math.max(limit, used, 1) * 1.08;
+    var startX = 7, startY = 56, endX = 107, width = endX - startX, height = 50;
+    var currentX = startX + Math.max(16, Math.min(78, width * 0.58));
+    var currentY = startY - (used / maxValue) * height;
+    var targetY = startY - (Math.min(Math.max(limit, used), maxValue) / maxValue) * height;
+    var usedPath = 'M' + startX + ' ' + startY + ' C' + (startX + 18) + ' ' + (startY - 2) + ', ' + (currentX - 20) + ' ' + (currentY + 7) + ', ' + currentX + ' ' + currentY;
+    var projectionPath = 'M' + currentX + ' ' + currentY + ' C' + (currentX + 18) + ' ' + (currentY - 1) + ', ' + (endX - 22) + ' ' + (targetY + 4) + ', ' + endX + ' ' + targetY;
+    return '<svg viewBox="0 0 114 64" preserveAspectRatio="none" aria-hidden="true">'
+      + '<path d="' + attr(usedPath) + ' L' + currentX + ' ' + startY + ' L' + startX + ' ' + startY + ' Z" fill="' + attr(hexToRgba(accent,.16)) + '"></path>'
+      + '<path d="' + attr(projectionPath) + ' L' + endX + ' ' + startY + ' L' + currentX + ' ' + startY + ' Z" fill="rgba(56,139,253,.13)"></path>'
+      + '<path d="' + attr(usedPath) + '" fill="none" stroke="' + attr(accent) + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round"></path>'
+      + '<path d="' + attr(projectionPath) + '" fill="none" stroke="' + blue + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round" opacity=".94"></path>'
+      + '<circle cx="' + currentX + '" cy="' + currentY.toFixed(2) + '" r="1.35" fill="#fff" opacity=".95"></circle>'
+      + '<circle cx="' + currentX + '" cy="' + currentY.toFixed(2) + '" r=".75" fill="' + attr(accent) + '"></circle>'
+      + '</svg>';
+  };
+  try { createCustomWidgetLineChart = window.createCustomWidgetLineChart; } catch(_) {}
+
+  function stopDoubleClickDelete(){
+    document.addEventListener('dblclick', function(ev){
+      if (!ev.target || !ev.target.closest || !ev.target.closest('.custom-widget-card[data-id]')) return;
+      ev.preventDefault(); ev.stopPropagation(); if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
+    }, true);
+  }
+
+  function boot(){
+    paintLoginIcon();
+    enforceEnglishDataSource();
+    stopDoubleClickDelete();
+    try { if (typeof renderOverviewDashboard === 'function') renderOverviewDashboard(); } catch(_) {}
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    setTimeout(function(){ enforceEnglishDataSource(); paintLoginIcon(); }, 250);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once:true }); else boot();
+})();
+</script>
+
+
+<!-- v239 multi-select filters + reverse linear widget + card-limit 0/0 green -->
+<style id="v239-mobile-polish-css">
+  html[data-theme="dark"] select.config-input,
+  html:not([data-theme="light"]) select.config-input {
+    background-color:#172238 !important;
+    color:#f8fafc !important;
+  }
+  html[data-theme="dark"] select.config-input option,
+  html:not([data-theme="light"]) select.config-input option {
+    background:#172238 !important;
+    color:#f8fafc !important;
+  }
+  .custom-widget-direction-row-v239 { display:grid; grid-template-columns:1fr; gap:10px; }
+  .custom-widget-direction-row-v239 select { margin-bottom:0; }
+  .txn-filter-pill.active, .cat-chip.active { box-shadow: inset 0 0 0 1px rgba(143,220,255,.28); }
+  .custom-widget-chart svg path[data-current-shade="true"] { fill-opacity:.18; }
+  @media (max-width:430px){
+    .custom-widget-direction-row-v239 { grid-template-columns:1fr; }
+    #custom-widget-sheet .custom-widget-modal-grid { padding-left:16px !important; padding-right:16px !important; }
+    #custom-widget-sheet .custom-widget-row-2 { gap:9px !important; }
+  }
+</style>
+<script id="v239-feature-fix-js">
+(function(){
+  function arr(v, allToken){
+    var s = String(v || allToken || '').trim();
+    if (!s || s === allToken || s === 'all') return [];
+    return s.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+  }
+  function setFromArray(a, allToken){ return (a && a.length) ? a.join(',') : (allToken || 'all'); }
+  function esc(s){ return (window.escapeHtml ? escapeHtml(String(s == null ? '' : s)) : String(s == null ? '' : s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];})); }
+  function attr(s){ return (window.escapeAttr ? escapeAttr(String(s == null ? '' : s)) : esc(s)); }
+  function norm(hex, fallback){
+    if (typeof normalizeWidgetHexColor === 'function') return normalizeWidgetHexColor(hex, fallback || '#00E5A0');
+    var h = String(hex || fallback || '#00E5A0').trim();
+    return /^#[0-9a-fA-F]{6}$/.test(h) ? h.toUpperCase() : (fallback || '#00E5A0');
+  }
+  function rgba(hex, alpha){
+    var h = String(hex || '').replace('#','');
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) h = '00E5A0';
+    return 'rgba(' + parseInt(h.slice(0,2),16) + ',' + parseInt(h.slice(2,4),16) + ',' + parseInt(h.slice(4,6),16) + ',' + alpha + ')';
+  }
+  function num(v){ return Math.max(0, Number(v || 0) || 0); }
+
+  window.matchesAnyActiveBankFilterV239 = function(tx, active){
+    var banks = arr(active, 'všetky');
+    if (!banks.length) return true;
+    return banks.some(function(bank){ return typeof matchesActiveBankFilter === 'function' ? matchesActiveBankFilter(tx, bank) : String(tx && tx.bank || '') === bank; });
+  };
+  window.matchesAnyPaymentKindV239 = function(tx, active){
+    var kinds = arr(active, 'all');
+    if (!kinds.length) return true;
+    return kinds.some(function(kind){
+      if (kind === 'card') return typeof isCardTransaction === 'function' ? isCardTransaction(tx) : getTransactionPaymentKind(tx) === 'card';
+      if (kind === 'account') return typeof isAccountTransaction === 'function' ? isAccountTransaction(tx) : getTransactionPaymentKind(tx) === 'account';
+      if (kind === 'cash') return typeof isCashTransaction === 'function' ? isCashTransaction(tx) : getTransactionPaymentKind(tx) === 'cash';
+      return true;
+    });
+  };
+  window.matchesAnyCategoryV239 = function(tx, active){
+    var cats = arr(active, 'všetky');
+    if (!cats.length) return true;
+    return cats.indexOf(tx && tx.category) !== -1;
+  };
+
+  function activeBanks(){ return arr(window.activeBank || activeBank, 'všetky'); }
+  function activeKinds(){ return arr(window.activePaymentKind || activePaymentKind, 'all'); }
+  function activeCats(){ return arr(window.activeCategory || activeCategory, 'všetky'); }
+  function hasKind(k){ var a = activeKinds(); return !a.length ? k === 'all' : a.indexOf(k) !== -1; }
+  function hasBank(k){ var a = activeBanks(); return !a.length ? k === 'všetky' : a.indexOf(k) !== -1; }
+  function hasCat(k){ var a = activeCats(); return !a.length ? k === 'všetky' : a.indexOf(k) !== -1; }
+
+  window.filterBank = function(bank){
+    var key = String(bank || 'všetky');
+    var list = activeBanks();
+    if (key === 'všetky') list = [];
+    else {
+      var i = list.indexOf(key);
+      if (i >= 0) list.splice(i,1); else list.push(key);
+    }
+    activeBank = setFromArray(list, 'všetky');
+    try { window.activeBank = activeBank; } catch(_) {}
+    if (activeBank.indexOf('csob_cz') === -1) activeCardLast4 = '';
+    if (typeof resetTxnVisibleLimit === 'function') resetTxnVisibleLimit();
+    updateBankFilterUiV239();
+    try { updateTxnPage(); } catch(_) {}
+  };
+
+  function updateBankFilterUiV239(){
+    var ids = { rb_cz:'filter-bank-rb', csob_sk:'filter-bank-csob-sk', csob_cz:'filter-bank-csob-cz', moneta:'filter-bank-moneta', air_bank_cz:'filter-bank-air-bank-cz' };
+    Object.keys(ids).forEach(function(k){ document.getElementById(ids[k])?.classList.toggle('active', hasBank(k)); });
+    document.getElementById('filter-bank-all')?.classList.toggle('active', !activeBanks().length);
+  }
+  window.updatePaymentKindFilterUi = function(){
+    document.getElementById('filter-kind-all')?.classList.toggle('active', !activeKinds().length);
+    document.getElementById('filter-kind-card')?.classList.toggle('active', hasKind('card'));
+    document.getElementById('filter-kind-account')?.classList.toggle('active', hasKind('account'));
+    document.getElementById('filter-kind-cash')?.classList.toggle('active', hasKind('cash'));
+    var acc = document.getElementById('filter-kind-account'); if (acc) acc.textContent = 'Transfers';
+  };
+  try { updatePaymentKindFilterUi = window.updatePaymentKindFilterUi; } catch(_) {}
+  window.filterPaymentKind = function(kind){
+    var key = String(kind || 'all');
+    var list = activeKinds();
+    if (key === 'all') list = [];
+    else {
+      var i = list.indexOf(key);
+      if (i >= 0) list.splice(i,1); else list.push(key);
+    }
+    activePaymentKind = setFromArray(list, 'all');
+    try { window.activePaymentKind = activePaymentKind; } catch(_) {}
+    if (activePaymentKind.indexOf('card') === -1) activeCardLast4 = '';
+    if (typeof resetTxnVisibleLimit === 'function') resetTxnVisibleLimit();
+    window.updatePaymentKindFilterUi();
+    try { if (typeof updateCardSourceFiltersUi === 'function') updateCardSourceFiltersUi(); } catch(_) {}
+    try { updateTxnPage(); } catch(_) {}
+  };
+
+  window.filterCategory = function(cat){
+    var key = String(cat || 'všetky');
+    activeCardLast4 = '';
+    var list = activeCats();
+    if (key === 'všetky') list = [];
+    else {
+      var i = list.indexOf(key);
+      if (i >= 0) list.splice(i,1); else list.push(key);
+    }
+    activeCategory = setFromArray(list, 'všetky');
+    try { window.activeCategory = activeCategory; } catch(_) {}
+    if (typeof resetTxnVisibleLimit === 'function') resetTxnVisibleLimit();
+    try { updateTxnPage(); } catch(_) {}
+  };
+  window.filterCategoryFromChip = function(el){ if (!el) return; window.filterCategory(el.getAttribute('data-category') || 'všetky'); };
+
+  // Repaint category chips after original renderCategoryFilters runs.
+  var oldRenderCategoryFilters = window.renderCategoryFilters || (typeof renderCategoryFilters === 'function' ? renderCategoryFilters : null);
+  if (oldRenderCategoryFilters) {
+    window.renderCategoryFilters = function(){
+      var result = oldRenderCategoryFilters.apply(this, arguments);
+      var cats = activeCats();
+      document.querySelectorAll('.cat-chip[data-category]').forEach(function(chip){
+        var c = chip.getAttribute('data-category') || 'všetky';
+        chip.classList.toggle('active', !cats.length ? c === 'všetky' : cats.indexOf(c) !== -1);
+      });
+      return result;
+    };
+    try { renderCategoryFilters = window.renderCategoryFilters; } catch(_) {}
+  }
+
+  // Summary labels for multi-select filters.
+  window.getPaymentKindFilterLabel = function(kind){
+    if (kind === 'card') return typeof t === 'function' ? t('cardsOnly') : 'Cards';
+    if (kind === 'account') return 'Transfers';
+    if (kind === 'cash') return typeof t === 'function' ? t('cashOnly') : 'Cash';
+    return typeof t === 'function' ? t('all') : 'All';
+  };
+  try { getPaymentKindFilterLabel = window.getPaymentKindFilterLabel; } catch(_) {}
+  var oldUpdateSummary = window.updateTransactionFilterSummary || (typeof updateTransactionFilterSummary === 'function' ? updateTransactionFilterSummary : null);
+  if (oldUpdateSummary) {
+    window.updateTransactionFilterSummary = function(){
+      var wrap = document.getElementById('txn-filter-summary');
+      if (!wrap) return oldUpdateSummary.apply(this, arguments);
+      var chips = [];
+      if (activeDateFrom || activeDateTo) chips.push(activeDateFrom && activeDateTo ? activeDateFrom + '–' + activeDateTo : (activeDateFrom || activeDateTo));
+      if (activeDirection && activeDirection !== 'all') chips.push(typeof getDirectionFilterLabel === 'function' ? getDirectionFilterLabel(activeDirection) : activeDirection);
+      activeKinds().forEach(function(k){ chips.push(window.getPaymentKindFilterLabel(k)); });
+      activeBanks().forEach(function(b){ chips.push(typeof getBankFilterLabel === 'function' ? getBankFilterLabel(b) : b); });
+      if (activeCardLast4) chips.push((typeof getCardSourceLabelByLast4 === 'function' && getCardSourceLabelByLast4(activeCardLast4)) || activeCardLast4);
+      activeCats().forEach(function(c){ chips.push(typeof translateCategory === 'function' ? translateCategory(c) : c); });
+      wrap.innerHTML = chips.slice(0, 5).map(function(label){ return '<span class="txn-filter-summary-chip">' + esc(label) + '</span>'; }).join('');
+    };
+    try { updateTransactionFilterSummary = window.updateTransactionFilterSummary; } catch(_) {}
+  }
+
+  // 0/0 card limit should be green, not red.
+  window.getCardColor = function(used, limit){
+    used = Number(used || 0) || 0; limit = Number(limit || 0) || 0;
+    if (limit <= 0) return '#00E5A0';
+    var p = Math.max(0, Math.min(100, Math.round((used / limit) * 100)));
+    if (typeof countColour === 'function') return countColour(p);
+    if (p >= 100) return '#00E5A0';
+    if (p >= 76) return '#ffe033';
+    if (p >= 50) return '#FFB86B';
+    return '#E5005F';
+  };
+  try { getCardColor = window.getCardColor; } catch(_) {}
+
+  function ensureWidgetDirectionField(){
+    if (document.getElementById('cw-linear-direction')) return;
+    var metric = document.getElementById('cw-gauge-metric');
+    var host = metric && metric.closest('div');
+    if (!host || !host.parentNode) return;
+    var row = document.createElement('div');
+    row.className = 'custom-widget-direction-row-v239';
+    row.id = 'cw-linear-direction-row-v239';
+    row.innerHTML = '<label>Linear direction</label><select class="config-input" id="cw-linear-direction" onchange="updateCustomWidgetBuilderPreview()"><option value="incline">Incline / growing amount</option><option value="decline">Decline / repayment</option></select>';
+    host.insertAdjacentElement('afterend', row);
+  }
+
+  var oldOpenBuilder = window.openCustomWidgetBuilder || (typeof openCustomWidgetBuilder === 'function' ? openCustomWidgetBuilder : null);
+  if (oldOpenBuilder) {
+    window.openCustomWidgetBuilder = function(id){
+      var result = oldOpenBuilder.apply(this, arguments);
+      setTimeout(function(){
+        ensureWidgetDirectionField();
+        var el = document.getElementById('cw-linear-direction');
+        if (el && id && typeof loadCustomWidgets === 'function') {
+          var w = (loadCustomWidgets() || []).find(function(x){ return x.id === id; });
+          el.value = (w && (w.linearDirection || w.trendType || w.direction)) || 'incline';
+        } else if (el) el.value = 'incline';
+        enforceEnglishDatasourceV239();
+      }, 0);
+      return result;
+    };
+    try { openCustomWidgetBuilder = window.openCustomWidgetBuilder; } catch(_) {}
+  }
+  var oldCollect = window.collectCustomWidgetBuilderValues || (typeof collectCustomWidgetBuilderValues === 'function' ? collectCustomWidgetBuilderValues : null);
+  if (oldCollect) {
+    window.collectCustomWidgetBuilderValues = function(){
+      ensureWidgetDirectionField();
+      var values = oldCollect.apply(this, arguments) || {};
+      values.linearDirection = document.getElementById('cw-linear-direction')?.value || values.linearDirection || 'incline';
+      values.trendType = values.linearDirection;
+      return values;
+    };
+    try { collectCustomWidgetBuilderValues = window.collectCustomWidgetBuilderValues; } catch(_) {}
+  }
+
+  function getMetric(widget, stats){ return typeof getCustomWidgetUsedLimit === 'function' ? getCustomWidgetUsedLimit(widget, stats) : { used:num(stats && stats.spent), limit:num(widget && widget.limit)||1, label:'' }; }
+  window.createCustomWidgetLineChart = function(widget, stats){
+    var accent = norm(widget && widget.accent, '#00E5A0');
+    var blue = '#388bfd';
+    var m = getMetric(widget, stats);
+    var used = num(m.used), limit = Math.max(num(m.limit), 1);
+    var decline = String((widget && (widget.linearDirection || widget.trendType || widget.direction)) || 'incline') === 'decline';
+    var maxValue = Math.max(limit, used, 1) * 1.08;
+    var startX = 7, startY = 56, endX = 107, width = endX - startX, height = 50;
+    var currentX = startX + Math.max(16, Math.min(78, width * 0.58));
+    var startValue, currentValue, targetValue;
+    if (decline) {
+      startValue = Math.max(limit, used, 1);
+      currentValue = Math.max(limit - used, 0);
+      targetValue = 0;
+      maxValue = Math.max(startValue, 1) * 1.08;
+    } else {
+      startValue = 0;
+      currentValue = used;
+      targetValue = Math.min(Math.max(limit, used), maxValue);
+    }
+    function y(v){ return startY - (Math.max(0, Math.min(v, maxValue)) / maxValue) * height; }
+    var firstY = y(startValue), currentY = y(currentValue), targetY = y(targetValue);
+    var usedPath = 'M' + startX + ' ' + firstY.toFixed(2) + ' C' + (startX + 18) + ' ' + (firstY - 2).toFixed(2) + ', ' + (currentX - 20) + ' ' + (currentY + (decline ? -5 : 7)).toFixed(2) + ', ' + currentX + ' ' + currentY.toFixed(2);
+    var projectionPath = 'M' + currentX + ' ' + currentY.toFixed(2) + ' C' + (currentX + 18) + ' ' + (currentY + (decline ? 5 : -1)).toFixed(2) + ', ' + (endX - 22) + ' ' + (targetY + (decline ? -2 : 4)).toFixed(2) + ', ' + endX + ' ' + targetY.toFixed(2);
+    return '<svg viewBox="0 0 114 64" preserveAspectRatio="none" aria-hidden="true">'
+      + '<path data-current-shade="true" d="' + attr(usedPath) + ' L' + currentX + ' ' + startY + ' L' + startX + ' ' + startY + ' Z" fill="' + attr(rgba(accent,.22)) + '"></path>'
+      + '<path d="' + attr(projectionPath) + ' L' + endX + ' ' + startY + ' L' + currentX + ' ' + startY + ' Z" fill="rgba(56,139,253,.13)"></path>'
+      + '<path d="' + attr(usedPath) + '" fill="none" stroke="' + attr(accent) + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round"></path>'
+      + '<path d="' + attr(projectionPath) + '" fill="none" stroke="' + blue + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round" opacity=".94"></path>'
+      + '<circle cx="' + currentX + '" cy="' + currentY.toFixed(2) + '" r="1.35" fill="#fff" opacity=".95"></circle>'
+      + '<circle cx="' + currentX + '" cy="' + currentY.toFixed(2) + '" r=".75" fill="' + attr(accent) + '"></circle>'
+      + '</svg>';
+  };
+  try { createCustomWidgetLineChart = window.createCustomWidgetLineChart; } catch(_) {}
+
+  function enforceEnglishDatasourceV239(){
+    var metric = document.getElementById('cw-gauge-metric');
+    if (metric) Array.from(metric.options || []).forEach(function(opt){
+      if (opt.value === 'amount') opt.textContent = 'Amount';
+      if (opt.value === 'count') opt.textContent = 'Number of transactions';
+    });
+    document.querySelectorAll('#cw-payment-kind option[value="account"]').forEach(function(o){ o.textContent = 'Transfer'; });
+  }
+
+  function boot(){
+    enforceEnglishDatasourceV239();
+    window.updatePaymentKindFilterUi();
+    updateBankFilterUiV239();
+    try { if (typeof renderAll === 'function') renderAll(); else { if (typeof updateTxnPage === 'function') updateTxnPage(); if (typeof renderBankCards === 'function') renderBankCards(); } } catch(_) {}
+    setTimeout(function(){ enforceEnglishDatasourceV239(); window.updatePaymentKindFilterUi(); updateBankFilterUiV239(); }, 250);
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true}); else boot();
 })();
 </script>
