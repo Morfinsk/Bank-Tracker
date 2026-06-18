@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Bank Tracker index_v239: multi filters, reverse linear widgets, card 0/0 green -->
+<!-- Bank Tracker index_v243: overview header alignment + transaction infinite scroll + clean loans manager -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -8671,7 +8671,7 @@ let activeMonthFilter = '';
 let activeTxnHistoryScope = 'current';
 let txnCashflowChartType = localStorage.getItem('txn_cashflow_chart_type') || 'bar';
 let archiveTrendChartType = localStorage.getItem('archive_trend_chart_type') || 'line';
-const TXN_PAGE_SIZE = 30;
+const TXN_PAGE_SIZE = 10;
 let txnVisibleLimit = TXN_PAGE_SIZE;
 let autoSyncTimer = null;
 let isSyncing = false;
@@ -22410,6 +22410,1749 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     setTimeout(function(){ enforceEnglishDatasourceV239(); window.updatePaymentKindFilterUi(); updateBankFilterUiV239(); }, 250);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true}); else boot();
+})();
+</script>
+
+
+
+<!-- v240 Loans tab + repayment/decline widget model -->
+<style id="v240-loans-widget-css">
+  .custom-widget-loan-fields-v240 {
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    border:1px solid rgba(88,166,255,.18);
+    background:rgba(15,23,42,.34);
+    border-radius:16px;
+    padding:12px;
+  }
+  .custom-widget-loan-fields-v240.is-hidden { display:none !important; }
+  .custom-widget-loan-fields-v240 .loan-grid-v240 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .loan-note-v240 { color:var(--muted); font-family:var(--font-mono); font-size:10px; line-height:1.45; }
+  .custom-widget-loan-paid-v240 { font-family:var(--font-mono); font-size:12px; color:rgba(235,246,255,.86); white-space:nowrap; }
+  html[data-theme="light"] .custom-widget-loan-fields-v240 { background:#eef6ff !important; border-color:rgba(37,99,235,.16) !important; }
+  html[data-theme="light"] .custom-widget-loan-paid-v240 { color:#31547d !important; }
+  @media (max-width:430px){
+    .custom-widget-loan-fields-v240 .loan-grid-v240 { grid-template-columns:1fr; }
+  }
+</style>
+<script id="v240-loans-tab-decline-widget-js">
+(function(){
+  var LOANS_KEY = 'bank_tracker_loans_v1';
+  var STORAGE_KEY = 'bank_tracker_custom_widgets_v1';
+  function esc(s){ return (window.escapeHtml ? escapeHtml(String(s == null ? '' : s)) : String(s == null ? '' : s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];})); }
+  function attr(s){ return (window.escapeAttr ? escapeAttr(String(s == null ? '' : s)) : esc(s)); }
+  function numRaw(v){
+    if (typeof parseSheetNumber === 'function') return parseSheetNumber(v, v);
+    var n = Number(String(v || '').replace(/\s/g,'').replace(',','.').replace(/[^0-9.\-]/g,''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function moneyCompact(v, currency){
+    var abs = Math.abs(Number(v || 0));
+    var sign = Number(v || 0) < 0 ? '-' : '';
+    var out;
+    if (abs >= 1000000) out = (abs/1000000).toFixed(abs % 1000000 ? 1 : 0).replace('.', ',') + 'm';
+    else if (abs >= 1000) out = (abs/1000).toFixed(abs % 1000 ? 1 : 0).replace('.', ',') + 'k';
+    else out = String(Math.round(abs));
+    return sign + out + (currency ? ' ' + currency : '');
+  }
+  function normMonth(v){ return typeof normalizeMonthStr === 'function' ? normalizeMonthStr(v || (typeof getAktuálneMonth === 'function' ? getAktuálneMonth() : '')) : String(v || ''); }
+  function getLoans(){
+    try { var parsed = JSON.parse(localStorage.getItem(LOANS_KEY) || '[]'); return Array.isArray(parsed) ? parsed : []; } catch(_) { return []; }
+  }
+  function saveLoans(list){ localStorage.setItem(LOANS_KEY, JSON.stringify(Array.isArray(list) ? list : [])); }
+  function upsertLoan(loan){
+    if (!loan || !loan.id) return null;
+    var list = getLoans();
+    var idx = list.findIndex(function(x){ return String(x.id) === String(loan.id); });
+    var merged = Object.assign({}, idx >= 0 ? list[idx] : {}, loan, { updatedAt: loan.updatedAt || new Date().toISOString() });
+    if (idx >= 0) list[idx] = merged; else list.push(merged);
+    saveLoans(list);
+    return merged;
+  }
+  function selectedLoan(id){ return getLoans().find(function(x){ return String(x.id) === String(id); }) || null; }
+  function normalizeLoan(raw){
+    var original = Math.abs(numRaw(raw.originalAmount ?? raw.original ?? raw.principal));
+    var current = numRaw(raw.currentBalance ?? raw.currentAmount ?? raw.balance ?? raw.current);
+    var currentAbs = Math.abs(current);
+    return {
+      id: String(raw.id || raw.loanId || ('loan_' + Date.now().toString(36))).trim(),
+      name: String(raw.name || raw.loanName || 'Loan').trim(),
+      type: String(raw.type || 'loan').trim(),
+      bankId: String(raw.bankId || raw.bank || '').trim(),
+      currency: (typeof currencyCode === 'function' ? currencyCode(raw.currency || 'CZK') : String(raw.currency || 'CZK')),
+      originalAmount: original,
+      currentBalance: current === 0 ? -currentAbs : current,
+      targetAmount: Number.isFinite(numRaw(raw.targetAmount)) ? numRaw(raw.targetAmount) : 0,
+      monthlyPayment: Math.abs(numRaw(raw.monthlyPayment || raw.payment || 0)),
+      startDate: String(raw.startDate || '').trim(),
+      endDate: String(raw.endDate || '').trim(),
+      status: String(raw.status || 'active').trim() || 'active',
+      source: raw.source || 'manual',
+      updatedAt: raw.updatedAt || new Date().toISOString()
+    };
+  }
+  window.getBankTrackerLoans = getLoans;
+  window.saveBankTrackerLoans = saveLoans;
+  window.upsertBankTrackerLoan = function(loan){
+    var saved = upsertLoan(normalizeLoan(loan || {}));
+    if (saved && typeof postToBankTrackerEndpoint === 'function') {
+      try { postToBankTrackerEndpoint('ensureLoansSheet', { schemaVersion:'v1' }); } catch(_) {}
+      try { postToBankTrackerEndpoint('saveLoan', { loan: saved }); } catch(_) {}
+    }
+    return saved;
+  };
+
+  function parseLoansSheetData(raw){
+    var data = typeof parseGvizJson === 'function' ? parseGvizJson(raw) : null;
+    var rows = data && data.table && data.table.rows || [];
+    var cols = data && data.table && data.table.cols || [];
+    var headerFromCols = cols.map(function(c){ return String(c && c.label || '').trim(); });
+    var first = rows[0] && rows[0].c ? rows[0].c.map(function(c){ return String((c && (c.v ?? c.f)) || '').trim(); }) : [];
+    function h(v){ return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[\s_\-./()]+/g,' ').trim(); }
+    var firstLooks = first.map(h).some(function(x){ return /loan|uver|hypotek|mortgage|current|balance|original|principal|currency|mena/.test(x); });
+    var headers = (headerFromCols.some(Boolean) ? headerFromCols : first).map(h);
+    var dataRows = firstLooks && !headerFromCols.some(Boolean) ? rows.slice(1) : rows;
+    function idx(names, fallback){
+      names = (Array.isArray(names) ? names : [names]).map(h);
+      var exact = headers.findIndex(function(x){ return names.indexOf(x) >= 0; });
+      if (exact >= 0) return exact;
+      var contains = headers.findIndex(function(x){ return names.some(function(n){ return n.length > 4 && (x.indexOf(n) >= 0 || n.indexOf(x) >= 0); }); });
+      return contains >= 0 ? contains : fallback;
+    }
+    var I = {
+      id: idx(['Loan ID','LoanID','ID','Uver ID','Hypoteka ID'],0),
+      name: idx(['Name','Loan name','Nazov','Název','Uver','Hypoteka','Mortgage'],1),
+      type: idx(['Type','Typ'],2),
+      bankId: idx(['Bank ID','Bank','Banka'],3),
+      currency: idx(['Currency','Mena','Měna'],4),
+      originalAmount: idx(['Original amount','Original','Principal','Povodna suma','Původní suma','Istina'],5),
+      currentBalance: idx(['Current balance','Current amount','Balance','Aktualny zostatok','Aktualni zustatek','Zostatok','Zustatek'],6),
+      targetAmount: idx(['Target amount','Target','Ciel','Cíl'],7),
+      monthlyPayment: idx(['Monthly payment','Payment','Splátka','Splatka'],8),
+      startDate: idx(['Start date','Start','Od'],9),
+      endDate: idx(['End date','End','Do'],10),
+      status: idx(['Status','Stav'],11),
+      updatedAt: idx(['Updated at','Updated','Aktualizovane'],12)
+    };
+    function text(c,i){ return i >= 0 ? String((c[i] && (c[i].v ?? c[i].f)) || '').trim() : ''; }
+    var loaded = [];
+    dataRows.forEach(function(row){
+      var c = row.c || [];
+      var id = text(c,I.id);
+      var name = text(c,I.name);
+      if (!id && !name) return;
+      if (/^loan id$|^id$/i.test(id) || /^name$|^loan name$/i.test(name)) return;
+      loaded.push(normalizeLoan({
+        id: id || (String(name).toLowerCase().replace(/[^a-z0-9]+/g,'_') + '_' + loaded.length),
+        name: name || id,
+        type: text(c,I.type) || 'loan',
+        bankId: text(c,I.bankId),
+        currency: text(c,I.currency) || 'CZK',
+        originalAmount: text(c,I.originalAmount),
+        currentBalance: text(c,I.currentBalance),
+        targetAmount: text(c,I.targetAmount) || 0,
+        monthlyPayment: text(c,I.monthlyPayment) || 0,
+        startDate: text(c,I.startDate),
+        endDate: text(c,I.endDate),
+        status: text(c,I.status) || 'active',
+        updatedAt: text(c,I.updatedAt),
+        source: 'sheets'
+      }));
+    });
+    if (loaded.length) saveLoans(loaded);
+    return loaded.length;
+  }
+  window.parseLoansSheetData = parseLoansSheetData;
+  window.syncLoansFromSheets = async function(spreadsheetId){
+    try {
+      if (!spreadsheetId || typeof buildGvizUrl !== 'function' || typeof fetchNoStore !== 'function') return false;
+      var names = ['Loans','loans','Loan_Settings','Debt','Debts'];
+      for (var i=0;i<names.length;i++) {
+        try {
+          var res = await fetchNoStore(buildGvizUrl(spreadsheetId, names[i]));
+          if (!res.ok) continue;
+          var raw = await res.text();
+          var count = parseLoansSheetData(raw);
+          if (count > 0) { console.log('Loans sync loaded ' + count + ' loans.'); return true; }
+        } catch(_) {}
+      }
+    } catch(e) { console.warn('Loans sync skipped:', e); }
+    return false;
+  };
+  if (typeof window.loadAllData === 'function') {
+    var oldLoadAll = window.loadAllData;
+    window.loadAllData = async function(){
+      var result = await oldLoadAll.apply(this, arguments);
+      try {
+        var url = localStorage.getItem('sheets_url') || document.getElementById('sheets-url')?.value || '';
+        var m = String(url).match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+        if (m) await window.syncLoansFromSheets(m[1]);
+      } catch(_) {}
+      return result;
+    };
+    try { loadAllData = window.loadAllData; } catch(_) {}
+  }
+
+  function ensureLoanFields(){
+    if (document.getElementById('cw-loan-fields-v240')) return;
+    var source = document.getElementById('cw-source');
+    if (!source) return;
+    if (!Array.from(source.options || []).some(function(o){ return o.value === 'loan'; })) {
+      var opt = document.createElement('option'); opt.value = 'loan'; opt.textContent = 'Loans tab'; source.appendChild(opt);
+    }
+    var row = document.createElement('div');
+    row.className = 'custom-widget-loan-fields-v240 is-hidden';
+    row.id = 'cw-loan-fields-v240';
+    row.innerHTML = '<label>Loan / mortgage</label>'
+      + '<select class="config-input" id="cw-loan-id" onchange="updateCustomWidgetBuilderPreview()"></select>'
+      + '<div class="loan-grid-v240">'
+      + '<div><label>Original amount</label><input class="config-input" id="cw-loan-original" type="number" step="0.01" placeholder="1000000" oninput="updateCustomWidgetBuilderPreview()"></div>'
+      + '<div><label>Current balance</label><input class="config-input" id="cw-loan-current" type="number" step="0.01" placeholder="-820000" oninput="updateCustomWidgetBuilderPreview()"></div>'
+      + '</div>'
+      + '<div class="loan-note-v240">For repayment widgets the debt can be saved as negative or positive. The app uses abs() and tracks progress toward 0.</div>';
+    source.closest('div').insertAdjacentElement('afterend', row);
+    populateLoanSelect();
+  }
+  function populateLoanSelect(selected){
+    var el = document.getElementById('cw-loan-id'); if (!el) return;
+    var loans = getLoans().filter(function(x){ return String(x.status || 'active') !== 'closed'; });
+    el.innerHTML = '<option value="manual_loan">Manual loan values</option>' + loans.map(function(l){ return '<option value="' + attr(l.id) + '">' + esc(l.name || l.id) + ' · ' + moneyCompact(Math.abs(l.currentBalance || 0), l.currency || 'CZK') + '</option>'; }).join('');
+    if (selected) el.value = selected;
+  }
+  function updateLoanFieldsVisibility(){
+    ensureLoanFields();
+    var source = document.getElementById('cw-source')?.value || 'auto';
+    var direction = document.getElementById('cw-linear-direction')?.value || 'incline';
+    var chart = (window.customWidgetBuilderState && window.customWidgetBuilderState.chart) || 'linear';
+    var show = source === 'loan' || direction === 'decline';
+    var box = document.getElementById('cw-loan-fields-v240'); if (box) box.classList.toggle('is-hidden', !show);
+    var src = document.getElementById('cw-source');
+    if (src && source === 'loan') {
+      var d = document.getElementById('cw-linear-direction'); if (d) d.value = 'decline';
+      if (window.customWidgetBuilderState) window.customWidgetBuilderState.chart = 'linear';
+    }
+  }
+  var oldHandleSource = window.handleCustomWidgetSourceChange || (typeof handleCustomWidgetSourceChange === 'function' ? handleCustomWidgetSourceChange : null);
+  window.handleCustomWidgetSourceChange = function(){
+    var r = oldHandleSource ? oldHandleSource.apply(this, arguments) : undefined;
+    updateLoanFieldsVisibility();
+    return r;
+  };
+  try { handleCustomWidgetSourceChange = window.handleCustomWidgetSourceChange; } catch(_) {}
+
+  var oldOpen = window.openCustomWidgetBuilder || (typeof openCustomWidgetBuilder === 'function' ? openCustomWidgetBuilder : null);
+  if (oldOpen) {
+    window.openCustomWidgetBuilder = function(id){
+      var r = oldOpen.apply(this, arguments);
+      setTimeout(function(){
+        ensureLoanFields(); populateLoanSelect();
+        var w = id && typeof loadCustomWidgets === 'function' ? (loadCustomWidgets() || []).find(function(x){ return x.id === id; }) : null;
+        function set(k,v){ var el=document.getElementById(k); if(el) el.value = v == null ? '' : v; }
+        set('cw-loan-id', w && w.loanId || 'manual_loan');
+        set('cw-loan-original', w && (w.loanOriginalAmount || w.originalAmount) || '');
+        set('cw-loan-current', w && (w.loanCurrentBalance || w.currentBalance) || '');
+        updateLoanFieldsVisibility();
+      }, 0);
+      return r;
+    };
+    try { openCustomWidgetBuilder = window.openCustomWidgetBuilder; } catch(_) {}
+  }
+  var oldCollect = window.collectCustomWidgetBuilderValues || (typeof collectCustomWidgetBuilderValues === 'function' ? collectCustomWidgetBuilderValues : null);
+  if (oldCollect) {
+    window.collectCustomWidgetBuilderValues = function(){
+      ensureLoanFields();
+      var values = oldCollect.apply(this, arguments) || {};
+      values.loanId = document.getElementById('cw-loan-id')?.value || values.loanId || '';
+      values.loanOriginalAmount = Math.abs(numRaw(document.getElementById('cw-loan-original')?.value || 0));
+      values.loanCurrentBalance = numRaw(document.getElementById('cw-loan-current')?.value || 0);
+      if (values.source === 'loan' || values.linearDirection === 'decline') {
+        values.chart = 'linear';
+        values.linearDirection = 'decline';
+        values.trendType = 'decline';
+        var chosen = selectedLoan(values.loanId);
+        if (!chosen && (values.loanOriginalAmount || values.loanCurrentBalance)) {
+          chosen = window.upsertBankTrackerLoan({
+            id: values.loanId && values.loanId !== 'manual_loan' ? values.loanId : 'loan_' + Date.now().toString(36),
+            name: values.name || 'Loan',
+            currency: values.currency,
+            originalAmount: values.loanOriginalAmount || values.limit,
+            currentBalance: values.loanCurrentBalance,
+            targetAmount: 0,
+            source: 'manual'
+          });
+          values.loanId = chosen && chosen.id || values.loanId;
+        }
+        if (chosen) {
+          values.limit = Math.abs(chosen.originalAmount || values.limit || values.loanOriginalAmount || 0);
+          values.manualUsed = Math.max(0, Math.abs(values.limit) - Math.abs(chosen.currentBalance || 0));
+          values.currency = chosen.currency || values.currency;
+        }
+      }
+      return values;
+    };
+    try { collectCustomWidgetBuilderValues = window.collectCustomWidgetBuilderValues; } catch(_) {}
+  }
+
+  var oldStats = window.getCustomWidgetStats || (typeof getCustomWidgetStats === 'function' ? getCustomWidgetStats : null);
+  if (oldStats) {
+    window.getCustomWidgetStats = function(widget){
+      if (widget && ((widget.source === 'loan') || String(widget.linearDirection || widget.trendType || '') === 'decline')) {
+        var loan = selectedLoan(widget.loanId) || normalizeLoan({
+          id: widget.loanId || 'manual_loan', name: widget.name || 'Loan', currency: widget.currency || 'CZK', originalAmount: widget.loanOriginalAmount || widget.limit || 0, currentBalance: widget.loanCurrentBalance || -(Math.max(0, Number(widget.limit || 0) - Number(widget.manualUsed || 0)))
+        });
+        var original = Math.max(1, Math.abs(Number(loan.originalAmount || widget.limit || 0)));
+        var currentDebt = Math.max(0, Math.abs(Number(loan.currentBalance || 0)));
+        var paid = Math.max(0, original - currentDebt);
+        var pct = Math.max(0, Math.min(1.2, paid / original));
+        return {
+          txns: [], spent: paid, limit: original, pct: pct, target: 0,
+          currency: loan.currency || widget.currency || 'CZK',
+          range: { label: 'Repayment' }, source: 'loan', unit: 'Kč',
+          loan: loan,
+          gaugeMetric: 'amount', linearMetric: 'amount'
+        };
+      }
+      return oldStats.apply(this, arguments);
+    };
+    try { getCustomWidgetStats = window.getCustomWidgetStats; } catch(_) {}
+  }
+  var oldMetric = window.getCustomWidgetUsedLimit || (typeof getCustomWidgetUsedLimit === 'function' ? getCustomWidgetUsedLimit : null);
+  if (oldMetric) {
+    window.getCustomWidgetUsedLimit = function(widget, stats){
+      if (widget && stats && stats.source === 'loan') {
+        var original = Math.max(1, Number(stats.limit || 0));
+        var paid = Math.max(0, Number(stats.spent || 0));
+        var left = Math.max(0, original - paid);
+        return { used: paid, limit: original, mode:'amount', usedLabel: moneyCompact(paid, stats.currency), limitLabel: moneyCompact(original, stats.currency), label: moneyCompact(left, stats.currency) + ' left / ' + moneyCompact(original, stats.currency), countTarget:'' };
+      }
+      return oldMetric.apply(this, arguments);
+    };
+    try { getCustomWidgetUsedLimit = window.getCustomWidgetUsedLimit; } catch(_) {}
+  }
+
+  function addLoanPreset(){
+    var grid = document.querySelector('.custom-widget-type-grid');
+    if (!grid || document.getElementById('cw-type-loan-v240')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'custom-widget-type-btn'; btn.id = 'cw-type-loan-v240';
+    btn.innerHTML = 'Loan<span>Decline repayment</span>';
+    btn.onclick = function(){
+      if (typeof setCustomWidgetBuilderChoice === 'function') { setCustomWidgetBuilderChoice('chart','linear'); }
+      function set(k,v){ var el=document.getElementById(k); if(el) el.value=v; }
+      set('cw-name','Mortgage'); set('cw-source','loan'); set('cw-gauge-metric','amount'); set('cw-limit','');
+      var d=document.getElementById('cw-linear-direction'); if(d) d.value='decline';
+      updateLoanFieldsVisibility();
+      try { updateCustomWidgetBuilderPreview(); } catch(_) {}
+    };
+    grid.appendChild(btn);
+  }
+  function boot(){ ensureLoanFields(); addLoanPreset(); updateLoanFieldsVisibility(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true}); else boot();
+})();
+</script>
+
+
+
+<!-- v241 Manage loans frontend + Loans widget source UX -->
+<style id="v241-manage-loans-css">
+  .loan-manager-card {
+    margin-bottom: 12px;
+    background: #101827;
+    border: 1px solid rgba(88,166,255,.20);
+    border-radius: 16px;
+    padding: 14px 16px;
+  }
+  .loan-manager-top {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .loan-manager-main { min-width:0; flex:1 1 auto; }
+  .loan-manager-title {
+    font-size:15px;
+    font-weight:900;
+    color:var(--text);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .loan-manager-sub {
+    margin-top:4px;
+    color:var(--muted);
+    font-family:var(--font-mono);
+    font-size:11px;
+    line-height:1.35;
+  }
+  .loan-manager-actions { display:flex; align-items:center; gap:7px; flex:0 0 auto; }
+  .loan-manager-progress {
+    margin-top:12px;
+    display:grid;
+    gap:7px;
+  }
+  .loan-manager-progress-row {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    color:var(--muted);
+    font-family:var(--font-mono);
+    font-size:10px;
+  }
+  .loan-manager-track {
+    height:8px;
+    border-radius:999px;
+    background:rgba(88,166,255,.20);
+    overflow:hidden;
+  }
+  .loan-manager-fill {
+    height:100%;
+    border-radius:inherit;
+    background:var(--accent);
+    width:0%;
+  }
+  .loan-manager-form {
+    display:none;
+    margin-top:14px;
+    gap:10px;
+  }
+  .loan-manager-card.open .loan-manager-form { display:grid; }
+  .loan-manager-sheet-note {
+    color:var(--muted);
+    font-family:var(--font-mono);
+    font-size:10px;
+    line-height:1.45;
+    margin:0 0 12px;
+  }
+  .loan-manager-add-card {
+    border:1px solid rgba(88,166,255,.22);
+    border-radius:16px;
+    background:rgba(15,23,42,.52);
+    padding:14px;
+    margin-bottom:14px;
+    display:grid;
+    gap:10px;
+  }
+  .loan-manager-add-title {
+    color:var(--accent);
+    font-weight:900;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+  }
+  html[data-theme="light"] .loan-manager-card,
+  html[data-theme="light"] .loan-manager-add-card {
+    background:linear-gradient(180deg,#ffffff,#eef6ff) !important;
+    border-color:rgba(37,99,235,.16) !important;
+  }
+  html[data-theme="light"] .loan-manager-title { color:#0b1220 !important; }
+  html[data-theme="light"] .loan-manager-sub,
+  html[data-theme="light"] .loan-manager-progress-row,
+  html[data-theme="light"] .loan-manager-sheet-note { color:#334155 !important; }
+  html[data-theme="light"] .loan-manager-track { background:rgba(37,99,235,.16) !important; }
+  @media (max-width:430px){
+    #loan-manager-sheet { max-height:94vh; padding-left:16px; padding-right:16px; }
+    .loan-manager-top { align-items:flex-start; }
+    .loan-manager-actions .icon-action-btn { width:36px; height:36px; min-width:36px; }
+    .loan-manager-card { padding:13px; }
+    .loan-manager-sub { font-size:10px; }
+  }
+</style>
+<script id="v241-manage-loans-js">
+(function(){
+  var LOANS_KEY = 'bank_tracker_loans_v1';
+  function esc(value){
+    if (typeof escapeHtml === 'function') return escapeHtml(String(value == null ? '' : value));
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+  function attr(value){ return esc(value); }
+  function rawNumber(value){
+    if (typeof parseSheetNumber === 'function') return parseSheetNumber(value, value);
+    var n = Number(String(value || '').replace(/\s/g,'').replace(',','.').replace(/[^0-9.\-]/g,''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function currencyCodeLocal(value){
+    if (typeof currencyCode === 'function') return currencyCode(value || 'CZK');
+    var text = String(value || 'CZK').trim();
+    if (text === 'Kč' || /kč|kc/i.test(text)) return 'CZK';
+    if (text === '€') return 'EUR';
+    if (text === '$') return 'USD';
+    if (text === '£') return 'GBP';
+    if (String(text).toLowerCase() === 'zł') return 'PLN';
+    return text.toUpperCase() || 'CZK';
+  }
+  function currencySymbolLocal(value){
+    var code = currencyCodeLocal(value);
+    if (code === 'CZK') return 'Kč';
+    if (code === 'EUR') return '€';
+    if (code === 'USD') return '$';
+    if (code === 'GBP') return '£';
+    if (code === 'PLN') return 'zł';
+    return code;
+  }
+  function compactMoney(value, currency){
+    var n = Number(value || 0);
+    var abs = Math.abs(n);
+    var sign = n < 0 ? '-' : '';
+    var out;
+    if (abs >= 1000000) out = (abs/1000000).toFixed(abs % 1000000 ? 1 : 0).replace('.', ',') + 'm';
+    else if (abs >= 1000) out = (abs/1000).toFixed(abs % 1000 ? 1 : 0).replace('.', ',') + 'k';
+    else out = String(Math.round(abs));
+    return sign + out + ' ' + currencySymbolLocal(currency || 'CZK');
+  }
+  function getLoansLocal(){
+    try {
+      if (typeof window.getBankTrackerLoans === 'function') return window.getBankTrackerLoans() || [];
+      var parsed = JSON.parse(localStorage.getItem(LOANS_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch(_) { return []; }
+  }
+  function saveLoansLocal(list){
+    if (typeof window.saveBankTrackerLoans === 'function') window.saveBankTrackerLoans(Array.isArray(list) ? list : []);
+    else localStorage.setItem(LOANS_KEY, JSON.stringify(Array.isArray(list) ? list : []));
+  }
+  function normalizeLoanLocal(input){
+    input = input || {};
+    var original = Math.abs(rawNumber(input.originalAmount != null ? input.originalAmount : input.original));
+    var currentRaw = rawNumber(input.currentBalance != null ? input.currentBalance : input.balance);
+    var current = currentRaw === 0 ? 0 : -Math.abs(currentRaw);
+    var id = String(input.id || input.loanId || ('loan_' + Date.now().toString(36))).trim();
+    return {
+      id: id,
+      name: String(input.name || input.loanName || 'Loan').trim() || 'Loan',
+      currency: currencyCodeLocal(input.currency || 'CZK'),
+      originalAmount: original,
+      currentBalance: current,
+      targetAmount: rawNumber(input.targetAmount != null ? input.targetAmount : 0),
+      linkedBankId: String(input.linkedBankId || input.bankId || '').trim(),
+      matchText: String(input.matchText || '').trim(),
+      monthlyPayment: Math.abs(rawNumber(input.monthlyPayment || 0)),
+      status: String(input.status || 'active').trim() || 'active',
+      source: input.source || 'manual',
+      createdAt: input.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+  }
+  function upsertLoanLocal(loan){
+    loan = normalizeLoanLocal(loan || {});
+    var list = getLoansLocal();
+    var idx = list.findIndex(function(item){ return String(item.id) === String(loan.id); });
+    if (idx >= 0) list[idx] = Object.assign({}, list[idx], loan, { createdAt: list[idx].createdAt || loan.createdAt, updatedAt: new Date().toISOString() });
+    else list.push(loan);
+    saveLoansLocal(list);
+    return idx >= 0 ? list[idx] : loan;
+  }
+  function getLoanProgress(loan){
+    var original = Math.max(0, Math.abs(Number(loan.originalAmount || 0)));
+    var current = Math.max(0, Math.abs(Number(loan.currentBalance || 0)));
+    if (!original) return 0;
+    return Math.max(0, Math.min(1, (original - current) / original));
+  }
+  function getLoanBankOptions(selected){
+    var ids = [];
+    try { if (Array.isArray(BANK_ORDER)) ids = ids.concat(BANK_ORDER); } catch(_) {}
+    var html = '<option value="">No linked bank</option>';
+    ids.forEach(function(id){ html += '<option value="' + attr(id) + '"' + (selected === id ? ' selected' : '') + '>' + esc(typeof plainBankName === 'function' ? plainBankName(id) : id) + '</option>'; });
+    try {
+      (typeof getCustomBanks === 'function' ? getCustomBanks() : []).forEach(function(bank){
+        var id = String(bank.id || '').trim(); if (!id) return;
+        html += '<option value="' + attr(id) + '"' + (selected === id ? ' selected' : '') + '>' + esc(bank.name || id) + '</option>';
+      });
+    } catch(_) {}
+    return html;
+  }
+  function getCurrencyOptions(selected){
+    selected = currencyCodeLocal(selected || 'CZK');
+    var rows = [['CZK','Kč — Czech koruna'],['EUR','€ — Euro'],['USD','$ — US dollar'],['GBP','£ — British pound'],['PLN','zł — Polish zloty']];
+    return rows.map(function(row){ return '<option value="' + row[0] + '"' + (row[0] === selected ? ' selected' : '') + '>' + row[1] + '</option>'; }).join('');
+  }
+  function ensureLoanManagerDom(){
+    if (!document.getElementById('loan-manager-sheet')) {
+      var sheet = document.createElement('div');
+      sheet.id = 'loan-manager-sheet';
+      sheet.className = 'bottom-sheet';
+      sheet.innerHTML = '<div class="sheet-handle"></div>'
+        + '<div class="sheet-title-row"><div class="sheet-title">Manage loans</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>'
+        + '<div class="loan-manager-sheet-note">Create mortgage / loan accounts here. The parser updates Current balance in the Loans tab when a matching repayment transaction arrives.</div>'
+        + '<div class="loan-manager-add-card">'
+        + '<div class="loan-manager-add-title">Add loan</div>'
+        + '<label>Loan name</label><input class="config-input" id="new-loan-name" placeholder="Mortgage / Car loan">'
+        + '<div class="sheet-grid-2"><div><label>Currency</label><select class="config-input" id="new-loan-currency">' + getCurrencyOptions('CZK') + '</select></div><div><label>Linked bank</label><select class="config-input" id="new-loan-bank">' + getLoanBankOptions('') + '</select></div></div>'
+        + '<div class="sheet-grid-2"><div><label>Original loan amount</label><input class="config-input" id="new-loan-original" type="number" step="0.01" placeholder="1500000"></div><div><label>Outstanding balance</label><input class="config-input" id="new-loan-current" type="number" step="0.01" placeholder="1100000"></div></div>'
+        + '<div class="budget-status-note">Enter loan values as positive amounts. Bank Tracker stores the debt safely in the background and repayments move the balance toward 0.</div>'
+        + '<button class="config-save" onclick="saveNewLoanFromManager()">Save loan</button>'
+        + '</div>'
+        + '<div id="loan-manager-list"></div>';
+      document.body.appendChild(sheet);
+    }
+    if (!document.getElementById('settings-manage-loans-v241')) {
+      var bankButtonRow = document.querySelector('.primary-action-row .add-bank-btn[onclick*="openBankManagerSheet"]')?.closest('.primary-action-row');
+      if (bankButtonRow) {
+        var block = document.createElement('div');
+        block.id = 'settings-manage-loans-v241';
+        block.innerHTML = '<div class="section-title" style="margin-top:6px;">Manage loans</div><div class="primary-action-row"><button class="add-bank-btn" onclick="openLoanManagerSheet()">Manage loans</button></div>';
+        bankButtonRow.insertAdjacentElement('afterend', block);
+      }
+    }
+  }
+  function setLoanStatus(text){
+    var status = document.getElementById('limits-sync-status');
+    if (status && text) status.textContent = text;
+  }
+  async function sendLoanToEndpoint(loan){
+    if (typeof postToBankTrackerEndpoint !== 'function') return false;
+    return await postToBankTrackerEndpoint('saveLoan', {
+      loanId: loan.id,
+      id: loan.id,
+      name: loan.name,
+      currency: loan.currency,
+      originalAmount: loan.originalAmount,
+      currentBalance: loan.currentBalance,
+      targetAmount: loan.targetAmount || 0,
+      linkedBankId: loan.linkedBankId || '',
+      bankId: loan.linkedBankId || '',
+      matchText: loan.matchText || '',
+      active: loan.status === 'closed' ? 'false' : 'true',
+      status: loan.status || 'active'
+    });
+  }
+  async function deleteLoanEndpoint(loan){
+    if (typeof postToBankTrackerEndpoint !== 'function') return false;
+    return await postToBankTrackerEndpoint('deleteLoan', { loanId: loan.id, id: loan.id });
+  }
+  window.openLoanManagerSheet = function(){
+    ensureLoanManagerDom();
+    renderLoanManager();
+    if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
+  };
+  window.saveNewLoanFromManager = async function(){
+    ensureLoanManagerDom();
+    var name = document.getElementById('new-loan-name')?.value.trim() || 'Loan';
+    var original = Math.abs(rawNumber(document.getElementById('new-loan-original')?.value || 0));
+    var current = rawNumber(document.getElementById('new-loan-current')?.value || 0);
+    if (!original) { alert('Enter original amount.'); return; }
+    var loan = upsertLoanLocal({
+      id: 'loan_' + Date.now().toString(36),
+      name: name,
+      currency: document.getElementById('new-loan-currency')?.value || 'CZK',
+      originalAmount: original,
+      currentBalance: current,
+      targetAmount: 0,
+      linkedBankId: document.getElementById('new-loan-bank')?.value || '',
+      matchText: '',
+      status: 'active',
+      source: 'manual'
+    });
+    try { await sendLoanToEndpoint(loan); } catch(e) { console.warn('saveLoan endpoint failed', e); }
+    ['new-loan-name','new-loan-original','new-loan-current'].forEach(function(id){ var el=document.getElementById(id); if (el) el.value=''; });
+    renderLoanManager();
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    try { if (typeof showSavedToast === 'function') showSavedToast(); } catch(_) {}
+  };
+  window.toggleLoanEdit = function(id){
+    var row = document.getElementById('loan-row-' + CSS.escape(String(id)));
+    if (row) row.classList.toggle('open');
+  };
+  window.updateLoanFromManager = async function(id){
+    var loan = getLoansLocal().find(function(item){ return String(item.id) === String(id); });
+    if (!loan) return;
+    var safe = String(id).replace(/[^a-zA-Z0-9_-]/g, '_');
+    loan = upsertLoanLocal({
+      id: id,
+      name: document.getElementById('loan-name-' + safe)?.value || loan.name,
+      currency: document.getElementById('loan-currency-' + safe)?.value || loan.currency,
+      originalAmount: document.getElementById('loan-original-' + safe)?.value || loan.originalAmount,
+      currentBalance: document.getElementById('loan-current-' + safe)?.value || loan.currentBalance,
+      targetAmount: 0,
+      linkedBankId: document.getElementById('loan-bank-' + safe)?.value || '',
+      matchText: '',
+      status: document.getElementById('loan-status-' + safe)?.value || loan.status || 'active',
+      createdAt: loan.createdAt,
+      source: loan.source || 'manual'
+    });
+    try { await sendLoanToEndpoint(loan); } catch(e) { console.warn('saveLoan endpoint failed', e); }
+    renderLoanManager();
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    try { if (typeof showSavedToast === 'function') showSavedToast(); } catch(_) {}
+  };
+  window.closeLoanFromManager = async function(id){
+    var list = getLoansLocal();
+    var loan = list.find(function(item){ return String(item.id) === String(id); });
+    if (!loan) return;
+    if (!confirm('Deactivate this loan?')) return;
+    loan.status = 'closed';
+    loan.active = false;
+    loan.updatedAt = new Date().toISOString();
+    saveLoansLocal(list);
+    try { await deleteLoanEndpoint(loan); } catch(e) { console.warn('deleteLoan endpoint failed', e); }
+    renderLoanManager();
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+  };
+  window.renderLoanManager = function(){
+    ensureLoanManagerDom();
+    var wrap = document.getElementById('loan-manager-list');
+    if (!wrap) return;
+    var loans = getLoansLocal().filter(function(loan){ return String(loan.status || 'active') !== 'closed'; });
+    if (!loans.length) {
+      wrap.innerHTML = '<div class="empty-state">No loans yet. Add mortgage, loan or credit repayment account above.</div>';
+      return;
+    }
+    wrap.innerHTML = loans.map(function(loan){
+      loan = normalizeLoanLocal(loan);
+      var safe = String(loan.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+      var progress = getLoanProgress(loan);
+      var paid = Math.max(0, Math.abs(loan.originalAmount || 0) - Math.abs(loan.currentBalance || 0));
+      var bankName = loan.linkedBankId ? (typeof plainBankName === 'function' ? plainBankName(loan.linkedBankId) : loan.linkedBankId) : 'No linked bank';
+      try {
+        var custom = (typeof getCustomBanks === 'function' ? getCustomBanks() : []).find(function(b){ return String(b.id) === String(loan.linkedBankId); });
+        if (custom) bankName = custom.name || bankName;
+      } catch(_) {}
+      return '<div class="loan-manager-card" id="loan-row-' + attr(loan.id) + '">'
+        + '<div class="loan-manager-top">'
+        + '<div class="loan-manager-main"><div class="loan-manager-title">' + esc(loan.name) + '</div>'
+        + '<div class="loan-manager-sub">' + esc(compactMoney(Math.abs(loan.currentBalance), loan.currency)) + ' left · ' + esc(compactMoney(paid, loan.currency)) + ' paid · ' + esc(bankName) + '</div></div>'
+        + '<div class="loan-manager-actions"><button class="icon-action-btn edit" onclick="toggleLoanEdit(\'' + attr(loan.id) + '\')">✎</button><button class="icon-action-btn delete" onclick="closeLoanFromManager(\'' + attr(loan.id) + '\')">×</button></div>'
+        + '</div>'
+        + '<div class="loan-manager-progress"><div class="loan-manager-progress-row"><span>' + Math.round(progress * 100) + '% paid</span><span>Target 0 ' + esc(currencySymbolLocal(loan.currency)) + '</span></div><div class="loan-manager-track"><div class="loan-manager-fill" style="width:' + Math.round(progress * 1000) / 10 + '%"></div></div></div>'
+        + '<div class="loan-manager-form">'
+        + '<label>Loan name</label><input class="config-input" id="loan-name-' + safe + '" value="' + attr(loan.name) + '">'
+        + '<div class="sheet-grid-2"><div><label>Currency</label><select class="config-input" id="loan-currency-' + safe + '">' + getCurrencyOptions(loan.currency) + '</select></div><div><label>Linked bank</label><select class="config-input" id="loan-bank-' + safe + '">' + getLoanBankOptions(loan.linkedBankId) + '</select></div></div>'
+        + '<div class="sheet-grid-2"><div><label>Original loan amount</label><input class="config-input" id="loan-original-' + safe + '" type="number" step="0.01" value="' + attr(Math.abs(loan.originalAmount || 0)) + '"></div><div><label>Outstanding balance</label><input class="config-input" id="loan-current-' + safe + '" type="number" step="0.01" value="' + attr(Math.abs(loan.currentBalance || 0)) + '"></div></div>'
+        + '<label>Status</label><select class="config-input" id="loan-status-' + safe + '"><option value="active"' + (loan.status !== 'paused' ? ' selected' : '') + '>Active</option><option value="paused"' + (loan.status === 'paused' ? ' selected' : '') + '>Paused</option></select>'
+        + '<button class="config-save" onclick="updateLoanFromManager(\'' + attr(loan.id) + '\')">Save loan</button>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  };
+  async function tryReadLoansFromEndpoint(){
+    try {
+      if (typeof jsonpEndpointRequest !== 'function') return false;
+      var result = await jsonpEndpointRequest('readLoans', {}, 15000);
+      var data = result && result.data || {};
+      var rows = data.loans || data.items || data.rows || [];
+      if (!Array.isArray(rows) || !rows.length) return false;
+      var loans = rows.map(function(row){ return normalizeLoanLocal({
+        id: row.id || row.loanId || row['Loan ID'],
+        name: row.name || row['Name'],
+        currency: row.currency || row['Currency'],
+        originalAmount: row.originalAmount || row['Original amount'],
+        currentBalance: row.currentBalance || row['Current balance'],
+        targetAmount: row.targetAmount || row['Target balance'],
+        linkedBankId: row.linkedBankId || row.bankId || row['Linked bank ID'],
+        matchText: row.matchText || row['Match text'],
+        status: row.status || (row.active === false ? 'closed' : 'active')
+      }); });
+      saveLoansLocal(loans);
+      renderLoanManager();
+      return true;
+    } catch(e) { console.warn('readLoans skipped', e); return false; }
+  }
+  window.syncLoansFromEndpoint = tryReadLoansFromEndpoint;
+  function boot(){
+    ensureLoanManagerDom();
+    try { postToBankTrackerEndpoint && postToBankTrackerEndpoint('ensureLoansSheet', {}); } catch(_) {}
+    tryReadLoansFromEndpoint();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once:true }); else boot();
+})();
+</script>
+
+
+<!-- v242 loans UX cleanup + manual loan repayment selector + transactions paging + header alignment -->
+<style id="v242-loans-transactions-header-css">
+  .overview-header-top-v236 .header-title {
+    line-height: 1 !important;
+    transform: translateY(-2px);
+  }
+  .manual-loan-link-v242 {
+    display: grid;
+    gap: 6px;
+    border: 1px solid rgba(88,166,255,.18);
+    background: rgba(15,23,42,.34);
+    border-radius: 14px;
+    padding: 11px 12px;
+  }
+  .manual-loan-link-v242.is-hidden { display: none !important; }
+  .manual-loan-link-v242 .budget-status-note { margin: 0; }
+  html[data-theme="light"] .manual-loan-link-v242 {
+    background: #eef6ff !important;
+    border-color: rgba(37,99,235,.16) !important;
+  }
+  @media (max-width:430px) {
+    .overview-header-top-v236 .header-title { transform: translateY(-1px); }
+  }
+</style>
+<script id="v242-loans-repayment-selector-js">
+(function(){
+  function esc(value){
+    if (typeof escapeHtml === 'function') return escapeHtml(String(value == null ? '' : value));
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+  function attr(value){ return esc(value); }
+  function num(value){
+    if (typeof parseSheetNumber === 'function') return parseSheetNumber(value, value);
+    var n = Number(String(value || '').replace(/\s/g,'').replace(',','.').replace(/[^0-9.\-]/g,''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function getLoans(){
+    try { return typeof window.getBankTrackerLoans === 'function' ? (window.getBankTrackerLoans() || []) : JSON.parse(localStorage.getItem('bank_tracker_loans_v1') || '[]'); }
+    catch(_) { return []; }
+  }
+  function saveLoans(list){
+    if (typeof window.saveBankTrackerLoans === 'function') window.saveBankTrackerLoans(list || []);
+    else localStorage.setItem('bank_tracker_loans_v1', JSON.stringify(list || []));
+  }
+  function activeLoans(){
+    return getLoans().filter(function(loan){ return String(loan.status || 'active') !== 'closed' && loan.active !== false; });
+  }
+  function ensureManualLoanSelector(){
+    var sheet = document.getElementById('add-transaction-sheet');
+    if (!sheet || document.getElementById('manual-loan-wrap-v242')) return;
+    var saveBtn = sheet.querySelector('button.config-save[onclick*="saveManualTransaction"]');
+    if (!saveBtn) return;
+    var wrap = document.createElement('div');
+    wrap.id = 'manual-loan-wrap-v242';
+    wrap.className = 'manual-loan-link-v242 is-hidden';
+    wrap.innerHTML = '<label>Loan repayment</label>'
+      + '<select class="config-input" id="manual-tx-loan-id"><option value="">No loan selected</option></select>'
+      + '<div class="budget-status-note">Use this when the transaction is a mortgage / loan repayment. The parser will reduce the selected loan outstanding balance toward 0.</div>';
+    saveBtn.parentNode.insertBefore(wrap, saveBtn);
+  }
+  function renderLoanOptions(){
+    ensureManualLoanSelector();
+    var select = document.getElementById('manual-tx-loan-id');
+    if (!select) return;
+    var current = select.value || '';
+    var loans = activeLoans();
+    select.innerHTML = '<option value="">No loan selected</option>' + loans.map(function(loan){
+      var label = (loan.name || loan.id || 'Loan') + ' · ' + Math.round(Math.abs(num(loan.currentBalance || loan.balance || 0))).toLocaleString('cs-CZ');
+      return '<option value="' + attr(loan.id || loan.loanId) + '">' + esc(label) + '</option>';
+    }).join('');
+    if (current && loans.some(function(l){ return String(l.id || l.loanId) === current; })) select.value = current;
+  }
+  function updateLoanSelectorVisibility(){
+    ensureManualLoanSelector();
+    renderLoanOptions();
+    var wrap = document.getElementById('manual-loan-wrap-v242');
+    if (!wrap) return;
+    var loans = activeLoans();
+    var kind = document.getElementById('manual-tx-kind')?.value || 'card';
+    var direction = document.getElementById('manual-tx-direction')?.value || 'outgoing';
+    wrap.classList.toggle('is-hidden', !(loans.length && kind === 'account' && direction === 'outgoing'));
+  }
+  function applyLocalLoanRepayment(loanId, amount){
+    loanId = String(loanId || '').trim();
+    if (!loanId || !amount) return;
+    var list = getLoans();
+    var changed = false;
+    list.forEach(function(loan){
+      if (String(loan.id || loan.loanId) !== loanId) return;
+      var current = -Math.abs(num(loan.currentBalance || loan.balance || 0));
+      var next = Math.min(0, current + Math.abs(num(amount)));
+      loan.currentBalance = next;
+      loan.balance = next;
+      loan.updatedAt = new Date().toISOString();
+      changed = true;
+    });
+    if (changed) saveLoans(list);
+  }
+
+  var previousExtract = window.extractTxnPayload;
+  if (typeof previousExtract === 'function') {
+    window.extractTxnPayload = function(tx){
+      var payload = previousExtract.apply(this, arguments) || {};
+      var loanId = (tx && (tx.loanId || tx.loanID)) || window.__btManualLoanIdForNextTransaction || '';
+      if (loanId) payload.loanId = loanId;
+      return payload;
+    };
+  }
+
+  var previousSaveManual = window.saveManualTransaction;
+  if (typeof previousSaveManual === 'function') {
+    window.saveManualTransaction = function(){
+      var loanId = document.getElementById('manual-tx-loan-id')?.value || '';
+      var amount = Math.abs(num(document.getElementById('manual-tx-amount')?.value || 0));
+      var kind = document.getElementById('manual-tx-kind')?.value || 'card';
+      var direction = document.getElementById('manual-tx-direction')?.value || 'outgoing';
+      window.__btManualLoanIdForNextTransaction = (loanId && kind === 'account' && direction === 'outgoing') ? loanId : '';
+      var result = previousSaveManual.apply(this, arguments);
+      if (window.__btManualLoanIdForNextTransaction) {
+        applyLocalLoanRepayment(window.__btManualLoanIdForNextTransaction, amount);
+        try { if (typeof renderLoanManager === 'function') renderLoanManager(); } catch(_) {}
+        try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+      }
+      setTimeout(function(){ window.__btManualLoanIdForNextTransaction = ''; }, 2500);
+      return result;
+    };
+  }
+
+  function boot(){
+    ensureManualLoanSelector();
+    updateLoanSelectorVisibility();
+    document.getElementById('manual-tx-kind')?.addEventListener('change', updateLoanSelectorVisibility);
+    document.getElementById('manual-tx-direction')?.addEventListener('change', updateLoanSelectorVisibility);
+    var oldOpen = window.openAddTransactionSheet;
+    if (typeof oldOpen === 'function' && !oldOpen.__v242LoanWrapped) {
+      var wrapped = function(){ var r = oldOpen.apply(this, arguments); setTimeout(updateLoanSelectorVisibility, 50); return r; };
+      wrapped.__v242LoanWrapped = true;
+      window.openAddTransactionSheet = wrapped;
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true}); else boot();
+})();
+</script>
+
+
+
+<!-- v243 overview header alignment + transactions infinite scroll + clean loans manager -->
+<style id="v243-header-txns-loans-css">
+  /* Overview title alignment: move Bank Tracker to the same visual height as other tab titles. */
+  #page-overview .overview-header-v236 {
+    padding-top: 18px !important;
+  }
+  #page-overview .overview-header-top-v236 {
+    align-items: flex-start !important;
+    min-height: 30px !important;
+  }
+  #page-overview .overview-header-top-v236 .header-title {
+    line-height: 1 !important;
+    transform: translateY(-8px) !important;
+    margin-top: 0 !important;
+  }
+  #page-overview .overview-header-bottom-v236 {
+    margin-top: -2px !important;
+  }
+
+  /* Transactions: infinite scroll replaces manual load buttons. */
+  .txn-show-more-wrap,
+  .txn-load-older-wrap,
+  .txn-render-note,
+  .txn-history-note {
+    display: none !important;
+  }
+  .txn-auto-loader-v243 {
+    margin: 12px 0 22px;
+    padding: 10px 12px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    border-radius: 14px;
+    background: rgba(148,163,184,.08);
+  }
+
+  /* Manage loans: keep the manager clean. Details stay available through Edit. */
+  #loan-manager-sheet .loan-manager-sheet-note,
+  #loan-manager-sheet .loan-manager-add-card .budget-status-note,
+  #loan-manager-sheet .loan-manager-sub,
+  #loan-manager-sheet .loan-manager-progress {
+    display: none !important;
+  }
+  #loan-manager-sheet .loan-manager-card {
+    padding-bottom: 10px !important;
+  }
+  #loan-manager-sheet .loan-manager-top {
+    align-items: center !important;
+  }
+  #loan-manager-sheet .loan-manager-main {
+    min-width: 0 !important;
+  }
+  #loan-manager-sheet .loan-manager-title {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  @media (max-width: 430px) {
+    #page-overview .overview-header-v236 { padding-top: 16px !important; }
+    #page-overview .overview-header-top-v236 .header-title { transform: translateY(-7px) !important; }
+    #txn-list { margin-left: 14px !important; margin-right: 14px !important; }
+  }
+</style>
+<script id="v243-transactions-autoload-reset-js">
+(function(){
+  var PAGE = 10;
+  var loadingMore = false;
+  var lastLoadAt = 0;
+
+  function isTxnsPageActive(){
+    return document.getElementById('page-txns')?.classList.contains('active');
+  }
+
+  function ensureAllTransactionFilters(){
+    try {
+      activeDirection = 'all';
+      activeBank = 'všetky';
+      activePaymentKind = 'all';
+      activeCardLast4 = '';
+      activeCategory = 'všetky';
+      activeSearch = '';
+      activeDateFrom = '';
+      activeDateTo = '';
+      activeMonthFilter = '';
+      activeTxnHistoryScope = 'all';
+      txnVisibleLimit = PAGE;
+      txnFilterPanelOpen = false;
+    } catch(_) {}
+
+    var search = document.getElementById('txn-search');
+    if (search) search.value = '';
+
+    try { updateTransactionDateInputs(); } catch(_) {}
+    try { updatePaymentKindFilterUi(); } catch(_) {}
+    try { updateCardSourceFiltersUi(); } catch(_) {}
+    try { updateDirectionFilterUi(); } catch(_) {}
+
+    document.querySelectorAll('#direction-filters .txn-filter-pill').forEach(function(el){ el.classList.remove('active'); });
+    document.getElementById('filter-dir-all')?.classList.add('active');
+    document.querySelectorAll('#payment-kind-filters .txn-filter-pill').forEach(function(el){ el.classList.remove('active'); });
+    document.getElementById('filter-kind-all')?.classList.add('active');
+    document.querySelectorAll('#bank-filters .cat-chip').forEach(function(el){ el.classList.remove('active'); });
+    document.getElementById('filter-bank-all')?.classList.add('active');
+  }
+
+  var oldReset = window.resetTransactionFilters;
+  window.resetTransactionFilters = function(){
+    if (typeof oldReset === 'function') oldReset.apply(this, arguments);
+    ensureAllTransactionFilters();
+  };
+
+  var oldShowPage = window.showPage;
+  if (typeof oldShowPage === 'function' && !oldShowPage.__v243Wrapped) {
+    var wrappedShowPage = function(pageId, options){
+      var plainTabClick = pageId === 'txns' && !(options && options.preserveFilters);
+      if (plainTabClick) ensureAllTransactionFilters();
+      var result = oldShowPage.apply(this, arguments);
+      if (plainTabClick) {
+        ensureAllTransactionFilters();
+        try { updateTxnPage(); } catch(_) {}
+        try { document.getElementById('page-txns')?.scrollTo({ top: 0, behavior: 'auto' }); } catch(_) {}
+        try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch(_) {}
+      }
+      return result;
+    };
+    wrappedShowPage.__v243Wrapped = true;
+    window.showPage = wrappedShowPage;
+  }
+
+  window.renderShowMoreTransactionsButton = function(){ return ''; };
+  window.renderLoadOlderTransactionsButton = function(){ return ''; };
+  window.renderTransactionHistoryNote = function(){ return ''; };
+
+  var oldUpdateTxnPage = window.updateTxnPage;
+  if (typeof oldUpdateTxnPage === 'function' && !oldUpdateTxnPage.__v243Wrapped) {
+    var wrappedUpdate = function(){
+      var result = oldUpdateTxnPage.apply(this, arguments);
+      try { appendAutoLoaderHint(); } catch(_) {}
+      return result;
+    };
+    wrappedUpdate.__v243Wrapped = true;
+    window.updateTxnPage = wrappedUpdate;
+  }
+
+  function getCurrentRenderedCount(){
+    return document.querySelectorAll('#txn-list .tx-item[data-tx-id]').length;
+  }
+
+  function getCounterTotal(){
+    var counter = document.querySelector('#txn-list .txn-list-counter strong');
+    var allText = document.querySelector('#txn-list .txn-list-counter')?.textContent || '';
+    var nums = (allText.match(/\d+/g) || []).map(Number);
+    return nums.length ? nums[nums.length - 1] : 0;
+  }
+
+  function appendAutoLoaderHint(){
+    var list = document.getElementById('txn-list');
+    if (!list) return;
+    var old = document.getElementById('txn-auto-loader-v243');
+    if (old) old.remove();
+    var rendered = getCurrentRenderedCount();
+    var total = getCounterTotal();
+    if (total && rendered < total) {
+      var div = document.createElement('div');
+      div.id = 'txn-auto-loader-v243';
+      div.className = 'txn-auto-loader-v243';
+      div.textContent = 'Scroll down to load more transactions automatically';
+      list.appendChild(div);
+    }
+  }
+
+  function nearBottom(){
+    var page = document.getElementById('page-txns');
+    var winBottom = window.innerHeight + window.scrollY;
+    var docHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+    var pageNear = false;
+    if (page) pageNear = page.scrollTop + page.clientHeight >= page.scrollHeight - 260;
+    return pageNear || winBottom >= docHeight - 260;
+  }
+
+  function autoLoadMoreTransactions(){
+    if (!isTxnsPageActive()) return;
+    if (!nearBottom()) return;
+    var now = Date.now();
+    if (loadingMore || now - lastLoadAt < 350) return;
+    var rendered = getCurrentRenderedCount();
+    var total = getCounterTotal();
+    if (!total || rendered >= total) return;
+
+    loadingMore = true;
+    lastLoadAt = now;
+    try {
+      txnVisibleLimit = Math.max(Number(txnVisibleLimit || PAGE), rendered) + PAGE;
+      updateTxnPage();
+    } catch(e) {
+      console.warn('Auto-load transactions failed', e);
+    }
+    window.setTimeout(function(){ loadingMore = false; }, 180);
+  }
+
+  window.addEventListener('scroll', autoLoadMoreTransactions, { passive: true });
+  document.getElementById('page-txns')?.addEventListener('scroll', autoLoadMoreTransactions, { passive: true });
+  document.addEventListener('DOMContentLoaded', function(){
+    document.getElementById('page-txns')?.addEventListener('scroll', autoLoadMoreTransactions, { passive: true });
+  }, { once: true });
+})();
+</script>
+
+
+
+<!-- v245 loans frontend cleanup + all-history transaction autoload + loan widget source fix -->
+<style id="v245-loans-txns-widget-fixes-css">
+  /* Overview header: v244 was slightly too high; bring Bank Tracker down a touch. */
+  #page-overview .overview-header-v236 {
+    padding-top: 20px !important;
+    row-gap: 12px !important;
+  }
+  #page-overview .overview-header-top-v236 {
+    min-height: 38px !important;
+    align-items: center !important;
+  }
+  #page-overview .overview-header-top-v236 .header-title {
+    transform: translateY(-2px) !important;
+    line-height: 1.05 !important;
+  }
+  #page-overview .overview-header-bottom-v236 {
+    margin-top: 0 !important;
+  }
+
+  /* Loans source: irrelevant widget fields are disabled/hidden when a loan is selected. */
+  #custom-widget-sheet .loan-not-used-v245 {
+    opacity: .28 !important;
+    pointer-events: none !important;
+    filter: grayscale(.25);
+  }
+  #custom-widget-sheet .loan-hidden-v245 {
+    display: none !important;
+  }
+  #cw-loan-fields-v240 .loan-grid-v240,
+  #cw-loan-fields-v240 .loan-note-v240 {
+    display: none !important;
+  }
+  .loan-widget-readonly-v245 {
+    margin-top: 8px;
+    padding: 10px 11px;
+    border-radius: 13px;
+    border: 1px solid rgba(88,166,255,.18);
+    background: rgba(15,23,42,.42);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    line-height: 1.45;
+  }
+  html[data-theme="light"] .loan-widget-readonly-v245 {
+    background: #eef6ff !important;
+    border-color: rgba(37,99,235,.16) !important;
+    color: #334155 !important;
+  }
+
+  /* Manage loans: clean form, not a transaction list. */
+  #loan-manager-sheet .loan-manager-sheet-note,
+  #loan-manager-sheet .budget-status-note,
+  #loan-manager-sheet .loan-manager-sub,
+  #loan-manager-sheet .loan-manager-progress,
+  #loan-manager-sheet .empty-state.loan-tx-like-v245 {
+    display: none !important;
+  }
+  #loan-manager-sheet .loan-save-status-v245 {
+    margin-top: 8px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    line-height: 1.45;
+  }
+  #loan-manager-sheet .loan-save-status-v245.ok { color: var(--accent) !important; }
+  #loan-manager-sheet .loan-save-status-v245.warn { color: #ffe033 !important; }
+  @media (max-width:430px){
+    #page-overview .overview-header-v236 { padding-top: 18px !important; row-gap: 10px !important; }
+    #page-overview .overview-header-top-v236 .header-title { transform: translateY(-1px) !important; }
+  }
+</style>
+<script id="v245-loans-txns-widget-fixes-js">
+(function(){
+  var PAGE = 10;
+  var LOANS_KEY = 'bank_tracker_loans_v1';
+  function esc(v){ return (window.escapeHtml ? escapeHtml(String(v == null ? '' : v)) : String(v == null ? '' : v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];})); }
+  function rawNumber(v){
+    if (typeof parseSheetNumber === 'function') return parseSheetNumber(v, v);
+    var n = Number(String(v || '').replace(/\s/g,'').replace(',','.').replace(/[^0-9.\-]/g,''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function moneyShort(v, currency){
+    var n = Math.abs(Number(v || 0));
+    var s = n >= 1000000 ? (n/1000000).toFixed(n % 1000000 ? 1 : 0).replace('.', ',') + 'm' : n >= 1000 ? (n/1000).toFixed(n % 1000 ? 1 : 0).replace('.', ',') + 'k' : String(Math.round(n));
+    var c = String(currency || 'CZK').toUpperCase();
+    var sym = c === 'CZK' ? 'Kč' : c === 'EUR' ? '€' : c === 'USD' ? '$' : c === 'GBP' ? '£' : c === 'PLN' ? 'zł' : c;
+    return s + ' ' + sym;
+  }
+  function getLoansClean(){
+    var rows = [];
+    try { rows = JSON.parse(localStorage.getItem(LOANS_KEY) || '[]'); } catch(_) { rows = []; }
+    if (!Array.isArray(rows)) rows = [];
+    return rows.filter(function(l){
+      if (!l) return false;
+      if (String(l.status || 'active') === 'closed') return false;
+      var id = String(l.id || l.loanId || '').trim();
+      var name = String(l.name || l.loanName || '').trim();
+      var original = Math.abs(rawNumber(l.originalAmount || l.original || 0));
+      var current = Math.abs(rawNumber(l.currentBalance || l.balance || 0));
+      if (!id || !name) return false;
+      // Guard against old accidental transaction-like rows in local storage.
+      if (/manual_|msg_|email_|transaction/i.test(id) && !original) return false;
+      return original > 0 || current > 0;
+    });
+  }
+  function saveLoansClean(list){ localStorage.setItem(LOANS_KEY, JSON.stringify(Array.isArray(list) ? list : [])); }
+  function normalizeLoanForSave(input){
+    input = input || {};
+    var original = Math.abs(rawNumber(input.originalAmount || input.original || 0));
+    var current = Math.abs(rawNumber(input.currentBalance || input.balance || 0));
+    return Object.assign({}, input, {
+      id: String(input.id || input.loanId || ('loan_' + Date.now().toString(36))).trim(),
+      name: String(input.name || input.loanName || 'Loan').trim() || 'Loan',
+      currency: String(input.currency || 'CZK').toUpperCase(),
+      originalAmount: original,
+      currentBalance: -current,
+      targetAmount: 0,
+      linkedBankId: String(input.linkedBankId || input.bankId || '').trim(),
+      periodMonths: Math.max(0, Math.round(rawNumber(input.periodMonths || input.loanPeriodMonths || 0))),
+      fixationUntil: String(input.fixationUntil || input.fixationDate || '').trim(),
+      interestRate: Math.max(0, rawNumber(input.interestRate || input.rate || 0)),
+      status: String(input.status || 'active').trim() || 'active',
+      updatedAt: new Date().toISOString(),
+      createdAt: input.createdAt || new Date().toISOString()
+    });
+  }
+  function upsertLoanClean(loan){
+    loan = normalizeLoanForSave(loan);
+    var list = getLoansClean();
+    var idx = list.findIndex(function(x){ return String(x.id) === String(loan.id); });
+    if (idx >= 0) list[idx] = Object.assign({}, list[idx], loan, { createdAt: list[idx].createdAt || loan.createdAt });
+    else list.push(loan);
+    saveLoansClean(list);
+    return idx >= 0 ? list[idx] : loan;
+  }
+  function setLoanStatusV245(text, mode){
+    var el = document.getElementById('loan-save-status-v245');
+    if (!el) {
+      var card = document.querySelector('#loan-manager-sheet .loan-manager-add-card');
+      if (!card) return;
+      el = document.createElement('div');
+      el.id = 'loan-save-status-v245';
+      el.className = 'loan-save-status-v245';
+      card.appendChild(el);
+    }
+    el.className = 'loan-save-status-v245 ' + (mode || '');
+    el.textContent = text || '';
+  }
+  async function sendLoanV245(loan){
+    if (typeof postToBankTrackerEndpoint !== 'function') return false;
+    var payload = {
+      loanId: loan.id, id: loan.id, name: loan.name, currency: loan.currency,
+      originalAmount: loan.originalAmount, currentBalance: loan.currentBalance,
+      targetAmount: 0, linkedBankId: loan.linkedBankId || '', bankId: loan.linkedBankId || '',
+      active: loan.status === 'closed' ? 'false' : 'true', status: loan.status || 'active',
+      periodMonths: loan.periodMonths || 0, loanPeriodMonths: loan.periodMonths || 0,
+      fixationUntil: loan.fixationUntil || '', fixationDate: loan.fixationUntil || '',
+      interestRate: loan.interestRate || 0
+    };
+    try { await postToBankTrackerEndpoint('ensureLoansSheet', {}); } catch(_) {}
+    try { return await postToBankTrackerEndpoint('saveLoan', payload); }
+    catch(e){ console.warn('saveLoan failed', e); return false; }
+  }
+
+  function ensureLoanPeriodFields(){
+    var addCard = document.querySelector('#loan-manager-sheet .loan-manager-add-card');
+    if (addCard && !document.getElementById('new-loan-period')) {
+      var saveBtn = addCard.querySelector('button.config-save');
+      var row = document.createElement('div');
+      row.className = 'sheet-grid-2 loan-period-row-v245';
+      row.innerHTML = '<div><label>Loan period</label><input class="config-input" id="new-loan-period" type="number" min="0" step="1" placeholder="24"><div class="tiny-muted">months</div></div>'
+        + '<div><label>Fixation until</label><input class="config-input" id="new-loan-fixation" type="date"></div>'
+        + '<div><label>Interest rate %</label><input class="config-input" id="new-loan-rate" type="number" min="0" step="0.01" placeholder="5.49"></div>'
+        + '<div></div>';
+      if (saveBtn) saveBtn.insertAdjacentElement('beforebegin', row);
+      var status = document.createElement('div');
+      status.id = 'loan-save-status-v245';
+      status.className = 'loan-save-status-v245';
+      if (saveBtn) saveBtn.insertAdjacentElement('afterend', status);
+    }
+  }
+
+  var oldOpenLoan = window.openLoanManagerSheet;
+  window.openLoanManagerSheet = function(){
+    var r = oldOpenLoan ? oldOpenLoan.apply(this, arguments) : undefined;
+    setTimeout(function(){ ensureLoanPeriodFields(); try { renderLoanManager && renderLoanManager(); } catch(_) {} }, 0);
+    return r;
+  };
+
+  window.saveNewLoanFromManager = async function(){
+    ensureLoanPeriodFields();
+    var name = document.getElementById('new-loan-name')?.value.trim() || 'Loan';
+    var original = Math.abs(rawNumber(document.getElementById('new-loan-original')?.value || 0));
+    var current = Math.abs(rawNumber(document.getElementById('new-loan-current')?.value || 0));
+    if (!original) { alert('Enter original loan amount.'); return; }
+    var loan = upsertLoanClean({
+      id: 'loan_' + Date.now().toString(36), name: name,
+      currency: document.getElementById('new-loan-currency')?.value || 'CZK',
+      originalAmount: original, currentBalance: current,
+      linkedBankId: document.getElementById('new-loan-bank')?.value || '',
+      periodMonths: document.getElementById('new-loan-period')?.value || 0,
+      fixationUntil: document.getElementById('new-loan-fixation')?.value || '',
+      interestRate: document.getElementById('new-loan-rate')?.value || 0,
+      status: 'active', source: 'manual'
+    });
+    setLoanStatusV245('Saving loan to Google Sheets...', '');
+    var ok = await sendLoanV245(loan);
+    setLoanStatusV245(ok ? 'Loan saved to Google Sheets Loans tab.' : 'Loan saved locally only. Check Apps Script deployment URL /exec and deploy the parser version with saveLoan.', ok ? 'ok' : 'warn');
+    ['new-loan-name','new-loan-original','new-loan-current','new-loan-period','new-loan-fixation','new-loan-rate'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+    try { renderLoanManager && renderLoanManager(); } catch(_) {}
+    try { renderCustomWidgets && renderCustomWidgets(); } catch(_) {}
+  };
+
+  var oldRenderLoanManager = window.renderLoanManager;
+  window.renderLoanManager = function(){
+    if (typeof oldRenderLoanManager === 'function') oldRenderLoanManager.apply(this, arguments);
+    ensureLoanPeriodFields();
+    var wrap = document.getElementById('loan-manager-list');
+    if (!wrap) return;
+    var loans = getLoansClean();
+    if (!loans.length) { wrap.innerHTML = '<div class="empty-state">No loans yet. Add mortgage or loan account above.</div>'; return; }
+    wrap.innerHTML = loans.map(function(loan){
+      var safe = String(loan.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+      var bankName = loan.linkedBankId || 'No linked bank';
+      try { if (loan.linkedBankId && typeof plainBankName === 'function') bankName = plainBankName(loan.linkedBankId); } catch(_) {}
+      return '<div class="loan-manager-card" id="loan-row-' + esc(loan.id) + '">'
+        + '<div class="loan-manager-top"><div class="loan-manager-main"><div class="loan-manager-title">' + esc(loan.name) + '</div>'
+        + '<div class="loan-manager-sub">' + esc(moneyShort(Math.abs(loan.currentBalance), loan.currency)) + ' outstanding · ' + esc(bankName) + '</div></div>'
+        + '<div class="loan-manager-actions"><button class="icon-action-btn edit" onclick="toggleLoanEdit(\'' + esc(loan.id) + '\')">✎</button><button class="icon-action-btn delete" onclick="closeLoanFromManager(\'' + esc(loan.id) + '\')">×</button></div></div>'
+        + '<div class="loan-manager-form">'
+        + '<label>Loan name</label><input class="config-input" id="loan-name-' + safe + '" value="' + esc(loan.name) + '">'
+        + '<div class="sheet-grid-2"><div><label>Original loan amount</label><input class="config-input" id="loan-original-' + safe + '" type="number" step="0.01" value="' + esc(Math.abs(loan.originalAmount || 0)) + '"></div><div><label>Outstanding balance</label><input class="config-input" id="loan-current-' + safe + '" type="number" step="0.01" value="' + esc(Math.abs(loan.currentBalance || 0)) + '"></div></div>'
+        + '<div class="sheet-grid-2"><div><label>Loan period</label><input class="config-input" id="loan-period-' + safe + '" type="number" step="1" value="' + esc(loan.periodMonths || '') + '"><div class="tiny-muted">months</div></div><div><label>Fixation until</label><input class="config-input" id="loan-fixation-' + safe + '" type="date" value="' + esc(loan.fixationUntil || '') + '"></div></div>'
+        + '<div class="sheet-grid-2"><div><label>Interest rate %</label><input class="config-input" id="loan-rate-' + safe + '" type="number" step="0.01" value="' + esc(loan.interestRate || '') + '"></div><div><label>Status</label><select class="config-input" id="loan-status-' + safe + '"><option value="active"' + (loan.status !== 'paused' ? ' selected' : '') + '>Active</option><option value="paused"' + (loan.status === 'paused' ? ' selected' : '') + '>Paused</option></select></div></div>'
+        + '<button class="config-save" onclick="updateLoanFromManager(\'' + esc(loan.id) + '\')">Save loan</button>'
+        + '</div></div>';
+    }).join('');
+  };
+
+  window.updateLoanFromManager = async function(id){
+    var old = getLoansClean().find(function(x){ return String(x.id) === String(id); });
+    if (!old) return;
+    var safe = String(id).replace(/[^a-zA-Z0-9_-]/g, '_');
+    var loan = upsertLoanClean({
+      id: id,
+      name: document.getElementById('loan-name-' + safe)?.value || old.name,
+      currency: old.currency || 'CZK',
+      originalAmount: document.getElementById('loan-original-' + safe)?.value || old.originalAmount,
+      currentBalance: document.getElementById('loan-current-' + safe)?.value || Math.abs(old.currentBalance || 0),
+      linkedBankId: old.linkedBankId || '',
+      periodMonths: document.getElementById('loan-period-' + safe)?.value || old.periodMonths || 0,
+      fixationUntil: document.getElementById('loan-fixation-' + safe)?.value || old.fixationUntil || '',
+      interestRate: document.getElementById('loan-rate-' + safe)?.value || old.interestRate || 0,
+      status: document.getElementById('loan-status-' + safe)?.value || old.status || 'active',
+      createdAt: old.createdAt
+    });
+    setLoanStatusV245('Saving loan to Google Sheets...', '');
+    var ok = await sendLoanV245(loan);
+    setLoanStatusV245(ok ? 'Loan saved to Google Sheets Loans tab.' : 'Loan saved locally only. Check Apps Script deployment URL /exec and parser deployment.', ok ? 'ok' : 'warn');
+    try { renderLoanManager && renderLoanManager(); } catch(_) {}
+    try { renderCustomWidgets && renderCustomWidgets(); } catch(_) {}
+  };
+
+  // Always show all transaction history and let the 10-row scroll limit do the paging.
+  window.filterTransactionsByHistoryScope = function(txns){ return Array.isArray(txns) ? txns : []; };
+  try { filterTransactionsByHistoryScope = window.filterTransactionsByHistoryScope; } catch(_) {}
+  window.renderLoadOlderTransactionsButton = function(){ return ''; };
+  window.renderTransactionHistoryNote = function(){ return ''; };
+  window.loadOlderTransactions = function(){ activeTxnHistoryScope = 'all'; try { updateTxnPage(); } catch(_) {} };
+
+  function resetAllTxnFiltersV245(){
+    try {
+      activeDirection = 'all'; activeBank = 'všetky'; activePaymentKind = 'all'; activeCardLast4 = ''; activeCategory = 'všetky';
+      activeSearch = ''; activeDateFrom = ''; activeDateTo = ''; activeMonthFilter = ''; activeTxnHistoryScope = 'all'; txnVisibleLimit = PAGE;
+      window.activeBank = activeBank; window.activePaymentKind = activePaymentKind; window.activeCategory = activeCategory;
+    } catch(_) {}
+    var s = document.getElementById('txn-search'); if (s) s.value = '';
+    document.querySelectorAll('#payment-kind-filters .txn-filter-pill,#bank-filters .cat-chip,#direction-filters .txn-filter-pill,.cat-chip[data-category]').forEach(function(el){ el.classList.remove('active'); });
+    document.getElementById('filter-kind-all')?.classList.add('active');
+    document.getElementById('filter-bank-all')?.classList.add('active');
+    document.getElementById('filter-dir-all')?.classList.add('active');
+  }
+  var oldShowPage = window.showPage;
+  if (typeof oldShowPage === 'function' && !oldShowPage.__v245Wrapped) {
+    var newShow = function(pageId, options){
+      var isTx = pageId === 'txns' && !(options && options.preserveFilters);
+      if (isTx) resetAllTxnFiltersV245();
+      var r = oldShowPage.apply(this, arguments);
+      if (isTx) { resetAllTxnFiltersV245(); try { updateTxnPage(); } catch(_) {} }
+      return r;
+    };
+    newShow.__v245Wrapped = true;
+    window.showPage = newShow; try { showPage = window.showPage; } catch(_) {}
+  }
+  document.addEventListener('click', function(ev){ if (ev.target && ev.target.closest && ev.target.closest('#nav-txns')) { setTimeout(function(){ resetAllTxnFiltersV245(); try { updateTxnPage(); } catch(_) {} }, 0); } }, true);
+
+  function nearBottom(){ return window.innerHeight + window.scrollY >= Math.max(document.body.scrollHeight, document.documentElement.scrollHeight) - 420; }
+  var busy = false;
+  function autoLoadAllHistory(){
+    var page = document.getElementById('page-txns');
+    if (!page || !page.classList.contains('active') || busy) return;
+    if (!nearBottom()) return;
+    var rendered = document.querySelectorAll('#txn-list .tx-item[data-tx-id]').length;
+    var totalText = document.querySelector('#txn-list .txn-list-counter')?.textContent || '';
+    var nums = (totalText.match(/\d+/g) || []).map(Number);
+    var total = nums.length ? nums[nums.length - 1] : 0;
+    if (total && rendered >= total) return;
+    busy = true;
+    try { activeTxnHistoryScope = 'all'; txnVisibleLimit = Math.max(Number(txnVisibleLimit || PAGE), rendered, PAGE) + PAGE; updateTxnPage(); } catch(e){ console.warn(e); }
+    setTimeout(function(){ busy = false; }, 200);
+  }
+  window.addEventListener('scroll', autoLoadAllHistory, { passive:true });
+  document.getElementById('page-txns')?.addEventListener('scroll', autoLoadAllHistory, { passive:true });
+  document.addEventListener('DOMContentLoaded', function(){ document.getElementById('page-txns')?.addEventListener('scroll', autoLoadAllHistory, { passive:true }); }, { once:true });
+
+  function populateLoanWidgetSelectV245(selected){
+    var el = document.getElementById('cw-loan-id'); if (!el) return;
+    var loans = getLoansClean();
+    el.innerHTML = loans.length ? loans.map(function(l){ return '<option value="' + esc(l.id) + '">' + esc(l.name) + ' · ' + esc(moneyShort(Math.abs(l.currentBalance), l.currency)) + '</option>'; }).join('') : '<option value="">Create loan in Settings first</option>';
+    if (selected) el.value = selected;
+  }
+  function updateLoanWidgetReadonly(){
+    var box = document.getElementById('cw-loan-fields-v240'); if (!box) return;
+    var id = document.getElementById('cw-loan-id')?.value || '';
+    var loan = getLoansClean().find(function(l){ return String(l.id) === String(id); });
+    var note = document.getElementById('loan-widget-readonly-v245');
+    if (!note) { note = document.createElement('div'); note.id = 'loan-widget-readonly-v245'; note.className = 'loan-widget-readonly-v245'; box.appendChild(note); }
+    note.innerHTML = loan ? ('Original: <b>' + esc(moneyShort(loan.originalAmount, loan.currency)) + '</b><br>Outstanding: <b>' + esc(moneyShort(Math.abs(loan.currentBalance), loan.currency)) + '</b><br>Linked bank: <b>' + esc(loan.linkedBankId || 'No linked bank') + '</b>') : 'No loan selected. Create a loan in Settings → Manage loans first.';
+  }
+  function toggleLoanBuilderFields(){
+    var source = document.getElementById('cw-source')?.value || '';
+    var isLoan = source === 'loan';
+    populateLoanWidgetSelectV245(document.getElementById('cw-loan-id')?.value || '');
+    updateLoanWidgetReadonly();
+    ['cw-payment-kind','cw-gauge-metric','cw-limit','cw-show-count','cw-account','cw-tx-target','cw-currency'].forEach(function(id){
+      var el = document.getElementById(id); if (!el) return;
+      var wrap = el.closest('.sheet-grid-2 > div') || el.closest('.custom-widget-row-2 > div') || el.closest('div');
+      if (wrap) wrap.classList.toggle('loan-hidden-v245', isLoan);
+    });
+    var d = document.getElementById('cw-linear-direction'); if (isLoan && d) d.value = 'decline';
+  }
+  document.addEventListener('change', function(ev){ if (ev.target && (ev.target.id === 'cw-source' || ev.target.id === 'cw-loan-id')) setTimeout(toggleLoanBuilderFields, 0); }, true);
+  var oldOpenCw = window.openCustomWidgetBuilder;
+  if (typeof oldOpenCw === 'function' && !oldOpenCw.__v245Wrapped) {
+    var wrapped = function(){ var r = oldOpenCw.apply(this, arguments); setTimeout(toggleLoanBuilderFields, 30); return r; };
+    wrapped.__v245Wrapped = true; window.openCustomWidgetBuilder = wrapped; try { openCustomWidgetBuilder = window.openCustomWidgetBuilder; } catch(_) {}
+  }
+  var oldCollect = window.collectCustomWidgetBuilderValues;
+  if (typeof oldCollect === 'function' && !oldCollect.__v245Wrapped) {
+    var collect = function(){
+      var values = oldCollect.apply(this, arguments) || {};
+      if (values.source === 'loan') {
+        var loan = getLoansClean().find(function(l){ return String(l.id) === String(values.loanId || document.getElementById('cw-loan-id')?.value || ''); });
+        values.chart = 'linear'; values.linearDirection = 'decline'; values.trendType = 'decline'; values.gaugeMetric = 'amount'; values.showCount = false;
+        if (loan) {
+          values.loanId = loan.id; values.limit = Math.abs(loan.originalAmount || 0); values.manualUsed = Math.max(0, Math.abs(loan.originalAmount || 0) - Math.abs(loan.currentBalance || 0)); values.currency = loan.currency || values.currency;
+          values.loanOriginalAmount = Math.abs(loan.originalAmount || 0); values.loanCurrentBalance = loan.currentBalance || 0;
+        }
+      }
+      return values;
+    };
+    collect.__v245Wrapped = true; window.collectCustomWidgetBuilderValues = collect; try { collectCustomWidgetBuilderValues = window.collectCustomWidgetBuilderValues; } catch(_) {}
+  }
+  setTimeout(function(){ ensureLoanPeriodFields(); toggleLoanBuilderFields(); try { renderLoanManager && renderLoanManager(); } catch(_) {} }, 500);
+})();
+</script>
+
+
+<!-- v246 Clean Manage loans list: show only real loan accounts, never negative transaction rows -->
+<style id="v246-clean-manage-loans-css">
+  #loan-manager-sheet .loan-manager-list-debug,
+  #loan-manager-sheet .loan-tx-like-v245,
+  #loan-manager-sheet .budget-status-note.loan-tx-like-v245 {
+    display: none !important;
+  }
+</style>
+<script id="v246-clean-manage-loans-js">
+(function(){
+  var LOANS_KEY = 'bank_tracker_loans_v1';
+  function esc(value){
+    if (typeof escapeHtml === 'function') return escapeHtml(String(value == null ? '' : value));
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+  function rawNumber(value){
+    if (typeof parseSheetNumber === 'function') return parseSheetNumber(value, value);
+    var n = Number(String(value || '').replace(/\s/g,'').replace(',','.').replace(/[^0-9.\-]/g,''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function moneyShort(value, currency){
+    var n = Math.abs(Number(value || 0));
+    var out = n >= 1000000 ? (n / 1000000).toFixed(n % 1000000 ? 1 : 0).replace('.', ',') + 'm' : n >= 1000 ? (n / 1000).toFixed(n % 1000 ? 1 : 0).replace('.', ',') + 'k' : String(Math.round(n));
+    var code = String(currency || 'CZK').toUpperCase();
+    var symbol = code === 'CZK' ? 'Kč' : code === 'EUR' ? '€' : code === 'USD' ? '$' : code === 'GBP' ? '£' : code === 'PLN' ? 'zł' : code;
+    return out + ' ' + symbol;
+  }
+  function readRawLoans(){
+    try { var rows = JSON.parse(localStorage.getItem(LOANS_KEY) || '[]'); return Array.isArray(rows) ? rows : []; } catch(_) { return []; }
+  }
+  function isRealLoanAccount(row){
+    if (!row || typeof row !== 'object') return false;
+    var id = String(row.id || row.loanId || '').trim();
+    var name = String(row.name || row.loanName || '').trim();
+    var original = Math.abs(rawNumber(row.originalAmount != null ? row.originalAmount : row.original));
+    var current = Math.abs(rawNumber(row.currentBalance != null ? row.currentBalance : row.balance));
+    var hasLoanIdentity = /^loan_/i.test(id) || String(row.source || '').toLowerCase() === 'manual' || String(row.type || '').toLowerCase() === 'loan' || row.loanId || row.originalAmount !== undefined || row.original !== undefined;
+    var looksLikeTransaction = row.amount !== undefined || row.merchant !== undefined || row.category !== undefined || row.msgId !== undefined || row.date !== undefined || row.txType !== undefined;
+    if (!id || !name) return false;
+    if (looksLikeTransaction) return false;
+    if (!hasLoanIdentity) return false;
+    return original > 0 && current >= 0;
+  }
+  function normalizeLoan(row){
+    var original = Math.abs(rawNumber(row.originalAmount != null ? row.originalAmount : row.original));
+    var current = Math.abs(rawNumber(row.currentBalance != null ? row.currentBalance : row.balance));
+    return Object.assign({}, row, {
+      id: String(row.id || row.loanId || ('loan_' + Date.now().toString(36))).trim(),
+      name: String(row.name || row.loanName || 'Loan').trim() || 'Loan',
+      currency: String(row.currency || 'CZK').toUpperCase(),
+      originalAmount: original,
+      currentBalance: -current,
+      targetAmount: 0,
+      status: String(row.status || 'active').trim() || 'active'
+    });
+  }
+  function getCleanLoans(){
+    return readRawLoans().filter(isRealLoanAccount).map(normalizeLoan).filter(function(l){ return String(l.status || 'active') !== 'closed' && l.active !== false; });
+  }
+  function saveCleanLoans(list){
+    localStorage.setItem(LOANS_KEY, JSON.stringify((Array.isArray(list) ? list : []).filter(isRealLoanAccount).map(normalizeLoan)));
+  }
+  function cleanLoanStorage(){
+    var before = readRawLoans();
+    var after = before.filter(isRealLoanAccount).map(normalizeLoan);
+    if (after.length !== before.length) localStorage.setItem(LOANS_KEY, JSON.stringify(after));
+    return after;
+  }
+  window.getBankTrackerLoans = getCleanLoans;
+  window.saveBankTrackerLoans = saveCleanLoans;
+
+  var previousOpenLoanManagerSheet = window.openLoanManagerSheet;
+  window.openLoanManagerSheet = function(){
+    cleanLoanStorage();
+    var result = previousOpenLoanManagerSheet ? previousOpenLoanManagerSheet.apply(this, arguments) : undefined;
+    setTimeout(function(){ cleanLoanStorage(); if (typeof window.renderLoanManager === 'function') window.renderLoanManager(); }, 0);
+    return result;
+  };
+
+  window.renderLoanManager = function(){
+    var wrap = document.getElementById('loan-manager-list');
+    if (!wrap) return;
+    var loans = cleanLoanStorage().filter(function(loan){ return String(loan.status || 'active') !== 'closed' && loan.active !== false; });
+    if (!loans.length) {
+      wrap.innerHTML = '<div class="empty-state">No loans yet. Add mortgage or loan account above.</div>';
+      return;
+    }
+    wrap.innerHTML = loans.map(function(loan){
+      var safe = String(loan.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+      var bankName = loan.linkedBankId || loan.bankId || 'No linked bank';
+      try { if ((loan.linkedBankId || loan.bankId) && typeof plainBankName === 'function') bankName = plainBankName(loan.linkedBankId || loan.bankId); } catch(_) {}
+      var original = Math.abs(rawNumber(loan.originalAmount));
+      var current = Math.abs(rawNumber(loan.currentBalance));
+      var paid = Math.max(0, original - current);
+      var progress = original ? Math.max(0, Math.min(100, Math.round((paid / original) * 100))) : 0;
+      return '<div class="loan-manager-card" id="loan-row-' + esc(loan.id) + '">'
+        + '<div class="loan-manager-top"><div class="loan-manager-main"><div class="loan-manager-title">' + esc(loan.name) + '</div>'
+        + '<div class="loan-manager-sub">' + esc(moneyShort(current, loan.currency)) + ' outstanding · ' + esc(progress) + '% paid · ' + esc(bankName) + '</div></div>'
+        + '<div class="loan-manager-actions"><button class="icon-action-btn edit" onclick="toggleLoanEdit(\'' + esc(loan.id) + '\')">✎</button><button class="icon-action-btn delete" onclick="closeLoanFromManager(\'' + esc(loan.id) + '\')">×</button></div></div>'
+        + '<div class="loan-manager-form">'
+        + '<label>Loan name</label><input class="config-input" id="loan-name-' + safe + '" value="' + esc(loan.name) + '">'
+        + '<div class="sheet-grid-2"><div><label>Original loan amount</label><input class="config-input" id="loan-original-' + safe + '" type="number" step="0.01" value="' + esc(original) + '"></div><div><label>Outstanding balance</label><input class="config-input" id="loan-current-' + safe + '" type="number" step="0.01" value="' + esc(current) + '"></div></div>'
+        + '<div class="sheet-grid-2"><div><label>Loan period</label><input class="config-input" id="loan-period-' + safe + '" type="number" step="1" value="' + esc(loan.periodMonths || '') + '"><div class="tiny-muted">months</div></div><div><label>Fixation until</label><input class="config-input" id="loan-fixation-' + safe + '" type="date" value="' + esc(loan.fixationUntil || '') + '"></div></div>'
+        + '<div class="sheet-grid-2"><div><label>Interest rate %</label><input class="config-input" id="loan-rate-' + safe + '" type="number" step="0.01" value="' + esc(loan.interestRate || '') + '"></div><div><label>Status</label><select class="config-input" id="loan-status-' + safe + '"><option value="active"' + (loan.status !== 'paused' ? ' selected' : '') + '>Active</option><option value="paused"' + (loan.status === 'paused' ? ' selected' : '') + '>Paused</option></select></div></div>'
+        + '<button class="config-save" onclick="updateLoanFromManager(\'' + esc(loan.id) + '\')">Save loan</button>'
+        + '</div></div>';
+    }).join('');
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', cleanLoanStorage, {once:true});
+  } else {
+    cleanLoanStorage();
+  }
+})();
+</script>
+
+
+
+<!-- v247 Strict Manage loans cleanup: reject transaction-like numeric rows and keep only real loan accounts -->
+<style id="v247-strict-manage-loans-css">
+  #loan-manager-sheet .loan-manager-card[data-loan-invalid="true"],
+  #loan-manager-sheet .loan-tx-like-v245,
+  #loan-manager-sheet .loan-manager-list-debug {
+    display: none !important;
+  }
+</style>
+<script id="v247-strict-manage-loans-js">
+(function(){
+  var LOANS_KEY = 'bank_tracker_loans_v1';
+  function esc(value){
+    if (typeof escapeHtml === 'function') return escapeHtml(String(value == null ? '' : value));
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+  function rawNumber(value){
+    if (typeof parseSheetNumber === 'function') return parseSheetNumber(value, value);
+    var n = Number(String(value == null ? '' : value).replace(/\s/g,'').replace(',','.').replace(/[^0-9.\-]/g,''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function currencySymbol(code){
+    code = String(code || 'CZK').toUpperCase();
+    if (code === 'CZK') return 'Kč';
+    if (code === 'EUR') return '€';
+    if (code === 'USD') return '$';
+    if (code === 'GBP') return '£';
+    if (code === 'PLN') return 'zł';
+    return code;
+  }
+  function moneyShort(value, currency){
+    var n = Math.abs(Number(value || 0));
+    var out = n >= 1000000 ? (n / 1000000).toFixed(n % 1000000 ? 1 : 0).replace('.', ',') + 'm' : n >= 1000 ? (n / 1000).toFixed(n % 1000 ? 1 : 0).replace('.', ',') + 'k' : String(Math.round(n));
+    return out + ' ' + currencySymbol(currency);
+  }
+  function readRawLoans(){
+    try {
+      var rows = JSON.parse(localStorage.getItem(LOANS_KEY) || '[]');
+      return Array.isArray(rows) ? rows : [];
+    } catch(_) { return []; }
+  }
+  function isNumericOnlyText(text){
+    text = String(text || '').trim();
+    if (!text) return true;
+    return /^[-+]?\d+(?:[.,]\d+)?(?:\s*(kč|kc|czk|eur|€|usd|\$|gbp|£|pln|zł))?$/i.test(text);
+  }
+  function looksLikeTransaction(row){
+    if (!row || typeof row !== 'object') return true;
+    return row.amount !== undefined || row.merchant !== undefined || row.category !== undefined || row.msgId !== undefined || row.date !== undefined || row.txType !== undefined || row.paymentKind !== undefined || row.month !== undefined;
+  }
+  function isRealLoanAccount(row){
+    if (!row || typeof row !== 'object') return false;
+    var id = String(row.id || row.loanId || '').trim();
+    var name = String(row.name || row.loanName || '').trim();
+    var original = Math.abs(rawNumber(row.originalAmount != null ? row.originalAmount : row.original));
+    var current = Math.abs(rawNumber(row.currentBalance != null ? row.currentBalance : row.balance));
+    var hasLoanColumns = row.originalAmount !== undefined || row.original !== undefined || row.currentBalance !== undefined || row.balance !== undefined;
+    var hasLoanIdentity = /^loan_/i.test(id) || row.loanId !== undefined || String(row.type || '').toLowerCase() === 'loan' || String(row.source || '').toLowerCase() === 'loan_manager' || String(row.source || '').toLowerCase() === 'manual';
+    if (!id || !name) return false;
+    if (isNumericOnlyText(name)) return false;
+    if (looksLikeTransaction(row)) return false;
+    if (!hasLoanIdentity || !hasLoanColumns) return false;
+    if (!(original > 0)) return false;
+    if (!(current >= 0)) return false;
+    return true;
+  }
+  function normalizeLoan(row){
+    var original = Math.abs(rawNumber(row.originalAmount != null ? row.originalAmount : row.original));
+    var current = Math.abs(rawNumber(row.currentBalance != null ? row.currentBalance : row.balance));
+    return Object.assign({}, row, {
+      id: String(row.id || row.loanId || ('loan_' + Date.now().toString(36))).trim(),
+      name: String(row.name || row.loanName || 'Loan').trim() || 'Loan',
+      currency: String(row.currency || 'CZK').toUpperCase(),
+      originalAmount: original,
+      currentBalance: -current,
+      targetAmount: 0,
+      periodMonths: row.periodMonths || row.period || '',
+      fixationUntil: row.fixationUntil || row.fixation || '',
+      interestRate: row.interestRate || row.rate || '',
+      source: 'loan_manager',
+      status: String(row.status || 'active').trim() || 'active'
+    });
+  }
+  function cleanLoanStorage(){
+    var before = readRawLoans();
+    var after = before.filter(isRealLoanAccount).map(normalizeLoan);
+    localStorage.setItem(LOANS_KEY, JSON.stringify(after));
+    return after;
+  }
+  function saveCleanLoans(list){
+    localStorage.setItem(LOANS_KEY, JSON.stringify((Array.isArray(list) ? list : []).filter(isRealLoanAccount).map(normalizeLoan)));
+  }
+  window.getBankTrackerLoans = function(){
+    return cleanLoanStorage().filter(function(l){ return String(l.status || 'active') !== 'closed' && l.active !== false; });
+  };
+  window.saveBankTrackerLoans = saveCleanLoans;
+
+  var previousSave = window.saveNewLoanFromManager;
+  window.saveNewLoanFromManager = async function(){
+    var beforeIds = cleanLoanStorage().map(function(l){ return String(l.id); });
+    var result = previousSave ? await previousSave.apply(this, arguments) : undefined;
+    var cleaned = cleanLoanStorage();
+    cleaned.forEach(function(l){ if (beforeIds.indexOf(String(l.id)) === -1) l.source = 'loan_manager'; });
+    localStorage.setItem(LOANS_KEY, JSON.stringify(cleaned));
+    if (typeof window.renderLoanManager === 'function') window.renderLoanManager();
+    return result;
+  };
+
+  window.renderLoanManager = function(){
+    var wrap = document.getElementById('loan-manager-list');
+    if (!wrap) return;
+    var loans = window.getBankTrackerLoans();
+    if (!loans.length) {
+      wrap.innerHTML = '<div class="empty-state">No loans yet. Add mortgage or loan account above.</div>';
+      return;
+    }
+    wrap.innerHTML = loans.map(function(loan){
+      var safe = String(loan.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+      var bankName = loan.linkedBankId || loan.bankId || 'No linked bank';
+      try { if ((loan.linkedBankId || loan.bankId) && typeof plainBankName === 'function') bankName = plainBankName(loan.linkedBankId || loan.bankId); } catch(_) {}
+      var original = Math.abs(rawNumber(loan.originalAmount));
+      var current = Math.abs(rawNumber(loan.currentBalance));
+      var paid = Math.max(0, original - current);
+      var progress = original ? Math.max(0, Math.min(100, Math.round((paid / original) * 100))) : 0;
+      return '<div class="loan-manager-card" id="loan-row-' + esc(loan.id) + '">'
+        + '<div class="loan-manager-top"><div class="loan-manager-main"><div class="loan-manager-title">' + esc(loan.name) + '</div>'
+        + '<div class="loan-manager-sub">' + esc(moneyShort(current, loan.currency)) + ' outstanding · ' + esc(progress) + '% paid · ' + esc(bankName) + '</div></div>'
+        + '<div class="loan-manager-actions"><button class="icon-action-btn edit" onclick="toggleLoanEdit(\'' + esc(loan.id) + '\')">✎</button><button class="icon-action-btn delete" onclick="closeLoanFromManager(\'' + esc(loan.id) + '\')">×</button></div></div>'
+        + '<div class="loan-manager-form">'
+        + '<label>Loan name</label><input class="config-input" id="loan-name-' + safe + '" value="' + esc(loan.name) + '">'
+        + '<div class="sheet-grid-2"><div><label>Original loan amount</label><input class="config-input" id="loan-original-' + safe + '" type="number" step="0.01" value="' + esc(original) + '"></div><div><label>Outstanding balance</label><input class="config-input" id="loan-current-' + safe + '" type="number" step="0.01" value="' + esc(current) + '"></div></div>'
+        + '<div class="sheet-grid-2"><div><label>Loan period</label><input class="config-input" id="loan-period-' + safe + '" type="number" step="1" value="' + esc(loan.periodMonths || '') + '"><div class="tiny-muted">months</div></div><div><label>Fixation until</label><input class="config-input" id="loan-fixation-' + safe + '" type="date" value="' + esc(loan.fixationUntil || '') + '"></div></div>'
+        + '<div class="sheet-grid-2"><div><label>Interest rate %</label><input class="config-input" id="loan-rate-' + safe + '" type="number" step="0.01" value="' + esc(loan.interestRate || '') + '"></div><div><label>Status</label><select class="config-input" id="loan-status-' + safe + '"><option value="active"' + (loan.status !== 'paused' ? ' selected' : '') + '>Active</option><option value="paused"' + (loan.status === 'paused' ? ' selected' : '') + '>Paused</option></select></div></div>'
+        + '<button class="config-save" onclick="updateLoanFromManager(\'' + esc(loan.id) + '\')">Save loan</button>'
+        + '</div></div>';
+    }).join('');
+  };
+
+  var previousOpen = window.openLoanManagerSheet;
+  window.openLoanManagerSheet = function(){
+    cleanLoanStorage();
+    var result = previousOpen ? previousOpen.apply(this, arguments) : undefined;
+    setTimeout(function(){ cleanLoanStorage(); if (typeof window.renderLoanManager === 'function') window.renderLoanManager(); }, 50);
+    return result;
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){ cleanLoanStorage(); }, { once:true });
+  } else {
+    cleanLoanStorage();
+  }
 })();
 </script>
 
