@@ -13609,11 +13609,11 @@ async function runBackgroundMonthlyArchiveRepair(reason = 'timer') {
 }
 
 function startMonthlyArchiveRepairTimer() {
-  if (monthlyRepairTimer) clearInterval(monthlyRepairTimer);
-  monthlyRepairTimer = setInterval(() => {
-    runBackgroundMonthlyArchiveRepair('5min_background_repair');
-  }, AUTO_SYNC_INTERVAL_MS);
+  // v254 performance: disable recurring full monthly repair timer.
+  // Monthly stats still update from transaction deltas and manual repair endpoint remains available.
+  if (monthlyRepairTimer) { clearInterval(monthlyRepairTimer); monthlyRepairTimer = null; }
 }
+
 
 function startAutoSync() {
   if (autoSyncTimer) {
@@ -20261,1286 +20261,24 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
 
 
 <!-- v220 widget accent shade + gauge source logic -->
-<style id="v220-widget-accent-shade-gauge-logic-css">
-  /* Projection colour UI removed; projection stays default blue in charts. */
-  #cw-extra-colors-row,
-  #cw-projection-color,
-  #cw-projection-hex,
-  label[for="cw-projection-color"],
-  label[for="cw-projection-hex"] {
-    display: none !important;
-  }
-  .custom-widget-linear-wrap-v220 { width:100%; display:grid; gap:4px; margin-top:-2px; }
-  .custom-widget-linear-wrap-v220 svg { width:100% !important; height:82px !important; display:block !important; overflow:visible !important; }
-  .custom-widget-card[data-size="small"] .custom-widget-linear-wrap-v220 svg { height:92px !important; }
-  .custom-widget-card[data-size="medium"] .custom-widget-linear-wrap-v220 svg { height:98px !important; }
-  .custom-widget-card[data-size="large"] .custom-widget-linear-wrap-v220 svg { height:118px !important; }
-  .custom-widget-linear-limit-v220 {
-    font-family: var(--font-mono) !important;
-    font-weight: 900 !important;
-    font-size: clamp(13px, 3.8vw, 16px) !important;
-    line-height: 1.1 !important;
-    letter-spacing: -0.045em !important;
-    color: #fff !important;
-    white-space: nowrap !important;
-    text-align: left !important;
-  }
-  html[data-theme="light"] .custom-widget-linear-limit-v220 { color:#0f172a !important; }
-</style>
 
-<script id="v220-widget-accent-shade-gauge-logic">
-(function(){
-  const BLUE = '#388BFD';
-  const GREEN = '#00E5A0';
-  const RED = '#E5005F';
-  const WARN = '#FFB86B';
-
-  function esc(s){
-    if (typeof escapeHtml === 'function') return escapeHtml(String(s ?? ''));
-    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-  function attr(s){ return (typeof escapeAttr === 'function') ? escapeAttr(String(s ?? '')) : esc(s); }
-  function hex(v, fallback){
-    if (typeof normalizeWidgetHexColor === 'function') return normalizeWidgetHexColor(v, fallback || GREEN);
-    const s = String(v || '').trim();
-    return /^#[0-9a-fA-F]{6}$/.test(s) ? s : (fallback || GREEN);
-  }
-  function n(v){ return Math.max(0, Number(v || 0) || 0); }
-  function moneySymbol(code){
-    const c = String(code || '').toUpperCase();
-    if (c === 'EUR') return '€';
-    if (c === 'USD') return '$';
-    if (c === 'GBP') return '£';
-    return 'Kč';
-  }
-  function trimDecimal(v){
-    const r = Math.round(v * 10) / 10;
-    return Number.isInteger(r) ? String(Math.round(r)) : String(r).replace('.', ',');
-  }
-  function compactNumber(value){
-    const x = n(value);
-    if (x >= 1000000000) return trimDecimal(x / 1000000000) + 'b';
-    if (x >= 1000000) return trimDecimal(x / 1000000) + 'm';
-    if (x >= 1000) return trimDecimal(x / 1000) + 'k';
-    return String(Math.round(x));
-  }
-  function metricMode(widget){
-    return ((widget && (widget.gaugeMetric || widget.linearMetric || widget.metric || widget.dataSource)) || 'amount') === 'count' ? 'count' : 'amount';
-  }
-  function metric(widget, stats){
-    stats = stats || {};
-    const txns = Array.isArray(stats.txns) ? stats.txns : [];
-    const mode = metricMode(widget);
-    if (mode === 'count') {
-      const used = txns.length;
-      const limit = n((stats && stats.target) || (widget && widget.txTarget) || (widget && widget.limit) || 0) || 1;
-      return { mode, used, limit, label: compactNumber(used) + ' / ' + compactNumber(limit), rawCount: used };
-    }
-    const used = n((stats && stats.spent) || 0);
-    const limit = n((stats && stats.limit) || (widget && widget.limit) || 0) || 1;
-    const code = (stats && stats.currency) || (widget && widget.currency) || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK');
-    return { mode, used, limit, label: compactNumber(used) + ' / ' + compactNumber(limit) + ' ' + moneySymbol(code), rawCount: txns.length };
-  }
-
-  function removeProjectionControls(){
-    try { document.querySelectorAll('#cw-extra-colors-row').forEach(el => el.remove()); } catch (_) {}
-  }
-  function schedulePreview(){ try { updateCustomWidgetBuilderPreview(); } catch (_) {} }
-
-  // Keep saved old projection values harmless and keep new/edited widgets clean.
-  const oldCollect = window.collectCustomWidgetBuilderValues;
-  window.collectCustomWidgetBuilderValues = function(){
-    const values = typeof oldCollect === 'function' ? oldCollect.apply(this, arguments) : {};
-    removeProjectionControls();
-    if (values && Object.prototype.hasOwnProperty.call(values, 'projectionColor')) delete values.projectionColor;
-    return values;
-  };
-  try { collectCustomWidgetBuilderValues = window.collectCustomWidgetBuilderValues; } catch (_) {}
-
-  const oldOpen = window.openCustomWidgetBuilder;
-  window.openCustomWidgetBuilder = function(){
-    const result = typeof oldOpen === 'function' ? oldOpen.apply(this, arguments) : undefined;
-    setTimeout(function(){ removeProjectionControls(); schedulePreview(); }, 0);
-    setTimeout(removeProjectionControls, 80);
-    return result;
-  };
-  try { openCustomWidgetBuilder = window.openCustomWidgetBuilder; } catch (_) {}
-
-  const oldPreset = window.selectCustomWidgetPreset;
-  window.selectCustomWidgetPreset = function(){
-    const result = typeof oldPreset === 'function' ? oldPreset.apply(this, arguments) : undefined;
-    setTimeout(function(){ removeProjectionControls(); schedulePreview(); }, 0);
-    return result;
-  };
-  try { selectCustomWidgetPreset = window.selectCustomWidgetPreset; } catch (_) {}
-
-  window.createCustomWidgetGauge = function(widget, stats){
-    const m = metric(widget, stats || {});
-    const ratio = m.limit > 0 ? m.used / m.limit : 0;
-    const pct = Math.max(0, Math.min(100, Math.round(ratio * 100)));
-    const userAccent = hex(widget && widget.accent, GREEN);
-    let accent = userAccent;
-    if (m.mode === 'amount') {
-      accent = pct >= 100 ? RED : (pct >= 75 ? WARN : userAccent);
-    } else {
-      accent = pct >= 100 ? GREEN : userAccent;
-    }
-    const showPct = !(widget && widget.showGaugePercent === false);
-    const showLowerLine = !(widget && widget.showGaugeAmount === false);
-    const r = 59, c = Math.PI * r, dash = c * Math.min(1, pct / 100);
-    const progressWidth = Math.max(0, Math.min(100, pct));
-    return `<div class="custom-widget-gauge-wrap custom-widget-gauge-wrap-v219"><svg viewBox="0 0 168 116" aria-hidden="true">
-      <path d="M25 87 A59 59 0 0 1 143 87" fill="none" stroke="rgba(112,145,204,.18)" stroke-width="15" stroke-linecap="round"></path>
-      <path d="M25 87 A59 59 0 0 1 143 87" fill="none" stroke="${attr(accent)}" stroke-width="15" stroke-linecap="round" stroke-dasharray="${dash} ${c}"></path>
-      ${showPct ? `<text x="84" y="66" text-anchor="middle" fill="currentColor" font-size="28" font-weight="900">${esc(pct + '%')}</text>` : ''}
-      <text x="84" y="84" text-anchor="middle" fill="currentColor" opacity=".66" font-size="9.5" font-weight="900">USED</text>
-    </svg>${showLowerLine ? `<div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top custom-widget-compact-line"><strong>${esc(m.label)}</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill" style="width:${progressWidth}%; background:${attr(accent)}"></div></div></div>` : ''}</div>`;
-  };
-  try { createCustomWidgetGauge = window.createCustomWidgetGauge; } catch (_) {}
-
-  window.createCustomWidgetLineChart = function(widget, stats){
-    const m = metric(widget, stats || {});
-    const accent = hex(widget && widget.accent, GREEN);
-    const projection = BLUE;
-    const used = n(m.used), limit = n(m.limit);
-    const maxValue = Math.max(limit, used, 1) * 1.08;
-    const startX = 7, startY = 60, endX = 109, width = endX - startX, height = 53;
-    const currentX = startX + Math.max(20, Math.min(80, width * 0.58));
-    const currentY = startY - (used / maxValue) * height;
-    const limitY = startY - (Math.min(limit, maxValue) / maxValue) * height;
-    const greenPath = `M${startX} ${startY} C${startX + 20} ${startY - 2}, ${currentX - 22} ${currentY + 7}, ${currentX} ${currentY}`;
-    const bluePath = `M${currentX} ${currentY} C${currentX + 18} ${currentY - 1}, ${endX - 24} ${limitY + 4}, ${endX} ${limitY}`;
-    return `<div class="custom-widget-linear-wrap-v220">
-      <div class="custom-widget-linear-limit-v220">${esc(m.label)}</div>
-      <svg viewBox="0 0 116 70" preserveAspectRatio="none" aria-hidden="true">
-        <line x1="${startX}" y1="${limitY.toFixed(2)}" x2="${endX}" y2="${limitY.toFixed(2)}" stroke="${attr(projection)}" stroke-width="1.15" stroke-dasharray="3 3" opacity=".42"></line>
-        <path d="${greenPath} L${currentX} ${startY} L${startX} ${startY} Z" fill="${attr(accent)}" opacity=".18"></path>
-        <path d="${bluePath} L${endX} ${startY} L${currentX} ${startY} Z" fill="${attr(projection)}" opacity=".13"></path>
-        <path d="${greenPath}" fill="none" stroke="${attr(accent)}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"></path>
-        <path d="${bluePath}" fill="none" stroke="${attr(projection)}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" opacity=".96"></path>
-        <circle cx="${currentX}" cy="${currentY.toFixed(2)}" r="1.45" fill="#fff" opacity=".95"></circle>
-        <circle cx="${currentX}" cy="${currentY.toFixed(2)}" r=".82" fill="${attr(accent)}"></circle>
-      </svg>
-    </div>`;
-  };
-  try { createCustomWidgetLineChart = window.createCustomWidgetLineChart; } catch (_) {}
-
-  function rerender(){
-    removeProjectionControls();
-    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch (_) {}
-  }
-  window.addEventListener('DOMContentLoaded', function(){ setTimeout(rerender, 0); setTimeout(rerender, 250); setTimeout(removeProjectionControls, 600); });
-})();
-</script>
 
 
 
 <!-- v221 final widget colour fix: accent shade + count gauge success -->
-<style id="v221-widget-color-logic-final-css">
-  .custom-widget-linear-wrap-v221 { width:100%; display:grid; gap:4px; margin-top:-2px; }
-  .custom-widget-linear-wrap-v221 svg { width:100% !important; height:82px !important; display:block !important; overflow:visible !important; }
-  .custom-widget-card[data-size="small"] .custom-widget-linear-wrap-v221 svg { height:94px !important; }
-  .custom-widget-card[data-size="medium"] .custom-widget-linear-wrap-v221 svg { height:100px !important; }
-  .custom-widget-card[data-size="large"] .custom-widget-linear-wrap-v221 svg { height:120px !important; }
-  .custom-widget-linear-limit-v221 {
-    font-family: var(--font-mono) !important;
-    font-weight: 900 !important;
-    font-size: clamp(13px, 3.8vw, 16px) !important;
-    line-height: 1.1 !important;
-    letter-spacing: -0.045em !important;
-    color: #fff !important;
-    white-space: nowrap !important;
-    text-align: left !important;
-  }
-  html[data-theme="light"] .custom-widget-linear-limit-v221 { color:#0f172a !important; }
-  #cw-extra-colors-row { display:none !important; }
-</style>
-<script id="v221-widget-color-logic-final">
-(function(){
-  const BLUE = '#388BFD';
-  const GREEN = '#00E5A0';
-  const RED = '#E5005F';
-  const WARN = '#FFB86B';
-
-  function esc(s){
-    if (typeof escapeHtml === 'function') return escapeHtml(String(s ?? ''));
-    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-  function attr(s){ return (typeof escapeAttr === 'function') ? escapeAttr(String(s ?? '')) : esc(s); }
-  function norm(v, fallback){
-    if (typeof normalizeWidgetHexColor === 'function') return normalizeWidgetHexColor(v, fallback || GREEN);
-    const x = String(v || '').trim();
-    return /^#[0-9a-fA-F]{6}$/.test(x) ? x.toUpperCase() : (fallback || GREEN);
-  }
-  function num(v){ return Math.max(0, Number(v || 0) || 0); }
-  function symbol(code){
-    const c = String(code || '').toUpperCase();
-    if (c === 'EUR') return '€';
-    if (c === 'USD') return '$';
-    if (c === 'GBP') return '£';
-    return 'Kč';
-  }
-  function nice(v){ const r = Math.round(v * 10) / 10; return Number.isInteger(r) ? String(Math.round(r)) : String(r).replace('.', ','); }
-  function compact(value){
-    const x = num(value);
-    if (x >= 1000000000) return nice(x / 1000000000) + 'b';
-    if (x >= 1000000) return nice(x / 1000000) + 'm';
-    if (x >= 1000) return nice(x / 1000) + 'k';
-    return String(Math.round(x));
-  }
-  function metricMode(widget, stats){
-    const raw = String(
-      (widget && (widget.gaugeMetric || widget.linearMetric || widget.metric || widget.dataSource || widget.sourceMetric)) ||
-      (stats && (stats.gaugeMetric || stats.linearMetric || stats.metric || stats.dataSource)) ||
-      ''
-    ).toLowerCase();
-    if (raw === 'count' || raw === 'counts' || raw === 'tx' || raw === 'txs' || raw === 'transactions' || raw === 'transaction_count' || raw.indexOf('trans') >= 0 || raw.indexOf('počet') >= 0 || raw.indexOf('pocet') >= 0) return 'count';
-    return 'amount';
-  }
-  function metric(widget, stats){
-    stats = stats || {};
-    const txns = Array.isArray(stats.txns) ? stats.txns : [];
-    const mode = metricMode(widget, stats);
-    if (mode === 'count') {
-      const used = num((stats && (stats.countUsed || stats.usedCount)) || txns.length || (stats && stats.used) || 0);
-      const limit = num((stats && (stats.target || stats.txTarget)) || (widget && (widget.txTarget || widget.target || widget.limit)) || 0) || 1;
-      return { mode, used, limit, pct: Math.max(0, Math.min(100, Math.round((used / limit) * 100))), label: compact(used) + ' / ' + compact(limit), rawCount: used };
-    }
-    const used = num((stats && (stats.spent || stats.used)) || (widget && widget.manualUsed) || 0);
-    const limit = num((stats && stats.limit) || (widget && widget.limit) || 0) || 1;
-    const code = (stats && stats.currency) || (widget && widget.currency) || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK');
-    return { mode, used, limit, pct: Math.max(0, Math.min(100, Math.round((used / limit) * 100))), label: compact(used) + ' / ' + compact(limit) + ' ' + symbol(code), rawCount: txns.length };
-  }
-  function gaugeColor(widget, stats, m){
-    const userAccent = norm(widget && widget.accent, GREEN);
-    if (m.mode === 'count') return m.pct >= 100 ? GREEN : userAccent;
-    return m.pct >= 100 ? RED : (m.pct >= 75 ? WARN : userAccent);
-  }
-
-  window.getCustomWidgetUsedLimit = function(widget, stats){ return metric(widget, stats || {}); };
-  try { getCustomWidgetUsedLimit = window.getCustomWidgetUsedLimit; } catch (_) {}
-
-  window.createCustomWidgetGauge = function(widget, stats){
-    const m = metric(widget, stats || {});
-    const accent = gaugeColor(widget, stats || {}, m);
-    const r = 67, c = Math.PI * r, dash = c * Math.min(1, m.pct / 100);
-    const showPct = !(widget && widget.showGaugePercent === false);
-    const showLowerLine = !(widget && widget.showGaugeAmount === false);
-    return `<div class="custom-widget-gauge-wrap custom-widget-gauge-wrap-v219"><svg viewBox="0 0 190 128" aria-hidden="true">
-      <path d="M28 96 A67 67 0 0 1 162 96" fill="none" stroke="rgba(112,145,204,.18)" stroke-width="17" stroke-linecap="round"></path>
-      <path d="M28 96 A67 67 0 0 1 162 96" fill="none" stroke="${attr(accent)}" stroke-width="17" stroke-linecap="round" stroke-dasharray="${dash} ${c}"></path>
-      ${showPct ? `<text x="95" y="72" text-anchor="middle" fill="currentColor" font-size="31" font-weight="900">${esc(m.pct + '%')}</text>` : ''}
-      <text x="95" y="91" text-anchor="middle" fill="currentColor" opacity=".66" font-size="10" font-weight="900">USED</text>
-    </svg>${showLowerLine ? `<div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top custom-widget-compact-line"><strong>${esc(m.label)}</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill" style="width:${m.pct}%; background:${attr(accent)}"></div></div></div>` : ''}</div>`;
-  };
-  try { createCustomWidgetGauge = window.createCustomWidgetGauge; } catch (_) {}
-
-  window.createCustomWidgetLineChart = function(widget, stats){
-    const m = metric(widget, stats || {});
-    const accent = norm(widget && widget.accent, GREEN);
-    const used = num(m.used), limit = num(m.limit);
-    const maxValue = Math.max(limit, used, 1) * 1.08;
-    const startX = 7, startY = 60, endX = 109, width = endX - startX, height = 53;
-    const currentX = startX + Math.max(20, Math.min(80, width * 0.58));
-    const currentY = startY - (used / maxValue) * height;
-    const limitY = startY - (Math.min(limit, maxValue) / maxValue) * height;
-    const accentPath = `M${startX} ${startY} C${startX + 20} ${startY - 2}, ${currentX - 22} ${currentY + 7}, ${currentX} ${currentY}`;
-    const bluePath = `M${currentX} ${currentY} C${currentX + 18} ${currentY - 1}, ${endX - 24} ${limitY + 4}, ${endX} ${limitY}`;
-    return `<div class="custom-widget-linear-wrap-v221">
-      <div class="custom-widget-linear-limit-v221">${esc(m.label)}</div>
-      <svg viewBox="0 0 116 70" preserveAspectRatio="none" aria-hidden="true">
-        <line x1="${startX}" y1="${limitY.toFixed(2)}" x2="${endX}" y2="${limitY.toFixed(2)}" stroke="${BLUE}" stroke-width="1.15" stroke-dasharray="3 3" opacity=".42"></line>
-        <path d="${accentPath} L${currentX} ${startY} L${startX} ${startY} Z" fill="${attr(accent)}" opacity=".22"></path>
-        <path d="${bluePath} L${endX} ${startY} L${currentX} ${startY} Z" fill="${BLUE}" opacity=".13"></path>
-        <path d="${accentPath}" fill="none" stroke="${attr(accent)}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"></path>
-        <path d="${bluePath}" fill="none" stroke="${BLUE}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" opacity=".96"></path>
-        <circle cx="${currentX}" cy="${currentY.toFixed(2)}" r="1.45" fill="#fff" opacity=".95"></circle>
-        <circle cx="${currentX}" cy="${currentY.toFixed(2)}" r=".82" fill="${attr(accent)}"></circle>
-      </svg>
-    </div>`;
-  };
-  try { createCustomWidgetLineChart = window.createCustomWidgetLineChart; } catch (_) {}
-
-  window.renderCustomWidgetCard = function(widget, stats){
-    stats = stats || {};
-    const m = metric(widget, stats);
-    const accent = norm(widget && widget.accent, GREEN);
-    const isGauge = widget && widget.chart === 'gauge';
-    const isLinear = widget && widget.chart !== 'none' && !isGauge;
-    const chart = isGauge ? window.createCustomWidgetGauge(widget, stats) : ((widget && widget.chart === 'none') ? '' : window.createCustomWidgetLineChart(widget, stats));
-    const showCount = String(widget && widget.showCount) !== 'false' && Number((widget && widget.txTarget) || 0) > 0;
-    const countLine = showCount ? `<div class="custom-widget-count custom-widget-count-inline"><span>Transactions</span><span>${esc(compact((stats.txns || []).length))} / ${esc(compact(Number(widget.txTarget || 0)))}</span></div>` : '';
-    const mainBlock = (isGauge || isLinear) ? '' : `<div class="custom-widget-main custom-widget-main-compact"><div class="custom-widget-money">${esc(m.label)}</div></div>`;
-    const manualControls = stats && stats.source === 'manual' ? `<div class="custom-widget-manual-controls" onclick="event.stopPropagation()"><button type="button" onclick="adjustCustomWidgetManualValue('${attr(widget.id)}',-1)">−</button><span>Manual</span><button type="button" onclick="adjustCustomWidgetManualValue('${attr(widget.id)}',1)">+</button></div>` : '';
-    return `<article class="custom-widget-card" data-id="${attr(widget.id)}" data-size="${attr(widget.size || 'medium')}" draggable="true" style="--widget-accent:${attr(accent)}" onclick="handleCustomWidgetCardClick(event,'${attr(widget.id)}')" ondblclick="deleteCustomWidgetQuick(event,'${attr(widget.id)}')" ondragstart="handleCustomWidgetDragStart(event,'${attr(widget.id)}')" ondragover="handleCustomWidgetDragOver(event)" ondrop="handleCustomWidgetDrop(event,'${attr(widget.id)}')" ondragend="handleCustomWidgetDragEnd(event)" onpointerdown="handleCustomWidgetPointerDown(event,'${attr(widget.id)}')" onpointermove="handleCustomWidgetPointerMove(event,'${attr(widget.id)}')" onpointerup="handleCustomWidgetPointerUp(event,'${attr(widget.id)}')" onpointercancel="handleCustomWidgetPointerUp(event,'${attr(widget.id)}')">
-      <div class="custom-widget-content"><div class="custom-widget-head"><div class="custom-widget-title-wrap"><div class="custom-widget-title">${esc(widget.name)}</div></div><div class="custom-widget-menu" onclick="event.stopPropagation()"><button class="custom-widget-icon-btn" type="button" title="Settings" onclick="openCustomWidgetBuilder('${attr(widget.id)}')">⋮</button></div></div>${mainBlock}${isGauge ? '' : countLine}${manualControls}<div class="custom-widget-chart">${chart}</div></div>
-    </article>`;
-  };
-  try { renderCustomWidgetCard = window.renderCustomWidgetCard; } catch (_) {}
-
-  const oldRender = window.renderCustomWidgets;
-  window.renderCustomWidgets = function(){
-    try {
-      const slot = document.getElementById('custom-widget-dashboard');
-      if (!slot || typeof loadCustomWidgets !== 'function') return typeof oldRender === 'function' ? oldRender.apply(this, arguments) : undefined;
-      const widgets = loadCustomWidgets();
-      const visible = widgets.filter(w => !w.hidden);
-      if (!visible.length) {
-        slot.innerHTML = `<div class="custom-widget-empty">Add your own budget, bonus or goal widget.</div>`;
-        try { if (typeof renderCustomWidgetHiddenList === 'function') renderCustomWidgetHiddenList(); } catch (_) {}
-        return;
-      }
-      slot.innerHTML = visible.map(w => window.renderCustomWidgetCard(w, typeof getCustomWidgetStats === 'function' ? getCustomWidgetStats(w) : {})).join('');
-      try { if (typeof renderCustomWidgetHiddenList === 'function') renderCustomWidgetHiddenList(); } catch (_) {}
-    } catch (err) {
-      if (typeof oldRender === 'function') return oldRender.apply(this, arguments);
-    }
-  };
-  try { renderCustomWidgets = window.renderCustomWidgets; } catch (_) {}
-
-  function stripProjectionControls(){ try { document.querySelectorAll('#cw-extra-colors-row').forEach(el => el.remove()); } catch (_) {} }
-  const oldCollect = window.collectCustomWidgetBuilderValues;
-  window.collectCustomWidgetBuilderValues = function(){
-    const v = typeof oldCollect === 'function' ? oldCollect.apply(this, arguments) : {};
-    if (v && Object.prototype.hasOwnProperty.call(v, 'projectionColor')) delete v.projectionColor;
-    return v;
-  };
-  try { collectCustomWidgetBuilderValues = window.collectCustomWidgetBuilderValues; } catch (_) {}
-
-  function rerender(){ stripProjectionControls(); try { window.renderCustomWidgets(); } catch (_) {} try { updateCustomWidgetBuilderPreview(); } catch (_) {} }
-  window.addEventListener('DOMContentLoaded', function(){ setTimeout(rerender, 0); setTimeout(rerender, 180); setTimeout(rerender, 650); });
-})();
-</script>
 
 
 
 <!-- v222 strict gauge datasource colour fix -->
-<script id="v222-strict-gauge-datasource-colour-fix">
-(function(){
-  const GREEN = '#00E5A0';
-  const RED = '#E5005F';
-  const WARN = '#FFB86B';
-  const STORAGE_KEY = 'bank_tracker_custom_widgets_v1';
-
-  function esc(s){
-    if (typeof escapeHtml === 'function') return escapeHtml(String(s ?? ''));
-    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-  function attr(s){ return (typeof escapeAttr === 'function') ? escapeAttr(String(s ?? '')) : esc(s); }
-  function norm(v, fallback){
-    if (typeof normalizeWidgetHexColor === 'function') return normalizeWidgetHexColor(v, fallback || GREEN);
-    const x = String(v || '').trim();
-    return /^#[0-9a-fA-F]{6}$/.test(x) ? x.toUpperCase() : (fallback || GREEN);
-  }
-  function num(v){ return Math.max(0, Number(v || 0) || 0); }
-  function symbol(code){
-    const c = String(code || '').toUpperCase();
-    if (c === 'EUR') return '€';
-    if (c === 'USD') return '$';
-    if (c === 'GBP') return '£';
-    return 'Kč';
-  }
-  function nice(v){
-    const r = Math.round(v * 10) / 10;
-    return (Number.isInteger(r) ? String(Math.round(r)) : String(r)).replace('.', ',');
-  }
-  function compact(v){
-    const x = num(v);
-    if (x >= 1000000000) return nice(x / 1000000000) + 'b';
-    if (x >= 1000000) return nice(x / 1000000) + 'm';
-    if (x >= 1000) return nice(x / 1000) + 'k';
-    return String(Math.round(x));
-  }
-  function rawMetricString(widget, stats){
-    return String(
-      (widget && (widget.gaugeMetric || widget.linearMetric || widget.metricMode || widget.metric || widget.dataMetric || widget.dataSourceMetric || widget.sourceMetric || widget.dataSource)) ||
-      (stats && (stats.gaugeMetric || stats.linearMetric || stats.metricMode || stats.metric || stats.dataMetric || stats.dataSourceMetric || stats.sourceMetric || stats.dataSource)) ||
-      ''
-    ).toLowerCase();
-  }
-  function isCountMode(widget, stats){
-    const raw = rawMetricString(widget, stats);
-    if (raw === 'count' || raw === 'counts' || raw === 'tx' || raw === 'txs' || raw === 'transaction' || raw === 'transactions' || raw === 'transaction_count') return true;
-    if (raw.includes('trans') || raw.includes('count') || raw.includes('počet') || raw.includes('pocet')) return true;
-    if (widget && (widget.gaugeMetric === 'count' || widget.linearMetric === 'count')) return true;
-    return false;
-  }
-  function metric(widget, stats){
-    stats = stats || {};
-    const txns = Array.isArray(stats.txns) ? stats.txns : [];
-    const countMode = isCountMode(widget, stats);
-    if (countMode) {
-      const used = num(stats.countUsed || stats.usedCount || txns.length || stats.used || 0);
-      const limit = num(stats.target || stats.txTarget || (widget && (widget.txTarget || widget.target)) || 0) || 1;
-      const pct = Math.max(0, Math.min(100, Math.round((used / limit) * 100)));
-      return { mode:'count', used, limit, pct, label: compact(used) + ' / ' + compact(limit) };
-    }
-    const used = num((stats.spent ?? stats.used) || (widget && widget.manualUsed) || 0);
-    const limit = num((stats.limit ?? (widget && widget.limit)) || 0) || 1;
-    const code = (stats.currency || (widget && widget.currency) || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK'));
-    const pct = Math.max(0, Math.min(100, Math.round((used / limit) * 100)));
-    return { mode:'amount', used, limit, pct, label: compact(used) + ' / ' + compact(limit) + ' ' + symbol(code) };
-  }
-  function strictGaugeColour(widget, stats, m){
-    if (m.mode === 'count' && m.used >= m.limit) return GREEN;
-    if (m.mode === 'amount' && m.used >= m.limit) return RED;
-    if (m.mode === 'amount' && m.pct >= 75) return WARN;
-    return norm(widget && widget.accent, GREEN);
-  }
-
-  window.getCustomWidgetUsedLimit = function(widget, stats){ return metric(widget, stats || {}); };
-  try { getCustomWidgetUsedLimit = window.getCustomWidgetUsedLimit; } catch (_) {}
-
-  window.createCustomWidgetGauge = function(widget, stats){
-    const m = metric(widget, stats || {});
-    const accent = strictGaugeColour(widget, stats || {}, m);
-    const r = 67, c = Math.PI * r, dash = c * Math.min(1, m.pct / 100);
-    const showPct = !(widget && widget.showGaugePercent === false);
-    const showLowerLine = !(widget && widget.showGaugeAmount === false);
-    return `<div class="custom-widget-gauge-wrap custom-widget-gauge-wrap-v222" data-v222-mode="${attr(m.mode)}" data-v222-colour="${attr(accent)}"><svg viewBox="0 0 190 128" aria-hidden="true">
-      <path d="M28 96 A67 67 0 0 1 162 96" fill="none" stroke="rgba(112,145,204,.18)" stroke-width="17" stroke-linecap="round"></path>
-      <path class="custom-widget-gauge-active-path" d="M28 96 A67 67 0 0 1 162 96" fill="none" stroke="${attr(accent)}" stroke-width="17" stroke-linecap="round" stroke-dasharray="${dash} ${c}"></path>
-      ${showPct ? `<text x="95" y="72" text-anchor="middle" fill="currentColor" font-size="31" font-weight="900">${esc(m.pct + '%')}</text>` : ''}
-      <text x="95" y="91" text-anchor="middle" fill="currentColor" opacity=".66" font-size="10" font-weight="900">USED</text>
-    </svg>${showLowerLine ? `<div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top custom-widget-compact-line"><strong>${esc(m.label)}</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill" style="width:${m.pct}%; background:${attr(accent)}"></div></div></div>` : ''}</div>`;
-  };
-  try { createCustomWidgetGauge = window.createCustomWidgetGauge; } catch (_) {}
-
-  const oldCard = window.renderCustomWidgetCard;
-  window.renderCustomWidgetCard = function(widget, stats){
-    if (widget && widget.chart === 'gauge') {
-      stats = stats || (typeof getCustomWidgetStats === 'function' ? getCustomWidgetStats(widget) : {});
-      const m = metric(widget, stats);
-      const accent = norm(widget && widget.accent, GREEN);
-      const showCount = String(widget && widget.showCount) !== 'false' && Number((widget && widget.txTarget) || 0) > 0;
-      const countLine = showCount ? `<div class="custom-widget-count custom-widget-count-inline"><span>Transactions</span><span>${esc(compact((stats.txns || []).length))} / ${esc(compact(Number(widget.txTarget || 0)))}</span></div>` : '';
-      const manualControls = stats && stats.source === 'manual' ? `<div class="custom-widget-manual-controls" onclick="event.stopPropagation()"><button type="button" onclick="adjustCustomWidgetManualValue('${attr(widget.id)}',-1)">−</button><span>Manual</span><button type="button" onclick="adjustCustomWidgetManualValue('${attr(widget.id)}',1)">+</button></div>` : '';
-      return `<article class="custom-widget-card" data-id="${attr(widget.id)}" data-size="${attr(widget.size || 'medium')}" draggable="true" style="--widget-accent:${attr(accent)}" onclick="handleCustomWidgetCardClick(event,'${attr(widget.id)}')" ondblclick="deleteCustomWidgetQuick(event,'${attr(widget.id)}')" ondragstart="handleCustomWidgetDragStart(event,'${attr(widget.id)}')" ondragover="handleCustomWidgetDragOver(event)" ondrop="handleCustomWidgetDrop(event,'${attr(widget.id)}')" ondragend="handleCustomWidgetDragEnd(event)" onpointerdown="handleCustomWidgetPointerDown(event,'${attr(widget.id)}')" onpointermove="handleCustomWidgetPointerMove(event,'${attr(widget.id)}')" onpointerup="handleCustomWidgetPointerUp(event,'${attr(widget.id)}')" onpointercancel="handleCustomWidgetPointerUp(event,'${attr(widget.id)}')">
-        <div class="custom-widget-content"><div class="custom-widget-head"><div class="custom-widget-title-wrap"><div class="custom-widget-title">${esc(widget.name)}</div></div><div class="custom-widget-menu" onclick="event.stopPropagation()"><button class="custom-widget-icon-btn" type="button" title="Settings" onclick="openCustomWidgetBuilder('${attr(widget.id)}')">⋮</button></div></div>${countLine}${manualControls}<div class="custom-widget-chart">${window.createCustomWidgetGauge(widget, stats)}</div></div>
-      </article>`;
-    }
-    return typeof oldCard === 'function' ? oldCard.apply(this, arguments) : '';
-  };
-  try { renderCustomWidgetCard = window.renderCustomWidgetCard; } catch (_) {}
-
-  function loadWidgets(){
-    try { const w = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(w) ? w : []; } catch (_) { return []; }
-  }
-  function patchRenderedGaugeColours(){
-    try {
-      const widgets = loadWidgets();
-      document.querySelectorAll('.custom-widget-card[data-id]').forEach(card => {
-        const widget = widgets.find(w => String(w.id) === String(card.dataset.id));
-        if (!widget || widget.chart !== 'gauge') return;
-        const stats = typeof getCustomWidgetStats === 'function' ? getCustomWidgetStats(widget) : {};
-        const m = metric(widget, stats);
-        const colour = strictGaugeColour(widget, stats, m);
-        const activePath = card.querySelector('.custom-widget-gauge-active-path') || card.querySelector('.custom-widget-gauge-wrap svg path:nth-of-type(2)');
-        if (activePath) activePath.setAttribute('stroke', colour);
-        card.querySelectorAll('.custom-widget-gauge-fill').forEach(el => { el.style.background = colour; });
-        const wrap = card.querySelector('.custom-widget-gauge-wrap');
-        if (wrap) { wrap.dataset.v222Mode = m.mode; wrap.dataset.v222Colour = colour; }
-      });
-    } catch (_) {}
-  }
-
-  const previousRenderWidgets = window.renderCustomWidgets;
-  window.renderCustomWidgets = function(){
-    const result = typeof previousRenderWidgets === 'function' ? previousRenderWidgets.apply(this, arguments) : undefined;
-    setTimeout(patchRenderedGaugeColours, 0);
-    return result;
-  };
-  try { renderCustomWidgets = window.renderCustomWidgets; } catch (_) {}
-
-  window.v222PatchCustomWidgetGaugeColours = patchRenderedGaugeColours;
-  window.addEventListener('DOMContentLoaded', function(){
-    setTimeout(function(){ try { if (typeof window.renderCustomWidgets === 'function') window.renderCustomWidgets(); } catch (_) {} patchRenderedGaugeColours(); }, 0);
-    setTimeout(patchRenderedGaugeColours, 250);
-    setTimeout(patchRenderedGaugeColours, 800);
-  });
-})();
-</script>
 
 
 
 <!-- v223 hard fix: custom widget gauge colours mirror Overview details logic -->
-<style id="v223-widget-gauge-colour-hard-css">
-  .custom-widget-gauge-active-path-v223 { transition: stroke .12s ease; }
-</style>
-<script id="v223-widget-overview-details-colour-logic">
-(function(){
-  const STORAGE_KEY = 'bank_tracker_custom_widgets_v1';
-  const GREEN = '#00E5A0';
-  const RED = '#E5005F';
-  const WARN = '#FFB86B';
-  const BLUE = '#388BFD';
-
-  function safeJson(value, fallback){ try { return JSON.parse(value); } catch (_) { return fallback; } }
-  function widgets(){
-    const list = safeJson(localStorage.getItem(STORAGE_KEY) || '[]', []);
-    return Array.isArray(list) ? list : [];
-  }
-  function normHex(value, fallback){
-    if (typeof normalizeWidgetHexColor === 'function') return normalizeWidgetHexColor(value, fallback || GREEN);
-    const v = String(value || '').trim();
-    return /^#[0-9a-fA-F]{6}$/.test(v) ? v.toUpperCase() : (fallback || GREEN);
-  }
-  function text(el){ return String(el && el.textContent || '').trim(); }
-  function titleOf(card, widget){
-    return String((widget && (widget.name || widget.title)) || text(card && card.querySelector('.custom-widget-title')) || '').toLowerCase();
-  }
-  function rawMode(widget){
-    return String(widget && (
-      widget.gaugeMetric || widget.linearMetric || widget.metricMode || widget.metric ||
-      widget.dataMetric || widget.dataSourceMetric || widget.sourceMetric || widget.dataSource || ''
-    ) || '').toLowerCase();
-  }
-  function hasCurrency(textValue){
-    return /(kč|czk|eur|€|usd|\$|gbp|£)/i.test(String(textValue || ''));
-  }
-  function isCountGauge(widget, card){
-    const raw = rawMode(widget);
-    if (/^(amount|sum|suma|budget|money|spent)$/.test(raw)) return false;
-    if (/^(count|counts|tx|txs|transaction|transactions|transaction_count|pocet|počet)$/.test(raw)) return true;
-    if (raw.includes('trans') || raw.includes('count') || raw.includes('pocet') || raw.includes('počet')) return true;
-
-    const labelText = text(card && card.querySelector('.custom-widget-compact-line, .custom-widget-gauge-value-line, .custom-widget-count'));
-    if (hasCurrency(labelText)) return false;
-
-    const title = titleOf(card, widget);
-    if (/bank\s*card\s*limits?|card\s*bonus|key\s*lounge|lounge|transaction|transak/i.test(title)) return true;
-    if (widget && Number(widget.txTarget || widget.target || 0) > 0 && !hasCurrency(labelText)) return true;
-    return false;
-  }
-  function numberFromPart(part){
-    let s = String(part || '').toLowerCase().replace(/\s+/g, '').replace(/,/g, '.');
-    const mult = s.includes('b') ? 1000000000 : (s.includes('m') ? 1000000 : (s.includes('k') ? 1000 : 1));
-    s = s.replace(/[^0-9.\-]/g, '');
-    const n = Number(s);
-    return Number.isFinite(n) ? Math.max(0, n * mult) : 0;
-  }
-  function pctFromCard(card, widget, mode){
-    const pctText = text(card && card.querySelector('svg text'));
-    const pctMatch = pctText.match(/(\d+(?:[\.,]\d+)?)\s*%/);
-    if (pctMatch) return Math.max(0, Math.min(100, Number(pctMatch[1].replace(',', '.')) || 0));
-
-    const line = text(card && card.querySelector('.custom-widget-compact-line, .custom-widget-gauge-value-line'));
-    const slash = line.split('/');
-    if (slash.length >= 2) {
-      const used = numberFromPart(slash[0]);
-      const limit = numberFromPart(slash.slice(1).join('/'));
-      if (limit > 0) return Math.max(0, Math.min(100, Math.round((used / limit) * 100)));
-    }
-
-    try {
-      if (typeof getCustomWidgetStats === 'function' && widget) {
-        const stats = getCustomWidgetStats(widget) || {};
-        if (mode === 'count') {
-          const used = Array.isArray(stats.txns) ? stats.txns.length : Number(stats.usedCount || stats.countUsed || 0) || 0;
-          const limit = Number(stats.target || stats.txTarget || widget.txTarget || widget.target || 0) || 0;
-          if (limit > 0) return Math.max(0, Math.min(100, Math.round((used / limit) * 100)));
-        } else {
-          const used = Math.max(0, Number(stats.spent || stats.used || widget.manualUsed || 0) || 0);
-          const limit = Math.max(0, Number(stats.limit || widget.limit || 0) || 0);
-          if (limit > 0) return Math.max(0, Math.min(100, Math.round((used / limit) * 100)));
-        }
-      }
-    } catch (_) {}
-    return 0;
-  }
-  function overviewDetailsColour(widget, card){
-    const mode = isCountGauge(widget, card) ? 'count' : 'amount';
-    const pct = pctFromCard(card, widget, mode);
-    if (mode === 'count') {
-      if (pct >= 80) return GREEN;
-      if (pct >= 50) return WARN;
-      return RED;
-    }
-    if (pct >= 100) return RED;
-    if (pct >= 75) return WARN;
-    return normHex(widget && widget.accent, GREEN);
-  }
-  function applyGaugeColour(card, widget){
-    if (!card) return;
-    const wrap = card.querySelector('.custom-widget-gauge-wrap');
-    if (!wrap) return;
-    const colour = overviewDetailsColour(widget || {}, card);
-    const activePath = card.querySelector('.custom-widget-gauge-active-path, .custom-widget-gauge-active-path-v223') || card.querySelector('.custom-widget-gauge-wrap svg path:nth-of-type(2)');
-    if (activePath) {
-      activePath.classList.add('custom-widget-gauge-active-path-v223');
-      activePath.setAttribute('stroke', colour);
-      activePath.style.stroke = colour;
-    }
-    card.querySelectorAll('.custom-widget-gauge-fill').forEach(el => {
-      el.style.background = colour;
-      el.style.backgroundColor = colour;
-    });
-    wrap.dataset.v223Colour = colour;
-    wrap.dataset.v223Mode = isCountGauge(widget, card) ? 'count' : 'amount';
-  }
-  function patchAllGaugeColours(){
-    const list = widgets();
-    document.querySelectorAll('.custom-widget-card[data-id]').forEach(card => {
-      const id = String(card.dataset.id || '');
-      const widget = list.find(w => String(w.id) === id) || {};
-      applyGaugeColour(card, widget);
-    });
-    const preview = document.getElementById('custom-widget-preview');
-    if (preview) {
-      const card = preview.querySelector('.custom-widget-card');
-      if (card) {
-        let mock = {};
-        try {
-          if (typeof collectCustomWidgetBuilderValues === 'function') mock = collectCustomWidgetBuilderValues() || {};
-        } catch (_) {}
-        applyGaugeColour(card, mock);
-      }
-    }
-  }
-
-  const previousRenderCustomWidgets = window.renderCustomWidgets;
-  window.renderCustomWidgets = function(){
-    const result = typeof previousRenderCustomWidgets === 'function' ? previousRenderCustomWidgets.apply(this, arguments) : undefined;
-    requestAnimationFrame(patchAllGaugeColours);
-    setTimeout(patchAllGaugeColours, 30);
-    return result;
-  };
-  try { renderCustomWidgets = window.renderCustomWidgets; } catch (_) {}
-
-  const previousPreview = window.updateCustomWidgetBuilderPreview;
-  window.updateCustomWidgetBuilderPreview = function(){
-    const result = typeof previousPreview === 'function' ? previousPreview.apply(this, arguments) : undefined;
-    requestAnimationFrame(patchAllGaugeColours);
-    setTimeout(patchAllGaugeColours, 30);
-    return result;
-  };
-  try { updateCustomWidgetBuilderPreview = window.updateCustomWidgetBuilderPreview; } catch (_) {}
-
-  const observer = new MutationObserver(function(mutations){
-    for (const m of mutations) {
-      if (m.addedNodes && m.addedNodes.length) { requestAnimationFrame(patchAllGaugeColours); return; }
-    }
-  });
-  function start(){
-    try { observer.observe(document.body, { childList:true, subtree:true }); } catch (_) {}
-    patchAllGaugeColours();
-    setTimeout(patchAllGaugeColours, 80);
-    setTimeout(patchAllGaugeColours, 350);
-    setTimeout(patchAllGaugeColours, 1000);
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true });
-  else start();
-  window.v223PatchGaugeColours = patchAllGaugeColours;
-})();
-</script>
-
-
-
 <!-- v224 unified percentage colour logic: no accent inside gauge, mirrored in Overview details -->
-<style id="v224-percent-colour-logic-css">
-  .custom-widget-gauge-active-path-v224 { transition: stroke .12s ease; }
-</style>
-<script id="v224-percent-colour-logic-no-accent-gauge">
-(function(){
-  const STORAGE_KEY = 'bank_tracker_custom_widgets_v1';
-  const GREEN_SOFT = '#72F2C8';
-  const GREEN = '#00E5A0';
-  const ORANGE_SOFT = '#FFB86B';
-  const ORANGE = '#FF8A00';
-  const YELLOW = '#ffe033';
-  const RED = '#E5005F';
-  const TRACK = 'rgba(112,145,204,.22)';
-
-  function esc(s){
-    return String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
-  }
-  function attr(s){ return esc(s); }
-  function num(v){
-    const n = Number(String(v ?? '').replace(/\s/g,'').replace(',', '.').replace(/[^0-9.\-]/g,''));
-    return Number.isFinite(n) ? n : 0;
-  }
-  function nice(v){
-    const r = Math.round(v * 10) / 10;
-    return (Number.isInteger(r) ? String(Math.round(r)) : String(r)).replace('.', ',');
-  }
-  function compact(v){
-    const x = Math.abs(num(v));
-    const sign = num(v) < 0 ? '-' : '';
-    if (x >= 1000000000) return sign + nice(x / 1000000000) + 'b';
-    if (x >= 1000000) return sign + nice(x / 1000000) + 'm';
-    if (x >= 1000) return sign + nice(x / 1000) + 'k';
-    return sign + String(Math.round(x));
-  }
-  function currencySymbol(code){
-    const c = String(code || '').toUpperCase();
-    if (c === 'EUR') return '€';
-    if (c === 'USD') return '$';
-    if (c === 'GBP') return '£';
-    return 'Kč';
-  }
-  function pct(used, limit){
-    const l = num(limit);
-    if (l <= 0) return 0;
-    return Math.max(0, Math.min(100, Math.round((num(used) / l) * 100)));
-  }
-
-  function amountColour(p){
-    p = Math.max(0, Math.min(100, Number(p) || 0));
-    if (p >= 100) return RED;
-    if (p >= 76) return ORANGE;
-    if (p >= 51) return ORANGE_SOFT;
-    if (p >= 26) return YELLOW;
-    return GREEN_SOFT;
-  }
-  function countColour(p){
-    p = Math.max(0, Math.min(100, Number(p) || 0));
-    if (p >= 100) return GREEN;
-    if (p >= 76) return YELLOW;
-    if (p >= 50) return ORANGE_SOFT;
-    if (p >= 26) return ORANGE;
-    return RED;
-  }
-  function colourForMode(mode, percent){
-    return mode === 'count' ? countColour(percent) : amountColour(percent);
-  }
-
-  window.getBankTrackerPercentColour = colourForMode;
-  window.getBankTrackerAmountPercentColour = amountColour;
-  window.getBankTrackerCountPercentColour = countColour;
-
-  function rawMode(widget){
-    return String(widget && (
-      widget.gaugeMetric || widget.linearMetric || widget.metricMode || widget.metric ||
-      widget.dataMetric || widget.dataSourceMetric || widget.sourceMetric || widget.dataSource || ''
-    ) || '').toLowerCase();
-  }
-  function title(widget, card){
-    const fromCard = card && card.querySelector('.custom-widget-title');
-    return String((widget && (widget.name || widget.title)) || (fromCard && fromCard.textContent) || '').toLowerCase();
-  }
-  function hasCurrency(value){
-    return /(kč|czk|eur|€|usd|\$|gbp|£)/i.test(String(value || ''));
-  }
-  function isCountMode(widget, card){
-    const raw = rawMode(widget);
-    if (/^(amount|sum|suma|budget|money|spent)$/.test(raw)) return false;
-    if (/^(count|counts|tx|txs|transaction|transactions|transaction_count|pocet|počet)$/.test(raw)) return true;
-    if (raw.includes('trans') || raw.includes('count') || raw.includes('pocet') || raw.includes('počet')) return true;
-    const t = title(widget, card);
-    if (/bank\s*card\s*limits?|card\s*bonus|transaction|transak|lounge/i.test(t)) return true;
-    const label = card ? String((card.querySelector('.custom-widget-compact-line, .custom-widget-gauge-value-line, .custom-widget-count') || {}).textContent || '') : '';
-    if (hasCurrency(label)) return false;
-    if (widget && Number(widget.txTarget || 0) > 0 && !hasCurrency(label)) return true;
-    return false;
-  }
-  function metric(widget, stats, card){
-    stats = stats || {};
-    const mode = isCountMode(widget, card) ? 'count' : 'amount';
-    if (mode === 'count') {
-      const txns = Array.isArray(stats.txns) ? stats.txns : [];
-      const used = num(stats.countUsed || stats.usedCount || stats.count || (txns.length || 0) || stats.used || 0);
-      const limit = num(stats.target || stats.txTarget || stats.limit || (widget && (widget.txTarget || widget.target || widget.limit)) || 0) || 1;
-      const p = pct(used, limit);
-      return { mode, used, limit, pct:p, label: compact(used) + ' / ' + compact(limit) };
-    }
-    const used = num((stats.spent ?? stats.used) || (widget && widget.manualUsed) || 0);
-    const limit = num((stats.limit ?? (widget && (widget.limit || widget.target))) || 0) || 1;
-    const code = stats.currency || (widget && widget.currency) || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK');
-    const p = pct(used, limit);
-    return { mode, used, limit, pct:p, label: compact(used) + ' / ' + compact(limit) + ' ' + currencySymbol(code) };
-  }
-
-  window.createCustomWidgetGauge = function(widget, stats){
-    const m = metric(widget || {}, stats || {}, null);
-    const colour = colourForMode(m.mode, m.pct);
-    const r = 67, c = Math.PI * r, dash = c * Math.min(1, m.pct / 100);
-    const showPct = !(widget && widget.showGaugePercent === false);
-    const showLowerLine = !(widget && widget.showGaugeAmount === false);
-    return `<div class="custom-widget-gauge-wrap custom-widget-gauge-wrap-v224" data-v224-mode="${attr(m.mode)}" data-v224-colour="${attr(colour)}"><svg viewBox="0 0 190 128" aria-hidden="true">
-      <path d="M28 96 A67 67 0 0 1 162 96" fill="none" stroke="${TRACK}" stroke-width="17" stroke-linecap="round"></path>
-      <path class="custom-widget-gauge-active-path custom-widget-gauge-active-path-v224" d="M28 96 A67 67 0 0 1 162 96" fill="none" stroke="${attr(colour)}" stroke-width="17" stroke-linecap="round" stroke-dasharray="${dash} ${c}"></path>
-      ${showPct ? `<text x="95" y="72" text-anchor="middle" fill="currentColor" font-size="31" font-weight="900">${esc(m.pct + '%')}</text>` : ''}
-      <text x="95" y="91" text-anchor="middle" fill="currentColor" opacity=".66" font-size="10" font-weight="900">USED</text>
-    </svg>${showLowerLine ? `<div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top custom-widget-compact-line"><strong>${esc(m.label)}</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill" style="width:${m.pct}%; background:${attr(colour)}"></div></div></div>` : ''}</div>`;
-  };
-  try { createCustomWidgetGauge = window.createCustomWidgetGauge; } catch (_) {}
-
-  function loadWidgets(){
-    try { const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(list) ? list : []; } catch (_) { return []; }
-  }
-  function numberFromPart(part){
-    let s = String(part || '').toLowerCase().replace(/\s+/g, '').replace(/,/g, '.');
-    const mult = s.includes('b') ? 1000000000 : (s.includes('m') ? 1000000 : (s.includes('k') ? 1000 : 1));
-    s = s.replace(/[^0-9.\-]/g, '');
-    const n = Number(s);
-    return Number.isFinite(n) ? Math.max(0, n * mult) : 0;
-  }
-  function metricFromRendered(card, widget){
-    const mode = isCountMode(widget, card) ? 'count' : 'amount';
-    const pctText = String((card.querySelector('svg text') || {}).textContent || '');
-    const pctMatch = pctText.match(/(\d+(?:[\.,]\d+)?)\s*%/);
-    if (pctMatch) {
-      const p = Math.max(0, Math.min(100, Number(pctMatch[1].replace(',', '.')) || 0));
-      return { mode, pct:p };
-    }
-    const line = String((card.querySelector('.custom-widget-compact-line, .custom-widget-gauge-value-line') || {}).textContent || '');
-    const parts = line.split('/');
-    if (parts.length >= 2) {
-      const used = numberFromPart(parts[0]);
-      const limit = numberFromPart(parts.slice(1).join('/'));
-      return { mode, pct:pct(used, limit) };
-    }
-    try {
-      const stats = typeof getCustomWidgetStats === 'function' ? getCustomWidgetStats(widget) : {};
-      const m = metric(widget, stats, card);
-      return { mode:m.mode, pct:m.pct };
-    } catch (_) {}
-    return { mode, pct:0 };
-  }
-  function patchWidgetGaugeColours(){
-    const list = loadWidgets();
-    document.querySelectorAll('.custom-widget-card[data-id], #custom-widget-preview .custom-widget-card').forEach(card => {
-      let widget = {};
-      const id = String(card.dataset.id || '');
-      if (id) widget = list.find(w => String(w.id) === id) || {};
-      try {
-        if (!id && typeof collectCustomWidgetBuilderValues === 'function') widget = collectCustomWidgetBuilderValues() || {};
-      } catch (_) {}
-      const wrap = card.querySelector('.custom-widget-gauge-wrap');
-      if (!wrap) return;
-      const m = metricFromRendered(card, widget);
-      const colour = colourForMode(m.mode, m.pct);
-      const active = card.querySelector('.custom-widget-gauge-active-path, .custom-widget-gauge-active-path-v224') || card.querySelector('.custom-widget-gauge-wrap svg path:nth-of-type(2)');
-      if (active) {
-        active.classList.add('custom-widget-gauge-active-path-v224');
-        active.setAttribute('stroke', colour);
-        active.style.stroke = colour;
-      }
-      card.querySelectorAll('.custom-widget-gauge-fill').forEach(el => {
-        el.style.background = colour;
-        el.style.backgroundColor = colour;
-      });
-      wrap.dataset.v224Mode = m.mode;
-      wrap.dataset.v224Colour = colour;
-    });
-  }
-
-  try {
-    getCardColor = function(used, limit){ return countColour(pct(used, limit)); };
-    window.getCardColor = getCardColor;
-  } catch (_) {
-    window.getCardColor = function(used, limit){ return countColour(pct(used, limit)); };
-  }
-
-  try {
-    const oldRenderBudgetStatus = window.renderBudgetStatus || (typeof renderBudgetStatus === 'function' ? renderBudgetStatus : null);
-    window.renderBudgetStatus = function(){
-      const wrap = document.getElementById('budget-status');
-      if (!wrap || typeof BANK_ORDER === 'undefined' || typeof BANKS === 'undefined') {
-        return oldRenderBudgetStatus ? oldRenderBudgetStatus.apply(this, arguments) : undefined;
-      }
-      const rows = BANK_ORDER
-        .filter(bankKey => bankKey !== 'csob_cz_credit')
-        .map(bankKey => {
-          const bank = BANKS[bankKey];
-          const month = getAktuálneMonth();
-          const budget = getOverviewBudgetLimitForBank(bankKey, month);
-          const warning = getOverviewBudgetWarningForBank(bankKey, month);
-          const budgetCurrency = getBankBudgetCurrency(bankKey);
-          const spent = getOverviewBudgetSpentForBank(bankKey, month);
-          if (!budget) {
-            return `<div class="budget-bank-row" onclick="openBankBudgetManager('${bankKey}')" title="${t('filteredTransactions')}" style="padding:10px 0;border-bottom:1px solid var(--border);"><div class="budget-status-main"><div><div class="budget-status-value" style="color:${bank.color};font-size:15px;">${bankLabelWithLogo(bankKey)}</div><div class="budget-status-note">${t('budgetNotSet')}</div></div></div></div>`;
-          }
-          const remaining = Math.max(budget - spent, 0);
-          const p = pct(spent, budget);
-          const status = remaining <= 0 ? t('overBudget') : (warning && remaining <= warning ? t('nearLimit') : t('normal'));
-          const statusColor = amountColour(p);
-          try { maybeSendBudgetLocalNotification(bankKey, plainBankName(bankKey), spent, budget, remaining, warning); } catch (_) {}
-          return `<div class="budget-bank-row" onclick="openBankBudgetManager('${bankKey}')" title="${t('filteredTransactions')}" style="padding:10px 0;border-bottom:1px solid var(--border);"><div class="budget-status-main"><div><div class="budget-status-value" style="color:${bank.color};font-size:15px;">${bankLabelWithLogo(bankKey)}</div><div class="budget-status-note">${formatCurrencyAmount(spent, budgetCurrency)} / ${formatCurrencyAmount(budget, budgetCurrency)} · ${t('remaining')} ${formatCurrencyAmount(remaining, budgetCurrency)} · <span style="color:${statusColor};font-weight:700;">${status}</span></div></div></div><div class="budget-progress"><div class="budget-progress-fill" style="width:${p}%;background:${statusColor};"></div></div></div>`;
-        }).join('');
-      wrap.innerHTML = `<div class="budget-status-title">${t('budgetStatusTitle')}</div><div class="budget-status-note" style="margin:-4px 0 10px;">${t('budgetAllPaymentsHint')}</div>${rows}`;
-    };
-    try { renderBudgetStatus = window.renderBudgetStatus; } catch (_) {}
-  } catch (_) {}
-
-  const previousRenderCustomWidgets = window.renderCustomWidgets;
-  window.renderCustomWidgets = function(){
-    const result = typeof previousRenderCustomWidgets === 'function' ? previousRenderCustomWidgets.apply(this, arguments) : undefined;
-    requestAnimationFrame(patchWidgetGaugeColours);
-    setTimeout(patchWidgetGaugeColours, 40);
-    return result;
-  };
-  try { renderCustomWidgets = window.renderCustomWidgets; } catch (_) {}
-
-  const previousPreview = window.updateCustomWidgetBuilderPreview;
-  window.updateCustomWidgetBuilderPreview = function(){
-    const result = typeof previousPreview === 'function' ? previousPreview.apply(this, arguments) : undefined;
-    requestAnimationFrame(patchWidgetGaugeColours);
-    setTimeout(patchWidgetGaugeColours, 40);
-    return result;
-  };
-  try { updateCustomWidgetBuilderPreview = window.updateCustomWidgetBuilderPreview; } catch (_) {}
-
-  function repaint(){
-    try { patchWidgetGaugeColours(); } catch (_) {}
-    try { if (typeof renderBudgetStatus === 'function') renderBudgetStatus(); } catch (_) {}
-  }
-  const observer = new MutationObserver(function(mutations){
-    for (const m of mutations) {
-      if (m.addedNodes && m.addedNodes.length) { requestAnimationFrame(patchWidgetGaugeColours); return; }
-    }
-  });
-  function start(){
-    try { observer.observe(document.body, { childList:true, subtree:true }); } catch (_) {}
-    try { if (typeof renderAll === 'function') renderAll(); } catch (_) { repaint(); }
-    setTimeout(repaint, 80);
-    setTimeout(repaint, 350);
-    setTimeout(repaint, 1000);
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true });
-  else start();
-
-  window.v224PatchPercentColours = repaint;
-})();
-</script>
-
-
-
 <!-- v225 stable gauge colour bands: no accent in gauge, fixed count 76-99 light-green -->
-<style id="v225-stable-gauge-colour-css">
-  .custom-widget-gauge-active-path-v225 {
-    transition: none !important;
-  }
-</style>
-<script id="v225-stable-transaction-gauge-colours">
-(function(){
-  const GREEN_WEAK = '#7EE7BF';
-  const GREEN_STRONG = '#00E5A0';
-  const ORANGE_WEAK = '#FFCA85';
-  const ORANGE_STRONG = '#FF8A00';
-  const YELLOW = '#ffe033';
-  const RED = '#E5005F';
-  const TRACK = 'rgba(112,145,204,.18)';
-  const BLUE = '#388BFD';
-  const STORAGE_KEY = 'bank_tracker_custom_widgets_v1';
-
-  function esc(s){
-    if (typeof escapeHtml === 'function') return escapeHtml(String(s ?? ''));
-    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-  function attr(s){ return (typeof escapeAttr === 'function') ? escapeAttr(String(s ?? '')) : esc(s); }
-  function num(v){ const n = Number(v || 0); return Number.isFinite(n) ? Math.max(0, n) : 0; }
-  function pct(used, limit){ const l = num(limit); return l > 0 ? Math.max(0, Math.min(100, Math.round((num(used) / l) * 100))) : 0; }
-  function trim(v){ const r = Math.round(v * 10) / 10; return Number.isInteger(r) ? String(Math.round(r)) : String(r).replace('.', ','); }
-  function compact(v){
-    const n = num(v);
-    if (n >= 1000000000) return trim(n / 1000000000) + 'b';
-    if (n >= 1000000) return trim(n / 1000000) + 'm';
-    if (n >= 1000) return trim(n / 1000) + 'k';
-    return String(Math.round(n));
-  }
-  function currencySymbol(code){
-    const c = String(code || '').toUpperCase();
-    if (c === 'EUR') return '€';
-    if (c === 'USD') return '$';
-    if (c === 'GBP') return '£';
-    return 'Kč';
-  }
-
-  function amountColour(percent){
-    const p = num(percent);
-    if (p >= 100) return RED;
-    if (p >= 76) return ORANGE_STRONG;
-    if (p >= 51) return ORANGE_WEAK;
-    if (p >= 26) return YELLOW;
-    return GREEN_WEAK;
-  }
-  function countColour(percent){
-    const p = num(percent);
-    if (p >= 100) return GREEN_STRONG;
-    if (p >= 76) return YELLOW;
-    if (p >= 50) return ORANGE_WEAK;
-    if (p >= 26) return ORANGE_STRONG;
-    return RED;
-  }
-  function modeColour(mode, percent){ return String(mode || '').toLowerCase() === 'count' ? countColour(percent) : amountColour(percent); }
-
-  function isCountMode(widget, card){
-    const raw = String(
-      (widget && (widget.gaugeMetric || widget.linearMetric || widget.metricMode || widget.metric || widget.dataMetric || widget.dataSourceMetric || widget.sourceMetric || widget.dataSource)) || ''
-    ).trim().toLowerCase();
-    if (/^(count|counts|tx|txs|transaction|transactions|transaction_count|pocet|počet)$/.test(raw)) return true;
-    if (/^(amount|sum|suma|money|spent|budget)$/.test(raw)) return false;
-    const title = String((widget && (widget.title || widget.name || widget.type)) || (card && card.textContent) || '').toLowerCase();
-    return /bank\s*card\s*limits?|card\s*bonus|key\s*lounge|lounge|transaction|transak|počet|pocet/.test(title);
-  }
-
-  function metric(widget, stats, card){
-    stats = stats || {};
-    const mode = isCountMode(widget, card) ? 'count' : 'amount';
-    const txns = Array.isArray(stats.txns) ? stats.txns : [];
-    if (mode === 'count') {
-      const used = num((stats.count ?? stats.usedCount ?? stats.txCount ?? stats.transactionsCount) || txns.length || (widget && widget.manualUsed) || 0);
-      const limit = num((stats.target ?? stats.limit ?? stats.txTarget) || (widget && (widget.txTarget || widget.target || widget.limit)) || 0) || 1;
-      return { mode, used, limit, pct: pct(used, limit), label: compact(used) + ' / ' + compact(limit) };
-    }
-    const used = num((stats.spent ?? stats.used ?? stats.amount) || (widget && widget.manualUsed) || 0);
-    const limit = num((stats.limit ?? stats.target) || (widget && (widget.limit || widget.target)) || 0) || 1;
-    const code = stats.currency || (widget && widget.currency) || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK');
-    return { mode, used, limit, pct: pct(used, limit), label: compact(used) + ' / ' + compact(limit) + ' ' + currencySymbol(code) };
-  }
-
-  window.getCustomWidgetUsedLimit = function(widget, stats){ return metric(widget || {}, stats || {}, null); };
-  try { getCustomWidgetUsedLimit = window.getCustomWidgetUsedLimit; } catch (_) {}
-
-  window.createCustomWidgetGauge = function(widget, stats){
-    const m = metric(widget || {}, stats || {}, null);
-    const colour = modeColour(m.mode, m.pct);
-    const r = 67, c = Math.PI * r, dash = c * Math.min(1, m.pct / 100);
-    const showPct = !(widget && widget.showGaugePercent === false);
-    const showLowerLine = !(widget && widget.showGaugeAmount === false);
-    return `<div class="custom-widget-gauge-wrap custom-widget-gauge-wrap-v225" data-v225-mode="${attr(m.mode)}" data-v225-pct="${attr(m.pct)}" data-v225-colour="${attr(colour)}"><svg viewBox="0 0 190 128" aria-hidden="true">
-      <path d="M28 96 A67 67 0 0 1 162 96" fill="none" stroke="${TRACK}" stroke-width="17" stroke-linecap="round"></path>
-      <path class="custom-widget-gauge-active-path custom-widget-gauge-active-path-v225" d="M28 96 A67 67 0 0 1 162 96" fill="none" stroke="${attr(colour)}" stroke-width="17" stroke-linecap="round" stroke-dasharray="${dash} ${c}"></path>
-      ${showPct ? `<text x="95" y="72" text-anchor="middle" fill="currentColor" font-size="31" font-weight="900">${esc(m.pct + '%')}</text>` : ''}
-      <text x="95" y="91" text-anchor="middle" fill="currentColor" opacity=".66" font-size="10" font-weight="900">USED</text>
-    </svg>${showLowerLine ? `<div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top custom-widget-compact-line"><strong>${esc(m.label)}</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill" style="width:${m.pct}%; background:${attr(colour)}"></div></div></div>` : ''}</div>`;
-  };
-  try { createCustomWidgetGauge = window.createCustomWidgetGauge; } catch (_) {}
-
-  // Keep linear current line/shade on the selected accent colour, projection always default blue.
-  window.createCustomWidgetLineChart = function(widget, stats){
-    const m = metric(widget || {}, stats || {}, null);
-    const accent = (typeof normalizeWidgetHexColor === 'function') ? normalizeWidgetHexColor(widget && widget.accent, GREEN_STRONG) : GREEN_STRONG;
-    const used = num(m.used), limit = num(m.limit);
-    const maxValue = Math.max(limit, used, 1) * 1.08;
-    const startX = 7, startY = 60, endX = 109, width = endX - startX, height = 53;
-    const currentX = startX + Math.max(20, Math.min(80, width * 0.58));
-    const currentY = startY - (used / maxValue) * height;
-    const limitY = startY - (Math.min(limit, maxValue) / maxValue) * height;
-    const currentPath = `M${startX} ${startY} C${startX + 20} ${startY - 2}, ${currentX - 22} ${currentY + 7}, ${currentX} ${currentY}`;
-    const projectionPath = `M${currentX} ${currentY} C${currentX + 18} ${currentY - 1}, ${endX - 24} ${limitY + 4}, ${endX} ${limitY}`;
-    return `<div class="custom-widget-linear-wrap-v220">
-      <div class="custom-widget-linear-limit-v220">${esc(m.label)}</div>
-      <svg viewBox="0 0 116 70" preserveAspectRatio="none" aria-hidden="true">
-        <line x1="${startX}" y1="${limitY.toFixed(2)}" x2="${endX}" y2="${limitY.toFixed(2)}" stroke="${BLUE}" stroke-width="1.15" stroke-dasharray="3 3" opacity=".42"></line>
-        <path d="${currentPath} L${currentX} ${startY} L${startX} ${startY} Z" fill="${attr(accent)}" opacity=".18"></path>
-        <path d="${projectionPath} L${endX} ${startY} L${currentX} ${startY} Z" fill="${BLUE}" opacity=".13"></path>
-        <path d="${currentPath}" fill="none" stroke="${attr(accent)}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"></path>
-        <path d="${projectionPath}" fill="none" stroke="${BLUE}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" opacity=".96"></path>
-        <circle cx="${currentX}" cy="${currentY.toFixed(2)}" r="1.45" fill="#fff" opacity=".95"></circle>
-        <circle cx="${currentX}" cy="${currentY.toFixed(2)}" r=".82" fill="${attr(accent)}"></circle>
-      </svg>
-    </div>`;
-  };
-  try { createCustomWidgetLineChart = window.createCustomWidgetLineChart; } catch (_) {}
-
-  function loadWidgets(){
-    try { const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(list) ? list : []; } catch (_) { return []; }
-  }
-  function numberFromPart(part){
-    let s = String(part || '').toLowerCase().replace(/\s+/g, '').replace(/,/g, '.');
-    const mult = s.includes('b') ? 1000000000 : (s.includes('m') ? 1000000 : (s.includes('k') ? 1000 : 1));
-    s = s.replace(/[^0-9.\-]/g, '');
-    const n = Number(s);
-    return Number.isFinite(n) ? Math.max(0, n * mult) : 0;
-  }
-  function renderedMetric(card, widget){
-    const mode = isCountMode(widget, card) ? 'count' : 'amount';
-    const pctText = String((card.querySelector('svg text') || {}).textContent || '');
-    const pctMatch = pctText.match(/(\d+(?:[\.,]\d+)?)\s*%/);
-    if (pctMatch) return { mode, pct: Math.max(0, Math.min(100, Number(pctMatch[1].replace(',', '.')) || 0)) };
-    const line = String((card.querySelector('.custom-widget-compact-line, .custom-widget-gauge-value-line') || {}).textContent || '');
-    const parts = line.split('/');
-    if (parts.length >= 2) return { mode, pct: pct(numberFromPart(parts[0]), numberFromPart(parts.slice(1).join('/'))) };
-    try { const m = metric(widget || {}, typeof getCustomWidgetStats === 'function' ? getCustomWidgetStats(widget) : {}, card); return { mode:m.mode, pct:m.pct }; } catch (_) {}
-    return { mode, pct:0 };
-  }
-  function forceGaugeColours(){
-    const list = loadWidgets();
-    document.querySelectorAll('.custom-widget-card[data-id], #custom-widget-preview .custom-widget-card').forEach(card => {
-      let widget = {};
-      const id = String(card.dataset.id || '');
-      if (id) widget = list.find(w => String(w.id) === id) || {};
-      if (!id) { try { if (typeof collectCustomWidgetBuilderValues === 'function') widget = collectCustomWidgetBuilderValues() || {}; } catch (_) {} }
-      const wrap = card.querySelector('.custom-widget-gauge-wrap');
-      if (!wrap) return;
-      const m = renderedMetric(card, widget);
-      const colour = modeColour(m.mode, m.pct);
-      const active = card.querySelector('.custom-widget-gauge-active-path, .custom-widget-gauge-active-path-v225') || card.querySelector('.custom-widget-gauge-wrap svg path:nth-of-type(2)');
-      if (active) {
-        active.classList.add('custom-widget-gauge-active-path-v225');
-        active.setAttribute('stroke', colour);
-        try { active.style.setProperty('stroke', colour, 'important'); } catch (_) { active.style.stroke = colour; }
-      }
-      card.querySelectorAll('.custom-widget-gauge-fill').forEach(el => {
-        try { el.style.setProperty('background', colour, 'important'); el.style.setProperty('background-color', colour, 'important'); } catch (_) { el.style.background = colour; }
-      });
-      wrap.dataset.v225Mode = m.mode;
-      wrap.dataset.v225Pct = String(m.pct);
-      wrap.dataset.v225Colour = colour;
-    });
-  }
-  function scheduleForce(){
-    forceGaugeColours();
-    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(forceGaugeColours);
-    setTimeout(forceGaugeColours, 20);
-    setTimeout(forceGaugeColours, 70);
-    setTimeout(forceGaugeColours, 180);
-    setTimeout(forceGaugeColours, 360);
-  }
-
-  // Overview details: Bank card limits use count colour scale.
-  try {
-    getCardColor = function(used, limit){ return countColour(pct(used, limit)); };
-    window.getCardColor = getCardColor;
-  } catch (_) { window.getCardColor = function(used, limit){ return countColour(pct(used, limit)); }; }
-
-  // Overview details: Bank budget uses amount colour scale.
-  try {
-    const previousBudgetRender = window.renderBudgetStatus || (typeof renderBudgetStatus === 'function' ? renderBudgetStatus : null);
-    window.renderBudgetStatus = function(){
-      const wrap = document.getElementById('budget-status');
-      if (!wrap || typeof BANK_ORDER === 'undefined' || typeof BANKS === 'undefined') {
-        return previousBudgetRender ? previousBudgetRender.apply(this, arguments) : undefined;
-      }
-      const rows = BANK_ORDER
-        .filter(bankKey => bankKey !== 'csob_cz_credit')
-        .map(bankKey => {
-          const bank = BANKS[bankKey];
-          const month = getAktuálneMonth();
-          const budget = getOverviewBudgetLimitForBank(bankKey, month);
-          const warning = getOverviewBudgetWarningForBank(bankKey, month);
-          const budgetCurrency = getBankBudgetCurrency(bankKey);
-          const spent = getOverviewBudgetSpentForBank(bankKey, month);
-          if (!budget) {
-            return `<div class="budget-bank-row" onclick="openBankBudgetManager('${bankKey}')" title="${t('filteredTransactions')}" style="padding:10px 0;border-bottom:1px solid var(--border);"><div class="budget-status-main"><div><div class="budget-status-value" style="color:${bank.color};font-size:15px;">${bankLabelWithLogo(bankKey)}</div><div class="budget-status-note">${t('budgetNotSet')}</div></div></div></div>`;
-          }
-          const remaining = Math.max(budget - spent, 0);
-          const p = pct(spent, budget);
-          const status = remaining <= 0 ? t('overBudget') : (warning && remaining <= warning ? t('nearLimit') : t('normal'));
-          const statusColor = amountColour(p);
-          try { maybeSendBudgetLocalNotification(bankKey, plainBankName(bankKey), spent, budget, remaining, warning); } catch (_) {}
-          return `<div class="budget-bank-row" onclick="openBankBudgetManager('${bankKey}')" title="${t('filteredTransactions')}" style="padding:10px 0;border-bottom:1px solid var(--border);"><div class="budget-status-main"><div><div class="budget-status-value" style="color:${bank.color};font-size:15px;">${bankLabelWithLogo(bankKey)}</div><div class="budget-status-note">${formatCurrencyAmount(spent, budgetCurrency)} / ${formatCurrencyAmount(budget, budgetCurrency)} · ${t('remaining')} ${formatCurrencyAmount(remaining, budgetCurrency)} · <span style="color:${statusColor};font-weight:700;">${status}</span></div></div></div><div class="budget-progress"><div class="budget-progress-fill" style="width:${p}%;background:${statusColor};"></div></div></div>`;
-        }).join('');
-      wrap.innerHTML = `<div class="budget-status-title">${t('budgetStatusTitle')}</div><div class="budget-status-note" style="margin:-4px 0 10px;">${t('budgetAllPaymentsHint')}</div>${rows}`;
-    };
-    try { renderBudgetStatus = window.renderBudgetStatus; } catch (_) {}
-  } catch (_) {}
-
-  const previousRender = window.renderCustomWidgets;
-  window.renderCustomWidgets = function(){
-    const result = typeof previousRender === 'function' ? previousRender.apply(this, arguments) : undefined;
-    scheduleForce();
-    return result;
-  };
-  try { renderCustomWidgets = window.renderCustomWidgets; } catch (_) {}
-
-  const previousPreview = window.updateCustomWidgetBuilderPreview;
-  window.updateCustomWidgetBuilderPreview = function(){
-    const result = typeof previousPreview === 'function' ? previousPreview.apply(this, arguments) : undefined;
-    scheduleForce();
-    return result;
-  };
-  try { updateCustomWidgetBuilderPreview = window.updateCustomWidgetBuilderPreview; } catch (_) {}
-
-  const previousMetricSync = window.syncCustomWidgetMetricChoices;
-  window.syncCustomWidgetMetricChoices = function(){
-    const result = typeof previousMetricSync === 'function' ? previousMetricSync.apply(this, arguments) : undefined;
-    scheduleForce();
-    return result;
-  };
-  try { syncCustomWidgetMetricChoices = window.syncCustomWidgetMetricChoices; } catch (_) {}
-
-  function start(){
-    scheduleForce();
-    try { if (typeof renderBudgetStatus === 'function') renderBudgetStatus(); } catch (_) {}
-    setTimeout(scheduleForce, 600);
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true }); else start();
-
-  window.v225GaugeColourBands = { amountColour, countColour, modeColour, repaint:scheduleForce };
-})();
-</script>
 
 
 <!-- v226 final yellow band logic for gauge colours -->
-<script id="v226-gauge-yellow-band-guard">
-(function(){
-  const GREEN_WEAK = '#7EE7BF';
-  const GREEN_STRONG = '#00E5A0';
-  const ORANGE_WEAK = '#FFCA85';
-  const ORANGE_STRONG = '#FF8A00';
-  const YELLOW = '#ffe033';
-  const RED = '#E5005F';
-  function clamp(p){ p = Number(p) || 0; return Math.max(0, Math.min(100, p)); }
-  function amountColour(p){
-    p = clamp(p);
-    if (p >= 100) return RED;
-    if (p >= 76) return ORANGE_STRONG;
-    if (p >= 51) return ORANGE_WEAK;
-    if (p >= 26) return YELLOW;
-    return GREEN_WEAK;
-  }
-  function countColour(p){
-    p = clamp(p);
-    if (p >= 100) return GREEN_STRONG;
-    if (p >= 76) return YELLOW;
-    if (p >= 50) return ORANGE_WEAK;
-    if (p >= 26) return ORANGE_STRONG;
-    return RED;
-  }
-  function modeColour(mode, p){ return String(mode || '').toLowerCase() === 'count' ? countColour(p) : amountColour(p); }
-  window.getBankTrackerAmountPercentColour = amountColour;
-  window.getBankTrackerCountPercentColour = countColour;
-  window.getBankTrackerPercentColour = modeColour;
-  window.v226GaugeColourBands = { amountColour, countColour, modeColour };
-
-  function modeFromCard(card){
-    const wrap = card && card.querySelector('[data-v225-mode],[data-v224-mode]');
-    if (wrap && (wrap.getAttribute('data-v225-mode') || wrap.getAttribute('data-v224-mode'))) return wrap.getAttribute('data-v225-mode') || wrap.getAttribute('data-v224-mode');
-    const txt = String(card && card.textContent || '').toLowerCase();
-    if (/transak|transaction|počet|pocet|card\s*limit|bank\s*card/.test(txt) && !/(kč|czk|eur|€|usd|\$|gbp|£)/i.test(txt)) return 'count';
-    return 'amount';
-  }
-  function pctFromCard(card){
-    const svgText = card && card.querySelector('svg text');
-    const m = String(svgText && svgText.textContent || '').match(/(\d+(?:[\.,]\d+)?)\s*%/);
-    return m ? clamp(Number(m[1].replace(',', '.'))) : 0;
-  }
-  function repaintGaugeCard(card){
-    const p = pctFromCard(card);
-    const mode = modeFromCard(card);
-    const colour = modeColour(mode, p);
-    card.querySelectorAll('.custom-widget-gauge-active-path, .custom-widget-gauge-active-path-v224, .custom-widget-gauge-active-path-v225').forEach(path => path.setAttribute('stroke', colour));
-    card.querySelectorAll('.custom-widget-gauge-fill').forEach(fill => fill.style.background = colour);
-    const wrap = card.querySelector('[data-v225-colour],[data-v224-colour]');
-    if (wrap) {
-      wrap.setAttribute('data-v225-colour', colour);
-      wrap.setAttribute('data-v224-colour', colour);
-    }
-  }
-  function repaintAll(){
-    document.querySelectorAll('.custom-widget-card, .custom-widget-preview').forEach(repaintGaugeCard);
-  }
-  const oldRender = window.renderCustomWidgets;
-  window.renderCustomWidgets = function(){
-    const r = typeof oldRender === 'function' ? oldRender.apply(this, arguments) : undefined;
-    requestAnimationFrame(repaintAll); setTimeout(repaintAll, 30); setTimeout(repaintAll, 120);
-    return r;
-  };
-  try { renderCustomWidgets = window.renderCustomWidgets; } catch (_) {}
-  const oldPreview = window.updateCustomWidgetBuilderPreview;
-  window.updateCustomWidgetBuilderPreview = function(){
-    const r = typeof oldPreview === 'function' ? oldPreview.apply(this, arguments) : undefined;
-    requestAnimationFrame(repaintAll); setTimeout(repaintAll, 30); setTimeout(repaintAll, 120);
-    return r;
-  };
-  try { updateCustomWidgetBuilderPreview = window.updateCustomWidgetBuilderPreview; } catch (_) {}
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(repaintAll, 60); setTimeout(repaintAll, 400); }, {once:true});
-  else { setTimeout(repaintAll, 60); setTimeout(repaintAll, 400); }
-})();
-</script>
 
 
 
@@ -23506,10 +22244,10 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     window.setTimeout(function(){ loadingMore = false; }, 180);
   }
 
-  window.addEventListener('scroll', autoLoadMoreTransactions, { passive: true });
-  document.getElementById('page-txns')?.addEventListener('scroll', autoLoadMoreTransactions, { passive: true });
+  // v258: disabled old autoLoadMoreTransactions scroll listener
+  // v258: disabled old page autoLoadMoreTransactions listener
   document.addEventListener('DOMContentLoaded', function(){
-    document.getElementById('page-txns')?.addEventListener('scroll', autoLoadMoreTransactions, { passive: true });
+    // v258: disabled old page autoLoadMoreTransactions listener
   }, { once: true });
 })();
 </script>
@@ -23827,9 +22565,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     try { activeTxnHistoryScope = 'all'; txnVisibleLimit = Math.max(Number(txnVisibleLimit || PAGE), rendered, PAGE) + PAGE; updateTxnPage(); } catch(e){ console.warn(e); }
     setTimeout(function(){ busy = false; }, 200);
   }
-  window.addEventListener('scroll', autoLoadAllHistory, { passive:true });
-  document.getElementById('page-txns')?.addEventListener('scroll', autoLoadAllHistory, { passive:true });
-  document.addEventListener('DOMContentLoaded', function(){ document.getElementById('page-txns')?.addEventListener('scroll', autoLoadAllHistory, { passive:true }); }, { once:true });
+  // v258: disabled old autoLoadAllHistory scroll listener
+  // v258: disabled old page autoLoadAllHistory listener
+  // v258: disabled old DOMContentLoaded autoLoadAllHistory listener
 
   function populateLoanWidgetSelectV245(selected){
     var el = document.getElementById('cw-loan-id'); if (!el) return;
@@ -24153,6 +22891,1521 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   } else {
     cleanLoanStorage();
   }
+})();
+</script>
+
+
+<!-- v254 optimized loans sync + strict widget data-source rules -->
+<style id="v254-performance-loans-widget-css">
+  /* Hide old paging buttons; transactions auto-load while scrolling. */
+  .txn-show-more-wrap,
+  .txn-load-older-wrap,
+  .txn-history-note { display:none !important; }
+
+  /* Widget builder source rules */
+  #custom-widget-sheet .v254-hidden { display:none !important; }
+  #custom-widget-sheet .v254-disabled { opacity:.36 !important; pointer-events:none !important; filter:grayscale(.25); }
+  #cw-linear-direction-row-v239 { display:none !important; }
+  #cw-loan-fields-v240 .loan-grid-v240,
+  #cw-loan-fields-v240 .loan-note-v240 { display:none !important; }
+  #cw-loan-fields-v240 {
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    border:1px solid rgba(88,166,255,.18);
+    background:rgba(15,23,42,.34);
+    border-radius:16px;
+    padding:12px;
+  }
+  #cw-loan-fields-v240.v254-hidden,
+  #cw-loan-fields-v240.is-hidden { display:none !important; }
+  .loan-widget-readonly-v254 {
+    border:1px solid rgba(88,166,255,.14);
+    background:rgba(8,17,31,.36);
+    border-radius:14px;
+    padding:11px 12px;
+    font-family:var(--font-mono);
+    font-size:11px;
+    line-height:1.45;
+    color:rgba(220,235,255,.78);
+  }
+  .custom-widget-linear-sub-v254 {
+    margin-top:4px;
+    font-family:var(--font-mono);
+    font-size:11px;
+    font-weight:900;
+    color:rgba(220,235,255,.72);
+    white-space:nowrap;
+  }
+  .loan-manager-status-v254 {
+    margin:8px 0 0;
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--muted);
+    min-height:16px;
+  }
+  .loan-period-combo-v254 {
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) 118px;
+    gap:8px;
+  }
+  @media (max-width:430px){
+    .loan-period-combo-v254 { grid-template-columns:1fr 112px; }
+    #custom-widget-sheet .custom-widget-row-2 { grid-template-columns:1fr !important; }
+  }
+  html[data-theme="light"] .loan-widget-readonly-v254,
+  html[data-theme="light"] .custom-widget-linear-sub-v254 {
+    color:#31547d !important;
+  }
+</style>
+<script id="v254-performance-loans-widget-js">
+(function(){
+  'use strict';
+
+  var LOANS_KEY = 'bank_tracker_loans_v1';
+  var WIDGETS_KEY = 'bank_tracker_custom_widgets_v1';
+  var TXN_BATCH = 10;
+  var autoLoadTicking = false;
+  var previewTimer = null;
+  var syncingLoans = false;
+  var lastLoansSyncAt = 0;
+
+  var OLD = {
+    syncData: window.syncData || (typeof syncData === 'function' ? syncData : null),
+    showPage: window.showPage || (typeof showPage === 'function' ? showPage : null),
+    renderTxn: window.updateTxnPage || (typeof updateTxnPage === 'function' ? updateTxnPage : null),
+    renderLoanManager: window.renderLoanManager,
+    openLoanManager: window.openLoanManagerSheet,
+    renderWidget: window.renderCustomWidgetCard || (typeof renderCustomWidgetCard === 'function' ? renderCustomWidgetCard : null),
+    widgetStats: window.getCustomWidgetStats || (typeof getCustomWidgetStats === 'function' ? getCustomWidgetStats : null),
+    widgetMetric: window.getCustomWidgetUsedLimit || (typeof getCustomWidgetUsedLimit === 'function' ? getCustomWidgetUsedLimit : null),
+    lineChart: window.createCustomWidgetLineChart || (typeof createCustomWidgetLineChart === 'function' ? createCustomWidgetLineChart : null),
+    openWidgetBuilder: window.openCustomWidgetBuilder || (typeof openCustomWidgetBuilder === 'function' ? openCustomWidgetBuilder : null)
+  };
+
+  function byId(id){ return document.getElementById(id); }
+  function esc(value){
+    try { return escapeHtml(String(value == null ? '' : value)); } catch(_) {}
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+  function attr(value){
+    try { return escapeAttr(String(value == null ? '' : value)); } catch(_) { return esc(value); }
+  }
+  function rawNumber(value){
+    try { if (typeof parseSheetNumber === 'function') return Number(parseSheetNumber(value, value) || 0); } catch(_) {}
+    var n = Number(String(value == null ? '' : value).replace(/\s+/g,'').replace(',','.').replace(/[^0-9.\-]/g,''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function abs(value){ return Math.abs(rawNumber(value)); }
+  function currencyCodeSafe(value){
+    try { return currencyCode(value || getAppCurrency() || 'CZK'); } catch(_) {}
+    var s = String(value || 'CZK').trim();
+    if (s === 'Kč' || /kč|kc/i.test(s)) return 'CZK';
+    if (s === '€') return 'EUR';
+    if (s === '$') return 'USD';
+    if (s === '£') return 'GBP';
+    if (/^zł$/i.test(s)) return 'PLN';
+    return s.toUpperCase() || 'CZK';
+  }
+  function currencySymbol(value){
+    var c = currencyCodeSafe(value);
+    return c === 'CZK' ? 'Kč' : c === 'EUR' ? '€' : c === 'USD' ? '$' : c === 'GBP' ? '£' : c === 'PLN' ? 'zł' : c;
+  }
+  function compactNumber(value){
+    var n = Number(value || 0);
+    var sign = n < 0 ? '-' : '';
+    var a = Math.abs(n);
+    var out;
+    if (a >= 1000000) out = (a / 1000000).toFixed(a % 1000000 ? 1 : 0).replace('.', ',') + 'm';
+    else if (a >= 1000) out = (a / 1000).toFixed(a % 1000 ? 1 : 0).replace('.', ',') + 'k';
+    else out = String(Math.round(a));
+    return sign + out;
+  }
+  function compactMoney(value, currency, withSymbol){
+    var out = compactNumber(value);
+    if (withSymbol !== false) out += ' ' + currencySymbol(currency);
+    return out;
+  }
+  function normalizeHex(value, fallback){
+    try { return normalizeWidgetHexColor(value, fallback || '#00E5A0'); } catch(_) {}
+    var v = String(value || '').trim();
+    return /^#[0-9a-fA-F]{6}$/.test(v) ? v.toUpperCase() : (fallback || '#00E5A0');
+  }
+  function hexToRgba(hex, alpha){
+    var h = String(hex || '#00E5A0').replace('#','');
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) h = '00E5A0';
+    var r = parseInt(h.slice(0,2), 16), g = parseInt(h.slice(2,4), 16), b = parseInt(h.slice(4,6), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + (alpha == null ? .22 : alpha) + ')';
+  }
+  function getSpreadsheetId(){
+    var url = String(window.SHEETS_URL || (typeof SHEETS_URL !== 'undefined' ? SHEETS_URL : '') || localStorage.getItem('sheets_url') || '').trim();
+    var m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    return m && m[1] || '';
+  }
+
+  /* ---------- Transactions: all history, auto-load by scroll, no manual buttons ---------- */
+  window.renderShowMoreTransactionsButton = function(){ return ''; };
+  window.renderLoadOlderTransactionsButton = function(){ return ''; };
+  window.renderTransactionHistoryNote = function(){ return ''; };
+  window.filterTransactionsByHistoryScope = function(txns){ return txns || []; };
+  try { renderShowMoreTransactionsButton = window.renderShowMoreTransactionsButton; } catch(_) {}
+  try { renderLoadOlderTransactionsButton = window.renderLoadOlderTransactionsButton; } catch(_) {}
+  try { renderTransactionHistoryNote = window.renderTransactionHistoryNote; } catch(_) {}
+  try { filterTransactionsByHistoryScope = window.filterTransactionsByHistoryScope; } catch(_) {}
+
+  function autoLoadTransactionsIfNeeded(){
+    if (autoLoadTicking) return;
+    autoLoadTicking = true;
+    requestAnimationFrame(function(){
+      autoLoadTicking = false;
+      try {
+        var page = byId('page-txns');
+        if (!page || !page.classList.contains('active')) return;
+        var total = Array.isArray(window.allTransactions || allTransactions) ? (window.allTransactions || allTransactions).length : 0;
+        var nearWindowBottom = (window.innerHeight + window.scrollY) > (document.documentElement.scrollHeight - 420);
+        var nearPageBottom = page.scrollHeight ? ((page.scrollTop + page.clientHeight) > (page.scrollHeight - 360)) : false;
+        if ((nearWindowBottom || nearPageBottom) && typeof txnVisibleLimit !== 'undefined') {
+          var old = txnVisibleLimit;
+          txnVisibleLimit = Math.min(Math.max(old + TXN_BATCH, old), Math.max(total, old + TXN_BATCH));
+          if (txnVisibleLimit !== old && typeof updateTxnPage === 'function') updateTxnPage();
+        }
+      } catch(e) {}
+    });
+  }
+  // v258: disabled old autoLoadTransactionsIfNeeded scroll listener
+  // v258: disabled old page autoLoadTransactionsIfNeeded listener
+
+  if (OLD.showPage) {
+    window.showPage = function(pageId, options){
+      if (pageId === 'txns') {
+        options = Object.assign({}, options || {}, { preserveFilters:false });
+      }
+      var r = OLD.showPage.call(this, pageId, options || {});
+      if (pageId === 'txns') {
+        try { activeTxnHistoryScope = 'all'; } catch(_) {}
+        try { if (typeof updateTransactionFilterSummary === 'function') updateTransactionFilterSummary(); } catch(_) {}
+        try { var sum = byId('txn-filter-summary'); if (sum) sum.innerHTML = ''; } catch(_) {}
+      }
+      return r;
+    };
+    try { showPage = window.showPage; } catch(_) {}
+  }
+
+  /* ---------- Loans: single cache, Google Sheets sync, local fallback ---------- */
+  function looksLikeRealLoan(raw){
+    if (!raw) return false;
+    var name = String(raw.name || raw.loanName || '').trim();
+    var id = String(raw.id || raw.loanId || '').trim();
+    if (!id || !name) return false;
+    if (/^-?\d+(?:[.,]\d+)?$/.test(name)) return false;
+    if (/^(manual|msg|email|transaction|tx)[_-]/i.test(id) && !abs(raw.originalAmount || raw.original)) return false;
+    return abs(raw.originalAmount || raw.original || raw.principal) > 0 || abs(raw.currentBalance || raw.outstandingBalance || raw.balance) > 0;
+  }
+  function normalizeLoan(raw){
+    raw = raw || {};
+    var original = abs(raw.originalAmount != null ? raw.originalAmount : (raw.original != null ? raw.original : raw.principal));
+    var current = abs(raw.currentBalance != null ? raw.currentBalance : (raw.outstandingBalance != null ? raw.outstandingBalance : raw.balance));
+    return Object.assign({}, raw, {
+      id: String(raw.id || raw.loanId || ('loan_' + Date.now().toString(36))).trim(),
+      name: String(raw.name || raw.loanName || 'Loan').trim(),
+      type: String(raw.type || raw.loanType || 'loan').trim(),
+      currency: currencyCodeSafe(raw.currency || 'CZK'),
+      originalAmount: original,
+      currentBalance: -current,
+      targetAmount: 0,
+      linkedBankId: String(raw.linkedBankId || raw.bankId || raw.bank || '').trim(),
+      variableSymbol: String(raw.variableSymbol || raw.vs || raw['Variable symbol'] || '').trim(),
+      repaymentText: String(raw.repaymentText || raw.matchText || raw['Repayment text'] || '').trim(),
+      periodValue: String(raw.periodValue || raw.period || raw.loanPeriod || '').trim(),
+      periodUnit: String(raw.periodUnit || raw.period_unit || 'months').trim() || 'months',
+      periodMonths: raw.periodMonths || raw['Period months'] || '',
+      fixationUntil: String(raw.fixationUntil || raw.fixation || raw['Fixation until'] || '').trim(),
+      interestRate: String(raw.interestRate || raw.rate || raw['Interest rate %'] || '').trim(),
+      status: String(raw.status || 'active').trim() || 'active',
+      source: raw.source || 'manual',
+      updatedAt: raw.updatedAt || new Date().toISOString()
+    });
+  }
+  function getLoans(){
+    var arr = [];
+    try { arr = JSON.parse(localStorage.getItem(LOANS_KEY) || '[]'); } catch(_) { arr = []; }
+    if (!Array.isArray(arr)) arr = [];
+    var cleaned = arr.filter(looksLikeRealLoan).map(normalizeLoan).filter(function(l){ return String(l.status || 'active') !== 'closed'; });
+    if (cleaned.length !== arr.length) localStorage.setItem(LOANS_KEY, JSON.stringify(cleaned));
+    return cleaned;
+  }
+  function saveLoans(arr){ localStorage.setItem(LOANS_KEY, JSON.stringify((arr || []).filter(looksLikeRealLoan).map(normalizeLoan))); }
+  function upsertLoan(loan){
+    loan = normalizeLoan(loan || {});
+    var list = getLoans();
+    var idx = list.findIndex(function(l){ return String(l.id) === String(loan.id); });
+    if (idx >= 0) list[idx] = Object.assign({}, list[idx], loan, { updatedAt:new Date().toISOString() });
+    else list.push(Object.assign({}, loan, { updatedAt:new Date().toISOString() }));
+    saveLoans(list);
+    return idx >= 0 ? list[idx] : list[list.length - 1];
+  }
+  function loanById(id){ id = String(id || '').trim(); return getLoans().find(function(l){ return String(l.id) === id; }) || null; }
+  function loanOriginal(loan){ return Math.max(1, abs(loan && loan.originalAmount)); }
+  function loanOutstanding(loan){ return Math.min(loanOriginal(loan), abs(loan && loan.currentBalance)); }
+  window.getBankTrackerLoans = getLoans;
+  window.getLoansClean = getLoans;
+  window.saveBankTrackerLoans = saveLoans;
+
+  function setLoanStatus(msg){
+    var el = byId('loan-save-status-v254') || byId('limits-sync-status');
+    if (el && msg) el.textContent = msg;
+  }
+  function showTopSaving(msg){
+    try { if (typeof showWorkingToast === 'function') { showWorkingToast(msg || 'Saving to Google Sheets...'); return; } } catch(_) {}
+    setLoanStatus(msg || 'Saving to Google Sheets...');
+  }
+  function showSaved(msg){
+    try { if (typeof showSuccessToast === 'function') { showSuccessToast(msg || 'Saved'); return; } } catch(_) {}
+    setLoanStatus(msg || 'Saved');
+  }
+  function endpointRequest(action, payload, timeout){
+    if (typeof jsonpEndpointRequest === 'function') return jsonpEndpointRequest(action, payload || {}, timeout || 20000);
+    if (typeof postToBankTrackerEndpoint === 'function') return postToBankTrackerEndpoint(action, payload || {});
+    return Promise.resolve({ ok:false, data:{ message:'No endpoint configured' } });
+  }
+  async function loadLoansFromEndpoint(){
+    try {
+      var res = await endpointRequest('readLoans', {}, 18000);
+      var data = res && (res.data || res) || {};
+      var rows = data.loans || data.items || data.rows || [];
+      if (!Array.isArray(rows) || !rows.length) return false;
+      saveLoans(rows.map(normalizeLoan));
+      return true;
+    } catch(e) { console.warn('readLoans failed', e); return false; }
+  }
+  async function syncLoansNow(force){
+    if (syncingLoans) return false;
+    if (!force && Date.now() - lastLoansSyncAt < 15000) return false;
+    syncingLoans = true;
+    try {
+      var loaded = false;
+      var spreadsheetId = getSpreadsheetId();
+      if (spreadsheetId && typeof window.syncLoansFromSheets === 'function') {
+        loaded = !!(await window.syncLoansFromSheets(spreadsheetId));
+      }
+      if (!loaded) loaded = await loadLoansFromEndpoint();
+      if (loaded) {
+        saveLoans(getLoans());
+        lastLoansSyncAt = Date.now();
+        try { if (typeof renderLoanManager === 'function') renderLoanManager(); } catch(_) {}
+        try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+        try { if (typeof renderOverviewDashboard === 'function') renderOverviewDashboard(); } catch(_) {}
+      }
+      return loaded;
+    } finally { syncingLoans = false; }
+  }
+  window.syncLoansNow = syncLoansNow;
+
+  if (OLD.syncData) {
+    window.syncData = async function(){
+      var result = await OLD.syncData.apply(this, arguments);
+      try { await syncLoansNow(true); } catch(e) { console.warn('Loans sync after syncData failed', e); }
+      return result;
+    };
+    try { syncData = window.syncData; } catch(_) {}
+  }
+
+  /* ---------- Manage loans UI: clean list only, sync before opening, save to endpoint ---------- */
+  function bankOptions(selected){
+    var banks = [];
+    try { banks = getAllBankKeys ? getAllBankKeys() : Object.keys(window.BANKS || BANKS || {}); } catch(_) { banks = []; }
+    var opts = '<option value="">No linked bank</option>';
+    banks.forEach(function(key){
+      var label = key;
+      try { label = (getBankInfo(key) && getBankInfo(key).label) || key; } catch(_) {}
+      opts += '<option value="' + attr(key) + '" ' + (String(selected||'') === String(key) ? 'selected' : '') + '>' + esc(label) + '</option>';
+    });
+    return opts;
+  }
+  function ensureLoanManagerDom(){
+    var sheet = byId('loan-manager-sheet');
+    if (!sheet) {
+      sheet = document.createElement('div');
+      sheet.className = 'bottom-sheet';
+      sheet.id = 'loan-manager-sheet';
+      sheet.innerHTML = '<div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title">Manage loans</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>'
+        + '<div class="loan-manager-add-card"><div class="section-title" style="padding:0;margin-bottom:10px;">Add loan</div>'
+        + '<label>Loan name</label><input class="config-input" id="new-loan-name" placeholder="Mortgage / Car loan">'
+        + '<div class="sheet-grid-2"><div><label>Type</label><select class="config-input" id="new-loan-type"><option value="loan">Loan</option><option value="mortgage">Mortgage</option><option value="credit_card">Credit card</option><option value="debit_card">Debit card</option></select></div><div><label>Currency</label><select class="config-input" id="new-loan-currency">' + (typeof getCurrencyOptionsHtml === 'function' ? getCurrencyOptionsHtml('CZK') : '<option value="CZK">Kč</option>') + '</select></div></div>'
+        + '<label>Linked bank</label><select class="config-input" id="new-loan-bank">' + bankOptions('') + '</select>'
+        + '<div class="sheet-grid-2"><div><label>Original loan amount</label><input class="config-input" id="new-loan-original" type="number" step="0.01" placeholder="1500000"></div><div><label>Outstanding balance</label><input class="config-input" id="new-loan-current" type="number" step="0.01" placeholder="1100000"></div></div>'
+        + '<div class="sheet-grid-2"><div><label>Loan period</label><div class="loan-period-combo-v254"><input class="config-input" id="new-loan-period" type="number" min="0" step="1" placeholder="24"><select class="config-input" id="new-loan-period-unit"><option value="months">Months</option><option value="years">Years</option></select></div></div><div><label>Fixation until</label><input class="config-input" id="new-loan-fixation" type="date"></div></div>'
+        + '<div class="sheet-grid-2"><div><label>Interest rate %</label><input class="config-input" id="new-loan-rate" type="number" min="0" step="0.01" placeholder="5.49"></div><div><label>Variable symbol</label><input class="config-input" id="new-loan-vs" placeholder="123456789"></div></div>'
+        + '<label>Repayment text</label><input class="config-input" id="new-loan-text" placeholder="Splátka úveru / mortgage payment">'
+        + '<button class="config-save" onclick="saveNewLoanFromManager()">Save loan</button><div id="loan-save-status-v254" class="loan-manager-status-v254"></div></div>'
+        + '<div id="loan-manager-list"></div>';
+      document.body.appendChild(sheet);
+    }
+    var bankSelect = byId('new-loan-bank');
+    if (bankSelect) bankSelect.innerHTML = bankOptions(bankSelect.value || '');
+  }
+  function loanTypeLabel(type){
+    type = String(type || 'loan');
+    if (type === 'mortgage') return 'Mortgage';
+    if (type === 'credit_card') return 'Credit card';
+    if (type === 'debit_card') return 'Debit card';
+    return 'Loan';
+  }
+  window.renderLoanManager = function(){
+    ensureLoanManagerDom();
+    var list = byId('loan-manager-list');
+    if (!list) return;
+    var loans = getLoans();
+    if (!loans.length) {
+      list.innerHTML = '<div class="empty-state" style="padding:22px 8px;">No loans yet.</div>';
+      return;
+    }
+    list.innerHTML = loans.map(function(loan){
+      var safe = String(loan.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+      var linked = loan.linkedBankId || '';
+      return '<div class="loan-manager-card" data-loan-id="' + attr(loan.id) + '">'
+        + '<div class="loan-manager-top"><div class="loan-manager-main"><div class="loan-manager-title">' + esc(loan.name) + '</div>'
+        + '<div class="loan-manager-sub">' + esc(loanTypeLabel(loan.type)) + ' · ' + esc(compactMoney(-loanOutstanding(loan), loan.currency, true)) + ' / ' + esc(compactMoney(-loanOriginal(loan), loan.currency, true)) + '</div></div>'
+        + '<div class="loan-manager-actions"><button class="icon-action-btn edit" type="button" onclick="toggleLoanEditV254(\'' + attr(loan.id) + '\')">✎</button><button class="icon-action-btn delete" type="button" onclick="deleteLoanV254(\'' + attr(loan.id) + '\')">×</button></div></div>'
+        + '<div class="managed-bank-form" id="loan-edit-' + safe + '">'
+        + '<label>Loan name</label><input class="config-input" id="loan-name-' + safe + '" value="' + attr(loan.name) + '">'
+        + '<div class="sheet-grid-2"><div><label>Type</label><select class="config-input" id="loan-type-' + safe + '"><option value="loan"' + (loan.type==='loan'?' selected':'') + '>Loan</option><option value="mortgage"' + (loan.type==='mortgage'?' selected':'') + '>Mortgage</option><option value="credit_card"' + (loan.type==='credit_card'?' selected':'') + '>Credit card</option><option value="debit_card"' + (loan.type==='debit_card'?' selected':'') + '>Debit card</option></select></div><div><label>Linked bank</label><select class="config-input" id="loan-bank-' + safe + '">' + bankOptions(linked) + '</select></div></div>'
+        + '<div class="sheet-grid-2"><div><label>Original loan amount</label><input class="config-input" id="loan-original-' + safe + '" type="number" step="0.01" value="' + attr(loanOriginal(loan)) + '"></div><div><label>Outstanding balance</label><input class="config-input" id="loan-current-' + safe + '" type="number" step="0.01" value="' + attr(loanOutstanding(loan)) + '"></div></div>'
+        + '<div class="sheet-grid-2"><div><label>Loan period</label><div class="loan-period-combo-v254"><input class="config-input" id="loan-period-' + safe + '" type="number" step="1" value="' + attr(loan.periodValue || loan.periodMonths || '') + '"><select class="config-input" id="loan-period-unit-' + safe + '"><option value="months"' + (loan.periodUnit !== 'years' ? ' selected' : '') + '>Months</option><option value="years"' + (loan.periodUnit === 'years' ? ' selected' : '') + '>Years</option></select></div></div><div><label>Fixation until</label><input class="config-input" id="loan-fixation-' + safe + '" type="date" value="' + attr(loan.fixationUntil || '') + '"></div></div>'
+        + '<div class="sheet-grid-2"><div><label>Interest rate %</label><input class="config-input" id="loan-rate-' + safe + '" type="number" step="0.01" value="' + attr(loan.interestRate || '') + '"></div><div><label>Variable symbol</label><input class="config-input" id="loan-vs-' + safe + '" value="' + attr(loan.variableSymbol || '') + '"></div></div>'
+        + '<label>Repayment text</label><input class="config-input" id="loan-text-' + safe + '" value="' + attr(loan.repaymentText || '') + '">'
+        + '<button class="config-save" onclick="updateLoanV254(\'' + attr(loan.id) + '\')">Save loan</button>'
+        + '</div></div>';
+    }).join('');
+  };
+  try { renderLoanManager = window.renderLoanManager; } catch(_) {}
+  window.toggleLoanEditV254 = function(id){
+    var safe = String(id).replace(/[^a-zA-Z0-9_-]/g, '_');
+    var el = byId('loan-edit-' + safe);
+    if (el) el.style.display = el.style.display === 'grid' ? 'none' : 'grid';
+  };
+  async function saveLoanEndpoint(loan){
+    showTopSaving('Saving loan to Google Sheets...');
+    try {
+      var res = await endpointRequest('saveLoan', { loan: loan, loanId: loan.id, id: loan.id, name: loan.name, currency: loan.currency, originalAmount: loan.originalAmount, currentBalance: loan.currentBalance, targetAmount: 0, linkedBankId: loan.linkedBankId, bankId: loan.linkedBankId, variableSymbol: loan.variableSymbol, repaymentText: loan.repaymentText, matchText: loan.repaymentText, periodValue: loan.periodValue, periodUnit: loan.periodUnit, periodMonths: loan.periodUnit === 'years' ? rawNumber(loan.periodValue) * 12 : rawNumber(loan.periodValue), fixationUntil: loan.fixationUntil, interestRate: loan.interestRate, status: loan.status || 'active', active: loan.status === 'closed' ? 'false' : 'true' }, 30000);
+      if (res === true || (res && res.ok)) showSaved('Saved');
+      else setLoanStatus('Saved locally. Google Sheets write not confirmed. Check Web App /exec deployment.');
+      return res;
+    } catch(e) { setLoanStatus('Saved locally. Google Sheets error.'); return false; }
+  }
+  window.saveNewLoanFromManager = async function(){
+    ensureLoanManagerDom();
+    var name = (byId('new-loan-name') && byId('new-loan-name').value || '').trim() || 'Loan';
+    var original = abs(byId('new-loan-original') && byId('new-loan-original').value);
+    var current = abs(byId('new-loan-current') && byId('new-loan-current').value);
+    if (!original) { alert('Enter original loan amount.'); return; }
+    var loan = upsertLoan({
+      id:'loan_' + Date.now().toString(36),
+      name:name,
+      type: byId('new-loan-type') && byId('new-loan-type').value || 'loan',
+      currency: currencyCodeSafe(byId('new-loan-currency') && byId('new-loan-currency').value || 'CZK'),
+      originalAmount: original,
+      currentBalance: -current,
+      linkedBankId: byId('new-loan-bank') && byId('new-loan-bank').value || '',
+      variableSymbol: byId('new-loan-vs') && byId('new-loan-vs').value || '',
+      repaymentText: byId('new-loan-text') && byId('new-loan-text').value || '',
+      periodValue: byId('new-loan-period') && byId('new-loan-period').value || '',
+      periodUnit: byId('new-loan-period-unit') && byId('new-loan-period-unit').value || 'months',
+      fixationUntil: byId('new-loan-fixation') && byId('new-loan-fixation').value || '',
+      interestRate: byId('new-loan-rate') && byId('new-loan-rate').value || '',
+      status:'active', source:'manual'
+    });
+    await saveLoanEndpoint(loan);
+    ['new-loan-name','new-loan-original','new-loan-current','new-loan-vs','new-loan-text','new-loan-period','new-loan-fixation','new-loan-rate'].forEach(function(id){ var el=byId(id); if (el) el.value=''; });
+    window.renderLoanManager();
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    try { if (typeof renderAll === 'function') renderAll(); } catch(_) {}
+  };
+  window.updateLoanV254 = async function(id){
+    var loan = loanById(id); if (!loan) return;
+    var safe = String(id).replace(/[^a-zA-Z0-9_-]/g, '_');
+    var next = upsertLoan(Object.assign({}, loan, {
+      name: byId('loan-name-' + safe) && byId('loan-name-' + safe).value || loan.name,
+      type: byId('loan-type-' + safe) && byId('loan-type-' + safe).value || loan.type,
+      linkedBankId: byId('loan-bank-' + safe) && byId('loan-bank-' + safe).value || '',
+      originalAmount: abs(byId('loan-original-' + safe) && byId('loan-original-' + safe).value),
+      currentBalance: -abs(byId('loan-current-' + safe) && byId('loan-current-' + safe).value),
+      variableSymbol: byId('loan-vs-' + safe) && byId('loan-vs-' + safe).value || '',
+      repaymentText: byId('loan-text-' + safe) && byId('loan-text-' + safe).value || '',
+      periodValue: byId('loan-period-' + safe) && byId('loan-period-' + safe).value || '',
+      periodUnit: byId('loan-period-unit-' + safe) && byId('loan-period-unit-' + safe).value || 'months',
+      fixationUntil: byId('loan-fixation-' + safe) && byId('loan-fixation-' + safe).value || '',
+      interestRate: byId('loan-rate-' + safe) && byId('loan-rate-' + safe).value || ''
+    }));
+    await saveLoanEndpoint(next);
+    window.renderLoanManager();
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    try { if (typeof renderAll === 'function') renderAll(); } catch(_) {}
+  };
+  window.deleteLoanV254 = async function(id){
+    if (!confirm('Delete this loan?')) return;
+    var list = getLoans().filter(function(l){ return String(l.id) !== String(id); });
+    saveLoans(list);
+    try { await endpointRequest('deleteLoan', { loanId:id, id:id }, 20000); } catch(_) {}
+    window.renderLoanManager();
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    try { if (typeof renderAll === 'function') renderAll(); } catch(_) {}
+  };
+  window.openLoanManagerSheet = function(){
+    ensureLoanManagerDom();
+    window.renderLoanManager();
+    if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
+    setLoanStatus('Loading loans from Google Sheets...');
+    syncLoansNow(true).then(function(ok){ setLoanStatus(ok ? 'Loans loaded.' : 'Using local loan cache.'); window.renderLoanManager(); });
+  };
+  try { openLoanManagerSheet = window.openLoanManagerSheet; } catch(_) {}
+
+  /* ---------- Widget builder: App amount/count and Loan data are isolated ---------- */
+  function ensureSourceOptions(){
+    var src = byId('cw-source'); if (!src) return;
+    if (!Array.prototype.some.call(src.options || [], function(o){ return o.value === 'loan'; })) {
+      var opt = document.createElement('option'); opt.value = 'loan'; opt.textContent = 'Loan data'; src.appendChild(opt);
+    }
+    Array.prototype.forEach.call(src.options || [], function(o){
+      if (o.value === 'auto') o.textContent = 'App data';
+      if (o.value === 'manual') o.textContent = 'Manual data';
+      if (o.value === 'loan') o.textContent = 'Loan data';
+    });
+    var metric = byId('cw-gauge-metric');
+    if (metric) Array.prototype.forEach.call(metric.options || [], function(o){ if (o.value === 'amount') o.textContent='Amount'; if (o.value === 'count') o.textContent='Number of transactions'; });
+  }
+  function ensureLoanWidgetField(){
+    ensureSourceOptions();
+    var src = byId('cw-source'); if (!src) return;
+    var box = byId('cw-loan-fields-v240');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'cw-loan-fields-v240';
+      box.className = 'custom-widget-loan-fields-v240 is-hidden v254-hidden';
+      box.innerHTML = '<label>Loan / mortgage</label><select class="config-input" id="cw-loan-id"></select><div class="loan-widget-readonly-v254" id="cw-loan-readonly-v254"></div>';
+      var container = src.closest('.custom-widget-row-2') || src.closest('div');
+      if (container) container.insertAdjacentElement('afterend', box);
+    } else {
+      if (!byId('cw-loan-readonly-v254')) {
+        var info = document.createElement('div'); info.className='loan-widget-readonly-v254'; info.id='cw-loan-readonly-v254'; box.appendChild(info);
+      }
+    }
+    populateLoanWidgetSelect(byId('cw-loan-id') && byId('cw-loan-id').value);
+  }
+  function populateLoanWidgetSelect(selected){
+    var el = byId('cw-loan-id'); if (!el) return;
+    var list = getLoans();
+    el.innerHTML = list.length ? list.map(function(l){ return '<option value="' + attr(l.id) + '">' + esc(l.name) + ' · ' + esc(compactMoney(-loanOutstanding(l), l.currency, true)) + '</option>'; }).join('') : '<option value="">No loan accounts</option>';
+    if (selected && Array.prototype.some.call(el.options || [], function(o){ return String(o.value) === String(selected); })) el.value = selected;
+  }
+  function sourceValue(){ return byId('cw-source') && byId('cw-source').value || 'auto'; }
+  function metricValue(){ return byId('cw-gauge-metric') && byId('cw-gauge-metric').value || 'amount'; }
+  function activeChoice(gridId, fallback){ var el=document.querySelector('#'+gridId+' .custom-widget-choice.active'); return (el && el.dataset.value) || fallback; }
+  function setBuilderChart(value){
+    try { if (typeof customWidgetBuilderState !== 'undefined') customWidgetBuilderState.chart = value; } catch(_) {}
+    try { if (typeof updateCustomWidgetChoiceUi === 'function') updateCustomWidgetChoiceUi(); } catch(_) {}
+  }
+  function wrapFor(id){
+    var el = byId(id); if (!el) return null;
+    if (id === 'cw-loan-id') return byId('cw-loan-fields-v240');
+    return el.closest('.custom-widget-row-2 > div') || el.closest('.custom-widget-modal-grid > div') || el.closest('div');
+  }
+  function showControl(id, show){ var w = wrapFor(id); if (w) w.classList.toggle('v254-hidden', !show); }
+  function showRow(id, show){ var el = byId(id); if (el) el.classList.toggle('v254-hidden', !show); }
+  function updateLoanWidgetInfo(){
+    var info = byId('cw-loan-readonly-v254'); if (!info) return;
+    var loan = loanById(byId('cw-loan-id') && byId('cw-loan-id').value);
+    if (!loan) { info.textContent = 'Create a loan in Settings → Manage loans first.'; return; }
+    var linked = loan.linkedBankId ? loan.linkedBankId : 'No linked bank';
+    try { if (loan.linkedBankId && typeof plainBankName === 'function') linked = plainBankName(loan.linkedBankId); } catch(_) {}
+    info.innerHTML = 'Original: <strong>' + esc(compactMoney(-loanOriginal(loan), loan.currency, true)) + '</strong><br>Outstanding: <strong>' + esc(compactMoney(-loanOutstanding(loan), loan.currency, true)) + '</strong><br>Linked bank: <strong>' + esc(linked) + '</strong>' + (loan.fixationUntil ? '<br>Fixation until: <strong>' + esc(loan.fixationUntil) + '</strong>' : '');
+  }
+  function updateBuilderVisibility(){
+    ensureLoanWidgetField();
+    var source = sourceValue();
+    var metric = metricValue();
+    var isLoan = source === 'loan';
+    var isCount = !isLoan && metric === 'count';
+    var isAmount = !isLoan && metric !== 'count';
+    if (isLoan) {
+      setBuilderChart('linear');
+      var d = byId('cw-linear-direction'); if (d) d.value = 'decline';
+    } else {
+      var d2 = byId('cw-linear-direction'); if (d2) d2.value = 'incline';
+    }
+    var loanBox = byId('cw-loan-fields-v240'); if (loanBox) { loanBox.classList.toggle('v254-hidden', !isLoan); loanBox.classList.toggle('is-hidden', !isLoan); }
+    updateLoanWidgetInfo();
+    showControl('cw-payment-kind', !isLoan);
+    showControl('cw-gauge-metric', !isLoan);
+    showControl('cw-account', !isLoan);
+    showControl('cw-period', !isLoan);
+    showRow('cw-custom-range', !isLoan && byId('cw-period') && byId('cw-period').value === 'custom');
+    showControl('cw-limit', isAmount);
+    showControl('cw-currency', isAmount);
+    showControl('cw-show-count', isAmount);
+    showControl('cw-tx-target', isCount);
+    showRow('cw-target-count-row', !isLoan && (isAmount || isCount));
+    var chartGrid = byId('cw-chart-grid'); if (chartGrid) chartGrid.classList.toggle('v254-disabled', isLoan);
+  }
+  function getPeriodRange(widget){
+    try { return getCustomWidgetPeriodRange(widget); } catch(_) {}
+    var now = new Date(); return { from:new Date(now.getFullYear(), now.getMonth(), 1), to:now, label:'This month' };
+  }
+  function txDate(tx){ try { return parseCustomDateStr(tx.rawDate || tx.date); } catch(_) { var d = new Date(tx.rawDate || tx.date || ''); return isNaN(d.getTime()) ? null : d; } }
+  function txBank(tx){ try { return getBudgetBankKeyFromTransaction(tx); } catch(_) {} try { return getBankKey(tx); } catch(_) {} return tx.bankId || tx.bank || ''; }
+  function txKind(tx){ try { return getTransactionPaymentKind(tx); } catch(_) {} var t=String(tx.type||'').toLowerCase(); if(t.indexOf('cash')!==-1)return 'cash'; if(t.indexOf('účtu')!==-1||t.indexOf('uctu')!==-1||t.indexOf('account')!==-1||t.indexOf('transfer')!==-1)return 'account'; return 'card'; }
+  function filteredTxns(widget, range){
+    var arr = window.allTransactions || (typeof allTransactions !== 'undefined' ? allTransactions : []) || [];
+    var account = widget.account || 'all';
+    var kind = widget.paymentKind || 'all';
+    return arr.filter(function(tx){ return Number(tx.amount || 0) < 0; })
+      .filter(function(tx){ try { return !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)); } catch(_) { return true; } })
+      .filter(function(tx){ return account === 'all' || txBank(tx) === account; })
+      .filter(function(tx){ return !kind || kind === 'all' || txKind(tx) === kind; })
+      .filter(function(tx){ var d = txDate(tx); return d && d >= range.from && d <= range.to; });
+  }
+  function widgetStats(widget){
+    widget = widget || {};
+    if (widget.source === 'loan') {
+      var loan = loanById(widget.loanId) || normalizeLoan({ id:widget.loanId || 'preview', name:widget.name || 'Loan', currency:widget.currency, originalAmount:widget.loanOriginalAmount || widget.limit, currentBalance:widget.loanCurrentBalance || widget.currentBalance });
+      var original = loanOriginal(loan), current = loanOutstanding(loan);
+      return { source:'loan', loan:loan, txns:[], spent:original-current, limit:original, target:0, pct:original ? (original-current)/original : 0, currency:loan.currency, range:{ label: loan.fixationUntil ? ('Fixation ' + loan.fixationUntil) : 'Repayment' }, linearMetric:'amount', gaugeMetric:'amount' };
+    }
+    if (widget.source === 'manual' && OLD.widgetStats) return OLD.widgetStats(widget);
+    var currency = currencyCodeSafe(widget.currency || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK'));
+    var range = getPeriodRange(widget);
+    var txns = filteredTxns(widget, range);
+    var spent = txns.reduce(function(sum, tx){ try { return sum + Math.abs(convertTransactionAmount(tx, currency)); } catch(_) { return sum + Math.abs(Number(tx.amount || 0)); } }, 0);
+    var limit = Math.max(0, rawNumber(widget.limit || 0));
+    var target = Math.max(0, rawNumber(widget.txTarget || 0));
+    var mode = (widget.linearMetric || widget.gaugeMetric || 'amount') === 'count' ? 'count' : 'amount';
+    return { source:widget.source || 'auto', txns:txns, spent:spent, limit:limit, target:target, pct: mode === 'count' ? (target ? txns.length/target : 0) : (limit ? spent/limit : 0), currency:currency, range:range, linearMetric:mode, gaugeMetric:mode };
+  }
+  function widgetMetric(widget, stats){
+    stats = stats || widgetStats(widget);
+    if (widget && widget.source === 'loan') {
+      var loan = stats.loan || loanById(widget.loanId) || {};
+      var original = loanOriginal(loan), current = loanOutstanding(loan), curr = loan.currency || stats.currency || widget.currency || 'CZK';
+      return { mode:'loan', used:original-current, limit:original, usedLabel:compactMoney(-current, curr, false), limitLabel:compactMoney(-original, curr, true), label:compactMoney(-current, curr, false) + ' / ' + compactMoney(-original, curr, true), rawCount:0 };
+    }
+    var mode = (widget.linearMetric || widget.gaugeMetric || 'amount') === 'count' ? 'count' : 'amount';
+    if (mode === 'count') {
+      var count = Array.isArray(stats.txns) ? stats.txns.length : 0;
+      var target = Math.max(0, rawNumber(stats.target || widget.txTarget || 0));
+      return { mode:'count', used:count, limit:target || 1, usedLabel:compactNumber(count), limitLabel:compactNumber(target), label:compactNumber(count) + ' / ' + compactNumber(target), rawCount:count };
+    }
+    var spent = Math.max(0, rawNumber(stats.spent || 0));
+    var limit = Math.max(0, rawNumber(stats.limit || widget.limit || 0));
+    var curr = stats.currency || widget.currency || 'CZK';
+    return { mode:'amount', used:spent, limit:limit || 1, usedLabel:compactMoney(spent, curr, false), limitLabel:compactMoney(limit, curr, true), label:compactMoney(spent, curr, false) + ' / ' + compactMoney(limit, curr, true), rawCount:Array.isArray(stats.txns) ? stats.txns.length : 0 };
+  }
+  function lineChart(widget, stats){
+    widget = widget || {}; stats = stats || widgetStats(widget);
+    var metric = widgetMetric(widget, stats);
+    var accent = normalizeHex(widget.accent, '#00E5A0');
+    var blue = '#388bfd';
+    var sx=7, mx=58, ex=107, top=8, base=56, h=base-top, pathA, pathB, y;
+    if (widget.source === 'loan') {
+      var loan = stats.loan || loanById(widget.loanId) || {};
+      var original = loanOriginal(loan), current = loanOutstanding(loan);
+      y = base - (current/original) * h;
+      pathA = 'M' + sx + ' ' + top + ' C' + (sx+18) + ' ' + (top+2) + ', ' + (mx-22) + ' ' + (y-5).toFixed(2) + ', ' + mx + ' ' + y.toFixed(2);
+      pathB = 'M' + mx + ' ' + y.toFixed(2) + ' C' + (mx+20) + ' ' + (y+6).toFixed(2) + ', ' + (ex-24) + ' ' + (base-2) + ', ' + ex + ' ' + base;
+    } else {
+      var ratio = metric.limit ? Math.max(0, Math.min(1, metric.used/metric.limit)) : 0;
+      y = base - ratio*h;
+      pathA = 'M' + sx + ' ' + base + ' C' + (sx+18) + ' ' + (base-2) + ', ' + (mx-22) + ' ' + (y+5).toFixed(2) + ', ' + mx + ' ' + y.toFixed(2);
+      pathB = 'M' + mx + ' ' + y.toFixed(2) + ' C' + (mx+20) + ' ' + (y-6).toFixed(2) + ', ' + (ex-24) + ' ' + (top+2) + ', ' + ex + ' ' + top;
+    }
+    return '<svg viewBox="0 0 114 64" preserveAspectRatio="none" aria-hidden="true">'
+      + '<path d="' + attr(pathA) + ' L' + mx + ' ' + base + ' L' + sx + ' ' + base + ' Z" fill="' + attr(hexToRgba(accent,.22)) + '"></path>'
+      + '<path d="' + attr(pathB) + ' L' + ex + ' ' + base + ' L' + mx + ' ' + base + ' Z" fill="rgba(56,139,253,.13)"></path>'
+      + '<path d="' + attr(pathA) + '" fill="none" stroke="' + attr(accent) + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round"></path>'
+      + '<path d="' + attr(pathB) + '" fill="none" stroke="' + blue + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round" opacity=".94"></path>'
+      + '<circle cx="' + mx + '" cy="' + y.toFixed(2) + '" r="1.35" fill="#fff" opacity=".95"></circle>'
+      + '<circle cx="' + mx + '" cy="' + y.toFixed(2) + '" r=".75" fill="' + attr(accent) + '"></circle>'
+      + '</svg>';
+  }
+  function renderWidgetCard(widget, stats){
+    widget = widget || {}; stats = stats || widgetStats(widget);
+    if (widget.chart !== 'linear') return OLD.renderWidget ? OLD.renderWidget(widget, stats) : '';
+    var metric = widgetMetric(widget, stats);
+    var source = widget.source || 'auto';
+    var title = widget.name || (stats.loan && stats.loan.name) || 'Widget';
+    var rangeLabel = source === 'loan' ? ((stats.range && stats.range.label) || 'Repayment') : ((stats.range && stats.range.label) || '');
+    var sub = source === 'loan' ? 'Outstanding / original' : (metric.mode === 'count' ? 'Transactions' : (String(widget.showCount) === 'true' ? 'Transactions ' + compactNumber(Array.isArray(stats.txns) ? stats.txns.length : 0) : ''));
+    var id = widget.id || 'preview';
+    var accent = normalizeHex(widget.accent, '#00E5A0');
+    var menu = id === 'preview' ? '' : '<div class="custom-widget-menu" onclick="event.stopPropagation()"><button class="custom-widget-icon-btn" type="button" title="Settings" onclick="openCustomWidgetBuilder(\'' + attr(id) + '\')">⋮</button></div>';
+    return '<article class="custom-widget-card" data-id="' + attr(id) + '" data-source="' + attr(source) + '" data-chart="linear" data-size="' + attr(widget.size || 'medium') + '" draggable="true" style="--widget-accent:' + attr(accent) + '" onclick="handleCustomWidgetCardClick(event,\'' + attr(id) + '\')" ondragstart="handleCustomWidgetDragStart(event,\'' + attr(id) + '\')" ondragover="handleCustomWidgetDragOver(event)" ondrop="handleCustomWidgetDrop(event,\'' + attr(id) + '\')" ondragend="handleCustomWidgetDragEnd(event)" onpointerdown="handleCustomWidgetPointerDown(event,\'' + attr(id) + '\')" onpointermove="handleCustomWidgetPointerMove(event,\'' + attr(id) + '\')" onpointerup="handleCustomWidgetPointerUp(event,\'' + attr(id) + '\')" onpointercancel="handleCustomWidgetPointerUp(event,\'' + attr(id) + '\')">'
+      + '<div class="custom-widget-content"><div class="custom-widget-head"><div class="custom-widget-title-wrap"><div class="custom-widget-title">' + esc(title) + '</div><div class="custom-widget-period">' + esc(rangeLabel) + '</div></div>' + menu + '</div>'
+      + '<div class="custom-widget-main"><div><div class="custom-widget-money">' + esc(metric.label) + '</div>' + (sub ? '<div class="custom-widget-linear-sub-v254">' + esc(sub) + '</div>' : '') + '</div></div>'
+      + '<div class="custom-widget-chart">' + lineChart(widget, stats) + '</div></div></article>';
+  }
+  function collectValues(){
+    ensureSourceOptions(); ensureLoanWidgetField();
+    var source = sourceValue();
+    var metric = metricValue();
+    var chart = activeChoice('cw-chart-grid','linear');
+    if (source === 'loan') { chart = 'linear'; metric = 'amount'; }
+    var values = {
+      name:(byId('cw-name') && byId('cw-name').value || '').trim(), chart:chart, size:activeChoice('cw-size-grid','medium'), source:source,
+      paymentKind:byId('cw-payment-kind') && byId('cw-payment-kind').value || 'all', gaugeMetric:metric, linearMetric:metric,
+      limit:rawNumber(byId('cw-limit') && byId('cw-limit').value), currency:currencyCodeSafe(byId('cw-currency') && byId('cw-currency').value || 'CZK'),
+      txTarget:rawNumber(byId('cw-tx-target') && byId('cw-tx-target').value), showCount:byId('cw-show-count') && byId('cw-show-count').value === 'true',
+      period:byId('cw-period') && byId('cw-period').value || 'month', from:byId('cw-from') && byId('cw-from').value || '', to:byId('cw-to') && byId('cw-to').value || '', account:byId('cw-account') && byId('cw-account').value || 'all',
+      manualUsed:rawNumber(byId('cw-manual-used') && byId('cw-manual-used').value), unit:byId('cw-unit') && byId('cw-unit').value || 'entries',
+      accent:normalizeHex((byId('cw-accent-hex') && byId('cw-accent-hex').value) || (byId('cw-accent') && byId('cw-accent').value), '#00E5A0'),
+      alerts:byId('cw-alerts') && byId('cw-alerts').value === 'true', threshold:rawNumber(byId('cw-threshold') && byId('cw-threshold').value) || 80
+    };
+    if (source === 'loan') {
+      var loan = loanById(byId('cw-loan-id') && byId('cw-loan-id').value);
+      values.loanId = loan && loan.id || '';
+      values.name = values.name || (loan && loan.name) || 'Loan';
+      values.currency = loan && loan.currency || values.currency;
+      values.limit = loan ? loanOriginal(loan) : 0;
+      values.loanOriginalAmount = loan ? loanOriginal(loan) : 0;
+      values.loanCurrentBalance = loan ? -loanOutstanding(loan) : 0;
+      values.txTarget = 0; values.showCount = false; values.paymentKind = 'loan'; values.account = loan && loan.linkedBankId || 'none'; values.period = 'loan'; values.linearDirection = 'decline'; values.trendType = 'decline';
+    } else if (metric === 'count') {
+      values.limit = 0; values.showCount = false; values.linearDirection='incline'; values.trendType='incline';
+    } else { values.txTarget = 0; values.linearDirection='incline'; values.trendType='incline'; }
+    return values;
+  }
+  function updatePreviewNow(){
+    updateBuilderVisibility();
+    try {
+      var values = collectValues();
+      var preview = byId('custom-widget-preview'); if (!preview) return;
+      var mock = Object.assign({}, values, { id:'preview', name:values.name || (values.source === 'loan' ? 'Loan preview' : 'Widget preview') });
+      preview.innerHTML = renderWidgetCard(mock, widgetStats(mock));
+      var card = preview.querySelector('.custom-widget-card'); if (card) { card.removeAttribute('onclick'); card.removeAttribute('draggable'); var menu = card.querySelector('.custom-widget-menu'); if (menu) menu.remove(); }
+    } catch(e) { console.warn('v254 preview failed', e); }
+  }
+  function schedulePreview(){ clearTimeout(previewTimer); previewTimer = setTimeout(updatePreviewNow, 70); }
+
+  window.getCustomWidgetStats = widgetStats;
+  window.getCustomWidgetUsedLimit = widgetMetric;
+  window.createCustomWidgetLineChart = function(widget, stats){ return lineChart(widget, stats || widgetStats(widget)); };
+  window.renderCustomWidgetCard = renderWidgetCard;
+  window.collectCustomWidgetBuilderValues = collectValues;
+  window.updateCustomWidgetBuilderPreview = schedulePreview;
+  try { getCustomWidgetStats = window.getCustomWidgetStats; getCustomWidgetUsedLimit = window.getCustomWidgetUsedLimit; createCustomWidgetLineChart = window.createCustomWidgetLineChart; renderCustomWidgetCard = window.renderCustomWidgetCard; collectCustomWidgetBuilderValues = window.collectCustomWidgetBuilderValues; updateCustomWidgetBuilderPreview = window.updateCustomWidgetBuilderPreview; } catch(_) {}
+
+  window.saveCustomWidgetFromBuilder = function(){
+    var values = collectValues();
+    if (!values.name) { alert('Widget name is required.'); return; }
+    if (values.source === 'loan') { if (!values.loanId || !loanById(values.loanId)) { alert('Choose a loan from Manage loans first.'); return; } }
+    else if (values.linearMetric === 'count') { if (values.txTarget <= 0) { alert('Transaction target is required.'); return; } }
+    else if (values.linearMetric === 'amount') { if (values.limit <= 0) { alert('Budget limit is required.'); return; } }
+    var widgets = [];
+    try { widgets = typeof loadCustomWidgets === 'function' ? loadCustomWidgets() : JSON.parse(localStorage.getItem(WIDGETS_KEY) || '[]'); } catch(_) { widgets = []; }
+    if (!Array.isArray(widgets)) widgets = [];
+    var state = {}; try { if (typeof customWidgetBuilderState !== 'undefined') state = customWidgetBuilderState || {}; } catch(_) {}
+    if (state.mode === 'edit' && state.id) {
+      var idx = widgets.findIndex(function(w){ return String(w.id) === String(state.id); });
+      if (idx >= 0) widgets[idx] = Object.assign({}, widgets[idx], values, { id:state.id, updatedAt:new Date().toISOString() });
+      else widgets.push(Object.assign({}, values, { id:state.id, hidden:false, createdAt:new Date().toISOString() }));
+    } else widgets.push(Object.assign({}, values, { id:'cw_' + Date.now().toString(36), hidden:false, createdAt:new Date().toISOString() }));
+    try { if (typeof saveCustomWidgets === 'function') saveCustomWidgets(widgets); else localStorage.setItem(WIDGETS_KEY, JSON.stringify(widgets)); } catch(_) {}
+    try { if (typeof closeCustomWidgetBuilder === 'function') closeCustomWidgetBuilder(); else if (typeof closeBottomSheets === 'function') closeBottomSheets(); } catch(_) {}
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    try { if (typeof renderOverviewDashboard === 'function') renderOverviewDashboard(); } catch(_) {}
+  };
+  try { saveCustomWidgetFromBuilder = window.saveCustomWidgetFromBuilder; } catch(_) {}
+  window.handleCustomWidgetSourceChange = function(){ updateBuilderVisibility(); schedulePreview(); };
+  window.syncCustomWidgetMetricChoices = function(){ updateBuilderVisibility(); schedulePreview(); };
+  window.handleCustomWidgetPeriodChange = function(){ updateBuilderVisibility(); schedulePreview(); };
+  try { handleCustomWidgetSourceChange = window.handleCustomWidgetSourceChange; syncCustomWidgetMetricChoices = window.syncCustomWidgetMetricChoices; handleCustomWidgetPeriodChange = window.handleCustomWidgetPeriodChange; } catch(_) {}
+  window.openCustomWidgetBuilder = function(id){
+    var r = OLD.openWidgetBuilder ? OLD.openWidgetBuilder.apply(this, arguments) : undefined;
+    setTimeout(function(){ ensureSourceOptions(); ensureLoanWidgetField(); updateBuilderVisibility(); updatePreviewNow(); }, 120);
+    return r;
+  };
+  try { openCustomWidgetBuilder = window.openCustomWidgetBuilder; } catch(_) {}
+  // v258: disabled old v254 widget change preview listener
+  // v258: disabled old v254 widget input preview listener
+
+  function boot(){
+    ensureLoanManagerDom();
+    getLoans();
+    ensureSourceOptions(); ensureLoanWidgetField(); updateBuilderVisibility();
+    syncLoansNow(false);
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once:true }); else setTimeout(boot, 0);
+})();
+</script>
+
+
+
+<!-- v255 privacy zero-mask + transactions 10-row performance cap + visual performance optimisations -->
+<style id="v255-privacy-transactions-performance-css">
+  /* Privacy: no blur. Numbers are masked by JS; graph geometry stays crisp. */
+  html[data-values-hidden="true"] .summary-val,
+  html[data-values-hidden="true"] .wealth-card-value,
+  html[data-values-hidden="true"] .wealth-linear-card-value,
+  html[data-values-hidden="true"] .wealth-budget-sparkline-label,
+  html[data-values-hidden="true"] .custom-widget-money,
+  html[data-values-hidden="true"] .custom-widget-limit,
+  html[data-values-hidden="true"] .custom-widget-count,
+  html[data-values-hidden="true"] .custom-widget-chart-label,
+  html[data-values-hidden="true"] .custom-widget-gauge-value-line,
+  html[data-values-hidden="true"] .account-balance-value,
+  html[data-values-hidden="true"] .account-balance-equivalent,
+  html[data-values-hidden="true"] .budget-status-value,
+  html[data-values-hidden="true"] .archive-bank-spent-cell,
+  html[data-values-hidden="true"] .archive-bank-income-cell,
+  html[data-values-hidden="true"] .card-count-big,
+  html[data-values-hidden="true"] .stat-val,
+  html[data-values-hidden="true"] .progress-labels,
+  html[data-values-hidden="true"] .wealth-inline-progress-labels,
+  html[data-values-hidden="true"] .txn-cashflow-pie-label,
+  html[data-values-hidden="true"] .txn-cashflow-axis-label,
+  html[data-values-hidden="true"] .txn-cashflow-pie-stat strong,
+  html[data-values-hidden="true"] .txn-total-values {
+    -webkit-text-security: none !important;
+    text-security: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+  html[data-values-hidden="true"] .mini-gauge-wrap,
+  html[data-values-hidden="true"] .wealth-inline-progress,
+  html[data-values-hidden="true"] .wealth-budget-widget,
+  html[data-values-hidden="true"] .custom-widget-chart,
+  html[data-values-hidden="true"] .budget-progress,
+  html[data-values-hidden="true"] .progress-wrap,
+  html[data-values-hidden="true"] svg {
+    filter: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Transactions: no manual/automatic loading beyond the first 10 rendered rows. */
+  .txn-show-more-wrap,
+  .txn-load-older-wrap,
+  .txn-auto-loader-v243,
+  .txn-render-note,
+  .txn-history-note {
+    display: none !important;
+  }
+
+  /* Performance: keep graph gradients, reduce expensive UI shadows/backdrop filters. */
+  .bottom-nav,
+  .bottom-sheet-backdrop {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .summary,
+  .wealth-card,
+  .custom-widget-card,
+  .overview-recent-widget,
+  .card-widget,
+  .archive-container,
+  .budget-status,
+  .archive-trend-card,
+  .daily-chart-card,
+  .txn-cashflow-card,
+  .txn-totals-card,
+  .managed-bank-row,
+  .managed-tx-row,
+  .settings-plan-row,
+  .push-toggle-card,
+  .plan-card,
+  .theme-mode-card,
+  .app-info-card,
+  .upgrade-card,
+  .bottom-sheet {
+    box-shadow: 0 7px 18px rgba(0,0,0,.12) !important;
+  }
+  html[data-theme="light"] .summary,
+  html[data-theme="light"] .wealth-card,
+  html[data-theme="light"] .custom-widget-card,
+  html[data-theme="light"] .overview-recent-widget,
+  html[data-theme="light"] .card-widget,
+  html[data-theme="light"] .archive-container,
+  html[data-theme="light"] .budget-status,
+  html[data-theme="light"] .archive-trend-card,
+  html[data-theme="light"] .daily-chart-card,
+  html[data-theme="light"] .txn-cashflow-card,
+  html[data-theme="light"] .txn-totals-card,
+  html[data-theme="light"] .managed-bank-row,
+  html[data-theme="light"] .managed-tx-row,
+  html[data-theme="light"] .settings-plan-row,
+  html[data-theme="light"] .push-toggle-card,
+  html[data-theme="light"] .plan-card,
+  html[data-theme="light"] .theme-mode-card,
+  html[data-theme="light"] .app-info-card,
+  html[data-theme="light"] .upgrade-card,
+  html[data-theme="light"] .bottom-sheet {
+    box-shadow: 0 6px 16px rgba(15,23,42,.06) !important;
+  }
+  .nav-icon,
+  .theme-mode-toggle .theme-icon {
+    filter: none !important;
+  }
+</style>
+
+
+
+
+
+<!-- v258 smooth virtual transactions + isolated widget data rules -->
+<style id="v258-txn-widget-rules-css">
+  .txn-virtual-spacer-v258 { width:100%; pointer-events:none; flex:0 0 auto; }
+  .txn-virtual-counter-v258 {
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    color:var(--muted); font-family:var(--font-mono); font-size:11px;
+    margin:0 0 10px; padding:0 2px;
+  }
+  .txn-virtual-counter-v258 strong { color:#8fdcff; }
+  .txn-virtual-rows-v258 { contain:layout paint; }
+  .txn-virtual-rows-v258 .tx-item { content-visibility:auto; contain-intrinsic-size:72px; }
+  #custom-widget-sheet .v258-hidden { display:none !important; }
+  #custom-widget-sheet .v258-muted { opacity:.38 !important; pointer-events:none !important; }
+  #custom-widget-sheet .cw-derived-note-v258 {
+    margin-top:6px; color:var(--muted); font-size:10px; font-family:var(--font-mono); line-height:1.35;
+  }
+  .custom-widget-linear-sub-v258 {
+    margin-top:4px; font-family:var(--font-mono); font-size:11px; font-weight:900;
+    color:rgba(220,235,255,.72); white-space:nowrap;
+  }
+  .custom-widget-card .custom-widget-money,
+  .custom-widget-card .custom-widget-limit,
+  .custom-widget-gauge-value-top strong,
+  .custom-widget-chart-label {
+    font-variant-numeric:tabular-nums;
+  }
+  .custom-widget-card .custom-widget-money { font-size:clamp(15px, 4.2vw, 22px); letter-spacing:-.04em; }
+  .custom-widget-card[data-size="small"] .custom-widget-money { font-size:clamp(13px, 3.7vw, 18px); }
+  .custom-widget-gauge-value-top { gap:6px !important; }
+  .custom-widget-gauge-value-top strong { font-size:clamp(10px, 2.7vw, 12px); white-space:nowrap; letter-spacing:-.045em; }
+  .custom-widget-gauge-status { font-size:9px !important; }
+  @media (max-width:430px){
+    #custom-widget-sheet .custom-widget-row-2 { grid-template-columns:1fr !important; }
+    .txn-virtual-counter-v258 { padding:0 2px; }
+  }
+  html[data-theme="light"] .custom-widget-linear-sub-v258,
+  html[data-theme="light"] #custom-widget-sheet .cw-derived-note-v258 { color:#31547d !important; }
+</style>
+<script id="v258-txn-widget-rules-js">
+(function(){
+  'use strict';
+  var TXN_WINDOW = 25;
+  var TXN_OVERSCAN_TOP = 4;
+  var ROW_H = 74;
+  var txnVirtualStart = 0;
+  var txnState = { signature:'', scoped:[], categorySource:[], totalsHtml:'', cashflowHtml:'', lastRenderedStart:-1, lastRenderedEnd:-1 };
+  var renderingTxn = false;
+  var scrollQueued = false;
+  var widgetPreviewTimer = null;
+  var WIDGETS_KEY = 'bank_tracker_custom_widgets_v1';
+  var LOANS_KEY = 'bank_tracker_loans_v1';
+
+  function byId(id){ return document.getElementById(id); }
+  function esc(value){
+    try { return escapeHtml(String(value == null ? '' : value)); } catch(_) {}
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+  function attr(value){ try { return escapeAttr(String(value == null ? '' : value)); } catch(_) { return esc(value); } }
+  function num(value){
+    try { if (typeof parseSheetNumber === 'function') return Number(parseSheetNumber(value, value) || 0); } catch(_) {}
+    var n = Number(String(value == null ? '' : value).replace(/\s+/g,'').replace(',','.').replace(/[^0-9.\-]/g,''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function abs(value){ return Math.abs(num(value)); }
+  function normalizeCurrency(value){
+    try { return currencyCode(value || getAppCurrency() || 'CZK'); } catch(_) {}
+    var s = String(value || 'CZK').trim();
+    if (s === 'Kč' || /kč|kc/i.test(s)) return 'CZK';
+    if (s === '€') return 'EUR';
+    if (s === '$') return 'USD';
+    if (s === '£') return 'GBP';
+    if (/^zł$/i.test(s)) return 'PLN';
+    return s.toUpperCase() || 'CZK';
+  }
+  function currencySym(value){
+    var c = normalizeCurrency(value);
+    return c === 'CZK' ? 'Kč' : c === 'EUR' ? '€' : c === 'USD' ? '$' : c === 'GBP' ? '£' : c === 'PLN' ? 'zł' : c;
+  }
+  function compactNumber(value){
+    var n = Number(value || 0);
+    var sign = n < 0 ? '-' : '';
+    var a = Math.abs(n);
+    var out;
+    if (a >= 1000000) out = (a / 1000000).toFixed(a % 1000000 ? 1 : 0).replace(/\.0$/, '') + 'm';
+    else if (a >= 1000) out = (a / 1000).toFixed(a % 1000 ? 1 : 0).replace(/\.0$/, '') + 'k';
+    else out = String(Math.round(a));
+    return sign + out;
+  }
+  function compactMoney(value, currency, withSymbol){
+    var out = compactNumber(value);
+    if (withSymbol !== false) out += ' ' + currencySym(currency);
+    return out;
+  }
+  function normalizeHex(value, fallback){
+    try { return normalizeWidgetHexColor(value, fallback || '#00E5A0'); } catch(_) {}
+    var v = String(value || '').trim();
+    return /^#[0-9a-fA-F]{6}$/.test(v) ? v.toUpperCase() : (fallback || '#00E5A0');
+  }
+  function hexToRgba(hex, alpha){
+    var h = String(hex || '#00E5A0').replace('#','');
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) h = '00E5A0';
+    var r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + (alpha == null ? .20 : alpha) + ')';
+  }
+  function stableGaugeColor(mode, pct, accent){
+    pct = Math.max(0, Math.min(100, Number(pct || 0)));
+    if (mode === 'loan') return normalizeHex(accent, '#00E5A0');
+    if (mode === 'count') {
+      if (pct >= 100) return '#00E5A0';
+      if (pct >= 76) return '#FFE033';
+      if (pct >= 51) return '#FFB86B';
+      if (pct >= 26) return '#FF8A3D';
+      return '#E5005F';
+    }
+    if (pct >= 100) return '#E5005F';
+    if (pct >= 76) return '#FF8A3D';
+    if (pct >= 51) return '#FFB86B';
+    if (pct >= 26) return '#FFE033';
+    return '#72F0C8';
+  }
+  function sourceNorm(value){
+    var v = String(value || '').trim().toLowerCase().replace(/[\s-]+/g,'_');
+    if (v === 'loan' || v === 'loans' || v === 'loans_tab' || v === 'loan_tab' || v === 'loan_data') return 'loan';
+    if (v === 'manual' || v === 'manual_value' || v === 'manual_data') return 'manual';
+    return 'auto';
+  }
+
+  /* ---------- Transactions: smooth virtual full-history filtering, 25 DOM rows ---------- */
+  window.renderShowMoreTransactionsButton = function(){ return ''; };
+  window.renderLoadOlderTransactionsButton = function(){ return ''; };
+  window.renderTransactionHistoryNote = function(){ return ''; };
+  window.filterTransactionsByHistoryScope = function(txns){ return txns || []; };
+  try { renderShowMoreTransactionsButton = window.renderShowMoreTransactionsButton; renderLoadOlderTransactionsButton = window.renderLoadOlderTransactionsButton; renderTransactionHistoryNote = window.renderTransactionHistoryNote; filterTransactionsByHistoryScope = window.filterTransactionsByHistoryScope; } catch(_) {}
+
+  function allTxnsSorted(){
+    var arr = [];
+    try { arr = Array.isArray(window.allTransactions || allTransactions) ? (window.allTransactions || allTransactions).slice() : []; } catch(_) {}
+    try { arr = typeof sortTransactionsNewestFirst === 'function' ? sortTransactionsNewestFirst(arr) : arr; } catch(_) {}
+    return arr;
+  }
+  function getGlobal(name, fallback){ try { return window[name] !== undefined ? window[name] : eval(name); } catch(_) { return fallback; } }
+  function currentTxnSignature(){
+    var parts = [];
+    try { parts.push('len:' + ((window.allTransactions || allTransactions || []).length || 0)); } catch(_) {}
+    ['activeDirection','activeBank','activePaymentKind','activeCardLast4','activeCategory','activeSearch','activeDateFrom','activeDateTo','activeMonthFilter'].forEach(function(k){ parts.push(k + ':' + JSON.stringify(getGlobal(k,''))); });
+    return parts.join('|');
+  }
+  function filterTxnsFull(){
+    var base = allTxnsSorted();
+    try { if (typeof filterTransactionsByMonthFilter === 'function') base = filterTransactionsByMonthFilter(base); } catch(_) {}
+    try { if (typeof filterTransactionsByDateRange === 'function') base = filterTransactionsByDateRange(base); } catch(_) {}
+    var direction = getGlobal('activeDirection','all');
+    var bank = getGlobal('activeBank','všetky');
+    var card = getGlobal('activeCardLast4','');
+    var kind = getGlobal('activePaymentKind','all');
+    var search = getGlobal('activeSearch','');
+    var category = getGlobal('activeCategory','všetky');
+    if (direction === 'incoming') base = base.filter(function(t){ return Number(t.amount) > 0; });
+    if (direction === 'outgoing') base = base.filter(function(t){ return Number(t.amount) < 0; });
+    if (bank !== 'všetky') base = base.filter(function(t){ try { return typeof matchesAnyActiveBankFilterV239 === 'function' ? matchesAnyActiveBankFilterV239(t, bank) : (typeof matchesActiveBankFilter === 'function' ? matchesActiveBankFilter(t, bank) : true); } catch(_) { return true; } });
+    if (card) base = base.filter(function(t){ try { return transactionMatchesCardLast4(t, card); } catch(_) { return true; } });
+    try { if (typeof prepareTransactionsForCurrentView === 'function') base = prepareTransactionsForCurrentView(base); } catch(_) {}
+    try { if (typeof dedupeTransactionsForCurrentView === 'function') base = dedupeTransactionsForCurrentView(base); } catch(_) {}
+    if (kind !== 'all') base = base.filter(function(t){ try { return typeof matchesAnyPaymentKindV239 === 'function' ? matchesAnyPaymentKindV239(t, kind) : true; } catch(_) { return true; } });
+    if (search) base = base.filter(function(t){ try { return transactionMatchesSearch(t, search); } catch(_) { return true; } });
+    var preCategory = base.slice();
+    if (category !== 'všetky') base = base.filter(function(t){ try { return typeof matchesAnyCategoryV239 === 'function' ? matchesAnyCategoryV239(t, category) : String(t.category || '') === String(category); } catch(_) { return true; } });
+    return { scoped:base, categorySource:preCategory };
+  }
+  function renderTxnRows(visible){
+    var lastDayLabel = '';
+    return visible.map(function(tx){
+      var bankKey = ''; try { bankKey = getBankKey(tx); } catch(_) {}
+      var isIncome = Number(tx.amount) > 0;
+      var sign = isIncome ? '+' : '-';
+      var amountClass = isIncome ? 'amount-income' : 'amount-expense';
+      var txId = ''; try { txId = typeof getTransactionId === 'function' ? getTransactionId(tx) : (tx.id || tx.msgId || ''); } catch(_) { txId = tx.id || tx.msgId || ''; }
+      var dayLabel = ''; try { dayLabel = getTxnDayDisplay(tx); } catch(_) {}
+      var timeLabel = ''; try { timeLabel = getTxnTimeDisplay(tx); } catch(_) {}
+      var paymentLabel = ''; try { paymentLabel = getPaymentKindLabel(tx); } catch(_) {}
+      var source = ''; try { source = getPaymentSourceMasked(tx); } catch(_) {}
+      var dayHeader = dayLabel !== lastDayLabel ? '<div class="txn-day-header">' + esc(dayLabel) + '</div>' : '';
+      lastDayLabel = dayLabel;
+      var accountEquivalent = ''; try { accountEquivalent = renderAccountCurrencyEquivalent(tx) || ''; } catch(_) {}
+      var isCreditRepayment = false; try { isCreditRepayment = typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx); } catch(_) {}
+      var rowClass = isCreditRepayment ? ' tx-credit-repayment' : '';
+      var amountClassFinal = isCreditRepayment ? 'amount-neutral' : amountClass;
+      var cat = ''; try { cat = catIcon(tx.category); } catch(_) {}
+      var amount = ''; try { amount = formatCurrencyAmount(tx.amount, tx.currency); } catch(_) { amount = String(Math.abs(Number(tx.amount || 0))); }
+      var logo = ''; try { logo = bankLogoImg(bankKey, 'tx-bank-logo'); } catch(_) {}
+      return dayHeader + '<div class="tx-item' + rowClass + '" data-tx-id="' + attr(txId) + '"><div class="tx-left"><div class="tx-icon">' + cat + '</div><div><div class="tx-merchant">' + esc(tx.merchant || '') + '</div><div class="tx-meta">' + esc(timeLabel) + ' · <span class="tx-payment-source" data-label="' + attr(paymentLabel) + '" data-source="' + attr(source) + '" onclick="event.stopPropagation(); togglePaymentSourceDetail(this)">' + esc(paymentLabel) + '</span></div></div></div><div class="tx-right-side"><div class="tx-amount-wrap"><div class="tx-amount ' + amountClassFinal + '">' + sign + amount + '</div>' + accountEquivalent + '</div>' + logo + '</div></div>';
+    }).join('');
+  }
+  function rebuildTxnState(force){
+    var sig = currentTxnSignature();
+    if (!force && sig === txnState.signature) return false;
+    txnState.signature = sig;
+    var data = filterTxnsFull();
+    txnState.scoped = data.scoped || [];
+    txnState.categorySource = data.categorySource || txnState.scoped;
+    txnVirtualStart = 0;
+    txnState.lastRenderedStart = -1;
+    txnState.lastRenderedEnd = -1;
+    try {
+      var categorySource = (txnState.categorySource || txnState.scoped).filter(function(tx){ return !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)); });
+      var cats = ['všetky'].concat(Array.from(new Set(categorySource.map(function(tx){ return tx && tx.category; }).filter(Boolean))));
+      if (typeof renderCategoryFilters === 'function') renderCategoryFilters(cats, categorySource);
+    } catch(_) {}
+    try { txnState.cashflowHtml = renderTransactionDailyCashflow(txnState.scoped.slice(0, TXN_WINDOW)) || ''; } catch(_) { txnState.cashflowHtml = ''; }
+    try { txnState.totalsHtml = renderTransactionTotals(txnState.scoped) || ''; } catch(_) { txnState.totalsHtml = ''; }
+    return true;
+  }
+  function renderTxnWindow(start, opts){
+    opts = opts || {};
+    var listDiv = byId('txn-list');
+    var cashflowSlot = byId('txn-cashflow-slot');
+    if (!listDiv) return;
+    var total = txnState.scoped.length;
+    if (!total) {
+      if (cashflowSlot) cashflowSlot.innerHTML = '';
+      listDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>' + (typeof t === 'function' ? t('noTransactionsForFilters') : 'No transactions') + '</div>';
+      return;
+    }
+    var maxStart = Math.max(0, total - TXN_WINDOW);
+    start = Math.max(0, Math.min(start || 0, maxStart));
+    var end = Math.min(total, start + TXN_WINDOW);
+    if (!opts.force && start === txnState.lastRenderedStart && end === txnState.lastRenderedEnd) return;
+    txnVirtualStart = start;
+    txnState.lastRenderedStart = start;
+    txnState.lastRenderedEnd = end;
+    var visible = txnState.scoped.slice(start, end);
+    var topH = start * ROW_H;
+    var bottomH = Math.max(0, (total - end) * ROW_H);
+    if (cashflowSlot && opts.full) cashflowSlot.innerHTML = txnState.cashflowHtml || '';
+    var counter = '<div class="txn-virtual-counter-v258"><span>Showing <strong>' + (start + 1) + '–' + end + '</strong> of ' + total + '</span><span>' + (typeof t === 'function' ? t('transactionsCountLabel') : 'transactions') + '</span></div>';
+    listDiv.innerHTML = counter + '<div class="txn-virtual-spacer-v258" style="height:' + Math.round(topH) + 'px"></div><div class="txn-virtual-rows-v258">' + renderTxnRows(visible) + '</div><div class="txn-virtual-spacer-v258" style="height:' + Math.round(bottomH) + 'px"></div>' + txnState.totalsHtml;
+    try { bindTransactionDeleteGestures(); } catch(_) {}
+    try { scheduleFloatingUtilityUpdate(); } catch(_) {}
+    try { window.v258ApplyPrivacyMask && window.v258ApplyPrivacyMask(); } catch(_) {}
+  }
+  window.updateTxnPage = function(force){
+    if (renderingTxn) return;
+    renderingTxn = true;
+    try {
+      try { updateTransactionDateInputs(); updatePaymentKindFilterUi(); updateCardSourceFiltersUi(); updateDirectionFilterUi(); updateTransactionFilterPanelUi(); } catch(_) {}
+      try { activeTxnHistoryScope = 'all'; } catch(_) {}
+      rebuildTxnState(!!force);
+      renderTxnWindow(txnVirtualStart, {force:true, full:true});
+    } finally { renderingTxn = false; }
+  };
+  try { updateTxnPage = window.updateTxnPage; } catch(_) {}
+  function updateWindowFromScroll(){
+    var page = byId('page-txns');
+    if (!page || !page.classList.contains('active')) return;
+    var list = byId('txn-list');
+    if (!list) return;
+    if (rebuildTxnState(false)) renderTxnWindow(0, {force:true, full:true});
+    var total = txnState.scoped.length;
+    if (total <= TXN_WINDOW) return;
+    var listTop = list.getBoundingClientRect().top + window.scrollY;
+    var y = Math.max(0, window.scrollY - listTop - 36);
+    var next = Math.floor(y / ROW_H) - TXN_OVERSCAN_TOP;
+    next = Math.max(0, Math.min(next, Math.max(0, total - TXN_WINDOW)));
+    if (Math.abs(next - txnVirtualStart) >= 7 || next === 0 || next >= total - TXN_WINDOW) {
+      renderTxnWindow(next, {force:false, full:false});
+    }
+  }
+  function onVirtualScroll(){
+    if (scrollQueued) return;
+    scrollQueued = true;
+    requestAnimationFrame(function(){ scrollQueued = false; updateWindowFromScroll(); });
+  }
+  window.addEventListener('scroll', onVirtualScroll, { passive:true });
+  document.addEventListener('scroll', function(ev){ if (ev.target && ev.target.id === 'page-txns') onVirtualScroll(); }, true);
+
+  function resetAllTxnFilters(){
+    try { activeDirection='all'; activeBank='všetky'; activePaymentKind='all'; activeCardLast4=''; activeCategory='všetky'; activeSearch=''; activeDateFrom=''; activeDateTo=''; activeMonthFilter=''; activeTxnHistoryScope='all'; } catch(_) {}
+    var s = byId('txn-search'); if (s) s.value = '';
+    try { updatePaymentKindFilterUi(); updateCardSourceFiltersUi(); updateDirectionFilterUi(); updateTransactionFilterPanelUi(); updateTransactionDateInputs(); } catch(_) {}
+    txnState.signature = ''; txnVirtualStart = 0;
+  }
+  var oldShowPage = window.showPage;
+  if (typeof oldShowPage === 'function' && !oldShowPage.__v258Wrapped) {
+    var wrappedShowPage = function(pageId, options){
+      var plainTx = pageId === 'txns' && !(options && options.preserveFilters);
+      if (plainTx) resetAllTxnFilters();
+      var r = oldShowPage.apply(this, arguments);
+      if (plainTx) setTimeout(function(){ resetAllTxnFilters(); window.updateTxnPage(true); try { window.scrollTo({top:0, behavior:'auto'}); } catch(_) {} }, 0);
+      return r;
+    };
+    wrappedShowPage.__v258Wrapped = true;
+    window.showPage = wrappedShowPage; try { showPage = window.showPage; } catch(_) {}
+  }
+
+  /* ---------- Loans helpers ---------- */
+  function getLoansV258(){
+    var rows = [];
+    try { rows = JSON.parse(localStorage.getItem(LOANS_KEY) || '[]'); } catch(_) { rows = []; }
+    if (!Array.isArray(rows)) rows = [];
+    return rows.filter(function(l){
+      if (!l) return false;
+      var id = String(l.id || l.loanId || '').trim();
+      var name = String(l.name || l.loanName || '').trim();
+      if (!id || !name || /^-?\d+(?:[.,]\d+)?$/.test(name)) return false;
+      return abs(l.originalAmount || l.original || l.principal) > 0 || abs(l.currentBalance || l.outstandingBalance || l.balance) > 0;
+    }).map(function(l){
+      var original = abs(l.originalAmount != null ? l.originalAmount : (l.original != null ? l.original : l.principal));
+      var current = abs(l.currentBalance != null ? l.currentBalance : (l.outstandingBalance != null ? l.outstandingBalance : l.balance));
+      return Object.assign({}, l, {
+        id:String(l.id || l.loanId).trim(), name:String(l.name || l.loanName).trim(), currency:normalizeCurrency(l.currency || 'CZK'),
+        originalAmount:original, currentBalance:-current, linkedBankId:String(l.linkedBankId || l.bankId || '').trim(), type:String(l.type || l.loanType || 'loan').trim()
+      });
+    });
+  }
+  function loanByIdV258(id){ id = String(id || '').trim(); return getLoansV258().find(function(l){ return String(l.id) === id; }) || null; }
+  function loanOriginal(loan){ return abs(loan && loan.originalAmount); }
+  function loanOutstanding(loan){ return abs(loan && loan.currentBalance); }
+
+  /* ---------- Widget builder source isolation ---------- */
+  function ensureWidgetOptions(){
+    var src = byId('cw-source');
+    if (src) {
+      if (!Array.prototype.some.call(src.options || [], function(o){ return o.value === 'loan'; })) {
+        var opt = document.createElement('option'); opt.value = 'loan'; opt.textContent = 'Loan data'; src.appendChild(opt);
+      }
+      Array.prototype.forEach.call(src.options || [], function(o){ if (sourceNorm(o.value) === 'auto') { o.value='auto'; o.textContent='App data'; } if (sourceNorm(o.value) === 'manual') { o.value='manual'; o.textContent='Manual data'; } if (sourceNorm(o.value) === 'loan') { o.value='loan'; o.textContent='Loan data'; } });
+    }
+    var metric = byId('cw-gauge-metric');
+    if (metric) Array.prototype.forEach.call(metric.options || [], function(o){ if (o.value === 'amount') o.textContent = 'Amount'; if (o.value === 'count') o.textContent = 'Number of transactions'; });
+  }
+  function ensureLoanField(){
+    var source = byId('cw-source'); if (!source) return;
+    var box = byId('cw-loan-fields-v240');
+    if (!box) {
+      box = document.createElement('div'); box.id = 'cw-loan-fields-v240'; box.className = 'custom-widget-loan-fields-v240 v258-hidden';
+      box.innerHTML = '<label>Loan / mortgage</label><select class="config-input" id="cw-loan-id"></select><div class="loan-widget-readonly-v254" id="cw-loan-readonly-v254"></div>';
+      var grid = byId('custom-widget-modal-grid') || byId('custom-widget-fields') || source.closest('.custom-widget-modal-grid');
+      if (grid) grid.insertBefore(box, source.closest('div') ? source.closest('div').nextSibling : null);
+    }
+    var select = byId('cw-loan-id'); if (!select) return;
+    var keep = select.value;
+    var loans = getLoansV258();
+    select.innerHTML = loans.length ? loans.map(function(l){ return '<option value="' + attr(l.id) + '">' + esc(l.name) + ' · ' + esc(compactMoney(-loanOutstanding(l), l.currency)) + '</option>'; }).join('') : '<option value="">Create loan in Settings first</option>';
+    if (keep && loans.some(function(l){ return l.id === keep; })) select.value = keep;
+  }
+  function val(id, fallback){ var el = byId(id); return el ? el.value : fallback; }
+  function activeChoice(gridId, fallback){
+    try { var btn = byId(gridId)?.querySelector('.custom-widget-choice.active,.active'); if (btn) return btn.dataset.value || btn.getAttribute('data-value') || btn.value || fallback; } catch(_) {}
+    try { var state = typeof customWidgetBuilderState !== 'undefined' ? customWidgetBuilderState : {}; if (gridId.indexOf('chart') !== -1 && state.chart) return state.chart; if (gridId.indexOf('size') !== -1 && state.size) return state.size; } catch(_) {}
+    return fallback;
+  }
+  function sourceValue(){ return sourceNorm(val('cw-source','auto')); }
+  function metricValue(){ var v = val('cw-gauge-metric','amount') || 'amount'; return v === 'count' ? 'count' : 'amount'; }
+  function wrapForControl(id){ var el = byId(id); if (!el) return null; if (id === 'cw-loan-id') return byId('cw-loan-fields-v240'); return el.closest('.custom-widget-row-2 > div') || el.closest('.custom-widget-modal-grid > div') || el.closest('div'); }
+  function showControl(id, show){ var w = wrapForControl(id); if (w) w.classList.toggle('v258-hidden', !show); }
+  function updateLoanInfo(){
+    var info = byId('cw-loan-readonly-v254'); if (!info) return;
+    var loan = loanByIdV258(val('cw-loan-id',''));
+    if (!loan) { info.textContent = 'Create a loan in Settings → Manage loans first.'; return; }
+    var linked = loan.linkedBankId || 'No linked bank'; try { if (loan.linkedBankId && typeof plainBankName === 'function') linked = plainBankName(loan.linkedBankId); } catch(_) {}
+    info.innerHTML = 'Original: <strong>' + esc(compactMoney(-loanOriginal(loan), loan.currency)) + '</strong><br>Outstanding: <strong>' + esc(compactMoney(-loanOutstanding(loan), loan.currency)) + '</strong><br>Linked bank: <strong>' + esc(linked) + '</strong>';
+  }
+  function ensureDerivedBudgetNote(){
+    var currency = byId('cw-currency'); if (!currency) return;
+    var wrap = wrapForControl('cw-currency'); if (!wrap) return;
+    var note = byId('cw-budget-derived-note-v258');
+    if (!note) { note = document.createElement('div'); note.id = 'cw-budget-derived-note-v258'; note.className = 'cw-derived-note-v258'; wrap.appendChild(note); }
+    note.textContent = 'Budget amount is taken from Overview details / Manage banks.';
+  }
+  function updateBuilderVisibility(){
+    ensureWidgetOptions(); ensureLoanField(); ensureDerivedBudgetNote();
+    var source = sourceValue();
+    var metric = metricValue();
+    var isLoan = source === 'loan';
+    var isCount = !isLoan && metric === 'count';
+    var isAmount = !isLoan && metric === 'amount';
+    var loanBox = byId('cw-loan-fields-v240'); if (loanBox) loanBox.classList.toggle('v258-hidden', !isLoan);
+    updateLoanInfo();
+    showControl('cw-payment-kind', !isLoan);
+    showControl('cw-gauge-metric', !isLoan);
+    showControl('cw-account', !isLoan);
+    showControl('cw-period', !isLoan);
+    showControl('cw-limit', false);
+    showControl('cw-currency', isAmount || isLoan || source === 'manual');
+    showControl('cw-show-count', isAmount);
+    showControl('cw-tx-target', isCount);
+    showControl('cw-linear-direction', false);
+    var customRange = byId('cw-custom-range'); if (customRange) customRange.classList.toggle('v258-hidden', isLoan || val('cw-period','month') !== 'custom');
+  }
+  function currentRange(widget){ try { return getCustomWidgetPeriodRange(widget); } catch(_) { var now=new Date(); return {from:new Date(now.getFullYear(), now.getMonth(),1), to:now, label:'This month'}; } }
+  function txDate(tx){ try { return parseCustomDateStr(tx.rawDate || tx.date); } catch(_) { var d=new Date(tx.rawDate || tx.date || ''); return isNaN(d.getTime()) ? null : d; } }
+  function txBank(tx){ try { return getBudgetBankKeyFromTransaction(tx); } catch(_) {} try { return getBankKey(tx); } catch(_) {} return tx.bankId || tx.bank || ''; }
+  function txKind(tx){ try { return getTransactionPaymentKind(tx); } catch(_) {} var t=String(tx.type||'').toLowerCase(); if(t.indexOf('cash')!==-1)return 'cash'; if(t.indexOf('účtu')!==-1||t.indexOf('uctu')!==-1||t.indexOf('account')!==-1||t.indexOf('transfer')!==-1)return 'account'; return 'card'; }
+  function txnsForWidget(widget, range){
+    var arr = []; try { arr = Array.isArray(window.allTransactions || allTransactions) ? (window.allTransactions || allTransactions) : []; } catch(_) {}
+    var account = widget.account || 'all';
+    var kind = widget.paymentKind || 'all';
+    return arr.filter(function(tx){ return Number(tx.amount || 0) < 0; })
+      .filter(function(tx){ try { return !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)); } catch(_) { return true; } })
+      .filter(function(tx){ return account === 'all' || txBank(tx) === account; })
+      .filter(function(tx){ return !kind || kind === 'all' || txKind(tx) === kind; })
+      .filter(function(tx){ var d = txDate(tx); return d && d >= range.from && d <= range.to; });
+  }
+  function bankIdsForBudget(){
+    var ids = [];
+    try { ids = getCustomWidgetAccounts().map(function(a){ return a.id; }).filter(function(id){ return id && id !== 'all'; }); } catch(_) {}
+    if (!ids.length) { try { ids = (typeof BANK_ORDER !== 'undefined' ? BANK_ORDER : []).filter(function(id){ return id !== 'csob_cz_credit'; }); } catch(_) {} }
+    return ids;
+  }
+  function convert(v, from, to){ try { return convertAmountCurrency(Number(v||0), from || to, to); } catch(_) { return Number(v||0); } }
+  function bankBudgetCurrency(id, fallback){ try { return getBankBudgetCurrency(id) || fallback; } catch(_) { return fallback; } }
+  function overviewBudgetStats(widget, currency){
+    var account = widget.account || 'all';
+    var month = (typeof getAktuálneMonth === 'function') ? getAktuálneMonth() : '';
+    var target = normalizeCurrency(currency || widget.currency || 'CZK');
+    if (account && account !== 'all') {
+      var from = bankBudgetCurrency(account, target);
+      var spent = 0, limit = 0;
+      try { spent = getOverviewBudgetSpentForBank(account, month) || 0; } catch(_) {}
+      try { limit = getOverviewBudgetLimitForBank(account, month) || 0; } catch(_) {}
+      return { spent:Math.max(0, convert(spent, from, target)), limit:Math.max(0, convert(limit, from, target)) };
+    }
+    try {
+      var m = typeof getOverviewDashboardMetrics === 'function' ? getOverviewDashboardMetrics() : null;
+      if (m && (Number(m.budgetLimit || 0) || Number(m.budgetSpent || 0))) {
+        var appCur = normalizeCurrency(m.appCurrency || (typeof getAppCurrency === 'function' ? getAppCurrency() : target));
+        return { spent:Math.max(0, convert(m.budgetSpent || 0, appCur, target)), limit:Math.max(0, convert(m.budgetLimit || 0, appCur, target)) };
+      }
+    } catch(_) {}
+    var totalSpent = 0, totalLimit = 0;
+    bankIdsForBudget().forEach(function(id){
+      var from = bankBudgetCurrency(id, target);
+      var spent = 0, limit = 0;
+      try { spent = getOverviewBudgetSpentForBank(id, month) || 0; } catch(_) {}
+      try { limit = getOverviewBudgetLimitForBank(id, month) || 0; } catch(_) {}
+      totalSpent += convert(spent, from, target);
+      totalLimit += convert(limit, from, target);
+    });
+    return { spent:Math.max(0,totalSpent), limit:Math.max(0,totalLimit) };
+  }
+  function spentForWidget(txns, currency){ return txns.reduce(function(s, tx){ try { return s + Math.abs(convertTransactionAmount(tx, currency)); } catch(_) { return s + Math.abs(Number(tx.amount || 0)); } }, 0); }
+  function widgetStats(widget){
+    widget = widget || {};
+    var source = sourceNorm(widget.source || widget.dataInput || 'auto');
+    var currency = normalizeCurrency(widget.currency || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK'));
+    var range = source === 'loan' ? {label:'Repayment'} : currentRange(widget);
+    if (source === 'loan') {
+      var loan = loanByIdV258(widget.loanId || widget.account || val('cw-loan-id',''));
+      var original = loan ? loanOriginal(loan) : abs(widget.loanOriginalAmount || widget.limit || 0);
+      var current = loan ? loanOutstanding(loan) : abs(widget.loanCurrentBalance || widget.currentBalance || 0);
+      var curr = loan ? loan.currency : currency;
+      var paid = Math.max(0, original - current);
+      return { source:'loan', loan:loan, txns:[], spent:current, paid:paid, limit:original || 1, target:0, currency:curr, range:range, gaugeMetric:'loan', pct: original ? Math.min(1.2, paid / original) : 0 };
+    }
+    if (source === 'manual') {
+      var used = Math.max(0, num(widget.manualUsed || 0));
+      var limit = Math.max(0, num(widget.limit || 0));
+      var count = Math.round(used);
+      return {source:'manual', txns:Array.from({length:Math.max(0,count)}, function(_,i){return {id:'manual_'+i};}), spent:used, limit:limit || 1, target:num(widget.txTarget || 0), currency:currency, range:range, unit:widget.unit || 'entries', gaugeMetric:widget.gaugeMetric || 'amount'};
+    }
+    var metric = widget.gaugeMetric || widget.linearMetric || 'amount';
+    if (metric === 'count') {
+      var txnsCount = txnsForWidget(widget, range);
+      var target = Math.max(0, num(widget.txTarget || 0));
+      return {source:'auto', txns:txnsCount, spent:txnsCount.length, limit:target || 1, target:target, currency:currency, range:range, gaugeMetric:'count', paymentKind:widget.paymentKind || 'all'};
+    }
+    var b = overviewBudgetStats(widget, currency);
+    return {source:'auto', txns:txnsForWidget(widget, range), spent:b.spent, limit:b.limit || 0, target:0, currency:currency, range:range, gaugeMetric:'amount', paymentKind:widget.paymentKind || 'all'};
+  }
+  function widgetMetric(widget, stats){
+    widget = widget || {}; stats = stats || widgetStats(widget);
+    var source = sourceNorm(widget.source || stats.source || 'auto');
+    var metric = source === 'loan' ? 'loan' : (widget.gaugeMetric || widget.linearMetric || stats.gaugeMetric || 'amount');
+    if (metric === 'count') {
+      var count = Array.isArray(stats.txns) ? stats.txns.length : Math.round(num(stats.spent || 0));
+      var target = Math.max(0, num(stats.target || widget.txTarget || 0));
+      return {mode:'count', used:count, limit:target || 1, label:count + ' / ' + (target || 0), usedLabel:String(count), limitLabel:String(target || 0), rawCount:count};
+    }
+    if (metric === 'loan') {
+      var current = Math.max(0, num(stats.spent || 0));
+      var original = Math.max(0, num(stats.limit || 0));
+      return {mode:'loan', used:Math.max(0, original-current), limit:original || 1, label:compactMoney(-current, stats.currency, false) + ' / ' + compactMoney(-original, stats.currency, true), usedLabel:compactMoney(-current, stats.currency, false), limitLabel:compactMoney(-original, stats.currency, true), current:current, original:original};
+    }
+    var spent = Math.max(0, num(stats.spent || 0));
+    var limit = Math.max(0, num(stats.limit || 0));
+    return {mode:'amount', used:spent, limit:limit || 1, label:compactMoney(spent, stats.currency, false) + ' / ' + compactMoney(limit, stats.currency, true), usedLabel:compactMoney(spent, stats.currency, false), limitLabel:compactMoney(limit, stats.currency, true), rawCount:Array.isArray(stats.txns) ? stats.txns.length : 0};
+  }
+  function lineChart(widget, stats){
+    widget = widget || {}; stats = stats || widgetStats(widget);
+    var accent = normalizeHex(widget.accent, '#00E5A0');
+    var blue = '#388BFD';
+    var metric = widgetMetric(widget, stats);
+    var isLoan = metric.mode === 'loan' || sourceNorm(widget.source) === 'loan';
+    var startX=7, startY=56, endX=107, endY=8, width=endX-startX, height=startY-endY;
+    var currentX = startX + Math.max(18, Math.min(76, width * .58));
+    var greenPath, bluePath, currentY;
+    if (isLoan) {
+      var original = Math.max(1, metric.original || metric.limit || 1);
+      var current = Math.max(0, metric.current || stats.spent || 0);
+      var startLoanY = endY + 2;
+      currentY = endY + Math.min(1, current / original) * height;
+      var endLoanY = startY;
+      greenPath = 'M' + startX + ' ' + startLoanY + ' C' + (startX+18) + ' ' + (startLoanY+2) + ', ' + (currentX-20) + ' ' + (currentY-7) + ', ' + currentX + ' ' + currentY;
+      bluePath = 'M' + currentX + ' ' + currentY + ' C' + (currentX+18) + ' ' + (currentY+6) + ', ' + (endX-22) + ' ' + (endLoanY-5) + ', ' + endX + ' ' + endLoanY;
+    } else {
+      var used = Math.max(0, Number(metric.used || 0));
+      var limit = Math.max(1, Number(metric.limit || 1));
+      var max = Math.max(used, limit, 1) * 1.08;
+      currentY = startY - Math.min(1.04, used / max) * height;
+      var endTarget = Math.min(Math.max(limit, used), max);
+      var endYBlue = startY - (endTarget / max) * height;
+      greenPath = 'M' + startX + ' ' + startY + ' C' + (startX+18) + ' ' + (startY-2) + ', ' + (currentX-20) + ' ' + (currentY+7) + ', ' + currentX + ' ' + currentY;
+      bluePath = 'M' + currentX + ' ' + currentY + ' C' + (currentX+18) + ' ' + (currentY-1) + ', ' + (endX-22) + ' ' + (endYBlue+4) + ', ' + endX + ' ' + endYBlue;
+    }
+    var fill1 = '<path d="' + attr(greenPath) + ' L' + currentX + ' ' + startY + ' L' + startX + ' ' + startY + ' Z" fill="' + hexToRgba(accent, .18) + '"></path>';
+    var fill2 = '<path d="' + attr(bluePath) + ' L' + endX + ' ' + startY + ' L' + currentX + ' ' + startY + ' Z" fill="rgba(56,139,253,.14)"></path>';
+    return '<svg viewBox="0 0 114 64" preserveAspectRatio="none" aria-hidden="true">' + fill1 + fill2 + '<path d="' + attr(greenPath) + '" fill="none" stroke="' + attr(accent) + '" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="' + attr(bluePath) + '" fill="none" stroke="' + blue + '" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity=".94"></path><circle cx="' + currentX + '" cy="' + Number(currentY).toFixed(2) + '" r="1.2" fill="#fff" opacity=".95"></circle><circle cx="' + currentX + '" cy="' + Number(currentY).toFixed(2) + '" r=".65" fill="' + attr(accent) + '"></circle></svg>';
+  }
+  function gauge(widget, stats){
+    var metric = widgetMetric(widget, stats);
+    var ratio = metric.limit > 0 ? metric.used / metric.limit : 0;
+    var pct = Math.max(0, Math.min(100, Math.round(ratio * 100)));
+    var color = stableGaugeColor(metric.mode, pct, widget.accent);
+    var r=42, c=Math.PI*r, dash=c*Math.min(1, pct/100);
+    var caption = metric.mode === 'loan' ? 'REPAID' : (metric.mode === 'count' ? 'TRANSACTIONS' : 'USED');
+    return '<div class="custom-widget-gauge-wrap"><svg viewBox="0 0 120 76" aria-hidden="true"><path d="M18 58 A42 42 0 0 1 102 58" fill="none" stroke="rgba(112,145,204,.18)" stroke-width="10" stroke-linecap="round"></path><path d="M18 58 A42 42 0 0 1 102 58" fill="none" stroke="' + attr(color) + '" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + dash + ' ' + c + '"></path><text x="60" y="44" text-anchor="middle" fill="currentColor" font-size="20" font-weight="900">' + pct + '%</text><text x="60" y="59" text-anchor="middle" fill="currentColor" opacity=".66" font-size="8" font-weight="800">' + caption + '</text></svg><div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top"><strong>' + esc(metric.usedLabel || '') + '</strong><span class="custom-widget-gauge-status">' + esc(caption) + '</span><strong>' + esc(metric.limitLabel || '') + '</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill" style="width:' + pct + '%;background:' + attr(color) + '"></div></div></div></div>';
+  }
+  function renderWidgetCard(widget, stats){
+    widget = widget || {}; stats = stats || widgetStats(widget);
+    var metric = widgetMetric(widget, stats);
+    var chartType = widget.chart || 'linear';
+    var accent = normalizeHex(widget.accent, '#00E5A0');
+    var chart = chartType === 'none' ? '' : (chartType === 'gauge' ? gauge(widget, stats) : lineChart(widget, stats));
+    var countLine = (sourceNorm(widget.source) !== 'loan' && metric.mode === 'amount' && String(widget.showCount) === 'true') ? '<div class="custom-widget-count"><span>Transactions</span><span>' + ((stats.txns || []).length) + '</span></div>' : '';
+    if (metric.mode === 'count') countLine = '<div class="custom-widget-count"><span>Transactions</span><span>' + esc(metric.label) + '</span></div>';
+    var mainBlock = chartType === 'gauge' ? '' : '<div class="custom-widget-main"><div><div class="custom-widget-money">' + esc(metric.label) + '</div>' + (metric.mode === 'count' ? '<div class="custom-widget-linear-sub-v258">Transactions</div>' : '') + '</div></div>';
+    var id = widget.id || 'preview';
+    var menu = id === 'preview' ? '' : '<div class="custom-widget-menu" onclick="event.stopPropagation()"><button class="custom-widget-icon-btn" type="button" title="Settings" onclick="openCustomWidgetBuilder(\'' + attr(id) + '\')">⋮</button></div>';
+    var title = widget.name || (stats.loan && stats.loan.name) || 'Widget';
+    var rangeLabel = sourceNorm(widget.source) === 'loan' ? 'Repayment' : (stats.range && stats.range.label || '');
+    return '<article class="custom-widget-card" data-id="' + attr(id) + '" data-size="' + attr(widget.size || 'medium') + '" draggable="true" style="--widget-accent:' + attr(accent) + '" onclick="handleCustomWidgetCardClick(event,\'' + attr(id) + '\')" ondragstart="handleCustomWidgetDragStart(event,\'' + attr(id) + '\')" ondragover="handleCustomWidgetDragOver(event)" ondrop="handleCustomWidgetDrop(event,\'' + attr(id) + '\')" ondragend="handleCustomWidgetDragEnd(event)" onpointerdown="handleCustomWidgetPointerDown(event,\'' + attr(id) + '\')" onpointermove="handleCustomWidgetPointerMove(event,\'' + attr(id) + '\')" onpointerup="handleCustomWidgetPointerUp(event,\'' + attr(id) + '\')" onpointercancel="handleCustomWidgetPointerUp(event,\'' + attr(id) + '\')"><div class="custom-widget-content"><div class="custom-widget-head"><div class="custom-widget-title-wrap"><div class="custom-widget-title">' + esc(title) + '</div><div class="custom-widget-period">' + esc(rangeLabel) + '</div></div>' + menu + '</div>' + mainBlock + (chartType === 'gauge' ? '' : countLine) + '<div class="custom-widget-chart">' + chart + '</div></div></article>';
+  }
+  function collectValues(){
+    ensureWidgetOptions(); ensureLoanField();
+    var source = sourceValue();
+    var metric = metricValue();
+    var chart = activeChoice('cw-chart-grid','linear');
+    var values = {
+      name:String(val('cw-name','')).trim(), chart:chart, size:activeChoice('cw-size-grid','medium'), source:source,
+      paymentKind:val('cw-payment-kind','all') || 'all', gaugeMetric:metric, linearMetric:metric,
+      limit:0, currency:normalizeCurrency(val('cw-currency','CZK') || 'CZK'), txTarget:num(val('cw-tx-target',0)), showCount:val('cw-show-count','false') === 'true',
+      period:val('cw-period','month') || 'month', from:val('cw-from','') || '', to:val('cw-to','') || '', account:val('cw-account','all') || 'all',
+      manualUsed:num(val('cw-manual-used',0)), unit:val('cw-unit','entries') || 'entries', accent:normalizeHex(val('cw-accent-hex','') || val('cw-accent',''), '#00E5A0'),
+      alerts:val('cw-alerts','false') === 'true', threshold:num(val('cw-threshold',80)) || 80
+    };
+    if (source === 'loan') {
+      var loan = loanByIdV258(val('cw-loan-id',''));
+      values.loanId = loan && loan.id || '';
+      values.name = values.name || (loan && loan.name) || 'Loan';
+      values.currency = loan && loan.currency || values.currency;
+      values.limit = loan ? loanOriginal(loan) : 0;
+      values.loanOriginalAmount = loan ? loanOriginal(loan) : 0;
+      values.loanCurrentBalance = loan ? -loanOutstanding(loan) : 0;
+      values.txTarget = 0; values.showCount = false; values.paymentKind = 'loan'; values.account = loan && loan.linkedBankId || 'none'; values.period = 'loan'; values.linearDirection='decline'; values.trendType='decline'; values.gaugeMetric='loan'; values.linearMetric='loan';
+    } else if (metric === 'count') {
+      values.limit = 0; values.showCount = false; values.linearDirection='incline'; values.trendType='incline'; values.gaugeMetric='count'; values.linearMetric='count';
+    } else {
+      var b = overviewBudgetStats(values, values.currency); values.limit = b.limit; values.txTarget = 0; values.linearDirection='incline'; values.trendType='incline'; values.gaugeMetric='amount'; values.linearMetric='amount';
+    }
+    return values;
+  }
+  function updateWidgetPreviewNow(){
+    updateBuilderVisibility();
+    var preview = byId('custom-widget-preview'); if (!preview) return;
+    try {
+      var values = collectValues();
+      var mock = Object.assign({}, values, {id:'preview', name:values.name || (values.source === 'loan' ? 'Loan preview' : 'Widget preview')});
+      preview.innerHTML = renderWidgetCard(mock, widgetStats(mock));
+      var card = preview.querySelector('.custom-widget-card');
+      if (card) { card.removeAttribute('onclick'); card.removeAttribute('draggable'); var menu = card.querySelector('.custom-widget-menu'); if (menu) menu.remove(); }
+      try { window.v258ApplyPrivacyMask && window.v258ApplyPrivacyMask(); } catch(_) {}
+    } catch(e) { console.warn('v258 widget preview failed', e); }
+  }
+  function scheduleWidgetPreview(){ clearTimeout(widgetPreviewTimer); widgetPreviewTimer = setTimeout(updateWidgetPreviewNow, 165); }
+
+  window.getCustomWidgetStats = widgetStats;
+  window.getCustomWidgetUsedLimit = widgetMetric;
+  window.createCustomWidgetLineChart = function(widget, stats){ return lineChart(widget, stats || widgetStats(widget)); };
+  window.createCustomWidgetGauge = function(widget, stats){ return gauge(widget, stats || widgetStats(widget)); };
+  window.renderCustomWidgetCard = renderWidgetCard;
+  window.collectCustomWidgetBuilderValues = collectValues;
+  window.updateCustomWidgetBuilderPreview = scheduleWidgetPreview;
+  try { getCustomWidgetStats = window.getCustomWidgetStats; getCustomWidgetUsedLimit = window.getCustomWidgetUsedLimit; createCustomWidgetLineChart = window.createCustomWidgetLineChart; createCustomWidgetGauge = window.createCustomWidgetGauge; renderCustomWidgetCard = window.renderCustomWidgetCard; collectCustomWidgetBuilderValues = window.collectCustomWidgetBuilderValues; updateCustomWidgetBuilderPreview = window.updateCustomWidgetBuilderPreview; } catch(_) {}
+
+  window.saveCustomWidgetFromBuilder = function(){
+    var values = collectValues();
+    if (!values.name) { alert('Widget name is required.'); return; }
+    if (values.source === 'loan') { if (!values.loanId || !loanByIdV258(values.loanId)) { alert('Choose a loan from Manage loans first.'); return; } }
+    else if (values.linearMetric === 'count') { if (values.txTarget <= 0) { alert('Transaction target is required.'); byId('cw-tx-target') && byId('cw-tx-target').focus(); return; } }
+    else if (values.linearMetric === 'amount') { if (overviewBudgetStats(values, values.currency).limit <= 0) { alert('Set Budget in Settings → Manage banks first.'); return; } }
+    var widgets = [];
+    try { widgets = typeof loadCustomWidgets === 'function' ? loadCustomWidgets() : JSON.parse(localStorage.getItem(WIDGETS_KEY) || '[]'); } catch(_) { widgets = []; }
+    if (!Array.isArray(widgets)) widgets = [];
+    var state = {}; try { if (typeof customWidgetBuilderState !== 'undefined') state = customWidgetBuilderState || {}; } catch(_) {}
+    var clean = Object.assign({}, values, { source:sourceNorm(values.source), dataInput:sourceNorm(values.source) });
+    if (state.mode === 'edit' && state.id) {
+      var idx = widgets.findIndex(function(w){ return String(w.id) === String(state.id); });
+      if (idx >= 0) widgets[idx] = Object.assign({}, widgets[idx], clean, {id:state.id, updatedAt:new Date().toISOString()});
+      else widgets.push(Object.assign({}, clean, {id:state.id, hidden:false, createdAt:new Date().toISOString()}));
+    } else widgets.push(Object.assign({}, clean, {id:'cw_' + Date.now().toString(36), hidden:false, createdAt:new Date().toISOString()}));
+    try { if (typeof saveCustomWidgets === 'function') saveCustomWidgets(widgets); else localStorage.setItem(WIDGETS_KEY, JSON.stringify(widgets)); } catch(_) {}
+    try { if (typeof closeCustomWidgetBuilder === 'function') closeCustomWidgetBuilder(); else if (typeof closeBottomSheets === 'function') closeBottomSheets(); } catch(_) {}
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    try { if (typeof renderOverviewDashboard === 'function') renderOverviewDashboard(); } catch(_) {}
+  };
+  try { saveCustomWidgetFromBuilder = window.saveCustomWidgetFromBuilder; } catch(_) {}
+  window.handleCustomWidgetSourceChange = function(){ updateBuilderVisibility(); if (sourceValue() === 'loan') { try { if (typeof syncLoansNow === 'function') syncLoansNow(false); } catch(_) {} } scheduleWidgetPreview(); };
+  window.syncCustomWidgetMetricChoices = function(){ updateBuilderVisibility(); scheduleWidgetPreview(); };
+  window.handleCustomWidgetPeriodChange = function(){ updateBuilderVisibility(); scheduleWidgetPreview(); };
+  try { handleCustomWidgetSourceChange = window.handleCustomWidgetSourceChange; syncCustomWidgetMetricChoices = window.syncCustomWidgetMetricChoices; handleCustomWidgetPeriodChange = window.handleCustomWidgetPeriodChange; } catch(_) {}
+  var prevOpenWidgetBuilder = window.openCustomWidgetBuilder;
+  window.openCustomWidgetBuilder = function(id){ var r = prevOpenWidgetBuilder ? prevOpenWidgetBuilder.apply(this, arguments) : undefined; setTimeout(function(){ ensureWidgetOptions(); ensureLoanField(); updateBuilderVisibility(); updateWidgetPreviewNow(); }, 140); return r; };
+  try { openCustomWidgetBuilder = window.openCustomWidgetBuilder; } catch(_) {}
+  document.addEventListener('change', function(ev){ if (ev.target && /^cw-/.test(ev.target.id || '')) { updateBuilderVisibility(); scheduleWidgetPreview(); } }, true);
+  document.addEventListener('input', function(ev){ if (ev.target && /^cw-/.test(ev.target.id || '')) scheduleWidgetPreview(); }, true);
+
+  /* ---------- Privacy mask ---------- */
+  var PRIVACY_KEY='account_balance_values_hidden';
+  function isHidden(){ try { return localStorage.getItem(PRIVACY_KEY) === 'true'; } catch(_) { return false; } }
+  function saveReal(el){ if (el && !el.dataset.v258RealValue) el.dataset.v258RealValue = el.textContent || ''; }
+  function restoreReal(el){ if (!el) return; if (el.dataset.v258RealValue != null) el.textContent = el.dataset.v258RealValue; delete el.dataset.v258RealValue; }
+  function maskDots(text){ text=String(text||'').trim(); return '•'.repeat(Math.max(4, Math.min(10, text.replace(/\s+/g,'').length || 4))); }
+  function graphNumber(el){ return !!(el && el.closest('.custom-widget-card,.wealth-card-gauge,.wealth-card-budget-linear,.card-widget,.txn-cashflow-card,.txn-totals-card,.archive-trend-card,.daily-chart-card')) ; }
+  function applyPrivacy(){
+    var hidden=isHidden();
+    document.documentElement.setAttribute('data-values-hidden', hidden ? 'true':'false');
+    var icon=''; try { icon = typeof accountBalanceEyeSvg === 'function' ? accountBalanceEyeSvg(hidden) : (hidden ? '◉':'◎'); } catch(_) { icon = hidden ? '◉':'◎'; }
+    ['account-balance-privacy-btn','overview-privacy-btn'].forEach(function(id){ var btn=byId(id); if(btn){ btn.classList.toggle('on', hidden); btn.innerHTML=icon; btn.title=hidden?'Show values':'Hide values'; }});
+    var sel=['#sum-txns','#sum-amount','#sum-days','#overview-net-worth','#overview-available-cash','#overview-cash-total','.summary-val','.wealth-card-value','.wealth-linear-card-value','.wealth-budget-sparkline-label','.custom-widget-money','.custom-widget-limit','.custom-widget-count','.custom-widget-chart-label','.custom-widget-gauge-value-line','.account-balance-value','.account-balance-equivalent','.budget-status-value','.card-count-big','.stat-val','.progress-labels','.wealth-inline-progress-labels','.txn-cashflow-pie-label','.txn-cashflow-axis-label','.txn-cashflow-pie-stat strong','.txn-total-values','.archive-bank-spent-cell','.archive-bank-income-cell'];
+    document.querySelectorAll(sel.join(',')).forEach(function(el){ if(hidden){ saveReal(el); el.textContent = graphNumber(el) ? '0' : maskDots(el.dataset.v258RealValue || el.textContent || ''); } else restoreReal(el); });
+  }
+  window.toggleAccountBalancePrivacy = function(){ try { localStorage.setItem(PRIVACY_KEY, String(!isHidden())); } catch(_) {} try { if (typeof renderAll === 'function') renderAll(); } catch(_) {} setTimeout(applyPrivacy, 0); setTimeout(applyPrivacy, 120); };
+  window.v258ApplyPrivacyMask = applyPrivacy;
+  window.v257ApplyPrivacyMask = applyPrivacy;
+  ['renderAll','renderOverviewDashboard','renderAccountBalanceWidget','renderCustomWidgets','updateTxnPage','renderArchivePage','renderOverviewDetailsPage'].forEach(function(name){
+    var fn = window[name] || (typeof globalThis[name] === 'function' ? globalThis[name] : null);
+    if (typeof fn !== 'function' || fn.__v258PrivacyWrapped) return;
+    var wrapped = function(){ var r = fn.apply(this, arguments); setTimeout(applyPrivacy, 0); return r; };
+    wrapped.__v258PrivacyWrapped = true; window[name]=wrapped; try { globalThis[name]=wrapped; } catch(_) {}
+  });
+  function boot(){
+    ensureWidgetOptions(); ensureLoanField(); updateBuilderVisibility();
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    try { if (byId('page-txns') && byId('page-txns').classList.contains('active')) window.updateTxnPage(true); } catch(_) {}
+    applyPrivacy();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true}); else setTimeout(boot, 0);
 })();
 </script>
 
