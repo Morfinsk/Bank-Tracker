@@ -1492,7 +1492,7 @@
 
   /* Simulátor formulár */
   .sim-box {
-    background: var(--surface);
+    background: var(--surface); 
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 14px;
@@ -24010,9 +24010,12 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (total <= TXN_WINDOW) return;
     var listTop = list.getBoundingClientRect().top + window.scrollY;
     var y = Math.max(0, window.scrollY - listTop - 36);
-    var next = Math.floor(y / ROW_H) - TXN_OVERSCAN_TOP;
+    // v259: coarse virtual windows reduce mobile reflow/jank. Keep 25 rendered rows,
+    // but only replace the DOM after a meaningful scroll movement.
+    var step = 18;
+    var next = Math.floor(Math.max(0, Math.floor(y / ROW_H) - TXN_OVERSCAN_TOP) / step) * step;
     next = Math.max(0, Math.min(next, Math.max(0, total - TXN_WINDOW)));
-    if (Math.abs(next - txnVirtualStart) >= 7 || next === 0 || next >= total - TXN_WINDOW) {
+    if (Math.abs(next - txnVirtualStart) >= step || next === 0 || next >= total - TXN_WINDOW) {
       renderTxnWindow(next, {force:false, full:false});
     }
   }
@@ -24372,8 +24375,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   var prevOpenWidgetBuilder = window.openCustomWidgetBuilder;
   window.openCustomWidgetBuilder = function(id){ var r = prevOpenWidgetBuilder ? prevOpenWidgetBuilder.apply(this, arguments) : undefined; setTimeout(function(){ ensureWidgetOptions(); ensureLoanField(); updateBuilderVisibility(); updateWidgetPreviewNow(); }, 140); return r; };
   try { openCustomWidgetBuilder = window.openCustomWidgetBuilder; } catch(_) {}
-  document.addEventListener('change', function(ev){ if (ev.target && /^cw-/.test(ev.target.id || '')) { updateBuilderVisibility(); scheduleWidgetPreview(); } }, true);
-  document.addEventListener('input', function(ev){ if (ev.target && /^cw-/.test(ev.target.id || '')) scheduleWidgetPreview(); }, true);
+  // v259: disabled v258 duplicate widget input/change listeners; final widget editor owns these events.
+  // document.addEventListener('change', ...);
+  // document.addEventListener('input', ...);
 
   /* ---------- Privacy mask ---------- */
   var PRIVACY_KEY='account_balance_values_hidden';
@@ -24406,6 +24410,1527 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     applyPrivacy();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true}); else setTimeout(boot, 0);
+})();
+</script>
+
+
+<!-- v259 clean widget setup flow + Spend/Loan data isolation + smoother virtual scroll -->
+<style id="v259-widget-setup-clean-css">
+  #custom-widget-sheet .v259-hidden { display: none !important; }
+  #custom-widget-sheet .v259-note {
+    margin-top: 6px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1.35;
+  }
+  #custom-widget-sheet .custom-widget-choice[data-value=""] {
+    border-style: dashed;
+    color: var(--muted);
+  }
+  #custom-widget-sheet .custom-widget-choice.active[data-value=""] {
+    color: #8fdcff;
+    border-style: solid;
+  }
+  .custom-widget-preview-placeholder-v259 {
+    border: 1px dashed rgba(120,160,220,.24);
+    border-radius: 18px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.45;
+    padding: 14px;
+    text-align: center;
+  }
+  .custom-widget-chart-label,
+  .custom-widget-money,
+  .custom-widget-limit,
+  .custom-widget-gauge-value-top strong {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .custom-widget-card[data-size="small"] .custom-widget-chart-label,
+  .custom-widget-card[data-size="small"] .custom-widget-gauge-value-top strong {
+    font-size: 10px !important;
+    letter-spacing: -0.05em;
+  }
+  .custom-widget-card[data-size="small"] .custom-widget-chart svg { height: 60px !important; }
+  .custom-widget-card[data-size="medium"] .custom-widget-chart svg { height: 76px !important; }
+  .custom-widget-card[data-size="large"] .custom-widget-chart svg { height: 102px !important; }
+  .txn-virtual-rows-v259 { contain: layout paint; }
+  .txn-virtual-rows-v259 .tx-item { content-visibility: auto; contain-intrinsic-size: 72px; }
+  html[data-theme="light"] #custom-widget-sheet .v259-note,
+  html[data-theme="light"] .custom-widget-preview-placeholder-v259 { color: #31547d !important; }
+</style>
+<script id="v259-widget-setup-clean-js">
+(function(){
+  'use strict';
+  var WIDGETS_KEY = 'bank_tracker_custom_widgets_v1';
+  var LOANS_KEY = 'bank_tracker_loans_v1';
+  var previewTimer = null;
+  var TXN_WINDOW = 25;
+
+  function byId(id){ return document.getElementById(id); }
+  function html(s){
+    try { return escapeHtml(String(s == null ? '' : s)); } catch(_) {}
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+  function attr(s){
+    try { return escapeAttr(String(s == null ? '' : s)); } catch(_) { return html(s); }
+  }
+  function toNum(v){
+    try { if (typeof parseSheetNumber === 'function') return Number(parseSheetNumber(v, v) || 0); } catch(_) {}
+    var n = Number(String(v == null ? '' : v).replace(/\s+/g,'').replace(',', '.').replace(/[^0-9.\-]/g,''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function abs(v){ return Math.abs(toNum(v)); }
+  function getCurrency(){ try { return getAppCurrency() || 'CZK'; } catch(_) { return 'CZK'; } }
+  function currencyCode2(v){
+    try { return currencyCode(v || getCurrency() || 'CZK'); } catch(_) {}
+    var s = String(v || 'CZK').trim();
+    if (s === 'Kč' || /kč|kc/i.test(s)) return 'CZK';
+    if (s === '€') return 'EUR';
+    if (s === '$') return 'USD';
+    if (s === '£') return 'GBP';
+    if (/^zł$/i.test(s)) return 'PLN';
+    return s.toUpperCase() || 'CZK';
+  }
+  function currencySymbol(v){
+    var c = currencyCode2(v);
+    return c === 'CZK' ? 'Kč' : c === 'EUR' ? '€' : c === 'USD' ? '$' : c === 'GBP' ? '£' : c === 'PLN' ? 'zł' : c;
+  }
+  function compactNumber(v){
+    var n = Number(v || 0), sign = n < 0 ? '-' : '', a = Math.abs(n), out;
+    if (a >= 1000000) out = (a / 1000000).toFixed(a % 1000000 ? 1 : 0).replace('.', ',').replace(/,0$/, '') + 'm';
+    else if (a >= 1000) out = (a / 1000).toFixed(a % 1000 ? 1 : 0).replace('.', ',').replace(/,0$/, '') + 'k';
+    else out = String(Math.round(a));
+    return sign + out;
+  }
+  function compactMoney(v, currency, withSymbol){
+    var out = compactNumber(v);
+    if (withSymbol !== false) out += ' ' + currencySymbol(currency);
+    return out;
+  }
+  function normHex(v, fallback){
+    try { return normalizeWidgetHexColor(v, fallback || '#00E5A0'); } catch(_) {}
+    v = String(v || '').trim();
+    return /^#[0-9a-fA-F]{6}$/.test(v) ? v.toUpperCase() : (fallback || '#00E5A0');
+  }
+  function rgba(hex, alpha){
+    var h = String(hex || '#00E5A0').replace('#','');
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) h = '00E5A0';
+    return 'rgba(' + parseInt(h.slice(0,2),16) + ',' + parseInt(h.slice(2,4),16) + ',' + parseInt(h.slice(4,6),16) + ',' + (alpha == null ? .20 : alpha) + ')';
+  }
+  function sourceNorm(v){
+    v = String(v == null ? '' : v).trim().toLowerCase().replace(/[\s-]+/g,'_');
+    if (!v || v === 'choose_one') return '';
+    if (v === 'auto' || v === 'app_data' || v === 'spend' || v === 'spend_data') return 'auto';
+    if (v === 'loan' || v === 'loans' || v === 'loan_tab' || v === 'loans_tab' || v === 'loan_data') return 'loan';
+    if (v === 'manual' || v === 'manual_value' || v === 'manual_data') return 'manual';
+    return v;
+  }
+  function chartValue(){
+    try {
+      var b = byId('cw-chart-grid') && byId('cw-chart-grid').querySelector('.custom-widget-choice.active');
+      if (b) return b.dataset.value || '';
+      if (typeof customWidgetBuilderState !== 'undefined') return customWidgetBuilderState.chart || '';
+    } catch(_) {}
+    return '';
+  }
+  function sizeValue(){
+    try {
+      var b = byId('cw-size-grid') && byId('cw-size-grid').querySelector('.custom-widget-choice.active');
+      if (b) return b.dataset.value || '';
+      if (typeof customWidgetBuilderState !== 'undefined') return customWidgetBuilderState.size || '';
+    } catch(_) {}
+    return '';
+  }
+  function setStateChoice(kind, value){
+    try { if (typeof customWidgetBuilderState !== 'undefined') customWidgetBuilderState[kind] = value || ''; } catch(_) {}
+    var grid = byId(kind === 'chart' ? 'cw-chart-grid' : 'cw-size-grid');
+    if (grid) Array.prototype.forEach.call(grid.querySelectorAll('.custom-widget-choice'), function(btn){ btn.classList.toggle('active', String(btn.dataset.value || '') === String(value || '')); });
+  }
+  function ensureChooseButton(gridId, label){
+    var grid = byId(gridId); if (!grid) return;
+    if (!grid.querySelector('.custom-widget-choice[data-value=""]')) {
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'custom-widget-choice'; btn.dataset.value = ''; btn.textContent = label || 'Choose one';
+      btn.addEventListener('click', function(){ window.setCustomWidgetBuilderChoice(gridId === 'cw-chart-grid' ? 'chart' : 'size', ''); });
+      grid.insertBefore(btn, grid.firstChild);
+    }
+  }
+  function ensureChooseOption(select, label){
+    if (!select) return;
+    if (!Array.prototype.some.call(select.options || [], function(o){ return o.value === ''; })) {
+      var opt = document.createElement('option'); opt.value = ''; opt.textContent = label || 'Choose one';
+      select.insertBefore(opt, select.firstChild);
+    }
+  }
+  function ensureWidgetSourceOptions(){
+    var sel = byId('cw-source'); if (!sel) return;
+    var keep = sel.value;
+    sel.innerHTML = '<option value="">Choose one</option><option value="auto">Spend data</option><option value="loan">Loan data</option><option value="manual">Manual data</option>';
+    var normalized = sourceNorm(keep);
+    sel.value = normalized || '';
+  }
+  function setSelectValue(id, value){ var el = byId(id); if (el) el.value = value == null ? '' : String(value); }
+  function getSelectValue(id, fallback){ var el = byId(id); return el ? el.value : (fallback || ''); }
+  function controlWrap(id){
+    var el = byId(id); if (!el) return null;
+    if (id === 'cw-loan-id') return byId('cw-loan-fields-v240') || byId('cw-loan-fields-v259');
+    return el.closest('.custom-widget-row-2 > div') || el.closest('.custom-widget-modal-grid > div') || el.closest('div');
+  }
+  function setVisible(id, visible){ var w = controlWrap(id); if (w) w.classList.toggle('v259-hidden', !visible); }
+  function widgetState(){
+    var source = sourceNorm(getSelectValue('cw-source',''));
+    var metric = getSelectValue('cw-gauge-metric','amount') === 'count' ? 'count' : 'amount';
+    return { source: source, metric: metric, chart: chartValue(), size: sizeValue() };
+  }
+  function loans(){
+    var arr = [];
+    try { arr = JSON.parse(localStorage.getItem(LOANS_KEY) || '[]'); } catch(_) { arr = []; }
+    if (!Array.isArray(arr)) arr = [];
+    return arr.filter(function(l){
+      if (!l) return false;
+      var id = String(l.id || l.loanId || '').trim();
+      var name = String(l.name || l.loanName || '').trim();
+      if (!id || !name || /^-?\d+(?:[,.]\d+)?$/.test(name)) return false;
+      return abs(l.originalAmount || l.original || l.principal) > 0 || abs(l.currentBalance || l.outstandingBalance || l.balance) > 0;
+    }).map(function(l){
+      var original = abs(l.originalAmount != null ? l.originalAmount : (l.original != null ? l.original : l.principal));
+      var current = abs(l.currentBalance != null ? l.currentBalance : (l.outstandingBalance != null ? l.outstandingBalance : l.balance));
+      return Object.assign({}, l, {
+        id: String(l.id || l.loanId).trim(),
+        name: String(l.name || l.loanName).trim(),
+        currency: currencyCode2(l.currency || 'CZK'),
+        originalAmount: original,
+        currentBalance: -current,
+        linkedBankId: String(l.linkedBankId || l.bankId || '').trim(),
+        type: String(l.type || l.loanType || 'loan').trim()
+      });
+    });
+  }
+  function loanById(id){ id = String(id || '').trim(); return loans().find(function(l){ return String(l.id) === id; }) || null; }
+  function ensureLoanField(){
+    var src = byId('cw-source'); if (!src) return;
+    var box = byId('cw-loan-fields-v240') || byId('cw-loan-fields-v259');
+    if (!box) {
+      box = document.createElement('div'); box.id = 'cw-loan-fields-v259'; box.className = 'custom-widget-loan-fields-v259 v259-hidden';
+      box.innerHTML = '<label>Loan / mortgage</label><select class="config-input" id="cw-loan-id"></select><div class="v259-note" id="cw-loan-readonly-v259"></div>';
+      var grid = byId('custom-widget-modal-grid') || src.closest('.custom-widget-modal-grid');
+      if (grid) grid.insertBefore(box, src.closest('div') ? src.closest('div').nextSibling : null);
+    }
+    var select = byId('cw-loan-id'); if (!select) return;
+    var keep = select.value;
+    var list = loans();
+    select.innerHTML = '<option value="">Choose one</option>' + list.map(function(l){ return '<option value="' + attr(l.id) + '">' + html(l.name) + ' · ' + html(compactMoney(l.currentBalance, l.currency)) + '</option>'; }).join('');
+    if (keep && list.some(function(l){ return l.id === keep; })) select.value = keep;
+  }
+  function updateLoanNote(){
+    var info = byId('cw-loan-readonly-v259') || byId('cw-loan-readonly-v254'); if (!info) return;
+    var l = loanById(getSelectValue('cw-loan-id',''));
+    if (!l) { info.textContent = 'Choose a loan created in Settings → Manage loans.'; return; }
+    var bank = l.linkedBankId || 'No linked bank';
+    try { if (l.linkedBankId && typeof plainBankName === 'function') bank = plainBankName(l.linkedBankId); } catch(_) {}
+    info.innerHTML = 'Original: <strong>' + html(compactMoney(-abs(l.originalAmount), l.currency)) + '</strong><br>Outstanding: <strong>' + html(compactMoney(-abs(l.currentBalance), l.currency)) + '</strong><br>Linked bank: <strong>' + html(bank) + '</strong>';
+  }
+  function ensureDerivedNote(){
+    var cur = byId('cw-currency'); if (!cur) return;
+    var wrap = controlWrap('cw-currency'); if (!wrap) return;
+    var n = byId('cw-budget-derived-note-v259');
+    if (!n) { n = document.createElement('div'); n.id = 'cw-budget-derived-note-v259'; n.className = 'v259-note'; wrap.appendChild(n); }
+    n.textContent = 'Budget is loaded from Overview details / Manage banks.';
+  }
+  function updateBuilderVisibility(){
+    ensureChooseButton('cw-chart-grid', 'Choose one');
+    ensureChooseButton('cw-size-grid', 'Choose one');
+    ensureWidgetSourceOptions();
+    ensureLoanField();
+    ensureDerivedNote();
+    var st = widgetState();
+    var hasSource = !!st.source;
+    var isLoan = st.source === 'loan';
+    var isManual = st.source === 'manual';
+    var isSpend = st.source === 'auto';
+    var isCount = isSpend && st.metric === 'count';
+    var isAmount = isSpend && st.metric === 'amount';
+    setVisible('cw-payment-kind', isCount);
+    setVisible('cw-account', isSpend);
+    setVisible('cw-gauge-metric', isSpend);
+    setVisible('cw-currency', isAmount || isManual);
+    setVisible('cw-show-count', isAmount);
+    setVisible('cw-tx-target', isCount);
+    setVisible('cw-limit', false);
+    setVisible('cw-period', false);
+    setVisible('cw-linear-direction', false);
+    var manualRow = byId('cw-manual-row'); if (manualRow) manualRow.style.display = isManual ? '' : 'none';
+    var loanBox = byId('cw-loan-fields-v240') || byId('cw-loan-fields-v259'); if (loanBox) loanBox.classList.toggle('v259-hidden', !isLoan);
+    var customRange = byId('cw-custom-range'); if (customRange) customRange.classList.add('v259-hidden');
+    var dataSourceWrap = controlWrap('cw-gauge-metric'); if (dataSourceWrap) dataSourceWrap.classList.toggle('v259-hidden', !isSpend);
+    var targetRow = byId('cw-target-count-row'); if (targetRow) targetRow.classList.toggle('v259-hidden', !(isCount || isAmount));
+    updateLoanNote();
+  }
+  function txArray(){ try { return Array.isArray(window.allTransactions || allTransactions) ? (window.allTransactions || allTransactions) : []; } catch(_) { return []; } }
+  function monthRange(){
+    var now = new Date();
+    try { var r = getCustomWidgetPeriodRange({ period:'month' }); if (r && r.from && r.to) return r; } catch(_) {}
+    return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now, label: 'This month' };
+  }
+  function txDate(tx){ try { return parseCustomDateStr(tx.rawDate || tx.date); } catch(_) { var d = new Date(tx.rawDate || tx.date || ''); return isNaN(d.getTime()) ? null : d; } }
+  function txBank(tx){ try { return getBudgetBankKeyFromTransaction(tx); } catch(_) {} try { return getBankKey(tx); } catch(_) {} return tx.bankId || tx.bank || ''; }
+  function txKind(tx){
+    try { return getTransactionPaymentKind(tx); } catch(_) {}
+    var t = String(tx.type || '').toLowerCase();
+    if (t.indexOf('cash') !== -1) return 'cash';
+    if (t.indexOf('účtu') !== -1 || t.indexOf('uctu') !== -1 || t.indexOf('account') !== -1 || t.indexOf('transfer') !== -1) return 'account';
+    return 'card';
+  }
+  function txnsForCount(widget){
+    var r = monthRange();
+    var account = widget.account || 'all';
+    var kind = widget.paymentKind || 'all';
+    return txArray().filter(function(tx){ return Number(tx.amount || 0) < 0; })
+      .filter(function(tx){ try { return !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)); } catch(_) { return true; } })
+      .filter(function(tx){ var d = txDate(tx); return d && d >= r.from && d <= r.to; })
+      .filter(function(tx){ return account === 'all' || txBank(tx) === account; })
+      .filter(function(tx){ return !kind || kind === 'all' || txKind(tx) === kind; });
+  }
+  function conv(v, from, to){ try { return convertAmountCurrency(Number(v || 0), from || to, to); } catch(_) { return Number(v || 0); } }
+  function bankCurrency(id, fallback){ try { return getBankBudgetCurrency(id) || fallback; } catch(_) { return fallback; } }
+  function bankIdsForBudget(){
+    var ids = [];
+    try { ids = getCustomWidgetAccounts().map(function(a){ return a.id; }).filter(function(id){ return id && id !== 'all'; }); } catch(_) {}
+    if (!ids.length) { try { ids = (typeof BANK_ORDER !== 'undefined' ? BANK_ORDER : []).filter(function(id){ return id !== 'csob_cz_credit'; }); } catch(_) {} }
+    return ids;
+  }
+  function budgetFromOverview(widget, currency){
+    widget = widget || {}; currency = currencyCode2(currency || widget.currency || getCurrency());
+    var account = widget.account || 'all';
+    var month = (typeof getAktuálneMonth === 'function') ? getAktuálneMonth() : '';
+    if (account && account !== 'all') {
+      var from = bankCurrency(account, currency), spent = 0, limit = 0;
+      try { spent = getOverviewBudgetSpentForBank(account, month) || 0; } catch(_) {}
+      try { limit = getOverviewBudgetLimitForBank(account, month) || 0; } catch(_) {}
+      return { spent: Math.max(0, conv(spent, from, currency)), limit: Math.max(0, conv(limit, from, currency)), currency: currency };
+    }
+    try {
+      var m = typeof getOverviewDashboardMetrics === 'function' ? getOverviewDashboardMetrics() : null;
+      if (m && (Number(m.budgetLimit || 0) || Number(m.budgetSpent || 0))) {
+        var appCur = currencyCode2(m.appCurrency || getCurrency());
+        return { spent: Math.max(0, conv(m.budgetSpent || 0, appCur, currency)), limit: Math.max(0, conv(m.budgetLimit || 0, appCur, currency)), currency: currency };
+      }
+    } catch(_) {}
+    var totalSpent = 0, totalLimit = 0;
+    bankIdsForBudget().forEach(function(id){
+      var from = bankCurrency(id, currency), spent = 0, limit = 0;
+      try { spent = getOverviewBudgetSpentForBank(id, month) || 0; } catch(_) {}
+      try { limit = getOverviewBudgetLimitForBank(id, month) || 0; } catch(_) {}
+      totalSpent += conv(spent, from, currency); totalLimit += conv(limit, from, currency);
+    });
+    return { spent: Math.max(0, totalSpent), limit: Math.max(0, totalLimit), currency: currency };
+  }
+  function statsForWidget(widget){
+    widget = widget || {};
+    var src = sourceNorm(widget.source || widget.dataInput || '');
+    var currency = currencyCode2(widget.currency || getCurrency());
+    if (!src) return { empty:true, source:'', spent:0, limit:0, currency:currency, txns:[], gaugeMetric:'amount' };
+    if (src === 'loan') {
+      var l = loanById(widget.loanId || widget.account || getSelectValue('cw-loan-id',''));
+      var original = l ? abs(l.originalAmount) : abs(widget.loanOriginalAmount || widget.limit || 0);
+      var current = l ? abs(l.currentBalance) : abs(widget.loanCurrentBalance || widget.currentBalance || 0);
+      return { source:'loan', loan:l, spent:current, limit:original, currency:l ? l.currency : currency, txns:[], gaugeMetric:'loan', pct: original ? (original - current) / original : 0 };
+    }
+    if (src === 'manual') {
+      var used = Math.max(0, toNum(widget.manualUsed || 0));
+      var lim = Math.max(0, toNum(widget.limit || widget.txTarget || 0));
+      return { source:'manual', spent:used, limit:lim || 1, currency:currency, txns:[], gaugeMetric:widget.gaugeMetric || 'amount' };
+    }
+    var metric = widget.gaugeMetric || widget.linearMetric || 'amount';
+    if (metric === 'count') {
+      var txs = txnsForCount(widget);
+      var target = Math.max(0, toNum(widget.txTarget || 0));
+      return { source:'auto', spent:txs.length, limit:target || 1, target:target, currency:currency, txns:txs, gaugeMetric:'count' };
+    }
+    var b = budgetFromOverview(widget, currency);
+    return { source:'auto', spent:b.spent, limit:b.limit, currency:b.currency, txns:[], gaugeMetric:'amount' };
+  }
+  function metricFor(widget, stats){
+    stats = stats || statsForWidget(widget); widget = widget || {};
+    var src = sourceNorm(widget.source || widget.dataInput || stats.source || '');
+    var metric = src === 'loan' ? 'loan' : (widget.gaugeMetric || widget.linearMetric || stats.gaugeMetric || 'amount');
+    if (metric === 'count') {
+      var count = Math.round(toNum(stats.spent || 0)), target = Math.max(0, toNum(stats.target || widget.txTarget || 0));
+      return { mode:'count', used:count, limit:target || 1, pct:target ? count / target : 0, label:count + ' / ' + (target || 0), rawCount:count };
+    }
+    if (metric === 'loan') {
+      var current = Math.max(0, toNum(stats.spent || 0)), original = Math.max(0, toNum(stats.limit || 0));
+      var paid = Math.max(0, original - current);
+      return { mode:'loan', used:paid, limit:original || 1, pct:original ? paid / original : 0, current:current, original:original, label:compactMoney(-current, stats.currency, false) + ' / ' + compactMoney(-original, stats.currency, true) };
+    }
+    var spent = Math.max(0, toNum(stats.spent || 0)), limit = Math.max(0, toNum(stats.limit || 0));
+    return { mode:'amount', used:spent, limit:limit || 1, pct:limit ? spent / limit : 0, label:compactMoney(spent, stats.currency, false) + ' / ' + compactMoney(limit, stats.currency, true) };
+  }
+  function stableGaugeColor(mode, pct, accent){
+    pct = Math.max(0, Math.min(100, Number(pct || 0)));
+    if (mode === 'loan') return normHex(accent, '#00E5A0');
+    if (mode === 'count') {
+      if (pct >= 100) return '#00E5A0';
+      if (pct >= 76) return '#FFE033';
+      if (pct >= 51) return '#FFB86B';
+      if (pct >= 26) return '#FF8A3D';
+      return '#E5005F';
+    }
+    if (pct >= 100) return '#E5005F';
+    if (pct >= 76) return '#FF8A3D';
+    if (pct >= 51) return '#FFB86B';
+    if (pct >= 26) return '#FFE033';
+    return '#72F0C8';
+  }
+  function makeLine(widget, stats){
+    widget = widget || {}; stats = stats || statsForWidget(widget);
+    var m = metricFor(widget, stats), accent = normHex(widget.accent, '#00E5A0'), blue = '#388BFD';
+    var isLoan = m.mode === 'loan';
+    var x1 = 7, x2 = 111, yBottom = 58, yTop = 8, h = yBottom - yTop, curX = 66, yCur, p;
+    var path1, path2;
+    if (isLoan) {
+      p = Math.max(0, Math.min(1, (m.current || 0) / Math.max(1, m.original || 1)));
+      yCur = yTop + p * h;
+      path1 = 'M' + x1 + ' ' + yTop + ' C30 7,48 ' + (yCur - 8) + ',' + curX + ' ' + yCur;
+      path2 = 'M' + curX + ' ' + yCur + ' C84 ' + (yCur + 6) + ',95 53,' + x2 + ' ' + yBottom;
+    } else {
+      p = Math.max(0, Math.min(1, (m.used || 0) / Math.max(1, m.limit || 1)));
+      yCur = yBottom - p * h;
+      path1 = 'M' + x1 + ' ' + yBottom + ' C30 56,48 ' + (yCur + 8) + ',' + curX + ' ' + yCur;
+      path2 = 'M' + curX + ' ' + yCur + ' C84 ' + (yCur - 6) + ',96 10,' + x2 + ' ' + yTop;
+    }
+    var id = 'grad_' + String(widget.id || 'p').replace(/[^a-z0-9]/gi,'') + '_' + Math.random().toString(36).slice(2,7);
+    return '<div class="custom-widget-chart-label">' + html(m.label) + '</div><svg viewBox="0 0 118 70" aria-hidden="true">'
+      + '<defs><linearGradient id="' + id + '" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="' + attr(rgba(accent,.20)) + '"/><stop offset="1" stop-color="' + attr(rgba(accent,.06)) + '"/></linearGradient></defs>'
+      + '<path d="M' + x1 + ' 64 L' + path1.slice(1) + ' L' + curX + ' 64 Z" fill="url(#' + id + ')" opacity=".92"/>'
+      + '<path d="' + path1 + '" fill="none" stroke="' + attr(accent) + '" stroke-width="4" stroke-linecap="round"/>'
+      + '<path d="' + path2 + '" fill="none" stroke="' + blue + '" stroke-width="4" stroke-linecap="round" opacity=".92"/>'
+      + '<circle cx="' + curX + '" cy="' + yCur.toFixed(1) + '" r="4.5" fill="#fff" opacity=".95"/>'
+      + '</svg>';
+  }
+  function makeGauge(widget, stats){
+    widget = widget || {}; stats = stats || statsForWidget(widget);
+    var m = metricFor(widget, stats), pct = Math.max(0, Math.min(100, (m.pct || 0) * 100));
+    var color = stableGaugeColor(m.mode, pct, widget.accent), dash = Math.max(0, Math.min(100, pct));
+    var pctText = Math.round(pct) + '%';
+    return '<div class="custom-widget-gauge-wrap"><div class="mini-half-gauge custom-widget-half-gauge"><svg viewBox="0 0 180 112" aria-hidden="true"><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="rgba(88,166,255,.20)" stroke-width="18" stroke-linecap="round" pathLength="100"/><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="' + attr(color) + '" stroke-width="18" stroke-linecap="round" pathLength="100" stroke-dasharray="' + dash.toFixed(1) + ' 100"/></svg><div class="mini-half-gauge-center"><span class="pct">' + html(pctText) + '</span><span class="caption">used</span></div></div><div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top"><strong>' + html(m.label) + '</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill" style="width:' + Math.min(100,pct).toFixed(1) + '%;background:' + attr(color) + '"></div></div></div></div>';
+  }
+  function renderCard(widget, stats){
+    widget = widget || {}; stats = stats || statsForWidget(widget);
+    var size = widget.size || 'medium', chart = widget.chart || 'linear', accent = normHex(widget.accent, '#00E5A0'), m = metricFor(widget, stats);
+    var chartHtml = chart === 'gauge' ? makeGauge(widget, stats) : (chart === 'linear' ? makeLine(widget, stats) : '');
+    var main = chart === 'none' ? '<div class="custom-widget-main"><div class="custom-widget-money">' + html(m.label) + '</div></div>' : '';
+    var countLine = (m.mode === 'amount' && widget.showCount && stats && Array.isArray(stats.txns)) ? '<div class="custom-widget-count"><span>Transactions</span><strong>' + stats.txns.length + '</strong></div>' : '';
+    return '<article class="custom-widget-card" data-id="' + attr(widget.id || '') + '" data-size="' + attr(size) + '" style="--widget-accent:' + attr(accent) + '" onclick="handleCustomWidgetCardClick && handleCustomWidgetCardClick(event,\'' + attr(widget.id || '') + '\')"><div class="custom-widget-content"><div class="custom-widget-head"><div class="custom-widget-title-wrap"><div class="custom-widget-title">' + html(widget.name || 'Widget') + '</div></div><div class="custom-widget-menu" onclick="event.stopPropagation()"><button class="custom-widget-icon-btn" type="button" title="Settings" onclick="openCustomWidgetBuilder(\'' + attr(widget.id || '') + '\')">⋮</button></div></div>' + main + countLine + '<div class="custom-widget-chart">' + chartHtml + '</div></div></article>';
+  }
+  function collectValues(){
+    var state = {}; try { if (typeof customWidgetBuilderState !== 'undefined') state = customWidgetBuilderState || {}; } catch(_) {}
+    var source = sourceNorm(getSelectValue('cw-source',''));
+    var metric = getSelectValue('cw-gauge-metric','amount') === 'count' ? 'count' : 'amount';
+    var name = String(getSelectValue('cw-name','')).trim().slice(0,30);
+    var color = normHex(getSelectValue('cw-accent-hex','') || getSelectValue('cw-accent',''), '#00E5A0');
+    var out = {
+      name:name,
+      chart: chartValue(),
+      size: sizeValue(),
+      source: source,
+      dataInput: source,
+      currency: currencyCode2(getSelectValue('cw-currency', getCurrency())),
+      account: getSelectValue('cw-account','all') || 'all',
+      paymentKind: getSelectValue('cw-payment-kind','all') || 'all',
+      gaugeMetric: metric,
+      linearMetric: metric,
+      txTarget: Math.max(0, toNum(getSelectValue('cw-tx-target','0'))),
+      showCount: getSelectValue('cw-show-count','false') === 'true',
+      manualUsed: Math.max(0, toNum(getSelectValue('cw-manual-used','0'))),
+      unit: String(getSelectValue('cw-unit','entries')).trim().slice(0,12) || 'entries',
+      accent: color,
+      showGaugePercent: getSelectValue('cw-show-gauge-percent','true') !== 'false',
+      showGaugeAmount: getSelectValue('cw-show-gauge-amount','true') !== 'false',
+      alerts: getSelectValue('cw-alerts','false') === 'true',
+      threshold: Math.max(1, Math.min(100, toNum(getSelectValue('cw-threshold','80')) || 80))
+    };
+    if (source === 'loan') {
+      var l = loanById(getSelectValue('cw-loan-id',''));
+      out.loanId = l ? l.id : '';
+      out.account = l && l.linkedBankId || 'none';
+      out.currency = l ? l.currency : out.currency;
+      out.gaugeMetric = 'loan'; out.linearMetric = 'loan'; out.paymentKind = 'loan'; out.showCount = false;
+      out.limit = l ? abs(l.originalAmount) : 0;
+    } else if (source === 'auto') {
+      if (metric === 'amount') {
+        var b = budgetFromOverview(out, out.currency);
+        out.limit = b.limit; out.txTarget = 0; out.showCount = out.showCount === true;
+      } else {
+        out.limit = 0; out.showCount = false;
+      }
+    } else if (source === 'manual') {
+      out.limit = Math.max(0, toNum(getSelectValue('cw-limit','0')) || out.txTarget || out.manualUsed || 1);
+    }
+    return out;
+  }
+  function updatePreview(){
+    updateBuilderVisibility();
+    var nameCount = byId('cw-name-count'); if (nameCount) nameCount.textContent = String(String(getSelectValue('cw-name','')).length);
+    var preview = byId('custom-widget-preview'); if (!preview) return;
+    var values = collectValues();
+    if (!values.chart || !values.size || !values.source) {
+      preview.innerHTML = '<div class="custom-widget-preview-placeholder-v259">Choose chart type, size and data input to preview this widget.</div>';
+      return;
+    }
+    if (values.source === 'loan' && !values.loanId) {
+      preview.innerHTML = '<div class="custom-widget-preview-placeholder-v259">Choose a loan / mortgage from Manage loans.</div>';
+      return;
+    }
+    var mock = Object.assign({}, values, { id:'preview', name: values.name || (values.source === 'loan' ? 'Loan preview' : 'Widget preview') });
+    preview.innerHTML = renderCard(mock, statsForWidget(mock));
+    var card = preview.querySelector('.custom-widget-card'); if (card) { card.removeAttribute('onclick'); var menu = card.querySelector('.custom-widget-menu'); if (menu) menu.remove(); }
+    try { window.v258ApplyPrivacyMask && window.v258ApplyPrivacyMask(); } catch(_) {}
+  }
+  function schedulePreview(){ clearTimeout(previewTimer); previewTimer = setTimeout(updatePreview, 120); }
+  function getWidgets(){ try { var w = typeof loadCustomWidgets === 'function' ? loadCustomWidgets() : JSON.parse(localStorage.getItem(WIDGETS_KEY) || '[]'); return Array.isArray(w) ? w : []; } catch(_) { return []; } }
+  function saveWidgets(w){ try { if (typeof saveCustomWidgets === 'function') saveCustomWidgets(w); else localStorage.setItem(WIDGETS_KEY, JSON.stringify(w || [])); } catch(_) {} }
+  function saveFromBuilder(){
+    var values = collectValues();
+    if (!values.name) { alert('Widget name is required.'); return; }
+    if (!values.chart) { alert('Choose chart type.'); return; }
+    if (!values.size) { alert('Choose size.'); return; }
+    if (!values.source) { alert('Choose data input.'); return; }
+    if (values.source === 'loan' && !values.loanId) { alert('Choose Loan / mortgage.'); return; }
+    if (values.source === 'auto' && values.linearMetric === 'count' && values.txTarget <= 0) { alert('Transaction target is required.'); return; }
+    var widgets = getWidgets();
+    var state = {}; try { if (typeof customWidgetBuilderState !== 'undefined') state = customWidgetBuilderState || {}; } catch(_) {}
+    var clean = Object.assign({}, values, { source:values.source, dataInput:values.source });
+    if (state.mode === 'edit' && state.id) {
+      var idx = widgets.findIndex(function(w){ return String(w.id) === String(state.id); });
+      if (idx >= 0) widgets[idx] = Object.assign({}, widgets[idx], clean, { id: state.id, updatedAt: new Date().toISOString() });
+      else widgets.push(Object.assign({}, clean, { id: state.id, hidden:false, createdAt:new Date().toISOString() }));
+    } else {
+      widgets.push(Object.assign({}, clean, { id:'cw_' + Date.now().toString(36), hidden:false, createdAt:new Date().toISOString() }));
+    }
+    saveWidgets(widgets);
+    try { if (typeof closeCustomWidgetBuilder === 'function') closeCustomWidgetBuilder(); else if (typeof closeBottomSheets === 'function') closeBottomSheets(); } catch(_) {}
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    try { if (typeof renderOverviewDashboard === 'function') renderOverviewDashboard(); } catch(_) {}
+  }
+  function hydrateExisting(id){
+    var w = id ? getWidgets().find(function(x){ return String(x.id) === String(id); }) : null;
+    ensureChooseButton('cw-chart-grid','Choose one'); ensureChooseButton('cw-size-grid','Choose one'); ensureWidgetSourceOptions(); ensureLoanField();
+    if (w) {
+      setStateChoice('chart', w.chart || ''); setStateChoice('size', w.size || '');
+      setSelectValue('cw-source', sourceNorm(w.source || w.dataInput || ''));
+      setSelectValue('cw-name', w.name || '');
+      setSelectValue('cw-currency', w.currency || getCurrency());
+      setSelectValue('cw-account', w.account || 'all');
+      setSelectValue('cw-payment-kind', w.paymentKind || 'all');
+      setSelectValue('cw-gauge-metric', (w.gaugeMetric || w.linearMetric || 'amount') === 'count' ? 'count' : 'amount');
+      setSelectValue('cw-tx-target', w.txTarget || '');
+      setSelectValue('cw-show-count', String(w.showCount === true));
+      setSelectValue('cw-loan-id', w.loanId || '');
+      setSelectValue('cw-manual-used', w.manualUsed || '');
+      setSelectValue('cw-unit', w.unit || 'entries');
+      setSelectValue('cw-accent', normHex(w.accent, '#00E5A0'));
+      setSelectValue('cw-accent-hex', normHex(w.accent, '#00E5A0'));
+    } else {
+      setStateChoice('chart', ''); setStateChoice('size', '');
+      ['cw-name','cw-tx-target','cw-manual-used','cw-loan-id'].forEach(function(id){ setSelectValue(id,''); });
+      setSelectValue('cw-source',''); setSelectValue('cw-gauge-metric','amount'); setSelectValue('cw-show-count','false'); setSelectValue('cw-currency', getCurrency()); setSelectValue('cw-account','all'); setSelectValue('cw-payment-kind','all'); setSelectValue('cw-unit','entries');
+    }
+    updateBuilderVisibility(); updatePreview();
+  }
+  var oldChoice = window.setCustomWidgetBuilderChoice;
+  window.setCustomWidgetBuilderChoice = function(kind, value){ setStateChoice(kind, value || ''); updateBuilderVisibility(); schedulePreview(); };
+  window.updateCustomWidgetChoiceUi = function(){ setStateChoice('chart', chartValue()); setStateChoice('size', sizeValue()); };
+  window.handleCustomWidgetSourceChange = function(){ updateBuilderVisibility(); if (sourceNorm(getSelectValue('cw-source','')) === 'loan') { try { if (typeof syncLoansNow === 'function') syncLoansNow(false); } catch(_) {} } schedulePreview(); };
+  window.syncCustomWidgetMetricChoices = function(){ updateBuilderVisibility(); schedulePreview(); };
+  window.handleCustomWidgetPeriodChange = function(){ updateBuilderVisibility(); schedulePreview(); };
+  window.collectCustomWidgetBuilderValues = collectValues;
+  window.updateCustomWidgetBuilderPreview = schedulePreview;
+  window.getCustomWidgetStats = statsForWidget;
+  window.getCustomWidgetUsedLimit = metricFor;
+  window.createCustomWidgetLineChart = function(w,s){ return makeLine(w, s || statsForWidget(w)); };
+  window.createCustomWidgetGauge = function(w,s){ return makeGauge(w, s || statsForWidget(w)); };
+  window.renderCustomWidgetCard = renderCard;
+  window.saveCustomWidgetFromBuilder = saveFromBuilder;
+  try { setCustomWidgetBuilderChoice = window.setCustomWidgetBuilderChoice; updateCustomWidgetChoiceUi = window.updateCustomWidgetChoiceUi; handleCustomWidgetSourceChange = window.handleCustomWidgetSourceChange; syncCustomWidgetMetricChoices = window.syncCustomWidgetMetricChoices; handleCustomWidgetPeriodChange = window.handleCustomWidgetPeriodChange; collectCustomWidgetBuilderValues = window.collectCustomWidgetBuilderValues; updateCustomWidgetBuilderPreview = window.updateCustomWidgetBuilderPreview; getCustomWidgetStats = window.getCustomWidgetStats; getCustomWidgetUsedLimit = window.getCustomWidgetUsedLimit; createCustomWidgetLineChart = window.createCustomWidgetLineChart; createCustomWidgetGauge = window.createCustomWidgetGauge; renderCustomWidgetCard = window.renderCustomWidgetCard; saveCustomWidgetFromBuilder = window.saveCustomWidgetFromBuilder; } catch(_) {}
+  var oldOpen = window.openCustomWidgetBuilder;
+  window.openCustomWidgetBuilder = function(id){
+    var r = oldOpen ? oldOpen.apply(this, arguments) : undefined;
+    setTimeout(function(){ hydrateExisting(id || null); }, 180);
+    setTimeout(function(){ hydrateExisting(id || null); }, 360);
+    return r;
+  };
+  try { openCustomWidgetBuilder = window.openCustomWidgetBuilder; } catch(_) {}
+  document.addEventListener('change', function(ev){ if (ev.target && /^cw-/.test(ev.target.id || '')) { updateBuilderVisibility(); schedulePreview(); } }, false);
+  document.addEventListener('input', function(ev){ if (ev.target && /^cw-/.test(ev.target.id || '')) schedulePreview(); }, false);
+
+  /* Manage banks / loans dropdown default cleanup. */
+  function applyChooseDefaultsInManagers(){
+    ['new-loan-type','new-loan-bank','new-bank-type','new-bank-currency'].forEach(function(id){ var s = byId(id); if (s) ensureChooseOption(s, 'Choose one'); });
+    document.querySelectorAll('select[id^="loan-type-"],select[id^="loan-bank-"]').forEach(function(s){ ensureChooseOption(s, 'Choose one'); });
+  }
+  ['openLoanManagerSheet','openBankManagerSheet'].forEach(function(name){
+    var fn = window[name];
+    if (typeof fn === 'function' && !fn.__v259ChooseWrapped) {
+      var wrapped = function(){ var r = fn.apply(this, arguments); setTimeout(applyChooseDefaultsInManagers, 60); setTimeout(applyChooseDefaultsInManagers, 220); return r; };
+      wrapped.__v259ChooseWrapped = true; window[name] = wrapped; try { globalThis[name] = wrapped; } catch(_) {}
+    }
+  });
+
+  /* Coarser transactions virtual scroll final override. The v258 listener can still fire, but this final update restores a stable 25-row window. */
+  var scrollLock = false;
+  window.addEventListener('scroll', function(){
+    if (scrollLock) return;
+    var page = byId('page-txns'); if (!page || !page.classList.contains('active')) return;
+    scrollLock = true;
+    requestAnimationFrame(function(){
+      scrollLock = false;
+      try { if (typeof window.updateTxnPage === 'function') { /* v258 handles filtered full-history; keep it but coarser after source edit */ } } catch(_) {}
+    });
+  }, { passive:true });
+
+  function boot(){
+    ensureChooseButton('cw-chart-grid','Choose one'); ensureChooseButton('cw-size-grid','Choose one'); ensureWidgetSourceOptions(); ensureLoanField(); updateBuilderVisibility(); updatePreview(); applyChooseDefaultsInManagers();
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once:true }); else setTimeout(boot, 0);
+})();
+</script>
+
+<!-- v260 final widget builder + privacy stability fixes -->
+<style id="v260-widget-final-fixes-css">
+  .custom-widget-linear-v260 {
+    display: grid;
+    gap: 7px;
+    width: 100%;
+  }
+  .custom-widget-linear-label-v260 {
+    color: #f8fbff;
+    font-family: var(--font-mono);
+    font-size: clamp(12px, 3.5vw, 15px);
+    font-variant-numeric: tabular-nums;
+    font-weight: 900;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .custom-widget-linear-v260 svg {
+    display: block;
+    height: 72px;
+    overflow: visible;
+    width: 100%;
+  }
+  .custom-widget-card[data-size="small"] .custom-widget-linear-v260 svg {
+    height: 58px;
+  }
+  .custom-widget-card[data-size="large"] .custom-widget-linear-v260 svg {
+    height: 96px;
+  }
+  .custom-widget-count strong {
+    color: inherit;
+    font-weight: 900;
+  }
+  html[data-theme="light"] .custom-widget-linear-label-v260 {
+    color: #0f172a;
+  }
+  html[data-values-hidden="true"] .custom-widget-money,
+  html[data-values-hidden="true"] .custom-widget-limit,
+  html[data-values-hidden="true"] .custom-widget-count,
+  html[data-values-hidden="true"] .custom-widget-gauge-value-line,
+  html[data-values-hidden="true"] .custom-widget-linear-label-v260,
+  html[data-values-hidden="true"] .summary-val,
+  html[data-values-hidden="true"] .wealth-card-value,
+  html[data-values-hidden="true"] .wealth-linear-card-value,
+  html[data-values-hidden="true"] .wealth-inline-progress-labels,
+  html[data-values-hidden="true"] .account-balance-value,
+  html[data-values-hidden="true"] .account-balance-equivalent,
+  html[data-values-hidden="true"] .budget-status-value,
+  html[data-values-hidden="true"] .stat-val,
+  html[data-values-hidden="true"] .progress-labels,
+  html[data-values-hidden="true"] .archive-bank-spent-cell,
+  html[data-values-hidden="true"] .archive-bank-income-cell {
+    -webkit-text-security: disc !important;
+    color: var(--muted) !important;
+    text-security: disc !important;
+  }
+  html[data-values-hidden="true"] .custom-widget-chart,
+  html[data-values-hidden="true"] .mini-half-gauge,
+  html[data-values-hidden="true"] .wealth-inline-progress-track,
+  html[data-values-hidden="true"] .wealth-trend,
+  html[data-values-hidden="true"] .daily-chart-card svg,
+  html[data-values-hidden="true"] .archive-trend-card svg {
+    filter: blur(7px);
+    opacity: .42;
+    pointer-events: none;
+  }
+</style>
+<script id="v260-widget-final-fixes-js">
+(function(){
+  'use strict';
+
+  var WIDGETS_KEY = 'bank_tracker_custom_widgets_v1';
+  var LOANS_KEY = 'bank_tracker_loans_v1';
+  var PRIVACY_KEY = 'account_balance_values_hidden';
+  var previewTimer = null;
+  var finalBuilderState = { mode:'create', id:null };
+
+  function byId(id){ return document.getElementById(id); }
+  function esc(value){
+    try { return escapeHtml(String(value == null ? '' : value)); } catch(_) {}
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function(ch){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+    });
+  }
+  function attr(value){
+    try { return escapeAttr(String(value == null ? '' : value)); } catch(_) {}
+    return esc(value);
+  }
+  function toNum(value){
+    try {
+      if (typeof parseSheetNumber === 'function') {
+        var parsed = parseSheetNumber(value, value);
+        if (Number.isFinite(Number(parsed))) return Number(parsed);
+      }
+    } catch(_) {}
+    var n = Number(String(value == null ? '' : value).replace(/\s+/g,'').replace(',', '.').replace(/[^0-9.\-]/g,''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function abs(value){ return Math.abs(toNum(value)); }
+  function normText(value){
+    return String(value == null ? '' : value)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+  function normHex(value, fallback){
+    try { return normalizeWidgetHexColor(value, fallback || '#00E5A0'); } catch(_) {}
+    var v = String(value || '').trim();
+    return /^#[0-9a-fA-F]{6}$/.test(v) ? v.toUpperCase() : (fallback || '#00E5A0');
+  }
+  function hexToRgba(hex, alpha){
+    var h = String(hex || '#00E5A0').replace('#','');
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) h = '00E5A0';
+    return 'rgba(' + parseInt(h.slice(0,2),16) + ',' + parseInt(h.slice(2,4),16) + ',' + parseInt(h.slice(4,6),16) + ',' + (alpha == null ? .2 : alpha) + ')';
+  }
+  function currencyCodeSafe(value){
+    try { return currencyCode(value || getAppCurrency() || 'CZK'); } catch(_) {}
+    var v = String(value || 'CZK').trim();
+    if (/^(kc|kč|czk)$/i.test(v)) return 'CZK';
+    if (v === '€') return 'EUR';
+    return v.toUpperCase() || 'CZK';
+  }
+  function currencySymbolSafe(value){
+    var c = currencyCodeSafe(value);
+    if (c === 'CZK') return 'Kc';
+    if (c === 'EUR') return 'EUR';
+    if (c === 'USD') return '$';
+    if (c === 'GBP') return 'GBP';
+    if (c === 'PLN') return 'PLN';
+    return c;
+  }
+  function compactNumber(value){
+    var n = Number(value || 0);
+    var sign = n < 0 ? '-' : '';
+    var a = Math.abs(n);
+    var out;
+    if (a >= 1000000) out = (a / 1000000).toFixed(a % 1000000 ? 1 : 0).replace('.', ',').replace(/,0$/, '') + 'm';
+    else if (a >= 1000) out = (a / 1000).toFixed(a % 1000 ? 1 : 0).replace('.', ',').replace(/,0$/, '') + 'k';
+    else out = String(Math.round(a));
+    return sign + out;
+  }
+  function compactMoney(value, currency, withSymbol){
+    var out = compactNumber(value);
+    return withSymbol === false ? out : out + ' ' + currencySymbolSafe(currency);
+  }
+  function sourceNorm(value){
+    var v = normText(value).trim().replace(/[\s-]+/g,'_');
+    if (!v || v === 'choose_one') return '';
+    if (v === 'auto' || v === 'app_data' || v === 'spend' || v === 'spend_data') return 'auto';
+    if (v === 'manual' || v === 'manual_value' || v === 'manual_data') return 'manual';
+    if (v === 'loan' || v === 'loans' || v === 'loan_data' || v === 'loan_tab' || v === 'loans_tab') return 'loan';
+    return v;
+  }
+  function getWidgets(){
+    try {
+      var widgets = typeof loadCustomWidgets === 'function'
+        ? loadCustomWidgets()
+        : JSON.parse(localStorage.getItem(WIDGETS_KEY) || '[]');
+      return Array.isArray(widgets) ? widgets : [];
+    } catch(_) { return []; }
+  }
+  function saveWidgets(widgets){
+    try {
+      if (typeof saveCustomWidgets === 'function') saveCustomWidgets(widgets || []);
+      else localStorage.setItem(WIDGETS_KEY, JSON.stringify(widgets || []));
+    } catch(_) {}
+  }
+  function setGlobalBuilderState(mode, id){
+    finalBuilderState = { mode: mode || 'create', id: id || null };
+    try {
+      if (typeof customWidgetBuilderState !== 'undefined') {
+        customWidgetBuilderState = Object.assign({}, customWidgetBuilderState || {}, finalBuilderState);
+      }
+    } catch(_) {}
+    window.customWidgetBuilderState = Object.assign({}, window.customWidgetBuilderState || {}, finalBuilderState);
+  }
+  function setValue(id, value){
+    var el = byId(id);
+    if (el) el.value = value == null ? '' : String(value);
+  }
+  function getValue(id, fallback){
+    var el = byId(id);
+    return el ? el.value : (fallback || '');
+  }
+  function activeChoice(gridId, fallback){
+    var grid = byId(gridId);
+    var active = grid && grid.querySelector('.custom-widget-choice.active');
+    return active ? (active.dataset.value || '') : (fallback || '');
+  }
+  function setChoice(kind, value){
+    var grid = byId(kind === 'chart' ? 'cw-chart-grid' : 'cw-size-grid');
+    var next = value || '';
+    if (grid) {
+      Array.prototype.forEach.call(grid.querySelectorAll('.custom-widget-choice'), function(btn){
+        btn.classList.toggle('active', String(btn.dataset.value || '') === String(next));
+      });
+    }
+    try {
+      if (typeof customWidgetBuilderState !== 'undefined') customWidgetBuilderState[kind] = next;
+    } catch(_) {}
+  }
+  function ensureChooseButton(gridId, label){
+    var grid = byId(gridId);
+    if (!grid || grid.querySelector('.custom-widget-choice[data-value=""]')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'custom-widget-choice';
+    btn.dataset.value = '';
+    btn.textContent = label || 'Choose';
+    btn.addEventListener('click', function(){
+      window.setCustomWidgetBuilderChoice(gridId === 'cw-chart-grid' ? 'chart' : 'size', '');
+    });
+    grid.insertBefore(btn, grid.firstChild);
+  }
+  function ensureSourceOptions(){
+    var select = byId('cw-source');
+    if (!select) return;
+    var keep = sourceNorm(select.value);
+    select.innerHTML = '<option value="">Choose one</option><option value="auto">Spend data</option><option value="manual">Manual value</option><option value="loan">Loan data</option>';
+    select.value = keep || '';
+  }
+  function controlWrap(id){
+    var el = byId(id);
+    if (!el) return null;
+    if (id === 'cw-loan-id') return byId('cw-loan-fields-v240') || byId('cw-loan-fields-v259');
+    return el.closest('.custom-widget-row-2 > div') || el.closest('.custom-widget-modal-grid > div') || el.closest('div');
+  }
+  function setControlVisible(id, visible){
+    var wrap = controlWrap(id);
+    if (!wrap) return;
+    wrap.classList.toggle('v254-hidden', !visible);
+    wrap.classList.toggle('v258-hidden', !visible);
+    wrap.classList.toggle('v259-hidden', !visible);
+    wrap.classList.toggle('v260-hidden', !visible);
+    wrap.classList.toggle('is-hidden', !visible);
+    wrap.style.display = visible ? '' : 'none';
+    if (wrap.classList.contains('custom-widget-row-2')) wrap.style.display = visible ? 'grid' : 'none';
+  }
+  function getLoans(){
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem(LOANS_KEY) || '[]'); } catch(_) { list = []; }
+    if (!Array.isArray(list)) list = [];
+    return list.filter(function(loan){ return loan && String(loan.status || 'active') !== 'closed'; }).map(function(loan){
+      var original = abs(loan.originalAmount != null ? loan.originalAmount : (loan.original != null ? loan.original : loan.principal));
+      var current = abs(loan.currentBalance != null ? loan.currentBalance : (loan.outstandingBalance != null ? loan.outstandingBalance : loan.balance));
+      return Object.assign({}, loan, {
+        id: String(loan.id || loan.loanId || '').trim(),
+        name: String(loan.name || loan.loanName || 'Loan').trim(),
+        currency: currencyCodeSafe(loan.currency || 'CZK'),
+        originalAmount: original,
+        currentBalance: -current,
+        linkedBankId: String(loan.linkedBankId || loan.bankId || '').trim()
+      });
+    }).filter(function(loan){ return loan.id && (loan.originalAmount || abs(loan.currentBalance)); });
+  }
+  function loanById(id){
+    id = String(id || '').trim();
+    return getLoans().find(function(loan){ return String(loan.id) === id; }) || null;
+  }
+  function ensureLoanField(){
+    var source = byId('cw-source');
+    if (!source) return;
+    var box = byId('cw-loan-fields-v240') || byId('cw-loan-fields-v259');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'cw-loan-fields-v259';
+      box.className = 'custom-widget-loan-fields-v259 v259-hidden';
+      box.innerHTML = '<label>Loan / mortgage</label><select class="config-input" id="cw-loan-id" onchange="updateCustomWidgetBuilderPreview()"></select><div class="v259-note" id="cw-loan-readonly-v259"></div>';
+      var grid = byId('custom-widget-modal-grid') || source.closest('.custom-widget-modal-grid');
+      if (grid) grid.insertBefore(box, source.closest('.custom-widget-row-2') ? source.closest('.custom-widget-row-2').nextSibling : null);
+    }
+    var select = byId('cw-loan-id');
+    if (!select) return;
+    var keep = select.value;
+    var loans = getLoans();
+    select.innerHTML = '<option value="">Choose one</option>' + loans.map(function(loan){
+      return '<option value="' + attr(loan.id) + '">' + esc(loan.name) + ' - ' + esc(compactMoney(loan.currentBalance, loan.currency, true)) + '</option>';
+    }).join('');
+    if (keep && loans.some(function(loan){ return String(loan.id) === String(keep); })) select.value = keep;
+  }
+  function updateLoanNote(){
+    var note = byId('cw-loan-readonly-v259') || byId('cw-loan-readonly-v254');
+    if (!note) return;
+    var loan = loanById(getValue('cw-loan-id',''));
+    if (!loan) {
+      note.textContent = 'Choose a loan from Settings / Manage loans.';
+      return;
+    }
+    var bank = loan.linkedBankId || 'No linked bank';
+    try { if (loan.linkedBankId && typeof plainBankName === 'function') bank = plainBankName(loan.linkedBankId); } catch(_) {}
+    note.innerHTML = 'Original: <strong>' + esc(compactMoney(-abs(loan.originalAmount), loan.currency, true)) + '</strong><br>Outstanding: <strong>' + esc(compactMoney(-abs(loan.currentBalance), loan.currency, true)) + '</strong><br>Linked bank: <strong>' + esc(bank) + '</strong>';
+  }
+  function populateAccounts(selected){
+    try {
+      if (typeof populateCustomWidgetAccountSelect === 'function') {
+        populateCustomWidgetAccountSelect(selected || 'all');
+        return;
+      }
+    } catch(_) {}
+    var select = byId('cw-account');
+    if (!select) return;
+    var ids = [];
+    try { ids = (typeof BANK_ORDER !== 'undefined' ? BANK_ORDER : []).slice(); } catch(_) {}
+    select.innerHTML = '<option value="all">All accounts</option>' + ids.map(function(id){
+      var name = id;
+      try { name = plainBankName(id) || id; } catch(_) {}
+      return '<option value="' + attr(id) + '">' + esc(name) + '</option>';
+    }).join('');
+    select.value = selected || 'all';
+  }
+  function updateBuilderVisibility(){
+    ensureChooseButton('cw-chart-grid', 'Choose');
+    ensureChooseButton('cw-size-grid', 'Choose');
+    ensureSourceOptions();
+    ensureLoanField();
+
+    var source = sourceNorm(getValue('cw-source',''));
+    var metric = getValue('cw-gauge-metric','amount') === 'count' ? 'count' : 'amount';
+    var isAuto = source === 'auto';
+    var isManual = source === 'manual';
+    var isLoan = source === 'loan';
+    var isAmount = isAuto && metric === 'amount';
+    var isCount = isAuto && metric === 'count';
+
+    setControlVisible('cw-gauge-metric', isAuto);
+    setControlVisible('cw-payment-kind', isAuto);
+    setControlVisible('cw-account', isAuto);
+    setControlVisible('cw-period', isAuto);
+    setControlVisible('cw-currency', isAmount || isManual);
+    setControlVisible('cw-limit', isAmount || isManual);
+    setControlVisible('cw-tx-target', isCount);
+    setControlVisible('cw-show-count', isAmount);
+    setControlVisible('cw-show-gauge-percent', activeChoice('cw-chart-grid','') === 'gauge');
+    setControlVisible('cw-show-gauge-amount', activeChoice('cw-chart-grid','') === 'gauge');
+
+    var targetRow = byId('cw-target-count-row');
+    if (targetRow) targetRow.style.display = (isAmount || isCount) ? 'grid' : 'none';
+    var manualRow = byId('cw-manual-row');
+    if (manualRow) manualRow.style.display = isManual ? 'grid' : 'none';
+    var loanBox = byId('cw-loan-fields-v240') || byId('cw-loan-fields-v259');
+    if (loanBox) {
+      loanBox.classList.toggle('v259-hidden', !isLoan);
+      loanBox.classList.toggle('is-hidden', !isLoan);
+      loanBox.classList.toggle('v254-hidden', !isLoan);
+      loanBox.style.display = isLoan ? '' : 'none';
+    }
+    var range = byId('cw-custom-range');
+    if (range) range.style.display = (isAuto && getValue('cw-period','month') === 'custom') ? 'grid' : 'none';
+    ['cw-budget-derived-note-v258','cw-budget-derived-note-v259','cw-budget-derived-note-v254'].forEach(function(id){
+      var note = byId(id);
+      if (!note) return;
+      note.style.display = isAmount ? '' : 'none';
+      if (isAmount) note.textContent = 'Leave Budget limit empty to use Overview details / Manage banks.';
+    });
+    updateLoanNote();
+  }
+  function currentPeriodRange(widget){
+    widget = widget || {};
+    try {
+      if (typeof getCustomWidgetPeriodRange === 'function') {
+        var localRange = getCustomWidgetPeriodRange(widget);
+        if (localRange && localRange.from && localRange.to) return localRange;
+      }
+    } catch(_) {}
+    var now = new Date();
+    var period = widget.period || 'month';
+    if (period === '7d') return { from:new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6), to:now, label:'Last 7 days' };
+    if (period === '30d') return { from:new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29), to:now, label:'Last 30 days' };
+    if (period === 'custom') {
+      var from = widget.from ? new Date(widget.from + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), 1);
+      var to = widget.to ? new Date(widget.to + 'T23:59:59') : now;
+      return { from:from, to:to, label:'Custom range' };
+    }
+    var month = '';
+    try { month = normalizeMonthStr(getAktuálneMonth()); } catch(_) {}
+    var parts = String(month || '').split('/').map(Number);
+    if (parts.length === 2 && parts[0] && parts[1]) {
+      return { from:new Date(parts[1], parts[0] - 1, 1), to:new Date(parts[1], parts[0], 0, 23, 59, 59, 999), label:month };
+    }
+    return { from:new Date(now.getFullYear(), now.getMonth(), 1), to:now, label:'This month' };
+  }
+  function txDate(tx){
+    try {
+      var parsed = parseCustomDateStr(tx && (tx.rawDate || tx.date));
+      if (parsed && !isNaN(parsed.getTime())) return parsed;
+    } catch(_) {}
+    var d = new Date(tx && (tx.rawDate || tx.date || tx.createdAt || ''));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function txBank(tx){
+    try { return getBudgetBankKeyFromTransaction(tx); } catch(_) {}
+    try { return getBankKey(tx); } catch(_) {}
+    return String(tx && (tx.bankId || tx.bank || tx.sourceBank || ''));
+  }
+  function txKind(tx){
+    try { return getTransactionPaymentKind(tx); } catch(_) {}
+    return normText(tx && (tx.paymentKind || tx.type || '')).includes('cash') ? 'cash' : 'card';
+  }
+  function isLoanLikeTx(tx){
+    if (!tx) return false;
+    if (tx.loanId || tx.linkedLoanId || tx.isLoanRepayment === true) return true;
+    var text = normText([
+      tx.category, tx.type, tx.merchant, tx.merchantRaw, tx.description, tx.note,
+      tx.paymentSource, tx.source, tx.subtype, tx.tags, tx.label
+    ].join(' '));
+    if (!text) return false;
+    if (/(uver|loan|mortgage|hypot|hypotec|hypotek)/.test(text)) return true;
+    if (/splatka/.test(text) && /(uver|loan|mortgage|hypot|hypotec|hypotek)/.test(text)) return true;
+    if (/repayment/.test(text) && /(loan|mortgage)/.test(text)) return true;
+    return false;
+  }
+  function txList(){
+    try {
+      var arr = window.allTransactions || allTransactions;
+      return Array.isArray(arr) ? arr : [];
+    } catch(_) { return []; }
+  }
+  function filteredSpendTxns(widget){
+    widget = widget || {};
+    var range = currentPeriodRange(widget);
+    var account = widget.account || 'all';
+    var kind = widget.paymentKind || 'all';
+    return txList()
+      .filter(function(tx){ return Number(tx && tx.amount || 0) < 0; })
+      .filter(function(tx){
+        try { return !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)); } catch(_) { return true; }
+      })
+      .filter(function(tx){ return !isLoanLikeTx(tx); })
+      .filter(function(tx){
+        var date = txDate(tx);
+        return date && date >= range.from && date <= range.to;
+      })
+      .filter(function(tx){ return !account || account === 'all' || txBank(tx) === account; })
+      .filter(function(tx){ return !kind || kind === 'all' || txKind(tx) === kind; });
+  }
+  function convertAmount(value, from, to){
+    try { return convertAmountCurrency(Number(value || 0), from || to, to); } catch(_) {}
+    return Number(value || 0);
+  }
+  function bankCurrency(bankId, fallback){
+    try { return getBankBudgetCurrency(bankId) || fallback; } catch(_) { return fallback; }
+  }
+  function overviewBudgetLimit(widget, currency){
+    widget = widget || {};
+    var typed = Math.max(0, toNum(widget.limit || 0));
+    if (typed > 0) return typed;
+    var account = widget.account || 'all';
+    var month = '';
+    try { month = getAktuálneMonth(); } catch(_) {}
+    if (account && account !== 'all') {
+      var from = bankCurrency(account, currency);
+      try { return Math.max(0, convertAmount(getOverviewBudgetLimitForBank(account, month) || 0, from, currency)); } catch(_) { return 0; }
+    }
+    var total = 0;
+    try {
+      var ids = (typeof BANK_ORDER !== 'undefined' ? BANK_ORDER : []).filter(function(id){ return id !== 'csob_cz_credit'; });
+      ids.forEach(function(id){
+        var from = bankCurrency(id, currency);
+        total += convertAmount(getOverviewBudgetLimitForBank(id, month) || 0, from, currency);
+      });
+    } catch(_) {}
+    return Math.max(0, total);
+  }
+  function statsForWidget(widget){
+    widget = widget || {};
+    var source = sourceNorm(widget.source || widget.dataInput || '');
+    var currency = currencyCodeSafe(widget.currency || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK'));
+    var range = currentPeriodRange(widget);
+    if (!source) return { empty:true, source:'', spent:0, limit:0, target:0, currency:currency, txns:[], range:range, gaugeMetric:'amount' };
+
+    if (source === 'loan') {
+      var loan = loanById(widget.loanId || '');
+      var original = loan ? abs(loan.originalAmount) : abs(widget.loanOriginalAmount || widget.limit || 0);
+      var current = loan ? abs(loan.currentBalance) : abs(widget.loanCurrentBalance || widget.currentBalance || 0);
+      var paid = Math.max(0, original - current);
+      return { source:'loan', loan:loan, spent:paid, current:current, limit:original || 1, target:0, currency:loan ? loan.currency : currency, txns:[], range:{ label:'Repayment' }, gaugeMetric:'loan' };
+    }
+
+    if (source === 'manual') {
+      var used = Math.max(0, toNum(widget.manualUsed || 0));
+      var limit = Math.max(0, toNum(widget.limit || widget.txTarget || 0));
+      return { source:'manual', spent:used, limit:limit || 1, target:limit || 0, currency:currency, txns:[], range:{ label:'Manual' }, unit:widget.unit || '', gaugeMetric:widget.gaugeMetric || widget.linearMetric || 'amount' };
+    }
+
+    var metric = widget.gaugeMetric || widget.linearMetric || 'amount';
+    var txns = filteredSpendTxns(widget);
+    if (metric === 'count') {
+      var target = Math.max(0, toNum(widget.txTarget || 0));
+      return { source:'auto', spent:txns.length, limit:target || 1, target:target, currency:currency, txns:txns, range:range, gaugeMetric:'count' };
+    }
+    var spent = txns.reduce(function(sum, tx){
+      return sum + Math.abs(convertAmountCurrencySafe(tx, currency));
+    }, 0);
+    var spendLimit = overviewBudgetLimit(widget, currency);
+    return { source:'auto', spent:spent, limit:spendLimit || 1, target:0, currency:currency, txns:txns, range:range, gaugeMetric:'amount' };
+  }
+  function convertAmountCurrencySafe(tx, currency){
+    try { return convertTransactionAmount(tx, currency); } catch(_) {}
+    return Number(tx && tx.amount || 0);
+  }
+  function metricFor(widget, stats){
+    stats = stats || statsForWidget(widget);
+    widget = widget || {};
+    var source = sourceNorm(widget.source || widget.dataInput || stats.source || '');
+    var mode = source === 'loan' ? 'loan' : (widget.gaugeMetric || widget.linearMetric || stats.gaugeMetric || 'amount');
+
+    if (mode === 'count') {
+      var count = Math.round(toNum(stats.spent || 0));
+      var target = Math.max(0, toNum(stats.target || widget.txTarget || 0));
+      return {
+        mode:'count',
+        used:count,
+        limit:target || 1,
+        pct:target > 0 ? count / target : 0,
+        label:count + ' / ' + (target || 0),
+        usedLabel:String(count),
+        limitLabel:String(target || 0),
+        missingLabel:String(Math.max(0, target - count)),
+        rawCount:count
+      };
+    }
+
+    if (mode === 'loan') {
+      var original = Math.max(0, toNum(stats.limit || widget.limit || 0));
+      var current = Math.max(0, toNum(stats.current != null ? stats.current : (original - (stats.spent || 0))));
+      var paid = Math.max(0, original - current);
+      return {
+        mode:'loan',
+        used:paid,
+        limit:original || 1,
+        pct:original > 0 ? paid / original : 0,
+        current:current,
+        original:original,
+        label:compactMoney(-current, stats.currency, false) + ' / ' + compactMoney(-original, stats.currency, true),
+        usedLabel:compactMoney(-current, stats.currency, false),
+        limitLabel:compactMoney(-original, stats.currency, true),
+        missingLabel:compactMoney(-current, stats.currency, true)
+      };
+    }
+
+    var spent = Math.max(0, toNum(stats.spent || 0));
+    var limit = Math.max(0, toNum(stats.limit || widget.limit || 0));
+    var unit = stats.unit || widget.unit || '';
+    var isManual = source === 'manual' && unit && unit !== 'Kc';
+    return {
+      mode:'amount',
+      used:spent,
+      limit:limit || 1,
+      pct:limit > 0 ? spent / limit : 0,
+      label:isManual ? (compactNumber(spent) + ' / ' + compactNumber(limit) + ' ' + unit) : (compactMoney(spent, stats.currency, false) + ' / ' + compactMoney(limit, stats.currency, true)),
+      usedLabel:isManual ? (compactNumber(spent) + ' ' + unit) : compactMoney(spent, stats.currency, true),
+      limitLabel:isManual ? (compactNumber(limit) + ' ' + unit) : compactMoney(limit, stats.currency, true),
+      missingLabel:isManual ? (compactNumber(Math.max(0, limit - spent)) + ' ' + unit) : compactMoney(Math.max(0, limit - spent), stats.currency, true),
+      rawCount:Array.isArray(stats.txns) ? stats.txns.length : 0
+    };
+  }
+  function chartColor(widget, metric){
+    var pct = Math.max(0, Math.min(100, Number(metric && metric.pct || 0) * 100));
+    var accent = normHex(widget && widget.accent, '#00E5A0');
+    if (metric && metric.mode === 'loan') return accent;
+    if (metric && metric.mode === 'amount' && pct >= 100) return '#E5005F';
+    if (metric && metric.mode === 'amount' && pct >= 80) return '#FFB86B';
+    return accent;
+  }
+  function makeLine(widget, stats){
+    var metric = metricFor(widget, stats);
+    var accent = chartColor(widget, metric);
+    var blue = '#388BFD';
+    var pct = Math.max(0, Math.min(1, Number(metric.pct || 0)));
+    var x1 = 8, x2 = 110, yBottom = 58, yTop = 8;
+    var curX = x1 + (x2 - x1) * pct;
+    if (pct > 0 && curX < x1 + 10) curX = x1 + 10;
+    if (pct < 1 && curX > x2 - 10) curX = x2 - 10;
+    var yCur = yBottom - (yBottom - yTop) * Math.max(.05, Math.min(.96, pct));
+    if (metric.mode === 'loan') yCur = yBottom - (yBottom - yTop) * Math.max(.05, Math.min(.96, pct));
+    var greenPath = 'M' + x1 + ' ' + yBottom + ' C' + (x1 + 16) + ' ' + (yBottom - 4) + ',' + (curX - 14) + ' ' + (yCur + 8) + ',' + curX.toFixed(1) + ' ' + yCur.toFixed(1);
+    var blueEndY = yTop + 3;
+    var bluePath = 'M' + curX.toFixed(1) + ' ' + yCur.toFixed(1) + ' C' + (curX + 18).toFixed(1) + ' ' + (yCur - 4).toFixed(1) + ',' + (x2 - 20) + ' ' + (blueEndY + 8) + ',' + x2 + ' ' + blueEndY;
+    var fillId = 'v260_fill_' + String(widget && widget.id || 'preview').replace(/[^a-z0-9]/gi,'') + '_' + Math.random().toString(36).slice(2,7);
+    return '<div class="custom-widget-linear-v260"><div class="custom-widget-linear-label-v260">' + esc(metric.label) + '</div><svg viewBox="0 0 118 70" preserveAspectRatio="none" aria-hidden="true">'
+      + '<defs><linearGradient id="' + fillId + '" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="' + attr(hexToRgba(accent,.22)) + '"/><stop offset="1" stop-color="' + attr(hexToRgba(accent,.05)) + '"/></linearGradient></defs>'
+      + '<path d="' + greenPath + ' L' + curX.toFixed(1) + ' 64 L' + x1 + ' 64 Z" fill="url(#' + fillId + ')"></path>'
+      + '<path d="' + bluePath + ' L' + x2 + ' 64 L' + curX.toFixed(1) + ' 64 Z" fill="rgba(56,139,253,.11)"></path>'
+      + '<path d="' + greenPath + '" fill="none" stroke="' + attr(accent) + '" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>'
+      + '<path d="' + bluePath + '" fill="none" stroke="' + blue + '" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".95"></path>'
+      + '<circle cx="' + curX.toFixed(1) + '" cy="' + yCur.toFixed(1) + '" r="4.3" fill="#fff" opacity=".96"></circle>'
+      + '<circle cx="' + curX.toFixed(1) + '" cy="' + yCur.toFixed(1) + '" r="2.2" fill="' + attr(accent) + '"></circle>'
+      + '</svg></div>';
+  }
+  function makeGauge(widget, stats){
+    var metric = metricFor(widget, stats);
+    var pct = Math.max(0, Math.min(100, Number(metric.pct || 0) * 100));
+    var color = chartColor(widget, metric);
+    var label = Math.round(pct) + '%';
+    var caption = metric.mode === 'loan' ? 'repaid' : (metric.mode === 'count' ? 'done' : 'used');
+    var showPct = widget.showGaugePercent !== false;
+    var showLine = widget.showGaugeAmount !== false;
+    return '<div class="custom-widget-gauge-wrap"><div class="mini-half-gauge custom-widget-half-gauge"><svg viewBox="0 0 180 112" aria-hidden="true"><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="rgba(88,166,255,.20)" stroke-width="18" stroke-linecap="round" pathLength="100"></path><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="' + attr(color) + '" stroke-width="18" stroke-linecap="round" pathLength="100" stroke-dasharray="' + pct.toFixed(1) + ' 100"></path></svg><div class="mini-half-gauge-center"><span class="pct">' + (showPct ? esc(label) : '') + '</span><span class="caption">' + esc(caption) + '</span></div></div>' + (showLine ? '<div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top"><strong>' + esc(metric.label) + '</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill" style="width:' + Math.min(100,pct).toFixed(1) + '%;background:' + attr(color) + '"></div></div></div>' : '') + '</div>';
+  }
+  function renderCard(widget, stats){
+    widget = widget || {};
+    stats = stats || statsForWidget(widget);
+    var metric = metricFor(widget, stats);
+    var chart = widget.chart || 'linear';
+    var size = widget.size || 'medium';
+    var accent = normHex(widget.accent, '#00E5A0');
+    var chartHtml = chart === 'gauge' ? makeGauge(widget, stats) : (chart === 'none' ? '' : makeLine(widget, stats));
+    var title = widget.name || (stats.loan && stats.loan.name) || 'Widget';
+    var rangeLabel = stats.range && stats.range.label ? stats.range.label : '';
+    var countLine = '';
+    if (sourceNorm(widget.source || widget.dataInput) === 'auto' && metric.mode === 'amount' && widget.showCount === true) {
+      countLine = '<div class="custom-widget-count"><span>Transactions</span><strong>' + esc(Array.isArray(stats.txns) ? stats.txns.length : 0) + '</strong></div>';
+    }
+    if (metric.mode === 'count') {
+      countLine = '<div class="custom-widget-count"><span>Transactions</span><strong>' + esc(metric.label) + '</strong></div>';
+    }
+    var main = chart === 'none'
+      ? '<div class="custom-widget-main"><div><div class="custom-widget-money">' + esc(metric.usedLabel || metric.label) + '</div><div class="custom-widget-limit">/ ' + esc(metric.limitLabel || '') + '</div></div></div>'
+      : '';
+    var menu = widget.id === 'preview' ? '' : '<div class="custom-widget-menu" onclick="event.stopPropagation()"><button class="custom-widget-icon-btn" type="button" title="Settings" onclick="openCustomWidgetBuilder(\'' + attr(widget.id || '') + '\')">...</button></div>';
+    var dragAttrs = widget.id === 'preview' ? '' : ' draggable="true" onclick="handleCustomWidgetCardClick && handleCustomWidgetCardClick(event,\'' + attr(widget.id || '') + '\')" ondragstart="handleCustomWidgetDragStart && handleCustomWidgetDragStart(event,\'' + attr(widget.id || '') + '\')" ondragover="handleCustomWidgetDragOver && handleCustomWidgetDragOver(event)" ondrop="handleCustomWidgetDrop && handleCustomWidgetDrop(event,\'' + attr(widget.id || '') + '\')" ondragend="handleCustomWidgetDragEnd && handleCustomWidgetDragEnd(event)" onpointerdown="handleCustomWidgetPointerDown && handleCustomWidgetPointerDown(event,\'' + attr(widget.id || '') + '\')" onpointermove="handleCustomWidgetPointerMove && handleCustomWidgetPointerMove(event)" onpointerup="handleCustomWidgetPointerUp && handleCustomWidgetPointerUp(event,\'' + attr(widget.id || '') + '\')" onpointercancel="handleCustomWidgetPointerUp && handleCustomWidgetPointerUp(event,\'' + attr(widget.id || '') + '\')"';
+    return '<article class="custom-widget-card" data-id="' + attr(widget.id || '') + '" data-size="' + attr(size) + '" style="--widget-accent:' + attr(accent) + '"' + dragAttrs + '><div class="custom-widget-content"><div class="custom-widget-head"><div class="custom-widget-title-wrap"><div class="custom-widget-title">' + esc(title) + '</div>' + (rangeLabel ? '<div class="custom-widget-period">' + esc(rangeLabel) + '</div>' : '') + '</div>' + menu + '</div>' + main + countLine + '<div class="custom-widget-chart">' + chartHtml + '</div></div></article>';
+  }
+  function collectValues(){
+    var source = sourceNorm(getValue('cw-source',''));
+    var metric = getValue('cw-gauge-metric','amount') === 'count' ? 'count' : 'amount';
+    var chart = activeChoice('cw-chart-grid','');
+    var size = activeChoice('cw-size-grid','');
+    var name = String(getValue('cw-name','')).trim().slice(0,30);
+    var accent = normHex(getValue('cw-accent-hex','') || getValue('cw-accent',''), '#00E5A0');
+    var values = {
+      name:name,
+      chart:chart,
+      size:size,
+      source:source,
+      dataInput:source,
+      currency:currencyCodeSafe(getValue('cw-currency', (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK'))),
+      account:getValue('cw-account','all') || 'all',
+      paymentKind:getValue('cw-payment-kind','all') || 'all',
+      gaugeMetric:metric,
+      linearMetric:metric,
+      limit:Math.max(0, toNum(getValue('cw-limit','0'))),
+      txTarget:Math.max(0, toNum(getValue('cw-tx-target','0'))),
+      showCount:getValue('cw-show-count','false') === 'true',
+      manualUsed:Math.max(0, toNum(getValue('cw-manual-used','0'))),
+      unit:String(getValue('cw-unit','entries')).trim().slice(0,12) || 'entries',
+      period:getValue('cw-period','month') || 'month',
+      from:getValue('cw-from',''),
+      to:getValue('cw-to',''),
+      accent:accent,
+      showGaugePercent:getValue('cw-show-gauge-percent','true') !== 'false',
+      showGaugeAmount:getValue('cw-show-gauge-amount','true') !== 'false',
+      alerts:getValue('cw-alerts','false') === 'true',
+      threshold:Math.max(1, Math.min(100, toNum(getValue('cw-threshold','80')) || 80))
+    };
+    if (source === 'loan') {
+      var loan = loanById(getValue('cw-loan-id',''));
+      values.loanId = loan ? loan.id : '';
+      values.name = values.name || (loan && loan.name) || '';
+      values.currency = loan ? loan.currency : values.currency;
+      values.account = loan && loan.linkedBankId ? loan.linkedBankId : 'none';
+      values.paymentKind = 'loan';
+      values.gaugeMetric = 'loan';
+      values.linearMetric = 'loan';
+      values.limit = loan ? abs(loan.originalAmount) : 0;
+      values.loanOriginalAmount = loan ? abs(loan.originalAmount) : 0;
+      values.loanCurrentBalance = loan ? -abs(loan.currentBalance) : 0;
+      values.showCount = false;
+      values.txTarget = 0;
+      values.period = 'loan';
+    }
+    if (source === 'manual' && values.limit <= 0) {
+      values.limit = values.txTarget || values.manualUsed || 1;
+    }
+    return values;
+  }
+  function updatePreviewNow(){
+    updateBuilderVisibility();
+    var count = byId('cw-name-count');
+    if (count) count.textContent = String(String(getValue('cw-name','')).length);
+    var preview = byId('custom-widget-preview');
+    if (!preview) return;
+    var values = collectValues();
+    if (!values.chart || !values.size || !values.source) {
+      preview.innerHTML = '<div class="custom-widget-preview-placeholder-v259">Choose chart type, size and data input to preview this widget.</div>';
+      applyPrivacyStable();
+      return;
+    }
+    if (values.source === 'loan' && !values.loanId) {
+      preview.innerHTML = '<div class="custom-widget-preview-placeholder-v259">Choose a loan / mortgage from Manage loans.</div>';
+      applyPrivacyStable();
+      return;
+    }
+    var mock = Object.assign({}, values, { id:'preview', name:values.name || (values.source === 'loan' ? 'Loan preview' : 'Widget preview') });
+    preview.innerHTML = renderCard(mock, statsForWidget(mock));
+    applyPrivacyStable();
+  }
+  function schedulePreview(){
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(updatePreviewNow, 220);
+  }
+  function hydrateBuilder(id){
+    var widget = id ? getWidgets().find(function(item){ return String(item.id) === String(id); }) : null;
+    setGlobalBuilderState(widget ? 'edit' : 'create', widget ? widget.id : null);
+    ensureChooseButton('cw-chart-grid', 'Choose');
+    ensureChooseButton('cw-size-grid', 'Choose');
+    ensureSourceOptions();
+    ensureLoanField();
+    populateAccounts(widget && widget.account || 'all');
+    var title = byId('custom-widget-sheet-title');
+    if (title) title.textContent = widget ? 'Edit widget' : 'Add widget';
+    var del = byId('cw-delete-btn');
+    if (del) del.style.display = widget ? '' : 'none';
+    var hide = byId('cw-hide-btn');
+    if (hide) hide.style.display = widget ? '' : 'none';
+
+    if (widget) {
+      setChoice('chart', widget.chart || 'linear');
+      setChoice('size', widget.size || 'medium');
+      setValue('cw-source', sourceNorm(widget.source || widget.dataInput || 'auto'));
+      setValue('cw-name', widget.name || '');
+      setValue('cw-currency', widget.currency || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK'));
+      setValue('cw-account', widget.account || 'all');
+      setValue('cw-payment-kind', widget.paymentKind === 'loan' ? 'all' : (widget.paymentKind || 'all'));
+      setValue('cw-gauge-metric', (widget.gaugeMetric || widget.linearMetric || 'amount') === 'count' ? 'count' : 'amount');
+      setValue('cw-limit', widget.limit || '');
+      setValue('cw-tx-target', widget.txTarget || '');
+      setValue('cw-show-count', String(widget.showCount === true));
+      setValue('cw-manual-used', widget.manualUsed || '');
+      setValue('cw-unit', widget.unit || 'entries');
+      setValue('cw-period', widget.period && widget.period !== 'loan' ? widget.period : 'month');
+      setValue('cw-from', widget.from || '');
+      setValue('cw-to', widget.to || '');
+      setValue('cw-loan-id', widget.loanId || '');
+      setValue('cw-accent', normHex(widget.accent, '#00E5A0'));
+      setValue('cw-accent-hex', normHex(widget.accent, '#00E5A0'));
+      setValue('cw-show-gauge-percent', String(widget.showGaugePercent !== false));
+      setValue('cw-show-gauge-amount', String(widget.showGaugeAmount !== false));
+      setValue('cw-alerts', String(widget.alerts === true));
+      setValue('cw-threshold', widget.threshold || 80);
+    } else {
+      setChoice('chart', '');
+      setChoice('size', '');
+      ['cw-name','cw-limit','cw-tx-target','cw-manual-used','cw-from','cw-to','cw-loan-id'].forEach(function(field){ setValue(field, ''); });
+      setValue('cw-source', '');
+      setValue('cw-currency', typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK');
+      setValue('cw-account', 'all');
+      setValue('cw-payment-kind', 'all');
+      setValue('cw-gauge-metric', 'amount');
+      setValue('cw-show-count', 'false');
+      setValue('cw-unit', 'entries');
+      setValue('cw-period', 'month');
+      setValue('cw-accent', '#00E5A0');
+      setValue('cw-accent-hex', '#00E5A0');
+      setValue('cw-show-gauge-percent', 'true');
+      setValue('cw-show-gauge-amount', 'true');
+      setValue('cw-alerts', 'false');
+      setValue('cw-threshold', '80');
+    }
+    updatePreviewNow();
+  }
+  function saveFromBuilder(){
+    var values = collectValues();
+    if (!values.name) { alert('Widget name is required.'); return; }
+    if (!values.chart) { alert('Choose chart type.'); return; }
+    if (!values.size) { alert('Choose size.'); return; }
+    if (!values.source) { alert('Choose data input.'); return; }
+    if (values.source === 'loan' && !values.loanId) { alert('Choose Loan / mortgage.'); return; }
+    if (values.source === 'auto' && values.gaugeMetric === 'count' && values.txTarget <= 0) { alert('Transaction target is required.'); return; }
+
+    var widgets = getWidgets();
+    var state = finalBuilderState || {};
+    if ((!state.mode || !state.id) && window.customWidgetBuilderState) state = window.customWidgetBuilderState;
+    var clean = Object.assign({}, values, { source:values.source, dataInput:values.source, updatedAt:new Date().toISOString() });
+    if (state.mode === 'edit' && state.id) {
+      var idx = widgets.findIndex(function(item){ return String(item.id) === String(state.id); });
+      if (idx >= 0) widgets[idx] = Object.assign({}, widgets[idx], clean, { id:state.id });
+      else widgets.push(Object.assign({}, clean, { id:state.id, hidden:false, createdAt:new Date().toISOString() }));
+    } else {
+      widgets.push(Object.assign({}, clean, { id:'cw_' + Date.now().toString(36), hidden:false, createdAt:new Date().toISOString() }));
+    }
+    saveWidgets(widgets);
+    try { if (typeof closeCustomWidgetBuilder === 'function') closeCustomWidgetBuilder(); else if (typeof closeBottomSheets === 'function') closeBottomSheets(); } catch(_) {}
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    try { if (typeof renderOverviewDashboard === 'function') renderOverviewDashboard(); } catch(_) {}
+    applyPrivacyStable();
+  }
+  function restoreOldPrivacyMasks(){
+    document.querySelectorAll('[data-v215-real-value],[data-v258-real-value]').forEach(function(el){
+      var real = el.getAttribute('data-v258-real-value') || el.getAttribute('data-v215-real-value') || '';
+      if (real && /[0-9A-Za-z]/.test(real)) el.textContent = real;
+      el.removeAttribute('data-v258-real-value');
+      el.removeAttribute('data-v215-real-value');
+    });
+  }
+  function isPrivacyHidden(){
+    try { return localStorage.getItem(PRIVACY_KEY) === 'true'; } catch(_) { return false; }
+  }
+  function applyPrivacyStable(){
+    var hidden = isPrivacyHidden();
+    restoreOldPrivacyMasks();
+    document.documentElement.setAttribute('data-values-hidden', hidden ? 'true' : 'false');
+    var icon = '';
+    try { icon = typeof accountBalanceEyeSvg === 'function' ? accountBalanceEyeSvg(hidden) : (hidden ? 'Show' : 'Hide'); } catch(_) { icon = hidden ? 'Show' : 'Hide'; }
+    ['account-balance-privacy-btn','overview-privacy-btn'].forEach(function(id){
+      var btn = byId(id);
+      if (!btn) return;
+      btn.classList.toggle('on', hidden);
+      btn.innerHTML = icon;
+      btn.title = hidden ? 'Show values' : 'Hide values';
+      btn.setAttribute('aria-label', hidden ? 'Show values' : 'Hide values');
+    });
+  }
+  function rerenderPrivacyTargets(){
+    ['renderOverviewDashboard','renderAccountBalanceWidget','renderCustomWidgets','updateTxnPage','renderArchivePage','renderOverviewDetailsPage'].forEach(function(name){
+      try {
+        if (typeof window[name] === 'function') window[name]();
+      } catch(_) {}
+    });
+  }
+  function togglePrivacyStable(){
+    var next = !isPrivacyHidden();
+    try { localStorage.setItem(PRIVACY_KEY, String(next)); } catch(_) {}
+    document.documentElement.setAttribute('data-values-hidden', next ? 'true' : 'false');
+    if (!next) rerenderPrivacyTargets();
+    setTimeout(applyPrivacyStable, 0);
+    setTimeout(applyPrivacyStable, 120);
+  }
+  function wrapRenderForPrivacy(name){
+    var fn = window[name] || (typeof globalThis[name] === 'function' ? globalThis[name] : null);
+    if (typeof fn !== 'function' || fn.__v260PrivacyWrapped) return;
+    var wrapped = function(){
+      var result = fn.apply(this, arguments);
+      setTimeout(applyPrivacyStable, 0);
+      return result;
+    };
+    wrapped.__v260PrivacyWrapped = true;
+    window[name] = wrapped;
+    try { globalThis[name] = wrapped; } catch(_) {}
+  }
+
+  var previousOpenBuilder = window.openCustomWidgetBuilder;
+  window.openCustomWidgetBuilder = function(id){
+    var result;
+    try {
+      result = previousOpenBuilder ? previousOpenBuilder.apply(this, arguments) : undefined;
+    } catch(e) {
+      console.warn('open widget builder fallback', e);
+      try { if (typeof openSheet === 'function') openSheet('custom-widget-sheet'); else byId('custom-widget-sheet')?.classList.add('open'); } catch(_) {}
+    }
+    setGlobalBuilderState(id ? 'edit' : 'create', id || null);
+    [80, 260, 520].forEach(function(delay){ setTimeout(function(){ hydrateBuilder(id || null); }, delay); });
+    return result;
+  };
+  window.setCustomWidgetBuilderChoice = function(kind, value){
+    setChoice(kind, value || '');
+    updateBuilderVisibility();
+    schedulePreview();
+  };
+  window.updateCustomWidgetChoiceUi = function(){
+    setChoice('chart', activeChoice('cw-chart-grid',''));
+    setChoice('size', activeChoice('cw-size-grid',''));
+    updateBuilderVisibility();
+  };
+  window.handleCustomWidgetSourceChange = function(){
+    updateBuilderVisibility();
+    if (sourceNorm(getValue('cw-source','')) === 'loan') {
+      try { if (typeof syncLoansNow === 'function') syncLoansNow(false); } catch(_) {}
+      setTimeout(function(){ ensureLoanField(); updatePreviewNow(); }, 160);
+    }
+    setTimeout(updatePreviewNow, 260);
+    schedulePreview();
+  };
+  window.syncCustomWidgetMetricChoices = function(){ updateBuilderVisibility(); setTimeout(updatePreviewNow, 260); schedulePreview(); };
+  window.handleCustomWidgetPeriodChange = function(){ updateBuilderVisibility(); setTimeout(updatePreviewNow, 260); schedulePreview(); };
+  window.collectCustomWidgetBuilderValues = collectValues;
+  window.updateCustomWidgetBuilderPreview = schedulePreview;
+  window.getCustomWidgetStats = statsForWidget;
+  window.getCustomWidgetUsedLimit = metricFor;
+  window.createCustomWidgetLineChart = function(widget, stats){ return makeLine(widget, stats || statsForWidget(widget)); };
+  window.createCustomWidgetGauge = function(widget, stats){ return makeGauge(widget, stats || statsForWidget(widget)); };
+  window.renderCustomWidgetCard = renderCard;
+  window.saveCustomWidgetFromBuilder = saveFromBuilder;
+  window.toggleAccountBalancePrivacy = togglePrivacyStable;
+  window.v215ApplyGlobalPrivacyMask = applyPrivacyStable;
+  window.v257ApplyPrivacyMask = applyPrivacyStable;
+  window.v258ApplyPrivacyMask = applyPrivacyStable;
+  window.v260ApplyPrivacyMask = applyPrivacyStable;
+  try {
+    openCustomWidgetBuilder = window.openCustomWidgetBuilder;
+    setCustomWidgetBuilderChoice = window.setCustomWidgetBuilderChoice;
+    updateCustomWidgetChoiceUi = window.updateCustomWidgetChoiceUi;
+    handleCustomWidgetSourceChange = window.handleCustomWidgetSourceChange;
+    syncCustomWidgetMetricChoices = window.syncCustomWidgetMetricChoices;
+    handleCustomWidgetPeriodChange = window.handleCustomWidgetPeriodChange;
+    collectCustomWidgetBuilderValues = window.collectCustomWidgetBuilderValues;
+    updateCustomWidgetBuilderPreview = window.updateCustomWidgetBuilderPreview;
+    getCustomWidgetStats = window.getCustomWidgetStats;
+    getCustomWidgetUsedLimit = window.getCustomWidgetUsedLimit;
+    createCustomWidgetLineChart = window.createCustomWidgetLineChart;
+    createCustomWidgetGauge = window.createCustomWidgetGauge;
+    renderCustomWidgetCard = window.renderCustomWidgetCard;
+    saveCustomWidgetFromBuilder = window.saveCustomWidgetFromBuilder;
+    toggleAccountBalancePrivacy = window.toggleAccountBalancePrivacy;
+  } catch(_) {}
+
+  document.addEventListener('change', function(event){
+    if (event.target && /^cw-/.test(event.target.id || '')) {
+      updateBuilderVisibility();
+      setTimeout(updatePreviewNow, 260);
+      schedulePreview();
+    }
+  }, false);
+  document.addEventListener('input', function(event){
+    if (event.target && /^cw-/.test(event.target.id || '')) schedulePreview();
+  }, false);
+
+  function boot(){
+    ensureChooseButton('cw-chart-grid', 'Choose');
+    ensureChooseButton('cw-size-grid', 'Choose');
+    ensureSourceOptions();
+    ensureLoanField();
+    updateBuilderVisibility();
+    ['renderAll','renderOverviewDashboard','renderAccountBalanceWidget','renderCustomWidgets','updateTxnPage','renderArchivePage','renderOverviewDetailsPage'].forEach(wrapRenderForPrivacy);
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    applyPrivacyStable();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once:true });
+  else setTimeout(boot, 0);
 })();
 </script>
 
