@@ -819,7 +819,7 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=191">
+<link rel="manifest" href="./manifest.json?v=270">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -8425,7 +8425,7 @@ html[data-theme="light"] body::before {
     </div>
 
     <div class="custom-widget-row-2">
-      <div><label>Period</label><select class="config-input" id="cw-period" onchange="handleCustomWidgetPeriodChange()"><option value="month">This month</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="custom">Custom range</option></select></div>
+      <div><label>Period</label><select class="config-input" id="cw-period" onchange="handleCustomWidgetPeriodChange()"><option value="month">This month</option><option value="year">This year</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="custom">Custom range</option></select></div>
       <div><label>Account / card</label><select class="config-input" id="cw-account" onchange="updateCustomWidgetBuilderPreview()"></select></div>
     </div>
     <div class="custom-widget-row-2" id="cw-custom-range" style="display:none;">
@@ -18861,6 +18861,11 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       return { from, to, label: 'Last 30 days' };
     }
+    if (period === 'year') {
+      const from = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+      const to = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      return { from, to, label: 'This year' };
+    }
     if (period === 'custom') {
       const from = parseDateInputForFilter(widget?.from || '', false) || new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
       const to = parseDateInputForFilter(widget?.to || '', true) || now;
@@ -23354,7 +23359,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       periodUnit: byId('new-loan-period-unit') && byId('new-loan-period-unit').value || 'months',
       fixationUntil: byId('new-loan-fixation') && byId('new-loan-fixation').value || '',
       interestRate: byId('new-loan-rate') && byId('new-loan-rate').value || '',
-      status:'active', source:'manual'
+      status: byId('new-loan-status') && byId('new-loan-status').value || 'active',
+      source:'manual'
     });
     await saveLoanEndpoint(loan);
     ['new-loan-name','new-loan-original','new-loan-current','new-loan-payment','new-loan-vs','new-loan-text','new-loan-period','new-loan-fixation','new-loan-rate'].forEach(function(id){ var el=byId(id); if (el) el.value=''; });
@@ -25106,6 +25112,26 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   .custom-widget-card[data-size="large"] .custom-widget-linear-v260 svg {
     height: 96px;
   }
+  .custom-widget-linear-axis-v272 {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: -6px;
+    padding: 0 3px;
+    color: rgba(220,235,255,.58);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .custom-widget-card[data-size="small"] .custom-widget-linear-axis-v272 {
+    font-size: 8px;
+    margin-top: -7px;
+  }
+  html[data-theme="light"] .custom-widget-linear-axis-v272 {
+    color: #64748b;
+  }
   .custom-widget-count strong {
     color: inherit;
     font-weight: 900;
@@ -25707,6 +25733,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var period = widget.period || 'month';
     if (period === '7d') return { from:new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6), to:now, label:'Last 7 days' };
     if (period === '30d') return { from:new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29), to:now, label:'Last 30 days' };
+    if (period === 'year') return { from:new Date(now.getFullYear(), 0, 1), to:new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999), label:'This year' };
     if (period === 'custom') {
       var from = widget.from ? new Date(widget.from + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), 1);
       var to = widget.to ? new Date(widget.to + 'T23:59:59') : now;
@@ -26154,6 +26181,35 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (metric && metric.mode === 'loan') return Math.max(0, (second - first) / second);
     return first / second;
   }
+  function daysInMonth(date){
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  }
+  function shortDateLabel(date){
+    if (!date || isNaN(date.getTime())) return '';
+    return String(date.getDate()) + '.' + String(date.getMonth() + 1) + '.';
+  }
+  function linearAxisLabels(widget, stats){
+    widget = widget || {};
+    stats = stats || {};
+    if (sourceNorm(widget.source || widget.dataInput || stats.source || '') === 'loan') return '';
+    var range = stats.range || currentPeriodRange(widget);
+    var from = range && range.from;
+    var to = range && range.to;
+    if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return '';
+    var period = String(widget.period || 'month');
+    var spanDays = Math.max(1, Math.round((to.getTime() - from.getTime()) / 86400000) + 1);
+    var labels;
+    if (period === 'year' || spanDays >= 330) {
+      labels = ['Jan', 'Apr', 'Jul', 'Oct', 'Dec'];
+    } else if (period === 'month' || spanDays <= 31) {
+      var last = daysInMonth(from);
+      labels = ['1', String(Math.max(1, Math.round(last / 2))), String(last)];
+    } else {
+      var mid = new Date(from.getTime() + (to.getTime() - from.getTime()) / 2);
+      labels = [shortDateLabel(from), shortDateLabel(mid), shortDateLabel(to)];
+    }
+    return '<div class="custom-widget-linear-axis-v272">' + labels.map(function(label){ return '<span>' + esc(label) + '</span>'; }).join('') + '</div>';
+  }
   function makeLine(widget, stats){
     var metric = metricFor(widget, stats);
     var accent = chartColor(widget, metric);
@@ -26161,8 +26217,6 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var rawUsed = Math.max(0, Number(metric.used || 0));
     var rawLimit = Math.max(0, Number(metric.limit || 0));
     var ratio = rawLimit > 0 ? rawUsed / rawLimit : Number(metric.pct || 0);
-    var labelRatio = ratioFromMetricLabel(metric);
-    if (Number.isFinite(labelRatio)) ratio = labelRatio;
     if (metric.mode === 'loan') {
       var originalForRatio = Math.max(1, Number(metric.original || metric.limit || 1));
       var currentForRatio = Math.max(0, Math.min(originalForRatio, Number(metric.current != null ? metric.current : (originalForRatio - rawUsed))));
@@ -26212,7 +26266,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       + '<path d="' + attr(projectionPath) + '" fill="none" stroke="' + blue + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round" opacity=".94"></path>'
       + '<circle cx="' + curX + '" cy="' + currentY.toFixed(2) + '" r=".95" fill="#fff" opacity=".95"></circle>'
       + '<circle cx="' + curX + '" cy="' + currentY.toFixed(2) + '" r=".48" fill="' + attr(accent) + '"></circle>'
-      + '</svg></div>';
+      + '</svg>' + linearAxisLabels(widget, stats) + '</div>';
   }
   function makeGauge(widget, stats){
     var metric = metricFor(widget, stats);
@@ -27502,6 +27556,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     periodUnit: ['period unit','unit','period type','jednotka'],
     periodMonths: ['period months','months','pocet mesiacov','pocet mesicu'],
     fixationUntil: ['fixation until','fixation','fixed until','fixace do','fixacia do','koniec fixacie','konec fixace'],
+    alert: ['alert','alert days','fixation alert days','fixation alert','days before fixation','upozornenie','upozornenie dni','alert dni'],
     variableSymbol: ['vs','variable symbol','variabilny symbol','variabilni symbol'],
     monthlyPayment: ['amount of repayment','repayment amount','monthly payment','payment','installment','splatka','splátka','mesacna splatka','mesicni splatka'],
     matchText: ['match text','matching text','repayment text','parser match text','transaction match text','match','text'],
@@ -27561,9 +27616,17 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     return sign + body + ' ' + currency(code || 'CZK');
   }
   function dateText(value){
+    if (value instanceof Date && !isNaN(value.getTime())) {
+      return value.getFullYear() + '-' + String(value.getMonth() + 1).padStart(2,'0') + '-' + String(value.getDate()).padStart(2,'0');
+    }
     var raw = clean(value);
-    var m = raw.match(/^Date\((\d{4}),(\d{1,2}),(\d{1,2})/);
+    if (!raw) return '';
+    var m = raw.match(/^Date\((\d{4}),\s*(\d{1,2}),\s*(\d{1,2})/);
     if (m) return m[1] + '-' + String(Number(m[2]) + 1).padStart(2,'0') + '-' + String(Number(m[3])).padStart(2,'0');
+    var iso = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (iso) return iso[1] + '-' + String(iso[2]).padStart(2,'0') + '-' + String(iso[3]).padStart(2,'0');
+    var local = raw.match(/^(\d{1,2})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{4})/);
+    if (local) return local[3] + '-' + String(local[2]).padStart(2,'0') + '-' + String(local[1]).padStart(2,'0');
     return raw;
   }
   function safeId(id){ return String(id || '').replace(/[^a-zA-Z0-9_-]/g, '_'); }
@@ -27645,6 +27708,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var variableSymbol = clean(pick(row, 'variableSymbol') || row.variableSymbol || row.vs);
     var matchText = clean(pick(row, 'matchText') || row.matchText || row.repaymentText || '');
     var monthlyPayment = abs(pick(row, 'monthlyPayment') || row.amountOfRepayment || row.repaymentAmount || row.monthlyPayment || row.payment);
+    var alertDays = Math.max(0, Math.round(abs(pick(row, 'alert') || row.alert || row.alertDays || row.fixationAlertDays || 0)));
     var status = clean(pick(row, 'status') || row.status || (row.active === false ? 'closed' : 'active')) || 'active';
     if (String(status).toLowerCase() === 'false') status = 'closed';
     if (!id) id = slug([name, variableSymbol, account, index || ''].filter(Boolean).join(' '));
@@ -27664,7 +27728,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       periodValue:period.value,
       periodUnit:period.unit,
       periodMonths:period.months,
-      fixationUntil:dateText(pick(row, 'fixationUntil') || row.fixationUntil || row.fixation || ''),
+      fixationUntil:dateText(pick(row, 'fixationUntil') || row.fixationUntil || row.fixation || row.fixationDate || ''),
       variableSymbol:variableSymbol,
       vs:variableSymbol,
       account:account,
@@ -27673,6 +27737,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       amountOfRepayment:monthlyPayment,
       repaymentAmount:monthlyPayment,
       monthlyPayment:monthlyPayment,
+      alert:alertDays,
+      alertDays:alertDays,
+      fixationAlertDays:alertDays,
       matchText:matchText,
       repaymentText:matchText,
       status:status,
@@ -27761,6 +27828,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       item('Interest rate', rate),
       item('Period', period),
       item('Fixation until', loan.fixationUntil),
+      item('Fixation alert days', loan.alertDays || loan.alert || loan.fixationAlertDays),
       item('VS', loan.variableSymbol),
       item('Account', loan.account),
       item('Amount of repayment', loan.monthlyPayment ? money(loan.monthlyPayment, loan.currency) : ''),
@@ -28241,6 +28309,1111 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   document.addEventListener('pointercancel', function(event){
     if (touchDragging || longPressTimer) window.handleCustomWidgetPointerUp(event);
   }, { passive:false });
+})();
+</script>
+<style id="v270-loans-sheets-light-balance-css">
+  #loan-manager-sheet .loan-period-row-v270 {
+    grid-template-columns: minmax(188px, 1.35fr) minmax(144px, 1fr);
+    align-items: end;
+  }
+  #loan-manager-sheet .loan-period-combo-v254,
+  #loan-manager-sheet .loan-period-combo-v265,
+  #loan-manager-sheet .loan-period-combo-v270 {
+    display: grid !important;
+    grid-template-columns: minmax(76px, 1fr) minmax(94px, 108px);
+    gap: 8px;
+    align-items: center;
+  }
+  #loan-manager-sheet .loan-period-combo-v254 .config-input,
+  #loan-manager-sheet .loan-period-combo-v265 .config-input,
+  #loan-manager-sheet .loan-period-combo-v270 .config-input {
+    min-width: 0;
+  }
+  #loan-manager-sheet .loan-period-combo-v254 input.config-input,
+  #loan-manager-sheet .loan-period-combo-v265 input.config-input,
+  #loan-manager-sheet .loan-period-combo-v270 input.config-input {
+    padding-left: 13px;
+    padding-right: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  #loan-manager-sheet .loan-period-combo-v254 select.config-input,
+  #loan-manager-sheet .loan-period-combo-v265 select.config-input,
+  #loan-manager-sheet .loan-period-combo-v270 select.config-input {
+    min-width: 94px;
+    padding-left: 8px;
+    padding-right: 18px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  #loan-manager-sheet .loan-alert-date-hint-v270 {
+    margin: 6px 0 2px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    line-height: 1.35;
+  }
+  #loan-manager-sheet .loan-alert-date-hint-v270.ready {
+    color: var(--accent);
+  }
+  html[data-theme="light"] #account-balance-widget .account-balance-row:not(.account-balance-liability-row) .account-balance-value,
+  html[data-theme="light"] #account-balance-widget .account-balance-total-row .account-balance-value,
+  html[data-theme="light"] #account-balance-widget .account-balance-row:not(.account-balance-liability-row) .account-balance-name,
+  html[data-theme="light"] #account-balance-widget .account-balance-total-row .account-balance-name {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+  }
+  html[data-theme="light"] #account-balance-widget .account-balance-liability-row .account-balance-value,
+  html[data-theme="light"] #account-balance-widget .account-balance-liability-row .account-balance-name {
+    color: #E5005F !important;
+    -webkit-text-fill-color: #E5005F !important;
+  }
+  html[data-theme="light"] #account-balance-widget .budget-status-note,
+  html[data-theme="light"] #account-balance-widget .account-balance-equivalent,
+  html[data-theme="light"] #account-balance-widget .credit-balance-hint {
+    color: #64748b !important;
+    -webkit-text-fill-color: #64748b !important;
+  }
+  @media (max-width: 380px) {
+    #loan-manager-sheet .loan-period-row-v270 {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+<script id="v270-loans-sheets-payload-js">
+(function(){
+  'use strict';
+
+  var LOANS_KEY = 'bank_tracker_loans_v1';
+  var MAX_PERIOD_MONTHS = 1200;
+
+  function byId(id){ return document.getElementById(id); }
+  function clean(value){ return String(value == null ? '' : value).trim(); }
+  function first(){
+    for (var i = 0; i < arguments.length; i++) {
+      var value = arguments[i];
+      if (value !== undefined && value !== null && clean(value) !== '') return value;
+    }
+    return '';
+  }
+  function numberFrom(value){
+    if (typeof value === 'number' && isFinite(value)) return value;
+    try {
+      if (typeof parseSheetNumber === 'function') {
+        var parsed = Number(parseSheetNumber(value, value));
+        if (isFinite(parsed)) return parsed;
+      }
+    } catch(_) {}
+    var text = clean(value).replace(/\u00a0/g, ' ').replace(/\s+/g, '').replace(/,/g, '.').replace(/[^0-9.\-]/g, '');
+    var fallback = Number(text);
+    return isFinite(fallback) ? fallback : 0;
+  }
+  function abs(value){ return Math.abs(numberFrom(value)); }
+  function moneyNumber(value){
+    var n = abs(value);
+    return isFinite(n) ? Math.round(n * 100) / 100 : 0;
+  }
+  function rateNumber(value){
+    var n = numberFrom(value);
+    if (!isFinite(n) || n < 0) return 0;
+    return Math.round(n * 100) / 100;
+  }
+  function digits(value){
+    var text = clean(value).replace(/\u00a0/g, ' ');
+    text = text.replace(/([,.])\s*0+\s*$/, '');
+    return text.replace(/\D/g, '');
+  }
+  function safeMonths(value){
+    var n = numberFrom(value);
+    if (!isFinite(n) || n <= 0) return '';
+    n = Math.round(n);
+    return n > 0 && n <= MAX_PERIOD_MONTHS ? n : '';
+  }
+  function periodMonthsFrom(loan){
+    loan = loan || {};
+    var raw = clean(first(loan.periodValue, loan.period, loan.loanPeriod));
+    var unit = clean(loan.periodUnit || '').toLowerCase();
+    if (/year|rok|let/.test(raw)) unit = 'years';
+    if (/month|mesiac|mesic/.test(raw)) unit = 'months';
+    raw = raw.replace(/\b(years?|months?|rokov?|roky?|let|mesiacov?|mesicu?|mesicov?)\b/ig, '').trim();
+    if (unit !== 'years') unit = 'months';
+    var valueMonths = safeMonths(raw);
+    if (valueMonths) {
+      var calculated = unit === 'years' ? valueMonths * 12 : valueMonths;
+      return calculated > 0 && calculated <= MAX_PERIOD_MONTHS ? calculated : '';
+    }
+    return safeMonths(first(loan.periodMonths, loan.loanPeriodMonths));
+  }
+  function normalizeDate(value){
+    var text = clean(value);
+    if (!text) return '';
+    var iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (iso) return iso[1] + '-' + String(iso[2]).padStart(2, '0') + '-' + String(iso[3]).padStart(2, '0');
+    var local = text.match(/^(\d{1,2})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{4})/);
+    if (local) return local[3] + '-' + String(local[2]).padStart(2, '0') + '-' + String(local[1]).padStart(2, '0');
+    return text;
+  }
+  function currencyCode(value){
+    try { if (typeof normalizeCurrencyForStorage === 'function') return normalizeCurrencyForStorage(value || 'CZK'); } catch(_) {}
+    var text = clean(value || 'CZK').toUpperCase();
+    if (text === 'KC' || text === 'K\u010C') return 'CZK';
+    return text || 'CZK';
+  }
+  function sanitizeLoanPayload(payload){
+    payload = payload || {};
+    var source = Object.assign({}, payload.loan || {}, payload);
+    var id = clean(first(source.id, source.loanId));
+    var periodMonths = periodMonthsFrom(source);
+    var current = numberFrom(first(source.currentBalance, source.outstandingBalance, source.actualBalance, source.balance));
+    if (!current) current = 0;
+    else current = -Math.abs(current);
+    var activeRaw = first(source.active, source.status);
+    var isClosed = String(activeRaw).toLowerCase() === 'closed' || String(activeRaw).toLowerCase() === 'false';
+    return {
+      id: id,
+      loanId: id,
+      name: clean(first(source.name, source.loanName)) || id || 'Loan',
+      loanName: clean(first(source.name, source.loanName)) || id || 'Loan',
+      type: clean(first(source.type, source.loanType)) || 'loan',
+      currency: currencyCode(source.currency || 'CZK'),
+      originalAmount: moneyNumber(first(source.originalAmount, source.originalValue, source.original, source.principal)),
+      originalValue: moneyNumber(first(source.originalAmount, source.originalValue, source.original, source.principal)),
+      currentBalance: current,
+      outstandingBalance: current,
+      linkedBankId: clean(first(source.linkedBankId, source.bankId, source.bankID)),
+      bankId: clean(first(source.linkedBankId, source.bankId, source.bankID)),
+      account: clean(source.account),
+      variableSymbol: digits(first(source.variableSymbol, source.vs, source.specificSymbol)),
+      vs: digits(first(source.variableSymbol, source.vs, source.specificSymbol)),
+      amountOfRepayment: moneyNumber(first(source.amountOfRepayment, source.repaymentAmount, source.monthlyPayment, source.payment)),
+      repaymentAmount: moneyNumber(first(source.amountOfRepayment, source.repaymentAmount, source.monthlyPayment, source.payment)),
+      monthlyPayment: moneyNumber(first(source.amountOfRepayment, source.repaymentAmount, source.monthlyPayment, source.payment)),
+      periodMonths: periodMonths,
+      periodValue: periodMonths ? String(periodMonths) : '',
+      periodUnit: 'months',
+      fixationUntil: normalizeDate(first(source.fixationUntil, source.fixationDate, source.fixation, source['Fixation until'], source['Fixation date'])),
+      interestRate: rateNumber(first(source.interestRate, source.rate)),
+      matchText: clean(first(source.matchText, source.repaymentText, source.keyword, source.keywords)),
+      repaymentText: clean(first(source.matchText, source.repaymentText, source.keyword, source.keywords)),
+      alert: Math.max(0, Math.round(numberFrom(first(source.alert, source.alertDays, source.fixationAlertDays, source['Alert'], source['Alert days'], source['Fixation alert days'])))),
+      alertDays: Math.max(0, Math.round(numberFrom(first(source.alert, source.alertDays, source.fixationAlertDays, source['Alert'], source['Alert days'], source['Fixation alert days'])))),
+      fixationAlertDays: Math.max(0, Math.round(numberFrom(first(source.alert, source.alertDays, source.fixationAlertDays, source['Alert'], source['Alert days'], source['Fixation alert days'])))),
+      status: isClosed ? 'closed' : 'active',
+      active: isClosed ? 'false' : 'true'
+    };
+  }
+  function stripTargetFields(flat){
+    delete flat.targetAmount;
+    delete flat.targetBalance;
+    delete flat.target;
+    return flat;
+  }
+  function sanitizeStoredLoans(){
+    try {
+      var rows = JSON.parse(localStorage.getItem(LOANS_KEY) || '[]');
+      if (!Array.isArray(rows)) return;
+      var changed = false;
+      var next = rows.map(function(row){
+        var period = periodMonthsFrom(row);
+        var vs = digits(first(row.variableSymbol, row.vs));
+        var rate = rateNumber(first(row.interestRate, row.rate));
+        var fixation = normalizeDate(first(row.fixationUntil, row.fixationDate, row.fixation, row['Fixation until'], row['Fixation date']));
+        var alert = Math.max(0, Math.round(numberFrom(first(row.alert, row.alertDays, row.fixationAlertDays, row['Alert'], row['Alert days'], row['Fixation alert days']))));
+        var out = Object.assign({}, row);
+        if (period && String(row.periodMonths || '') !== String(period)) { out.periodMonths = period; changed = true; }
+        if ((!period || period === '') && Number(row.periodMonths || 0) > MAX_PERIOD_MONTHS) { out.periodMonths = ''; out.periodValue = ''; changed = true; }
+        if (vs && String(row.variableSymbol || '') !== vs) { out.variableSymbol = vs; out.vs = vs; changed = true; }
+        if (rate && String(row.interestRate || '') !== String(rate)) { out.interestRate = rate; changed = true; }
+        if (fixation && String(row.fixationUntil || '') !== fixation) { out.fixationUntil = fixation; changed = true; }
+        if (alert && (String(row.alertDays || '') !== String(alert) || String(row.fixationAlertDays || '') !== String(alert))) {
+          out.alert = alert; out.alertDays = alert; out.fixationAlertDays = alert; changed = true;
+        }
+        return out;
+      });
+      if (changed) localStorage.setItem(LOANS_KEY, JSON.stringify(next));
+    } catch(_) {}
+  }
+  function decorateLoanInputs(root){
+    root = root || document;
+    root.querySelectorAll('#loan-manager-sheet input[id^="loan-vs-"], #loan-manager-sheet #new-loan-vs').forEach(function(input){
+      input.type = 'text';
+      input.inputMode = 'numeric';
+      input.pattern = '[0-9]*';
+      var value = digits(input.value);
+      if (value && input.value !== value) input.value = value;
+    });
+    root.querySelectorAll('#loan-manager-sheet input[id^="loan-payment-"], #loan-manager-sheet #new-loan-payment, #loan-manager-sheet input[id^="loan-rate-"], #loan-manager-sheet #new-loan-rate').forEach(function(input){
+      input.type = 'text';
+      input.inputMode = 'decimal';
+      input.autocomplete = 'off';
+    });
+    root.querySelectorAll('#loan-manager-sheet input[id^="loan-fixation-"], #loan-manager-sheet #new-loan-fixation').forEach(function(input){
+      input.type = 'date';
+      input.value = normalizeDate(input.value);
+    });
+    root.querySelectorAll('#loan-manager-sheet .loan-period-combo-v254, #loan-manager-sheet .loan-period-combo-v265').forEach(function(combo){
+      combo.classList.add('loan-period-combo-v270');
+      var row = combo.closest && combo.closest('.loan-form-grid-v262, .sheet-grid-2');
+      if (row) row.classList.add('loan-period-row-v270');
+      var input = combo.querySelector('input');
+      if (input && Number(input.value || 0) > MAX_PERIOD_MONTHS) input.value = '';
+    });
+  }
+  function updateAlertHint(input){
+    if (!input) return;
+    var id = input.id || '';
+    var fixation = id === 'new-loan-alert' ? byId('new-loan-fixation') : byId('loan-fixation-' + id.replace(/^loan-alert-/, ''));
+    if (!fixation) return;
+    var anchor = input.closest && input.closest('.save-field-wrap, .loan-save-field-wrap-v266, .loan-save-field-wrap-v271') || input;
+    if (anchor !== input && anchor.querySelectorAll) {
+      anchor.querySelectorAll('.loan-alert-date-hint-v270').forEach(function(stale){ stale.remove(); });
+    }
+    var hint = anchor.nextElementSibling;
+    if (!hint || !hint.classList || !hint.classList.contains('loan-alert-date-hint-v270')) {
+      hint = document.createElement('div');
+      hint.className = 'loan-alert-date-hint-v270';
+      anchor.parentNode.insertBefore(hint, anchor.nextSibling);
+    }
+    var days = Math.max(0, Math.round(numberFrom(input.value)));
+    var dateText = normalizeDate(fixation.value);
+    var parts = dateText.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    hint.classList.remove('ready');
+    if (!days || !parts) { hint.textContent = 'Alert date: -'; return; }
+    var d = new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]));
+    d.setDate(d.getDate() - days);
+    hint.textContent = 'Alert date: ' + d.toLocaleDateString('sk-SK', { day:'2-digit', month:'2-digit', year:'numeric' });
+    hint.classList.add('ready');
+  }
+  function decorateAlerts(root){
+    root = root || document;
+    root.querySelectorAll('#loan-manager-sheet #new-loan-alert, #loan-manager-sheet input[id^="loan-alert-"]').forEach(updateAlertHint);
+  }
+  function decorate(root){
+    sanitizeStoredLoans();
+    decorateLoanInputs(root || document);
+    decorateAlerts(root || document);
+  }
+
+  var previousFlatten = null;
+  try { previousFlatten = flattenEndpointPayload; } catch(_) {}
+  if (typeof previousFlatten === 'function' && !previousFlatten.__v270LoanSanitized) {
+    var wrappedFlatten = function(action, payload){
+      var sanitized = null;
+      if (String(action || '') === 'saveLoan') {
+        sanitized = sanitizeLoanPayload(payload || {});
+        payload = Object.assign({}, payload || {}, sanitized, { loan: Object.assign({}, (payload && payload.loan) || {}, sanitized) });
+      }
+      var flat = previousFlatten.call(this, action, payload || {});
+      if (sanitized) {
+        Object.keys(sanitized).forEach(function(key){
+          if (sanitized[key] !== undefined && sanitized[key] !== null) flat[key] = String(sanitized[key]);
+        });
+        stripTargetFields(flat);
+      }
+      return flat;
+    };
+    wrappedFlatten.__v270LoanSanitized = true;
+    window.flattenEndpointPayload = wrappedFlatten;
+    try { flattenEndpointPayload = wrappedFlatten; } catch(_) {}
+  }
+
+  var oldGetLoans = window.getBankTrackerLoans;
+  if (typeof oldGetLoans === 'function' && !oldGetLoans.__v270LoanSanitized) {
+    var wrappedGetLoans = function(){
+      var rows = oldGetLoans.apply(this, arguments);
+      return Array.isArray(rows) ? rows.map(function(row){ return Object.assign({}, row, sanitizeLoanPayload({ loan: row })); }) : rows;
+    };
+    wrappedGetLoans.__v270LoanSanitized = true;
+    window.getBankTrackerLoans = wrappedGetLoans;
+    try { getBankTrackerLoans = wrappedGetLoans; } catch(_) {}
+  }
+
+  var previousRender = window.renderLoanManager;
+  if (typeof previousRender === 'function' && !previousRender.__v270LoanDecorated) {
+    var wrappedRender = function(){
+      var result = previousRender.apply(this, arguments);
+      decorate(document);
+      setTimeout(function(){ decorate(document); }, 0);
+      return result;
+    };
+    wrappedRender.__v270LoanDecorated = true;
+    window.renderLoanManager = wrappedRender;
+    try { renderLoanManager = wrappedRender; } catch(_) {}
+  }
+
+  document.addEventListener('input', function(event){
+    var target = event.target;
+    if (!target || !target.closest || !target.closest('#loan-manager-sheet')) return;
+    if (/^(new-loan-vs|loan-vs-)/.test(target.id)) {
+      var value = digits(target.value);
+      if (target.value !== value) target.value = value;
+    }
+    if (/^(new-loan-alert|loan-alert-)/.test(target.id)) updateAlertHint(target);
+    if (/^(new-loan-fixation|loan-fixation-)/.test(target.id)) {
+      var alert = target.id === 'new-loan-fixation' ? byId('new-loan-alert') : byId('loan-alert-' + target.id.replace(/^loan-fixation-/, ''));
+      updateAlertHint(alert);
+    }
+  }, true);
+  document.addEventListener('change', function(event){
+    var target = event.target;
+    if (target && target.closest && target.closest('#loan-manager-sheet')) decorate(document);
+  }, true);
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ decorate(document); }, { once:true });
+  else setTimeout(function(){ decorate(document); }, 0);
+})();
+</script>
+<style id="v271-loan-manager-autosave-fe-css">
+  #loan-manager-sheet .loan-sheet-details-v261,
+  #loan-manager-sheet .loan-sheet-details-v262 {
+    display: none !important;
+  }
+  #loan-manager-sheet .managed-bank-form > .config-save,
+  #loan-manager-sheet .managed-bank-form button.config-save[onclick*="updateLoan"],
+  #loan-manager-sheet .managed-bank-form button.config-save[onclick*="LoanV"] {
+    display: none !important;
+  }
+  #loan-manager-sheet .loan-period-combo-v271 {
+    display: grid !important;
+    grid-template-columns: minmax(54px, 66px) minmax(96px, 108px);
+    gap: 8px;
+    align-items: center;
+  }
+  #loan-manager-sheet .loan-period-combo-v271 .save-field-wrap {
+    min-width: 0;
+    margin: 0;
+  }
+  #loan-manager-sheet .loan-period-combo-v271 .config-input {
+    width: 100%;
+    min-width: 0;
+  }
+  #loan-manager-sheet .loan-period-row-v271 {
+    grid-template-columns: minmax(164px, .72fr) minmax(190px, 1.28fr);
+    align-items: end;
+  }
+  #loan-manager-sheet .loan-period-row-v271 input[type="date"].config-input {
+    min-width: 184px;
+    padding-left: 12px;
+    padding-right: 10px;
+    font-size: 13px;
+  }
+  #loan-manager-sheet .loan-status-fixation-row-v272,
+  #loan-manager-sheet .loan-period-alert-row-v272 {
+    display: grid;
+    gap: 10px;
+    align-items: end;
+    margin: 0;
+  }
+  #loan-manager-sheet .loan-status-fixation-row-v272 {
+    grid-template-columns: minmax(116px, .78fr) minmax(198px, 1.22fr);
+  }
+  #loan-manager-sheet .loan-period-alert-row-v272 {
+    grid-template-columns: 1fr;
+  }
+  #loan-manager-sheet .loan-field-cell-v272 {
+    min-width: 0;
+  }
+  #loan-manager-sheet .loan-field-cell-v272 > label {
+    display: block;
+  }
+  #loan-manager-sheet .loan-field-period-v272 .loan-period-combo-v271 {
+    width: 100%;
+    grid-template-columns: minmax(104px, 1fr) minmax(118px, 1fr);
+    gap: 8px;
+  }
+  #loan-manager-sheet .loan-field-period-v272 .loan-period-combo-v271 .save-field-wrap {
+    width: 100%;
+    max-width: none;
+  }
+  #loan-manager-sheet .loan-field-period-v272 .loan-period-combo-v271 input.config-input {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    font-variant-numeric: tabular-nums;
+  }
+  #loan-manager-sheet .loan-field-alert-v272 .save-field-wrap {
+    position: relative;
+    display: block;
+    width: 100%;
+    max-width: none;
+  }
+  #loan-manager-sheet .loan-field-alert-v272 input.config-input {
+    width: 100% !important;
+    max-width: none;
+    font-variant-numeric: tabular-nums;
+  }
+  #loan-manager-sheet .loan-field-alert-v272 .field-save-check {
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%) scale(.86);
+  }
+  #loan-manager-sheet .loan-field-fixation-v272 input[type="date"].config-input {
+    min-width: 0;
+    width: 100%;
+    font-size: 13px;
+  }
+  #loan-manager-sheet .loan-field-alert-v272 .config-input,
+  #loan-manager-sheet .loan-field-status-v272 .config-input {
+    width: 100%;
+  }
+  body[data-active-sheet="loan-manager-sheet"] #large-status-toast.show {
+    display: none !important;
+  }
+  #loan-manager-sheet .loan-autosave-note-v271 {
+    margin-top: 8px;
+  }
+  @media (max-width: 390px) {
+    #loan-manager-sheet .loan-period-row-v271,
+    #loan-manager-sheet .loan-status-fixation-row-v272,
+    #loan-manager-sheet .loan-period-alert-row-v272 {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+<script id="v271-loan-manager-autosave-fe-js">
+(function(){
+  'use strict';
+
+  var LOANS_KEY = 'bank_tracker_loans_v1';
+  var timers = {};
+  var saveSeq = {};
+  var lastSaveSignature = {};
+  var MAX_PERIOD_MONTHS = 1200;
+  var FIELD_SELECTORS = [
+    ['name', 'loan-name-'],
+    ['type', 'loan-type-'],
+    ['currency', 'loan-currency-'],
+    ['bank', 'loan-bank-'],
+    ['account', 'loan-account-v262-'],
+    ['original', 'loan-original-'],
+    ['current', 'loan-current-'],
+    ['payment', 'loan-payment-'],
+    ['rate', 'loan-rate-'],
+    ['period', 'loan-period-'],
+    ['period-unit', 'loan-period-unit-'],
+    ['fixation', 'loan-fixation-'],
+    ['vs', 'loan-vs-'],
+    ['text', 'loan-text-'],
+    ['status', 'loan-status-'],
+    ['alert', 'loan-alert-']
+  ];
+
+  function byId(id){ return document.getElementById(id); }
+  function clean(value){ return String(value == null ? '' : value).trim(); }
+  function safeId(id){ return String(id || '').replace(/[^a-zA-Z0-9_-]/g, '_'); }
+  function esc(value){
+    try { return escapeHtml(String(value == null ? '' : value)); } catch(_) {}
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+  function attr(value){
+    try { return escapeAttr(String(value == null ? '' : value)); } catch(_) { return esc(value); }
+  }
+  function numberFrom(value){
+    if (typeof value === 'number' && isFinite(value)) return value;
+    try {
+      if (typeof parseSheetNumber === 'function') {
+        var parsed = Number(parseSheetNumber(value, value));
+        if (isFinite(parsed)) return parsed;
+      }
+    } catch(_) {}
+    var text = clean(value).replace(/\u00a0/g, ' ').replace(/\s+/g, '').replace(/,/g, '.').replace(/[^0-9.\-]/g, '');
+    var fallback = Number(text);
+    return isFinite(fallback) ? fallback : 0;
+  }
+  function abs(value){ return Math.abs(numberFrom(value)); }
+  function digits(value){
+    var text = clean(value).replace(/\u00a0/g, ' ');
+    text = text.replace(/([,.])\s*0+\s*$/, '');
+    return text.replace(/\D/g, '');
+  }
+  function clearLoanCenterToast(){
+    var toast = byId('large-status-toast');
+    if (!toast) return;
+    var loanSheetOpen = byId('loan-manager-sheet') && byId('loan-manager-sheet').classList.contains('open');
+    var activeSheet = document.body && document.body.dataset && document.body.dataset.activeSheet;
+    if (!loanSheetOpen && activeSheet && activeSheet !== 'loan-manager-sheet') return;
+    toast.classList.remove('show', 'loading', 'top-loading', 'error');
+    try {
+      if (window.__bankTrackerLargeToastTimer) window.clearTimeout(window.__bankTrackerLargeToastTimer);
+      window.__bankTrackerLargeToastTimer = null;
+    } catch(_) {}
+  }
+  function normalizeDate(value){
+    var text = clean(value);
+    if (!text) return '';
+    var iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (iso) return iso[1] + '-' + String(iso[2]).padStart(2, '0') + '-' + String(iso[3]).padStart(2, '0');
+    var local = text.match(/^(\d{1,2})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{4})/);
+    if (local) return local[3] + '-' + String(local[2]).padStart(2, '0') + '-' + String(local[1]).padStart(2, '0');
+    return text;
+  }
+  function readLoans(){
+    try {
+      var rows = JSON.parse(localStorage.getItem(LOANS_KEY) || '[]');
+      return Array.isArray(rows) ? rows : [];
+    } catch(_) { return []; }
+  }
+  function writeLoans(rows){
+    try { localStorage.setItem(LOANS_KEY, JSON.stringify(Array.isArray(rows) ? rows : [])); } catch(_) {}
+  }
+  function getLoan(id){
+    return readLoans().find(function(loan){ return String(loan && (loan.id || loan.loanId)) === String(id); }) || {};
+  }
+  function upsertLoan(row){
+    var rows = readLoans();
+    var id = String(row && (row.id || row.loanId) || '');
+    var index = rows.findIndex(function(loan){ return String(loan && (loan.id || loan.loanId)) === id; });
+    if (index >= 0) rows[index] = Object.assign({}, rows[index], row, { updatedAt: new Date().toISOString() });
+    else rows.push(Object.assign({}, row, { updatedAt: new Date().toISOString() }));
+    writeLoans(rows);
+    return index >= 0 ? rows[index] : rows[rows.length - 1];
+  }
+  function field(id){
+    var el = byId(id);
+    return el ? el.value : '';
+  }
+  function periodMonths(value, unit){
+    var amount = abs(value);
+    if (!amount) return '';
+    var months = Math.round(String(unit || '').toLowerCase() === 'years' ? amount * 12 : amount);
+    return months > 0 && months <= MAX_PERIOD_MONTHS ? months : '';
+  }
+  function loanFromOpenForm(loanId){
+    var safe = safeId(loanId);
+    var existing = getLoan(loanId);
+    var unit = field('loan-period-unit-' + safe) || existing.periodUnit || 'months';
+    var periodValue = field('loan-period-' + safe) || existing.periodValue || existing.periodMonths || '';
+    var months = periodMonths(periodValue, unit);
+    var rate = field('loan-rate-' + safe);
+    var vs = digits(field('loan-vs-' + safe) || existing.variableSymbol || existing.vs || '');
+    return Object.assign({}, existing, {
+      id: loanId,
+      loanId: loanId,
+      name: field('loan-name-' + safe) || existing.name || 'Loan',
+      loanName: field('loan-name-' + safe) || existing.name || 'Loan',
+      type: field('loan-type-' + safe) || existing.type || 'loan',
+      currency: field('loan-currency-' + safe) || existing.currency || 'CZK',
+      linkedBankId: field('loan-bank-' + safe) || existing.linkedBankId || existing.bankId || '',
+      bankId: field('loan-bank-' + safe) || existing.linkedBankId || existing.bankId || '',
+      account: field('loan-account-v262-' + safe) || existing.account || '',
+      originalAmount: abs(field('loan-original-' + safe) || existing.originalAmount || existing.originalValue || 0),
+      originalValue: abs(field('loan-original-' + safe) || existing.originalAmount || existing.originalValue || 0),
+      currentBalance: -abs(field('loan-current-' + safe) || existing.currentBalance || existing.outstandingBalance || 0),
+      outstandingBalance: -abs(field('loan-current-' + safe) || existing.currentBalance || existing.outstandingBalance || 0),
+      amountOfRepayment: abs(field('loan-payment-' + safe) || existing.amountOfRepayment || existing.monthlyPayment || 0),
+      repaymentAmount: abs(field('loan-payment-' + safe) || existing.amountOfRepayment || existing.monthlyPayment || 0),
+      monthlyPayment: abs(field('loan-payment-' + safe) || existing.amountOfRepayment || existing.monthlyPayment || 0),
+      interestRate: Math.round(abs(rate || existing.interestRate || 0) * 100) / 100,
+      periodValue: periodValue,
+      periodUnit: unit === 'years' ? 'years' : 'months',
+      periodMonths: months,
+      fixationUntil: normalizeDate(field('loan-fixation-' + safe) || existing.fixationUntil || ''),
+      variableSymbol: vs,
+      vs: vs,
+      matchText: field('loan-text-' + safe) || existing.matchText || existing.repaymentText || '',
+      repaymentText: field('loan-text-' + safe) || existing.matchText || existing.repaymentText || '',
+      alert: Math.max(0, Math.round(abs(field('loan-alert-' + safe) || existing.alert || existing.alertDays || existing.fixationAlertDays || 0))),
+      alertDays: Math.max(0, Math.round(abs(field('loan-alert-' + safe) || existing.alert || existing.alertDays || existing.fixationAlertDays || 0))),
+      fixationAlertDays: Math.max(0, Math.round(abs(field('loan-alert-' + safe) || existing.alert || existing.alertDays || existing.fixationAlertDays || 0))),
+      status: field('loan-status-' + safe) || existing.status || 'active',
+      active: (field('loan-status-' + safe) || existing.status || 'active') === 'closed' ? false : true,
+      source: existing.source || 'manual'
+    });
+  }
+  function checkId(safe, fieldKey){
+    return 'save-check-loan-' + fieldKey + '-' + safe;
+  }
+  function setLoanSaveCheck(safe, fieldKey, state){
+    var el = byId(checkId(safe, fieldKey));
+    if (!el) return;
+    el.classList.remove('show', 'saving', 'error');
+    if (state === 'saving') {
+      el.textContent = '...';
+      el.classList.add('saving');
+      return;
+    }
+    if (state === 'error') {
+      el.textContent = '!';
+      el.classList.add('error');
+    } else {
+      el.textContent = '\u2713';
+      el.classList.add('show');
+    }
+    window.setTimeout(function(){ el.classList.remove('show', 'saving', 'error'); }, 1800);
+  }
+  function scheduleLoanAutoSave(loanId, fieldKey, immediate){
+    var safe = safeId(loanId);
+    var timerKey = safe + ':' + fieldKey;
+    window.clearTimeout(timers[timerKey]);
+    var nextSeq = (saveSeq[timerKey] || 0) + 1;
+    saveSeq[timerKey] = nextSeq;
+    setLoanSaveCheck(safe, fieldKey, 'saving');
+    timers[timerKey] = window.setTimeout(function(){
+      autoSaveLoanField(loanId, fieldKey, nextSeq);
+    }, immediate ? 80 : 700);
+  }
+  async function autoSaveLoanField(loanId, fieldKey, seq){
+    var safe = safeId(loanId);
+    var timerKey = safe + ':' + fieldKey;
+    var draft = loanFromOpenForm(loanId);
+    var signature = '';
+    try { signature = JSON.stringify(draft); } catch(_) { signature = String(Date.now()); }
+    if (lastSaveSignature[timerKey] === signature) {
+      if (seq && seq !== saveSeq[timerKey]) return true;
+      setLoanSaveCheck(safe, fieldKey, 'saved');
+      return true;
+    }
+    lastSaveSignature[timerKey] = signature;
+    var loan = upsertLoan(draft);
+    var ok = false;
+    clearLoanCenterToast();
+    try {
+      if (typeof postToBankTrackerEndpoint === 'function') {
+        ok = await postToBankTrackerEndpoint('saveLoan', Object.assign({ loan: loan }, loan));
+      }
+    } catch(e) {
+      ok = false;
+      console.warn('loan autosave failed', e);
+    }
+    if (seq && seq !== saveSeq[timerKey]) return ok;
+    setLoanSaveCheck(safe, fieldKey, 'saved');
+    clearLoanCenterToast();
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    try { if (typeof renderAccountBalanceWidget === 'function') renderAccountBalanceWidget(); } catch(_) {}
+    return ok;
+  }
+  function wrapField(el, safe, fieldKey){
+    if (!el || el.dataset.loanAutosaveV271 === '1') return;
+    var parent = el.parentNode;
+    if (!parent) return;
+    var wrap = el.closest && el.closest('.save-field-wrap');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'save-field-wrap loan-save-field-wrap-v271';
+      parent.insertBefore(wrap, el);
+      wrap.appendChild(el);
+    }
+    if (!byId(checkId(safe, fieldKey))) {
+      var check = document.createElement('span');
+      check.className = 'field-save-check';
+      check.id = checkId(safe, fieldKey);
+      check.textContent = '\u2713';
+      wrap.appendChild(check);
+    }
+    el.dataset.loanAutosaveV271 = '1';
+    var loanId = el.closest('.loan-manager-card') && el.closest('.loan-manager-card').getAttribute('data-loan-id');
+    if (!loanId) {
+      var row = el.closest('.loan-manager-card[id^="loan-row-"]');
+      loanId = row && row.getAttribute('data-loan-id');
+    }
+    if (!loanId) return;
+    var handler = function(event){ scheduleLoanAutoSave(loanId, fieldKey, event.type === 'change'); };
+    el.addEventListener('input', handler);
+    el.addEventListener('change', handler);
+  }
+  function ensurePeriodCombo(input, loan){
+    if (!input) return;
+    var safe = input.id.replace(/^loan-period-/, '').replace(/^new-loan-period$/, 'new');
+    var selectId = input.id === 'new-loan-period' ? 'new-loan-period-unit' : 'loan-period-unit-' + safe;
+    var select = byId(selectId);
+    var combo = input.closest && input.closest('.loan-period-combo-v254, .loan-period-combo-v265, .loan-period-combo-v270, .loan-period-combo-v271');
+    if (!combo) {
+      combo = document.createElement('div');
+      combo.className = 'loan-period-combo-v271';
+      input.parentNode.insertBefore(combo, input);
+      combo.appendChild(input);
+    }
+    combo.classList.add('loan-period-combo-v271');
+    if (!select) {
+      select = document.createElement('select');
+      select.className = 'config-input';
+      select.id = selectId;
+      select.innerHTML = '<option value="months">Months</option><option value="years">Years</option>';
+      combo.appendChild(select);
+    }
+    var unit = (loan && loan.periodUnit) || select.value || 'months';
+    if (unit !== 'years') unit = 'months';
+    select.value = unit;
+    var row = combo.closest && combo.closest('.sheet-grid-2, .loan-form-grid-v262');
+    if (row) row.classList.add('loan-period-row-v271');
+    input.type = 'number';
+    input.min = '0';
+    input.step = '1';
+    if (numberFrom(input.value) > MAX_PERIOD_MONTHS) input.value = '';
+  }
+  function ensureAlertField(form, safe, loan){
+    if (!form || byId('loan-alert-' + safe)) return;
+    var saveButton = form.querySelector('button.config-save');
+    var label = document.createElement('label');
+    label.textContent = 'Fixation alert days';
+    var input = document.createElement('input');
+    input.className = 'config-input';
+    input.id = 'loan-alert-' + safe;
+    input.type = 'number';
+    input.min = '0';
+    input.step = '1';
+    input.value = clean((loan && (loan.alert || loan.alertDays || loan.fixationAlertDays)) || '');
+    if (saveButton && saveButton.parentNode) {
+      saveButton.parentNode.insertBefore(label, saveButton);
+      saveButton.parentNode.insertBefore(input, saveButton);
+    } else {
+      form.appendChild(label);
+      form.appendChild(input);
+    }
+  }
+  function ensureNewAlertField(){
+    var form = byId('loan-manager-sheet') && byId('loan-manager-sheet').querySelector('.loan-manager-add-card');
+    if (!form || byId('new-loan-alert')) return;
+    var button = form.querySelector('button.config-save');
+    var label = document.createElement('label');
+    label.textContent = 'Fixation alert days';
+    var input = document.createElement('input');
+    input.className = 'config-input';
+    input.id = 'new-loan-alert';
+    input.type = 'number';
+    input.min = '0';
+    input.step = '1';
+    input.placeholder = '30';
+    if (button && button.parentNode) {
+      button.parentNode.insertBefore(label, button);
+      button.parentNode.insertBefore(input, button);
+    } else {
+      form.appendChild(label);
+      form.appendChild(input);
+    }
+  }
+  function ensureNewStatusField(){
+    var form = byId('loan-manager-sheet') && byId('loan-manager-sheet').querySelector('.loan-manager-add-card');
+    if (!form || byId('new-loan-status')) return;
+    var input = byId('new-loan-fixation');
+    var anchorRow = input && input.closest('.sheet-grid-2, .loan-form-grid-v262');
+    var label = document.createElement('label');
+    label.textContent = 'Status';
+    var select = document.createElement('select');
+    select.className = 'config-input';
+    select.id = 'new-loan-status';
+    select.innerHTML = '<option value="active" selected>Active</option><option value="paused">Paused</option>';
+    if (anchorRow && anchorRow.parentNode) {
+      anchorRow.parentNode.insertBefore(label, anchorRow);
+      anchorRow.parentNode.insertBefore(select, anchorRow);
+    } else {
+      form.appendChild(label);
+      form.appendChild(select);
+    }
+  }
+  function ensureLabelBefore(control, text){
+    if (!control) return null;
+    var label = control.previousElementSibling;
+    if (label && label.tagName === 'LABEL') return label;
+    label = document.createElement('label');
+    label.textContent = text || '';
+    control.parentNode.insertBefore(label, control);
+    return label;
+  }
+  function controlForField(inputId){
+    var input = byId(inputId);
+    if (!input) return null;
+    return input.closest('.loan-period-combo-v271, .loan-period-combo-v270, .loan-period-combo-v265, .loan-period-combo-v254')
+      || input.closest('.save-field-wrap')
+      || input;
+  }
+  function fieldCell(inputId, className, labelText){
+    var control = controlForField(inputId);
+    if (!control) return null;
+    var label = ensureLabelBefore(control, labelText);
+    var cell = document.createElement('div');
+    cell.className = 'loan-field-cell-v272 ' + className;
+    if (label) cell.appendChild(label);
+    cell.appendChild(control);
+    return cell;
+  }
+  function removeEmptyLoanRows(form){
+    if (!form) return;
+    form.querySelectorAll('.sheet-grid-2, .loan-form-grid-v262').forEach(function(row){
+      if (row.classList.contains('loan-status-fixation-row-v272') || row.classList.contains('loan-period-alert-row-v272')) return;
+      if (!row.querySelector('input, select, textarea, button')) row.remove();
+      else row.querySelectorAll(':scope > div').forEach(function(cell){
+        if (!cell.querySelector('input, select, textarea, button') && !cell.textContent.trim()) cell.remove();
+      });
+    });
+  }
+  function captureLoanManagerDraft(){
+    var sheet = byId('loan-manager-sheet');
+    if (!sheet) return null;
+    var active = document.activeElement && sheet.contains(document.activeElement) ? document.activeElement : null;
+    var openIds = [];
+    sheet.querySelectorAll('.loan-manager-card.open[data-loan-id]').forEach(function(card){
+      var id = card.getAttribute('data-loan-id');
+      if (id) openIds.push(id);
+    });
+    if (!active && !openIds.length) return null;
+    var draft = {
+      activeId: active && active.id || '',
+      selectionStart: null,
+      selectionEnd: null,
+      scrollTop: sheet.scrollTop || 0,
+      values: {},
+      openIds: openIds
+    };
+    if (active && typeof active.selectionStart === 'number') {
+      try {
+        draft.selectionStart = active.selectionStart;
+        draft.selectionEnd = active.selectionEnd;
+      } catch(_) {}
+    }
+    sheet.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
+      draft.values[el.id] = {
+        value: el.value,
+        checked: !!el.checked,
+        selectedIndex: typeof el.selectedIndex === 'number' ? el.selectedIndex : null
+      };
+    });
+    return draft;
+  }
+  function restoreLoanManagerDraft(draft){
+    if (!draft) return;
+    var sheet = byId('loan-manager-sheet');
+    if (!sheet) return;
+    Object.keys(draft.values || {}).forEach(function(id){
+      var el = byId(id);
+      var saved = draft.values[id];
+      if (!el || !saved) return;
+      if (el.type === 'checkbox' || el.type === 'radio') el.checked = !!saved.checked;
+      if ('value' in saved && el.value !== saved.value) el.value = saved.value;
+      if (el.tagName === 'SELECT' && saved.selectedIndex != null && saved.selectedIndex >= 0 && saved.selectedIndex < el.options.length) {
+        el.selectedIndex = saved.selectedIndex;
+      }
+    });
+    (draft.openIds || []).forEach(function(id){
+      var row = byId('loan-row-' + safeId(id));
+      if (!row) {
+        try { row = sheet.querySelector('.loan-manager-card[data-loan-id="' + String(id).replace(/"/g, '\\"') + '"]'); } catch(_) {}
+      }
+      if (row) row.classList.add('open');
+    });
+    sheet.scrollTop = draft.scrollTop || sheet.scrollTop || 0;
+    if (draft.activeId) {
+      window.setTimeout(function(){
+        var active = byId(draft.activeId);
+        if (!active || !sheet.contains(active)) return;
+        try { active.focus({ preventScroll: true }); } catch(_) { try { active.focus(); } catch(__) {} }
+        if (typeof active.setSelectionRange === 'function' && draft.selectionStart != null) {
+          try { active.setSelectionRange(draft.selectionStart, draft.selectionEnd == null ? draft.selectionStart : draft.selectionEnd); } catch(_) {}
+        }
+        sheet.scrollTop = draft.scrollTop || sheet.scrollTop || 0;
+      }, 0);
+    }
+  }
+  function insertRowsAfterPayment(form, safe, rowOne, periodRow, alertRow){
+    var rate = byId('loan-rate-' + safe);
+    var anchor = rate && rate.closest('.sheet-grid-2, .loan-form-grid-v262');
+    if (!anchor || !form.contains(anchor)) {
+      anchor = byId('loan-current-' + safe) && byId('loan-current-' + safe).closest('.sheet-grid-2, .loan-form-grid-v262');
+    }
+    if (anchor && anchor.parentNode) {
+      anchor.insertAdjacentElement('afterend', alertRow);
+      anchor.insertAdjacentElement('afterend', rowOne);
+      anchor.insertAdjacentElement('afterend', periodRow);
+      return;
+    }
+    form.insertBefore(alertRow, form.firstChild);
+    form.insertBefore(rowOne, alertRow);
+    form.insertBefore(periodRow, rowOne);
+  }
+  function layoutLoanEditRows(form, safe){
+    if (!form) return;
+    var existingOne = form.querySelector('.loan-status-fixation-row-v272');
+    var existingPeriod = form.querySelector('.loan-period-row-single-v272');
+    var existingAlert = form.querySelector('.loan-alert-row-single-v272');
+    if (existingOne || existingPeriod || existingAlert) return;
+
+    var statusCell = fieldCell('loan-status-' + safe, 'loan-field-status-v272', 'Status');
+    var fixationCell = fieldCell('loan-fixation-' + safe, 'loan-field-fixation-v272', 'Fixation until');
+    var periodCell = fieldCell('loan-period-' + safe, 'loan-field-period-v272', 'Period');
+    var alertCell = fieldCell('loan-alert-' + safe, 'loan-field-alert-v272', 'Fixation alert days');
+
+    var rowOne = document.createElement('div');
+    rowOne.className = 'sheet-grid-2 loan-status-fixation-row-v272';
+    if (statusCell) rowOne.appendChild(statusCell);
+    if (fixationCell) rowOne.appendChild(fixationCell);
+
+    var periodRow = document.createElement('div');
+    periodRow.className = 'loan-period-alert-row-v272 loan-period-row-single-v272';
+    if (periodCell) periodRow.appendChild(periodCell);
+
+    var alertRow = document.createElement('div');
+    alertRow.className = 'loan-period-alert-row-v272 loan-alert-row-single-v272';
+    if (alertCell) alertRow.appendChild(alertCell);
+
+    if (rowOne.children.length || periodRow.children.length || alertRow.children.length) insertRowsAfterPayment(form, safe, rowOne, periodRow, alertRow);
+    removeEmptyLoanRows(form);
+  }
+  function layoutNewLoanRows(){
+    var form = byId('loan-manager-sheet') && byId('loan-manager-sheet').querySelector('.loan-manager-add-card');
+    if (!form || form.querySelector('.loan-new-status-fixation-row-v272')) return;
+    ensureNewStatusField();
+    ensureNewAlertField();
+    ensurePeriodCombo(byId('new-loan-period'), { periodUnit: byId('new-loan-period-unit') && byId('new-loan-period-unit').value || 'months' });
+
+    var statusCell = fieldCell('new-loan-status', 'loan-field-status-v272', 'Status');
+    var fixationCell = fieldCell('new-loan-fixation', 'loan-field-fixation-v272', 'Fixation until');
+    var periodCell = fieldCell('new-loan-period', 'loan-field-period-v272', 'Period');
+    var alertCell = fieldCell('new-loan-alert', 'loan-field-alert-v272', 'Fixation alert days');
+
+    var rowOne = document.createElement('div');
+    rowOne.className = 'sheet-grid-2 loan-status-fixation-row-v272 loan-new-status-fixation-row-v272';
+    if (statusCell) rowOne.appendChild(statusCell);
+    if (fixationCell) rowOne.appendChild(fixationCell);
+
+    var periodRow = document.createElement('div');
+    periodRow.className = 'loan-period-alert-row-v272 loan-period-row-single-v272 loan-new-period-row-v272';
+    if (periodCell) periodRow.appendChild(periodCell);
+
+    var alertRow = document.createElement('div');
+    alertRow.className = 'loan-period-alert-row-v272 loan-alert-row-single-v272 loan-new-alert-row-v272';
+    if (alertCell) alertRow.appendChild(alertCell);
+
+    var rate = byId('new-loan-rate');
+    var anchor = rate && rate.closest('.sheet-grid-2, .loan-form-grid-v262');
+    if (anchor && anchor.parentNode) {
+      anchor.insertAdjacentElement('afterend', alertRow);
+      anchor.insertAdjacentElement('afterend', rowOne);
+      anchor.insertAdjacentElement('afterend', periodRow);
+    } else {
+      form.appendChild(periodRow);
+      form.appendChild(rowOne);
+      form.appendChild(alertRow);
+    }
+    removeEmptyLoanRows(form);
+  }
+  function decorateNewLoanForm(){
+    var input = byId('new-loan-period');
+    if (input) ensurePeriodCombo(input, { periodUnit: byId('new-loan-period-unit') && byId('new-loan-period-unit').value || 'months' });
+    ensureNewAlertField();
+    ensureNewStatusField();
+    layoutNewLoanRows();
+    var button = byId('loan-manager-sheet') && byId('loan-manager-sheet').querySelector('.loan-manager-add-card button.config-save');
+    if (button) button.textContent = 'Add loan';
+  }
+  function decorateLoanManager(){
+    var sheet = byId('loan-manager-sheet');
+    if (!sheet) return;
+    sheet.querySelectorAll('.loan-sheet-details-v261, .loan-sheet-details-v262').forEach(function(el){ el.remove(); });
+    decorateNewLoanForm();
+    sheet.querySelectorAll('.loan-manager-card[data-loan-id]').forEach(function(row){
+      var loanId = row.getAttribute('data-loan-id');
+      var safe = safeId(loanId);
+      var loan = getLoan(loanId);
+      row.querySelectorAll('.icon-action-btn.edit').forEach(function(btn){
+        btn.textContent = '\u270E';
+        btn.title = 'Edit';
+        btn.setAttribute('aria-label', 'Edit');
+      });
+      var form = byId('loan-edit-' + safe) || row.querySelector('.managed-bank-form');
+      ensurePeriodCombo(byId('loan-period-' + safe), loan);
+      ensureAlertField(form, safe, loan);
+      row.querySelectorAll('button.config-save').forEach(function(button){ button.remove(); });
+      FIELD_SELECTORS.forEach(function(pair){
+        var fieldKey = pair[0];
+        var prefix = pair[1];
+        var el = byId(prefix + safe);
+        if (!el) return;
+        if (/^loan-vs-/.test(el.id)) {
+          el.type = 'text';
+          el.inputMode = 'numeric';
+          el.pattern = '[0-9]*';
+          var value = digits(el.value);
+          if (value && el.value !== value) el.value = value;
+        }
+        if (/^loan-rate-|^loan-payment-/.test(el.id)) {
+          el.type = 'text';
+          el.inputMode = 'decimal';
+        }
+        if (/^loan-fixation-/.test(el.id)) {
+          el.type = 'date';
+          el.value = normalizeDate(el.value);
+        }
+        wrapField(el, safe, fieldKey);
+      });
+      layoutLoanEditRows(form, safe);
+      if (form && !form.querySelector('.loan-autosave-note-v271')) {
+        var note = document.createElement('div');
+        note.className = 'budget-status-note loan-autosave-note-v271';
+        note.textContent = 'Changes are saved automatically.';
+        form.appendChild(note);
+      }
+    });
+  }
+
+  var previousRender = window.renderLoanManager;
+  if (typeof previousRender === 'function' && !previousRender.__v271LoanAutosaveFeWrapped) {
+    var wrappedRender = function(){
+      var draft = captureLoanManagerDraft();
+      var result = previousRender.apply(this, arguments);
+      restoreLoanManagerDraft(draft);
+      decorateLoanManager();
+      setTimeout(function(){
+        restoreLoanManagerDraft(draft);
+        decorateLoanManager();
+      }, 0);
+      return result;
+    };
+    wrappedRender.__v271LoanAutosaveFeWrapped = true;
+    window.renderLoanManager = wrappedRender;
+    try { renderLoanManager = wrappedRender; } catch(_) {}
+  }
+  var previousOpen = window.openLoanManagerSheet;
+  if (typeof previousOpen === 'function' && !previousOpen.__v271LoanAutosaveFeWrapped) {
+    var wrappedOpen = function(){
+      var result = previousOpen.apply(this, arguments);
+      clearLoanCenterToast();
+      decorateLoanManager();
+      setTimeout(decorateLoanManager, 80);
+      setTimeout(decorateLoanManager, 500);
+      setTimeout(clearLoanCenterToast, 0);
+      return result;
+    };
+    wrappedOpen.__v271LoanAutosaveFeWrapped = true;
+    window.openLoanManagerSheet = wrappedOpen;
+    try { openLoanManagerSheet = wrappedOpen; } catch(_) {}
+  }
+  function wrapLoanActionWithoutCenterToast(name){
+    var original = window[name];
+    if (typeof original !== 'function' || original.__v271LoanSilentToast) return;
+    var wrapped = function(){
+      clearLoanCenterToast();
+      try {
+        var result = original.apply(this, arguments);
+        if (result && typeof result.finally === 'function') {
+          return result.finally(function(){ clearLoanCenterToast(); });
+        }
+        clearLoanCenterToast();
+        return result;
+      } catch(e) {
+        clearLoanCenterToast();
+        throw e;
+      }
+    };
+    wrapped.__v271LoanSilentToast = true;
+    window[name] = wrapped;
+    try {
+      if (name === 'saveNewLoanFromManager') saveNewLoanFromManager = wrapped;
+      if (name === 'updateLoanFromManager') updateLoanFromManager = wrapped;
+      if (name === 'updateLoanV262') updateLoanV262 = wrapped;
+      if (name === 'updateLoanV254') updateLoanV254 = wrapped;
+    } catch(_) {}
+  }
+  ['saveNewLoanFromManager', 'updateLoanFromManager', 'updateLoanV262', 'updateLoanV254'].forEach(wrapLoanActionWithoutCenterToast);
+  document.addEventListener('input', function(event){
+    var target = event.target;
+    if (!target || !target.closest || !target.closest('#loan-manager-sheet')) return;
+    if (/^(new-loan-vs|loan-vs-)/.test(target.id)) {
+      var value = digits(target.value);
+      if (target.value !== value) target.value = value;
+    }
+  }, true);
+  function boot(){ decorateLoanManager(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once:true });
+  else setTimeout(boot, 0);
 })();
 </script>
 </body>
