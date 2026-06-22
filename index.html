@@ -17600,6 +17600,25 @@ function buildEndpointMutationUrl(action, payload = {}, callbackName = '') {
   return `${url}?${params.toString()}`;
 }
 
+function isLikelyIOSWebKit() {
+  const ua = navigator.userAgent || '';
+  return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function getEndpointFailureDetail(action, result) {
+  const data = result && result.data || {};
+  const message = String(data.message || '');
+  const jsonpProblem = data.status === 'timeout' || /JSONP|callback|script load/i.test(message);
+  if (!jsonpProblem) return getEndpointStatusMessage(action, 'error');
+  const iosHint = isLikelyIOSWebKit()
+    ? ' iPhone/Safari: otvor Apps Script /exec URL priamo v Safari. Ak vidis Google login alebo HTML, Web App deployment musi byt nastaveny na Anyone.'
+    : ' Apps Script nevratil JSONP callback. Skontroluj Web App deployment /exec a access Anyone.';
+  const lengthHint = data.urlLength && data.urlLength > 1800
+    ? ' URL payload je dlhy (' + data.urlLength + ' znakov).'
+    : '';
+  return getEndpointStatusMessage(action, 'error') + iosHint + lengthHint;
+}
+
 function getEndpointStatusMessage(action, state) {
   const labels = {
     saveToken: {
@@ -17650,6 +17669,7 @@ function jsonpEndpointRequest(action, payload = {}, timeoutMs = 15000) {
   return new Promise((resolve) => {
     const callbackName = `__btCloudCb_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const script = document.createElement('script');
+    const endpointUrl = buildEndpointMutationUrl(action, payload, callbackName);
     let done = false;
     const cleanup = () => {
       try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
@@ -17665,10 +17685,12 @@ function jsonpEndpointRequest(action, payload = {}, timeoutMs = 15000) {
       const ok = !!data && (data.status === 'success' || data.status === 'ok');
       finish(ok, data);
     };
-    script.onerror = () => finish(false, { status: 'error', message: 'JSONP script load failed' });
-    script.src = buildEndpointMutationUrl(action, payload, callbackName);
+    script.async = true;
+    script.referrerPolicy = 'no-referrer';
+    script.onerror = () => finish(false, { status: 'error', message: 'JSONP script load failed', action, urlLength: endpointUrl.length, ios: isLikelyIOSWebKit() });
+    script.src = endpointUrl;
     document.head.appendChild(script);
-    window.setTimeout(() => finish(false, { status: 'timeout', message: 'Google Sheets endpoint timeout' }), timeoutMs);
+    window.setTimeout(() => finish(false, { status: 'timeout', message: 'Google Sheets endpoint timeout or callback blocked', action, urlLength: endpointUrl.length, ios: isLikelyIOSWebKit() }), timeoutMs);
   });
 }
 
@@ -17693,7 +17715,7 @@ async function postToBankTrackerEndpoint(action, payload = {}) {
   // updates balance, monthly stats, notification logs and FCM token cleanup.
   // A short timeout made the app show "transaction failed" even when Apps Script
   // had already written the row to Google Sheets successfully.
-  const mutationTimeoutMs = ['saveTransaction', 'deleteTransaction', 'saveBankSettings'].includes(action) ? 60000 : 15000;
+  const mutationTimeoutMs = isLikelyIOSWebKit() || ['saveTransaction', 'deleteTransaction', 'saveBankSettings'].includes(action) ? 60000 : 15000;
   const result = await jsonpEndpointRequest(action, payload, mutationTimeoutMs);
   if (result.ok) {
     if (status) status.textContent = getEndpointStatusMessage(action, 'success');
@@ -17702,7 +17724,7 @@ async function postToBankTrackerEndpoint(action, payload = {}) {
   }
 
   console.error('Google Sheets save failed:', action, JSON.stringify(result.data || {}));
-  if (status) status.textContent = getEndpointStatusMessage(action, 'error');
+  if (status) status.textContent = getEndpointFailureDetail(action, result);
   return false;
 }
 
@@ -25113,11 +25135,11 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     height: 96px;
   }
   .custom-widget-linear-axis-v272 {
-    display: flex;
-    justify-content: space-between;
-    gap: 6px;
+    display: block;
+    height: 12px;
     margin-top: -6px;
-    padding: 0 3px;
+    padding: 0;
+    position: relative;
     color: rgba(220,235,255,.58);
     font-family: var(--font-mono);
     font-size: 9px;
@@ -25125,12 +25147,36 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     line-height: 1;
     pointer-events: none;
   }
+  .custom-widget-linear-axis-v272 span {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  .custom-widget-linear-axis-v272 span[data-edge="start"] {
+    transform: translateX(0);
+  }
+  .custom-widget-linear-axis-v272 span[data-edge="end"] {
+    transform: translateX(-100%);
+  }
   .custom-widget-card[data-size="small"] .custom-widget-linear-axis-v272 {
     font-size: 8px;
     margin-top: -7px;
   }
+  .custom-widget-card[data-size="medium"] .custom-widget-linear-axis-v272 {
+    font-size: 8px;
+  }
+  .custom-widget-axis-line-v274 {
+    fill: none;
+    stroke: rgba(220,235,255,.28);
+    stroke-width: .45;
+    vector-effect: non-scaling-stroke;
+  }
   html[data-theme="light"] .custom-widget-linear-axis-v272 {
     color: #64748b;
+  }
+  html[data-theme="light"] .custom-widget-axis-line-v274 {
+    stroke: rgba(37,99,235,.30);
   }
   .custom-widget-count strong {
     color: inherit;
@@ -25445,16 +25491,10 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   }
   function ensureChooseButton(gridId, label){
     var grid = byId(gridId);
-    if (!grid || grid.querySelector('.custom-widget-choice[data-value=""]')) return;
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'custom-widget-choice';
-    btn.dataset.value = '';
-    btn.textContent = label || 'Choose';
-    btn.addEventListener('click', function(){
-      window.setCustomWidgetBuilderChoice(gridId === 'cw-chart-grid' ? 'chart' : 'size', '');
+    if (!grid) return;
+    Array.prototype.forEach.call(grid.querySelectorAll('.custom-widget-choice[data-value=""]'), function(btn){
+      if (btn && btn.parentNode) btn.parentNode.removeChild(btn);
     });
-    grid.insertBefore(btn, grid.firstChild);
   }
   function ensureSourceOptions(){
     var select = byId('cw-source');
@@ -25505,6 +25545,24 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     }
     if (accountWrap.parentNode !== row) row.appendChild(accountWrap);
     if (periodWrap && periodWrap.parentNode !== row) row.appendChild(periodWrap);
+  }
+  function moveDataInputRowUnderName(){
+    var nameWrap = controlWrap('cw-name');
+    var source = byId('cw-source');
+    var sourceRow = source && source.closest('.custom-widget-row-2');
+    if (!nameWrap || !sourceRow || !nameWrap.parentNode || sourceRow === nameWrap.nextSibling) return;
+    nameWrap.parentNode.insertBefore(sourceRow, nameWrap.nextSibling);
+  }
+  function positionValueFormatCompanion(){
+    var row = byId('cw-value-format-row');
+    var formatWrap = controlWrap('cw-value-format');
+    if (!row || !formatWrap) return;
+    if (formatWrap.parentNode !== row) row.insertBefore(formatWrap, row.firstChild);
+    var currencyWrap = controlWrap('cw-currency');
+    var targetWrap = byId('cw-tx-target-wrap');
+    if (currencyWrap && currencyWrap.parentNode !== row) row.appendChild(currencyWrap);
+    if (targetWrap && targetWrap.parentNode !== row) row.appendChild(targetWrap);
+    row.classList.add('cw-format-companion-row-v276');
   }
   function setControlVisible(id, visible){
     var wrap = controlWrap(id);
@@ -25583,9 +25641,18 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     return abs(convertAmountCurrencySafe(candidates[0], loan.currency || 'CZK'));
   }
   function loanMonthlyPayment(loan){ return abs(loan && (loan.monthlyPayment || loan.payment || loan.repaymentAmount || loan.installment)) || inferLoanMonthlyPayment(loan); }
+  function formatWidgetDateEU(value){
+    var text = String(value == null ? '' : value).trim();
+    if (!text) return '';
+    var iso = text.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+    if (iso) return iso[3].padStart(2,'0') + '-' + iso[2].padStart(2,'0') + '-' + iso[1];
+    var local = text.match(/^(\d{1,2})\s*[-./]\s*(\d{1,2})\s*[-./]\s*(\d{4})/);
+    if (local) return local[1].padStart(2,'0') + '-' + local[2].padStart(2,'0') + '-' + local[3];
+    return text;
+  }
   function loanPeriodLabel(loan){
     if (!loan) return 'Loan repayment';
-    if (loan.fixationUntil) return 'Fixation until ' + loan.fixationUntil;
+    if (loan.fixationUntil) return 'Fixation until ' + formatWidgetDateEU(loan.fixationUntil);
     var value = String(loan.periodValue || loan.periodMonths || '').trim();
     var unit = String(loan.periodUnit || 'months').trim();
     if (value) return 'Period ' + value + ' ' + (unit === 'years' ? 'years' : 'months');
@@ -25629,7 +25696,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     ensureValueFormatField();
     ensureLoanField();
     removeProjectionControls();
+    moveDataInputRowUnderName();
     positionAccountCardNearType();
+    positionValueFormatCompanion();
 
     var source = sourceNorm(getValue('cw-source',''));
     var metric = getValue('cw-gauge-metric','amount') === 'count' ? 'count' : 'amount';
@@ -25653,16 +25722,22 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     setControlVisible('cw-account', isAuto);
     setControlVisible('cw-period', isCount);
     setControlVisible('cw-currency', isAmount || isManual);
-    setControlVisible('cw-limit', isManual || isTypedSpendAmount);
+    var limitWrap = controlWrap('cw-limit');
+    var limitLabel = limitWrap && limitWrap.querySelector('label');
+    if (limitLabel) limitLabel.textContent = isManual ? 'Target value' : 'Budget limit';
+    setControlVisible('cw-limit', isManual);
     setControlVisible('cw-tx-target', isCount);
     setControlVisible('cw-show-count', false);
     setControlVisible('cw-show-gauge-percent', activeChoice('cw-chart-grid','') === 'gauge');
     setControlVisible('cw-show-gauge-amount', activeChoice('cw-chart-grid','') === 'gauge');
     var valueFormatRow = byId('cw-value-format-row');
-    if (valueFormatRow) valueFormatRow.style.display = (source && (chart === 'linear' || chart === 'gauge')) ? 'grid' : 'none';
+    if (valueFormatRow) valueFormatRow.style.display = (source && (chart === 'linear' || chart === 'gauge' || isAmount || isManual || isCount)) ? 'grid' : 'none';
 
     var targetRow = byId('cw-target-count-row');
-    if (targetRow) targetRow.style.display = isCount ? 'grid' : 'none';
+    if (targetRow) {
+      var targetInOriginalRow = byId('cw-tx-target-wrap') && byId('cw-tx-target-wrap').parentNode === targetRow;
+      targetRow.style.display = (isCount && targetInOriginalRow) ? 'grid' : 'none';
+    }
     var targetWrap = byId('cw-tx-target-wrap');
     var targetInput = byId('cw-tx-target');
     if (targetWrap) {
@@ -25701,7 +25776,6 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       range.classList.toggle('is-hidden', !showRange);
       range.style.display = showRange ? 'grid' : 'none';
     }
-    var budgetNoteText = 'Uses Bank budget from Overview details: all banks with a monthly budget.';
     var primaryNote = byId('cw-budget-derived-note-v260') || byId('cw-budget-derived-note-v258') || byId('cw-budget-derived-note-v259') || byId('cw-budget-derived-note-v254');
     if (!primaryNote) {
       var currencyWrap = controlWrap('cw-currency');
@@ -25716,8 +25790,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       var note = byId(id);
       if (!note) return;
       var isPrimary = note === primaryNote;
-      note.style.display = isAmount && isPrimary ? '' : 'none';
-      if (isPrimary) note.textContent = isTypedSpendAmount ? 'Uses real spend transactions filtered by Type. Set Budget limit for this widget.' : budgetNoteText;
+      note.style.display = isAmount && isPrimary && isTypedSpendAmount ? '' : 'none';
+      if (isPrimary && isTypedSpendAmount) note.textContent = 'Uses real spend transactions filtered by Type and bank budget limits from Settings.';
     });
     updateLoanNote();
   }
@@ -25946,6 +26020,21 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     currency = currencyCodeSafe(currency || widget.currency || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK'));
     var month = '';
     try { month = getAktuĂˇlneMonth(); } catch(_) {}
+    var selectedAccount = String(widget.account || 'all');
+    if (selectedAccount && selectedAccount !== 'all') {
+      var selectedFrom = bankCurrency(selectedAccount, currency);
+      var selectedSpent = 0;
+      var selectedLimit = 0;
+      try { selectedSpent = getOverviewBudgetSpentForBank(selectedAccount, month) || 0; } catch(_) {}
+      try { selectedLimit = getOverviewBudgetLimitForBank(selectedAccount, month) || 0; } catch(_) {}
+      return {
+        spent:Math.max(0, convertAmount(selectedSpent, selectedFrom, currency)),
+        limit:Math.max(0, convertAmount(selectedLimit, selectedFrom, currency)),
+        currency:currency,
+        bankCount:selectedLimit ? 1 : 0,
+        bankIds:selectedLimit ? [selectedAccount] : []
+      };
+    }
     var ids = overviewBudgetBankIds(month);
     var spentTotal = 0;
     var limitTotal = 0;
@@ -26019,12 +26108,11 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       return { source:'auto', spent:txns.length, limit:target || 1, target:target, currency:currency, txns:txns, range:range, gaugeMetric:'count' };
     }
     if ((widget.paymentKind && widget.paymentKind !== 'all') || (widget.account && widget.account !== 'all')) {
-      var typedLimit = Math.max(0, toNum(widget.limit || 0));
       var fallbackBudget = overviewBudgetStats(widget, currency);
       return {
         source:'auto',
         spent:spendAmountForTxns(txns, currency),
-        limit:typedLimit || fallbackBudget.limit || 1,
+        limit:fallbackBudget.limit || 1,
         target:0,
         currency:currency,
         txns:txns,
@@ -26188,27 +26276,135 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (!date || isNaN(date.getTime())) return '';
     return String(date.getDate()) + '.' + String(date.getMonth() + 1) + '.';
   }
+  function widgetSizeName(widget){
+    return String(widget && widget.size || 'medium').toLowerCase();
+  }
+  var LINE_GRAPH_VIEW_WIDTH = 114;
+  var LINE_GRAPH_X1 = 16;
+  var LINE_GRAPH_X2 = 108;
+  function lineAxisLeft(ratio){
+    var safeRatio = Math.max(0, Math.min(1, Number(ratio || 0)));
+    return ((LINE_GRAPH_X1 + (LINE_GRAPH_X2 - LINE_GRAPH_X1) * safeRatio) / LINE_GRAPH_VIEW_WIDTH * 100).toFixed(2) + '%';
+  }
+  function axisTick(label, ratio){
+    return { label:String(label), ratio:Math.max(0, Math.min(1, Number(ratio || 0))) };
+  }
+  function renderAxisTicks(ticks){
+    ticks = (ticks || []).filter(function(tick){ return tick && tick.label !== ''; });
+    if (!ticks.length) return '';
+    return '<div class="custom-widget-linear-axis-v272">' + ticks.map(function(tick, index){
+      var edge = index === 0 ? ' data-edge="start"' : (index === ticks.length - 1 ? ' data-edge="end"' : '');
+      return '<span' + edge + ' style="left:' + lineAxisLeft(tick.ratio) + '">' + esc(tick.label) + '</span>';
+    }).join('') + '</div>';
+  }
+  function everyNthDayTicks(lastDay, step){
+    var safeLast = Math.max(1, Math.round(Number(lastDay || 1)));
+    var safeStep = Math.max(1, Math.round(Number(step || 3)));
+    var ticks = [];
+    for (var day = 1; day <= safeLast; day += safeStep) {
+      ticks.push(axisTick(day, safeLast > 1 ? (day - 1) / (safeLast - 1) : 0));
+    }
+    if (ticks[ticks.length - 1] && ticks[ticks.length - 1].label !== String(safeLast)) {
+      var previousDay = Number(ticks[ticks.length - 1].label || 0);
+      if (safeLast - previousDay < safeStep) ticks[ticks.length - 1] = axisTick(safeLast, 1);
+      else ticks.push(axisTick(safeLast, 1));
+    }
+    return ticks;
+  }
+  function steppedDateLabels(from, to, maxLabels, formatter){
+    var labels = [];
+    var spanDays = Math.max(1, Math.round((to.getTime() - from.getTime()) / 86400000) + 1);
+    var step = Math.max(1, Math.ceil(spanDays / Math.max(1, maxLabels || 1)));
+    for (var index = 0; index < spanDays; index += step) {
+      var day = new Date(from.getFullYear(), from.getMonth(), from.getDate() + index);
+      labels.push(formatter(day));
+    }
+    var lastLabel = formatter(to);
+    if (labels[labels.length - 1] !== lastLabel) labels.push(lastLabel);
+    return labels;
+  }
+  function steppedDateTicks(from, to, maxLabels, formatter){
+    var spanDays = Math.max(1, Math.round((to.getTime() - from.getTime()) / 86400000) + 1);
+    var step = Math.max(1, Math.ceil(spanDays / Math.max(1, maxLabels || 1)));
+    var ticks = [];
+    for (var index = 0; index < spanDays; index += step) {
+      var day = new Date(from.getFullYear(), from.getMonth(), from.getDate() + index);
+      ticks.push(axisTick(formatter(day), spanDays > 1 ? index / (spanDays - 1) : 0));
+    }
+    var lastLabel = formatter(to);
+    if (!ticks.length || ticks[ticks.length - 1].label !== lastLabel) ticks.push(axisTick(lastLabel, 1));
+    return ticks;
+  }
+  function loanTotalMonths(loan){
+    loan = loan || {};
+    var unit = String(loan.periodUnit || loan.period_unit || '').toLowerCase();
+    var periodValue = Math.abs(toNum(loan.periodValue || loan.period || loan.loanPeriod || 0));
+    var months = Math.abs(toNum(loan.periodMonths || loan['Period months'] || 0));
+    if (unit.indexOf('year') !== -1 && periodValue > 0 && periodValue <= 100) return Math.round(periodValue * 12);
+    if (unit.indexOf('month') !== -1 && periodValue > 0 && periodValue <= 1200) return Math.round(periodValue);
+    if (months > 0 && months <= 1200) return Math.round(months);
+    if (periodValue > 0 && periodValue <= 100) return Math.round(periodValue * 12);
+    if (periodValue > 0 && periodValue <= 1200) return Math.round(periodValue);
+    return 0;
+  }
+  function loanAxisTicks(widget, stats){
+    var loan = stats && stats.loan || loanById(widget && widget.loanId || '') || widget || {};
+    var months = loanTotalMonths(loan);
+    var size = widgetSizeName(widget);
+    var maxTicks = size === 'small' ? 3 : (size === 'large' ? 8 : 6);
+    if (months >= 24) {
+      var years = Math.max(1, Math.ceil(months / 12));
+      var yearStep = Math.max(1, Math.ceil(years / Math.max(2, maxTicks - 1)));
+      var yearTicks = [axisTick('0', 0)];
+      for (var year = yearStep; year < years; year += yearStep) yearTicks.push(axisTick(year + 'y', year / years));
+      yearTicks.push(axisTick(years + 'y', 1));
+      return yearTicks;
+    }
+    if (months > 0) {
+      var monthStep = Math.max(1, Math.ceil(months / Math.max(2, maxTicks - 1)));
+      var monthTicks = [axisTick('0', 0)];
+      for (var month = monthStep; month < months; month += monthStep) monthTicks.push(axisTick(month + 'm', month / months));
+      monthTicks.push(axisTick(months + 'm', 1));
+      return monthTicks;
+    }
+    return [axisTick('0', 0), axisTick('50%', .5), axisTick('100%', 1)];
+  }
   function linearAxisLabels(widget, stats){
     widget = widget || {};
     stats = stats || {};
-    if (sourceNorm(widget.source || widget.dataInput || stats.source || '') === 'loan') return '';
+    if (sourceNorm(widget.source || widget.dataInput || stats.source || '') === 'loan') return renderAxisTicks(loanAxisTicks(widget, stats));
     var range = stats.range || currentPeriodRange(widget);
     var from = range && range.from;
     var to = range && range.to;
     if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return '';
     var period = String(widget.period || 'month');
     var spanDays = Math.max(1, Math.round((to.getTime() - from.getTime()) / 86400000) + 1);
-    var labels;
+    var size = widgetSizeName(widget);
+    var ticks;
     if (period === 'year' || spanDays >= 330) {
-      labels = ['Jan', 'Apr', 'Jul', 'Oct', 'Dec'];
-    } else if (period === 'month' || spanDays <= 31) {
-      var last = daysInMonth(from);
-      labels = ['1', String(Math.max(1, Math.round(last / 2))), String(last)];
+      var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      var monthStep = size === 'small' ? 3 : (size === 'large' ? 1 : 2);
+      ticks = [];
+      for (var m = 0; m < 12; m += monthStep) ticks.push(axisTick(months[m], m / 11));
+      if (ticks[ticks.length - 1].label !== 'Dec') ticks.push(axisTick('Dec', 1));
+    } else if (period === 'month') {
+      if (size === 'small') {
+        var last = daysInMonth(from);
+        ticks = [axisTick('1', 0), axisTick(String(Math.max(1, Math.round(last / 2))), .5), axisTick(String(last), 1)];
+      } else {
+        var monthLast = daysInMonth(from);
+        ticks = everyNthDayTicks(monthLast, 4);
+      }
+    } else if (spanDays <= 31) {
+      if (size === 'small') {
+        ticks = [axisTick(shortDateLabel(from), 0), axisTick(shortDateLabel(new Date(from.getTime() + (to.getTime() - from.getTime()) / 2)), .5), axisTick(shortDateLabel(to), 1)];
+      } else {
+        ticks = steppedDateTicks(from, to, Math.ceil(spanDays / 4), function(day){ return String(day.getDate()); });
+      }
     } else {
-      var mid = new Date(from.getTime() + (to.getTime() - from.getTime()) / 2);
-      labels = [shortDateLabel(from), shortDateLabel(mid), shortDateLabel(to)];
+      ticks = steppedDateTicks(from, to, size === 'large' ? 8 : (size === 'medium' ? 6 : 3), shortDateLabel);
     }
-    return '<div class="custom-widget-linear-axis-v272">' + labels.map(function(label){ return '<span>' + esc(label) + '</span>'; }).join('') + '</div>';
+    return renderAxisTicks(ticks);
   }
   function makeLine(widget, stats){
     var metric = metricFor(widget, stats);
@@ -26224,7 +26420,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     }
     var pct = Math.max(0, Math.min(1, ratio));
     var isDecline = metric.mode === 'loan' || String((widget && (widget.linearDirection || widget.trendType || widget.direction)) || '') === 'decline';
-    var x1 = 7, yBase = 56, x2 = 107, width = x2 - x1, height = 50;
+    var x1 = LINE_GRAPH_X1, yBase = 56, x2 = LINE_GRAPH_X2, width = x2 - x1, height = 50;
     var curX = x1 + width * pct;
     if (pct > 0 && curX < x1 + 10) curX = x1 + 10;
     if (pct < 1 && curX > x2 - 10) curX = x2 - 10;
@@ -26260,6 +26456,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var usedPath = 'M' + x1 + ' ' + firstY.toFixed(2) + ' C' + usedC1X.toFixed(1) + ' ' + (firstY - 2).toFixed(2) + ', ' + usedC2X.toFixed(1) + ' ' + (currentY + usedBend).toFixed(2) + ', ' + curX + ' ' + currentY.toFixed(2);
     var projectionPath = 'M' + curX + ' ' + currentY.toFixed(2) + ' C' + projectionC1X.toFixed(1) + ' ' + (currentY + projectionBend1).toFixed(2) + ', ' + projectionC2X.toFixed(1) + ' ' + (targetY + projectionBend2).toFixed(2) + ', ' + x2 + ' ' + targetY.toFixed(2);
     return '<div class="custom-widget-linear-v260"><div class="custom-widget-linear-label-v260 custom-widget-fit-value">' + esc(metric.label) + '</div><svg viewBox="0 0 114 64" preserveAspectRatio="none" aria-hidden="true">'
+      + '<path class="custom-widget-axis-line-v274" d="M' + x1 + ' ' + yBase + ' H' + x2 + ' M' + x1 + ' ' + yBase + ' V' + (yBase - height) + '"></path>'
       + '<path d="' + attr(usedPath) + ' L' + curX + ' ' + yBase + ' L' + x1 + ' ' + yBase + ' Z" fill="' + attr(hexToRgba(accent,.22)) + '"></path>'
       + '<path d="' + attr(projectionPath) + ' L' + x2 + ' ' + yBase + ' L' + curX + ' ' + yBase + ' Z" fill="rgba(56,139,253,.13)"></path>'
       + '<path d="' + attr(usedPath) + '" fill="none" stroke="' + attr(accent) + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round"></path>'
@@ -26312,7 +26509,10 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
         ? '<div class="custom-widget-count custom-widget-loan-meta-v261"><span>Payment</span><strong>' + esc(compactMoney(stats.monthlyPayment, stats.currency, true)) + '/mo</strong></div>'
         : '';
       if (periodText) {
-        countLine += '<div class="custom-widget-count custom-widget-loan-meta-v261"><span>Period</span><strong>' + esc(periodText) + '</strong></div>';
+        var fixationMatch = String(periodText).match(/^Fixation until\s+(.+)$/i);
+        var loanMetaLabel = fixationMatch ? 'Fixation until' : 'Period';
+        var loanMetaValue = fixationMatch ? fixationMatch[1] : periodText;
+        countLine += '<div class="custom-widget-count custom-widget-loan-meta-v261"><span>' + esc(loanMetaLabel) + '</span><strong>' + esc(loanMetaValue) + '</strong></div>';
       }
     }
     var main = chart === 'none'
@@ -26383,7 +26583,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       values.period = 'month';
       values.from = '';
       values.to = '';
-      if (values.paymentKind === 'all' && values.account === 'all') values.limit = 0;
+      values.limit = 0;
       values.txTarget = 0;
       values.showCount = false;
     }
@@ -26396,7 +26596,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     return !!(preview && (preview.querySelector('[data-v260-preview="true"]') || preview.querySelector('.custom-widget-preview-placeholder-v260')));
   }
   function previewPlaceholderHtml(text){
-    return '<div class="custom-widget-preview-placeholder-v259 custom-widget-preview-placeholder-v260">' + esc(text || 'Choose chart type, size and data input to preview this widget.') + '</div>';
+    return '<div class="custom-widget-preview-placeholder-v259 custom-widget-preview-placeholder-v260">' + esc(text || 'Choose data input to preview this widget.') + '</div>';
   }
   function writePreview(preview, html){
     if (!preview) return;
@@ -26426,7 +26626,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (!preview) return;
     var values = collectValues();
     if (!values.chart || !values.size || !values.source) {
-      writePreview(preview, previewPlaceholderHtml('Choose chart type, size and data input to preview this widget.'));
+      writePreview(preview, previewPlaceholderHtml(!values.source ? 'Choose data input to preview this widget.' : 'Choose chart type and size to preview this widget.'));
       applyPrivacyStable();
       return;
     }
@@ -26485,8 +26685,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       setValue('cw-alerts', String(widget.alerts === true));
       setValue('cw-threshold', widget.threshold || 80);
     } else {
-      setChoice('chart', '');
-      setChoice('size', '');
+      setChoice('chart', 'linear');
+      setChoice('size', 'medium');
       ['cw-name','cw-limit','cw-tx-target','cw-manual-used','cw-from','cw-to','cw-loan-id'].forEach(function(field){ setValue(field, ''); });
       setValue('cw-source', '');
       setValue('cw-currency', typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK');
@@ -26667,7 +26867,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     builderUserSnapshot = null;
     var sheet = byId('custom-widget-sheet');
     if (sheet) sheet.classList.add('v260-opening-clean');
-    writePreview(byId('custom-widget-preview'), previewPlaceholderHtml('Choose chart type, size and data input to preview this widget.'));
+    writePreview(byId('custom-widget-preview'), previewPlaceholderHtml('Choose data input to preview this widget.'));
     var result;
     try {
       if (typeof openSheet === 'function') openSheet('custom-widget-sheet');
@@ -26962,16 +27162,24 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   #cw-value-format-row {
     align-items: end;
   }
+  #cw-value-format-row.cw-format-companion-row-v276 {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+  #cw-value-format-row.cw-format-companion-row-v276 > div[style*="none"] {
+    display: none !important;
+  }
   #custom-widget-sheet #cw-extra-colors-row,
   #custom-widget-sheet #cw-projection-color,
   #custom-widget-sheet #cw-projection-hex {
     display: none !important;
   }
+  #custom-widget-sheet #cw-value-format-row #cw-tx-target-wrap,
   #custom-widget-sheet #cw-target-count-row[style*="grid"] #cw-tx-target-wrap,
   #custom-widget-sheet #cw-target-count-row:not([style*="none"]) #cw-tx-target-wrap {
     opacity: 1 !important;
     pointer-events: auto !important;
   }
+  #custom-widget-sheet #cw-value-format-row #cw-tx-target,
   #custom-widget-sheet #cw-target-count-row[style*="grid"] #cw-tx-target,
   #custom-widget-sheet #cw-target-count-row:not([style*="none"]) #cw-tx-target {
     opacity: 1 !important;
@@ -27180,9 +27388,18 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (type === 'debit_card') return 'Debit card';
     return 'Loan';
   }
+  function formatLoanDateEU(value){
+    var text = cleanText(value);
+    if (!text) return '';
+    var iso = text.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+    if (iso) return iso[3].padStart(2,'0') + '-' + iso[2].padStart(2,'0') + '-' + iso[1];
+    var local = text.match(/^(\d{1,2})\s*[-./]\s*(\d{1,2})\s*[-./]\s*(\d{4})/);
+    if (local) return local[1].padStart(2,'0') + '-' + local[2].padStart(2,'0') + '-' + local[3];
+    return text;
+  }
   function loanPeriodLabel(loan){
     if (!loan) return '';
-    if (loan.fixationUntil) return 'Fixation until ' + loan.fixationUntil;
+    if (loan.fixationUntil) return 'Fixation until ' + formatLoanDateEU(loan.fixationUntil);
     var value = cleanText(loan.periodValue || loan.periodMonths || '');
     var unit = cleanText(loan.periodUnit || 'months');
     if (value) return 'Period ' + value + ' ' + (unit === 'years' ? 'years' : 'months');
