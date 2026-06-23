@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Bank Tracker index_v243: overview header alignment + transaction infinite scroll + clean loans manager -->
+<!-- Bank Tracker index_v274: even day labels on linear graphs -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -819,7 +819,7 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=271">
+<link rel="manifest" href="./manifest.json?v=274">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -17681,17 +17681,29 @@ function estimateEndpointMutationUrlLength(action, payload = {}) {
   return buildEndpointMutationUrl(action, payload, '__cb__').length;
 }
 
+function endpointPostFallbackTimeout(timeoutMs) {
+  const requested = Math.max(3000, Number(timeoutMs || 15000));
+  return isLikelyIOSWebKit() ? Math.min(requested, 12000) : requested;
+}
+
 async function endpointMutationRequest(action, payload = {}, timeoutMs = 15000) {
-  const preferPost = isLikelyIOSWebKit() || estimateEndpointMutationUrlLength(action, payload) > 1800;
-  if (preferPost) {
-    const postResult = await fetchEndpointRequest(action, payload, timeoutMs);
-    if (postResult.ok) return postResult;
-    const jsonpResult = await jsonpEndpointRequest(action, payload, timeoutMs);
-    return jsonpResult.ok ? jsonpResult : postResult;
+  const urlLength = estimateEndpointMutationUrlLength(action, payload);
+  const jsonpSafe = urlLength <= 1800;
+
+  if (jsonpSafe) {
+    // iPhone/PWA can stall on Apps Script POST. Desktop already succeeds through
+    // JSONP GET, so use the same path first whenever the payload is URL-safe.
+    const jsonpResult = await jsonpEndpointRequest(action, payload, Math.min(timeoutMs, 20000));
+    if (jsonpResult.ok) return jsonpResult;
+    const postResult = await fetchEndpointRequest(action, payload, endpointPostFallbackTimeout(timeoutMs));
+    return postResult.ok ? postResult : jsonpResult;
   }
-  const jsonpResult = await jsonpEndpointRequest(action, payload, timeoutMs);
-  if (jsonpResult.ok) return jsonpResult;
-  return fetchEndpointRequest(action, payload, timeoutMs);
+
+  const postTimeout = endpointPostFallbackTimeout(timeoutMs);
+  const postResult = await fetchEndpointRequest(action, payload, postTimeout);
+  if (postResult.ok) return postResult;
+  const jsonpResult = await jsonpEndpointRequest(action, payload, Math.min(timeoutMs, 20000));
+  return jsonpResult.ok ? jsonpResult : postResult;
 }
 
 function getEndpointStatusMessage(action, state) {
@@ -25259,6 +25271,17 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   .custom-widget-linear-axis-v272 span[data-edge="end"] {
     transform: translateX(-100%);
   }
+  .custom-widget-linear-axis-v272.custom-widget-linear-axis-even-v278 {
+    display: flex;
+    justify-content: space-between;
+  }
+  .custom-widget-linear-axis-v272.custom-widget-linear-axis-even-v278 span {
+    flex: 0 0 2ch;
+    font-variant-numeric: tabular-nums;
+    position: static;
+    text-align: center;
+    transform: none !important;
+  }
   .custom-widget-card[data-size="small"] .custom-widget-linear-axis-v272 {
     font-size: 8px;
     margin-top: -7px;
@@ -26380,8 +26403,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     return String(widget && widget.size || 'medium').toLowerCase();
   }
   var LINE_GRAPH_VIEW_WIDTH = 114;
-  var LINE_GRAPH_X1 = 16;
-  var LINE_GRAPH_X2 = 108;
+  var LINE_GRAPH_X1 = 1;
+  var LINE_GRAPH_X2 = 113;
   function lineAxisLeft(ratio){
     var safeRatio = Math.max(0, Math.min(1, Number(ratio || 0)));
     return ((LINE_GRAPH_X1 + (LINE_GRAPH_X2 - LINE_GRAPH_X1) * safeRatio) / LINE_GRAPH_VIEW_WIDTH * 100).toFixed(2) + '%';
@@ -26396,6 +26419,21 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       var edge = index === 0 ? ' data-edge="start"' : (index === ticks.length - 1 ? ' data-edge="end"' : '');
       return '<span' + edge + ' style="left:' + lineAxisLeft(tick.ratio) + '">' + esc(tick.label) + '</span>';
     }).join('') + '</div>';
+  }
+  function renderEvenAxisLabels(labels){
+    labels = (labels || []).filter(function(label){ return label !== null && label !== undefined && String(label) !== ''; });
+    if (!labels.length) return '';
+    return '<div class="custom-widget-linear-axis-v272 custom-widget-linear-axis-even-v278">' + labels.map(function(label){
+      return '<span>' + esc(label) + '</span>';
+    }).join('') + '</div>';
+  }
+  function dayLabelsEvery(lastDay, step){
+    var safeLast = Math.max(1, Math.round(Number(lastDay || 1)));
+    var safeStep = Math.max(1, Math.round(Number(step || 3)));
+    var labels = [];
+    for (var day = 1; day <= safeLast; day += safeStep) labels.push(String(day));
+    if (labels[labels.length - 1] !== String(safeLast)) labels.push(String(safeLast));
+    return labels;
   }
   function everyNthDayTicks(lastDay, step){
     var safeLast = Math.max(1, Math.round(Number(lastDay || 1)));
@@ -26493,13 +26531,13 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
         ticks = [axisTick('1', 0), axisTick(String(Math.max(1, Math.round(last / 2))), .5), axisTick(String(last), 1)];
       } else {
         var monthLast = daysInMonth(from);
-        ticks = everyNthDayTicks(monthLast, 4);
+        return renderEvenAxisLabels(dayLabelsEvery(monthLast, 3));
       }
     } else if (spanDays <= 31) {
       if (size === 'small') {
         ticks = [axisTick(shortDateLabel(from), 0), axisTick(shortDateLabel(new Date(from.getTime() + (to.getTime() - from.getTime()) / 2)), .5), axisTick(shortDateLabel(to), 1)];
       } else {
-        ticks = steppedDateTicks(from, to, Math.ceil(spanDays / 4), function(day){ return String(day.getDate()); });
+        ticks = steppedDateTicks(from, to, Math.ceil(spanDays / 3), function(day){ return String(day.getDate()); });
       }
     } else {
       ticks = steppedDateTicks(from, to, size === 'large' ? 8 : (size === 'medium' ? 6 : 3), shortDateLabel);
