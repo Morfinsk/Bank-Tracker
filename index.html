@@ -819,7 +819,7 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=270">
+<link rel="manifest" href="./manifest.json?v=271">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -844,11 +844,13 @@
   try {
     var ua = navigator.userAgent || '';
     var isAndroid = /Android/i.test(ua);
+    var isIOS = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     var isStandalone =
       (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
       window.navigator.standalone === true;
 
     if (isAndroid) document.documentElement.classList.add('android-device');
+    if (isIOS) document.documentElement.classList.add('ios-device');
     if (isStandalone) document.documentElement.classList.add('pwa-standalone');
     if (isAndroid && isStandalone) document.documentElement.classList.add('android-pwa-perf');
     if (isAndroid || isStandalone) document.documentElement.classList.add('mobile-perf-mode');
@@ -8223,6 +8225,7 @@ html[data-theme="light"] body::before {
         <input class="config-input" id="limits-webapp-url" placeholder="https://script.google.com/macros/s/.../exec" oninput="scheduleConnectionAutoSave('limits-webapp-url')" />
         <span class="field-save-check" id="save-check-limits-webapp-url" title="Not saved yet" aria-label="Not saved yet">✓</span>
       </div>
+      <button type="button" class="sim-submit" onclick="testGoogleSheetsEndpointFromApp()" style="margin-top:8px; width:100%;">Otestovať zápis z tejto appky</button>
 <div id="limits-sync-status" class="edit-mode-notice" style="margin-top:10px;" data-i18n="googleSheetsLocalStatus">Google Sheets connection is saved locally. Apps Script URL will be used to save limits, budgets and tokens.</div>
     </div>
   </div>
@@ -17608,15 +17611,87 @@ function isLikelyIOSWebKit() {
 function getEndpointFailureDetail(action, result) {
   const data = result && result.data || {};
   const message = String(data.message || '');
+  if (/login page returned|Google login page/i.test(message)) {
+    const iosHint = isLikelyIOSWebKit()
+      ? ' iPhone PWA nema Google cookies zo Safari. V Apps Script nastav Deploy -> Web app -> Who has access: Anyone (nie Anyone with Google account).'
+      : ' V Apps Script nastav Deploy -> Web app -> Who has access: Anyone.';
+    return getEndpointStatusMessage(action, 'error') + iosHint;
+  }
   const jsonpProblem = data.status === 'timeout' || /JSONP|callback|script load/i.test(message);
-  if (!jsonpProblem) return getEndpointStatusMessage(action, 'error');
+  const postProblem = /fetch-post|Invalid JSON from Apps Script POST|Empty Apps Script response/i.test(message);
+  if (!jsonpProblem && !postProblem) return getEndpointStatusMessage(action, 'error');
   const iosHint = isLikelyIOSWebKit()
-    ? ' iPhone/Safari: otvor Apps Script /exec URL priamo v Safari. Ak vidis Google login alebo HTML, Web App deployment musi byt nastaveny na Anyone.'
-    : ' Apps Script nevratil JSONP callback. Skontroluj Web App deployment /exec a access Anyone.';
+    ? ' iPhone/Safari: skontroluj Apps Script /exec URL a Deploy -> Anyone. Ak appku mas na Home Screen, otvor /exec raz v Safari.'
+    : ' Apps Script nevratil odpoved. Skontroluj Web App deployment /exec a access Anyone.';
   const lengthHint = data.urlLength && data.urlLength > 1800
     ? ' URL payload je dlhy (' + data.urlLength + ' znakov).'
     : '';
   return getEndpointStatusMessage(action, 'error') + iosHint + lengthHint;
+}
+
+function buildEndpointMutationBody(action, payload = {}) {
+  return flattenEndpointPayload(action, payload);
+}
+
+function parseEndpointResponseText(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return { ok: false, data: { status: 'error', message: 'Empty Apps Script response' } };
+  if (/^\s*<!doctype html/i.test(raw) || /accounts\.google\.com\/signin/i.test(raw) || /ServiceLogin/i.test(raw)) {
+    return { ok: false, data: { status: 'error', message: 'Google login page returned instead of JSON', ios: isLikelyIOSWebKit() } };
+  }
+  try {
+    const data = JSON.parse(raw);
+    const ok = !!data && (data.status === 'success' || data.status === 'ok');
+    return { ok, data };
+  } catch (_) {
+    return { ok: false, data: { status: 'error', message: 'Invalid JSON from Apps Script POST', preview: raw.slice(0, 160) } };
+  }
+}
+
+async function fetchEndpointRequest(action, payload = {}, timeoutMs = 15000) {
+  const url = getCurrentWebAppUrl();
+  if (!url) return { ok: false, data: { status: 'error', message: 'Missing Web App URL' } };
+
+  const body = JSON.stringify(buildEndpointMutationBody(action, payload));
+  let controller;
+  let timer;
+  try {
+    if (typeof AbortController !== 'undefined') {
+      controller = new AbortController();
+      timer = window.setTimeout(() => controller.abort(), timeoutMs);
+    }
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body,
+      redirect: 'follow',
+      referrerPolicy: 'no-referrer',
+      credentials: 'omit',
+      signal: controller ? controller.signal : undefined
+    });
+    if (timer) window.clearTimeout(timer);
+    return parseEndpointResponseText(await res.text());
+  } catch (err) {
+    if (timer) window.clearTimeout(timer);
+    return { ok: false, data: { status: 'error', message: String(err && err.message || err), transport: 'fetch-post', ios: isLikelyIOSWebKit() } };
+  }
+}
+
+function estimateEndpointMutationUrlLength(action, payload = {}) {
+  return buildEndpointMutationUrl(action, payload, '__cb__').length;
+}
+
+async function endpointMutationRequest(action, payload = {}, timeoutMs = 15000) {
+  const preferPost = isLikelyIOSWebKit() || estimateEndpointMutationUrlLength(action, payload) > 1800;
+  if (preferPost) {
+    const postResult = await fetchEndpointRequest(action, payload, timeoutMs);
+    if (postResult.ok) return postResult;
+    const jsonpResult = await jsonpEndpointRequest(action, payload, timeoutMs);
+    return jsonpResult.ok ? jsonpResult : postResult;
+  }
+  const jsonpResult = await jsonpEndpointRequest(action, payload, timeoutMs);
+  if (jsonpResult.ok) return jsonpResult;
+  return fetchEndpointRequest(action, payload, timeoutMs);
 }
 
 function getEndpointStatusMessage(action, state) {
@@ -17689,9 +17764,34 @@ function jsonpEndpointRequest(action, payload = {}, timeoutMs = 15000) {
     script.referrerPolicy = 'no-referrer';
     script.onerror = () => finish(false, { status: 'error', message: 'JSONP script load failed', action, urlLength: endpointUrl.length, ios: isLikelyIOSWebKit() });
     script.src = endpointUrl;
-    document.head.appendChild(script);
+    (document.body || document.head || document.documentElement).appendChild(script);
     window.setTimeout(() => finish(false, { status: 'timeout', message: 'Google Sheets endpoint timeout or callback blocked', action, urlLength: endpointUrl.length, ios: isLikelyIOSWebKit() }), timeoutMs);
   });
+}
+
+async function testGoogleSheetsEndpointFromApp() {
+  const status = document.getElementById('limits-sync-status');
+  getCurrentWebAppUrl();
+  if (!LIMITS_WEBAPP_URL || !isValidAppsScriptExecUrl(LIMITS_WEBAPP_URL)) {
+    if (status) status.textContent = 'Najprv ulož platnú Apps Script /exec URL (zelená fajka pri poli).';
+    return false;
+  }
+  const where = isLikelyIOSWebKit() ? 'iPhone WebKit' : 'tento prehliadač';
+  if (status) status.textContent = 'Testujem Apps Script cez ' + where + '...';
+  const result = await endpointMutationRequest('debugEcho', { probe: 'bank-tracker', from: where }, 20000);
+  const data = result && result.data || {};
+  const version = String(data.version || '').trim();
+  const shortVersion = version ? version.split('_')[0] : '';
+  if (result.ok) {
+    if (status) {
+      status.textContent = shortVersion
+        ? ('Server OK (' + shortVersion + ' = verzia parsera, nie chyba). Z appky sa Apps Script dá volať — skús uložiť transakciu.')
+        : ('Test OK z ' + where + '. Skús uložiť transakciu.');
+    }
+    return true;
+  }
+  if (status) status.textContent = getEndpointFailureDetail('debugEcho', result);
+  return false;
 }
 
 async function postToBankTrackerEndpoint(action, payload = {}) {
@@ -17716,7 +17816,7 @@ async function postToBankTrackerEndpoint(action, payload = {}) {
   // A short timeout made the app show "transaction failed" even when Apps Script
   // had already written the row to Google Sheets successfully.
   const mutationTimeoutMs = isLikelyIOSWebKit() || ['saveTransaction', 'deleteTransaction', 'saveBankSettings'].includes(action) ? 60000 : 15000;
-  const result = await jsonpEndpointRequest(action, payload, mutationTimeoutMs);
+  const result = await endpointMutationRequest(action, payload, mutationTimeoutMs);
   if (result.ok) {
     if (status) status.textContent = getEndpointStatusMessage(action, 'success');
     console.log('Google Sheets save OK:', action, result.data);
@@ -29633,5 +29733,27 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   else setTimeout(boot, 0);
 })();
 </script>
+<style id="v271-ios-pwa-overview-header-css">
+  /* iOS Home Screen PWA: overview title + refresh/login were clipped under the status bar.
+     Safari browser looked fine because it adds its own top chrome; standalone does not. */
+  @supports (padding-top: env(safe-area-inset-top)) {
+    html.pwa-standalone.ios-device #page-overview .overview-header-v236 {
+      padding-top: calc(env(safe-area-inset-top) + 10px) !important;
+      padding-left: max(18px, env(safe-area-inset-left)) !important;
+      padding-right: max(18px, env(safe-area-inset-right)) !important;
+    }
+    html.pwa-standalone.ios-device #page-overview .overview-header-top-v236 {
+      align-items: center !important;
+      min-height: 36px !important;
+    }
+    html.pwa-standalone.ios-device #page-overview .overview-header-top-v236 .header-title {
+      transform: none !important;
+      line-height: 1.05 !important;
+    }
+    html.pwa-standalone.ios-device .header:not(.overview-header-v236) {
+      padding-top: calc(env(safe-area-inset-top) + 12px) !important;
+    }
+  }
+</style>
 </body>
 </html>
