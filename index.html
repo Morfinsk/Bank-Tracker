@@ -14275,10 +14275,27 @@ function startAutoSync() {
 
 // Keď sa vrátiš do appky po uzamknutí mobilu / prepnutí tabu,
 // appka sa hneď pokúsi natiahnuť aktuálne dáta.
+let lastHiddenAtMs = 0;
+let lastResumeSyncAtMs = 0;
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && SHEETS_URL) {
-    syncData();
+  if (document.hidden) {
+    lastHiddenAtMs = Date.now();
+    return;
   }
+  if (!SHEETS_URL) return;
+  var now = Date.now();
+  var hiddenForMs = now - Number(lastHiddenAtMs || 0);
+  var sinceLastResumeSync = now - Number(lastResumeSyncAtMs || 0);
+  // Keep app resume instant on mobile: avoid immediate heavy sync
+  // for quick app switches and repeated foregrounding.
+  if (hiddenForMs < 4000) return;
+  if (sinceLastResumeSync < 120000) return;
+  lastResumeSyncAtMs = now;
+  setTimeout(function(){
+    if (!document.hidden && !isSyncing && SHEETS_URL) {
+      syncData();
+    }
+  }, 650);
 });
 
 
@@ -30628,10 +30645,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
 (function(){
   'use strict';
   var PAGE = 20;
-  var WINDOW_ABOVE = 5;
-  var WINDOW_BELOW = 15;
-  var EST_ROW_H = 74;
-  var windowRenderState = { enabled:false, list:[], loadedCount:0, total:0, start:-1 };
+  var windowRenderState = { enabled:false, list:[], loadedCount:0, total:0 };
   var scrollQueued = false;
   var lastAutoLoadAt = 0;
 
@@ -30747,39 +30761,25 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   window.renderTransactionHistoryNote = function(){ return ''; };
   window.filterTransactionsByHistoryScope = function(txns){ return Array.isArray(txns) ? txns : []; };
 
-  function computeVirtualStart(listDiv, loadedLen){
-    if (!loadedLen || loadedLen <= (WINDOW_ABOVE + WINDOW_BELOW)) return 0;
-    var listTop = listDiv.getBoundingClientRect().top + window.scrollY;
-    var y = Math.max(0, window.scrollY - listTop - 120);
-    var center = Math.floor(y / EST_ROW_H);
-    var start = center - WINDOW_ABOVE;
-    var maxStart = Math.max(0, loadedLen - (WINDOW_ABOVE + WINDOW_BELOW));
-    return Math.max(0, Math.min(start, maxStart));
-  }
-
   function renderUnfilteredWindow(listDiv, cashflowSlot, totalsHtml){
     var list = windowRenderState.list || [];
     var loadedCount = Math.min(Number(windowRenderState.loadedCount || 0), list.length);
     var loaded = loadedCount > 0 ? list.slice(0, loadedCount) : [];
     var total = Number(windowRenderState.total || 0);
     if (!loaded.length) return;
-    var start = computeVirtualStart(listDiv, loaded.length);
-    var count = WINDOW_ABOVE + WINDOW_BELOW;
-    var end = Math.min(loaded.length, start + count);
-    if (windowRenderState.start === start && listDiv.getAttribute('data-vwindow-ready') === '1') return;
-    windowRenderState.start = start;
-    var topH = start * EST_ROW_H;
-    var bottomH = Math.max(0, (loaded.length - end) * EST_ROW_H);
-    var rowsHtml = renderRows(loaded.slice(start, end));
+    var first = loaded[0] || {};
+    var last = loaded[loaded.length - 1] || {};
+    var renderKey = String(loaded.length) + '|' + String(total) + '|' + String(first.id || first.msgId || '') + '|' + String(last.id || last.msgId || '');
+    if (listDiv.getAttribute('data-rendered-key') === renderKey) return;
+    var rowsHtml = renderRows(loaded);
     var counter = typeof renderTransactionPagingInfo === 'function' ? renderTransactionPagingInfo(loaded.length, total) : '';
     var loadMore = window.renderShowMoreTransactionsButton(loaded.length, total);
     listDiv.innerHTML = counter
-      + '<div class="txn-virtual-spacer-v283" style="height:' + Math.round(topH) + 'px"></div>'
       + rowsHtml
-      + '<div class="txn-virtual-spacer-v283" style="height:' + Math.round(bottomH) + 'px"></div>'
       + loadMore
       + totalsHtml;
-    listDiv.setAttribute('data-vwindow-ready', '1');
+    listDiv.setAttribute('data-rendered-count', String(loaded.length));
+    listDiv.setAttribute('data-rendered-key', renderKey);
     if (cashflowSlot) {
       try { cashflowSlot.innerHTML = renderTransactionDailyCashflow(loaded); } catch(_) { cashflowSlot.innerHTML = ''; }
     }
@@ -30835,8 +30835,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (!scoped.length) {
       if (cashflowSlot) cashflowSlot.innerHTML = '';
       listDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>' + escapeHtml(tSafe('noTransactionsForFilters','No transactions')) + '</div>' + (typeof renderTransactionTotals === 'function' ? renderTransactionTotals([]) : '');
-      listDiv.removeAttribute('data-vwindow-ready');
-      windowRenderState = { enabled:false, list:[], loadedCount:0, total:0, start:-1 };
+      listDiv.removeAttribute('data-rendered-count');
+      listDiv.removeAttribute('data-rendered-key');
+      windowRenderState = { enabled:false, list:[], loadedCount:0, total:0 };
       try { scheduleFloatingUtilityUpdate(); } catch(_) {}
       return;
     }
@@ -30845,8 +30846,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var filteredMode = hasAnyTxnFilter();
     if (filteredMode) {
       // When any filter is active, render exact result set and hide load-more.
-      windowRenderState = { enabled:false, list:[], loadedCount:0, total:0, start:-1 };
-      listDiv.removeAttribute('data-vwindow-ready');
+      windowRenderState = { enabled:false, list:[], loadedCount:0, total:0 };
+      listDiv.removeAttribute('data-rendered-count');
+      listDiv.removeAttribute('data-rendered-key');
       if (cashflowSlot) {
         try { cashflowSlot.innerHTML = renderTransactionDailyCashflow(scoped); } catch(_) { cashflowSlot.innerHTML = ''; }
       }
@@ -30858,9 +30860,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       return;
     }
 
-    // No filters: progressive load by 20 with lightweight virtual window (5 above / 15 below).
+    // No filters: progressive load by 20; append-by-page rendering only (no per-scroll rerender).
     var loadedCount = Math.min(scoped.length, Math.max(PAGE, Number(txnVisibleLimit || PAGE)));
-    windowRenderState = { enabled:true, list:scoped, loadedCount:loadedCount, total:scoped.length, start:-1 };
+    windowRenderState = { enabled:true, list:scoped, loadedCount:loadedCount, total:scoped.length };
     renderUnfilteredWindow(listDiv, cashflowSlot, totals);
   };
   try { updateTxnPage = window.updateTxnPage; } catch(_) {}
@@ -30888,9 +30890,6 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
           return;
         }
       }
-      var loadedList = (windowRenderState.list || []).slice(0, Math.min(Number(windowRenderState.loadedCount || 0), (windowRenderState.list || []).length));
-      var totals = typeof renderTransactionTotals === 'function' ? renderTransactionTotals(loadedList) : '';
-      renderUnfilteredWindow(listDiv, document.getElementById('txn-cashflow-slot'), totals);
     });
   }
   window.addEventListener('scroll', onUnfilteredScroll, { passive:true });
@@ -30903,17 +30902,57 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   /* Manage banks/loans: use fade card opening instead of roller slide. */
   #bank-manager-sheet,
   #loan-manager-sheet {
-    transform: translateX(-50%) scale(.985) !important;
+    transform: translateX(-50%) translateY(0) scale(1) !important;
     opacity: 0;
     pointer-events: none;
-    transition: opacity .18s ease, transform .18s ease !important;
-    will-change: opacity, transform;
+    transition: opacity .16s ease !important;
+    will-change: opacity;
   }
   #bank-manager-sheet.open,
   #loan-manager-sheet.open {
-    transform: translateX(-50%) scale(1) !important;
+    transform: translateX(-50%) translateY(0) scale(1) !important;
     opacity: 1;
     pointer-events: auto;
+  }
+  #bank-manager-sheet .managed-bank-form,
+  #bank-manager-sheet .managed-bank-monthly-settings,
+  #loan-manager-sheet .loan-manager-form,
+  #loan-manager-sheet .managed-bank-form {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+</style>
+<style id="v285-amount-colors-balance-fix">
+  #page-overview-details .amount-income,
+  #page-overview-details .budget-status-value.amount-income,
+  #page-overview-details .stat-val.amount-income,
+  #page-txns .amount-income,
+  #page-txns .tx-amount.amount-income,
+  #page-txns .tx-amt-compact.amount-income,
+  #page-txns .daily-tx-amount.amount-income,
+  #page-txns .txn-total-values .amount-income,
+  #page-archive .amount-income,
+  #page-archive .daily-tx-amount.amount-income {
+    color: #00E5A0 !important;
+    -webkit-text-fill-color: #00E5A0 !important;
+  }
+  #page-overview-details .amount-expense,
+  #page-overview-details .budget-status-value.amount-expense,
+  #page-overview-details .stat-val.amount-expense,
+  #page-txns .amount-expense,
+  #page-txns .tx-amount.amount-expense,
+  #page-txns .tx-amt-compact.amount-expense,
+  #page-txns .daily-tx-amount.amount-expense,
+  #page-txns .txn-total-values .amount-expense,
+  #page-archive .amount-expense,
+  #page-archive .daily-tx-amount.amount-expense {
+    color: #E5005F !important;
+    -webkit-text-fill-color: #E5005F !important;
+  }
+  #page-overview-details .account-balance-row .account-balance-value.amount-income {
+    color: var(--text) !important;
+    -webkit-text-fill-color: var(--text) !important;
   }
 </style>
 <style id="v271-ios-pwa-overview-header-css">
