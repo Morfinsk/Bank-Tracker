@@ -3312,8 +3312,8 @@
     pointer-events: none;
     opacity: 0;
     transition: opacity .16s ease;
-    background: rgba(5, 11, 22, .16);
-    backdrop-filter: blur(1.5px);
+    background: var(--bg);
+    backdrop-filter: none;
   }
 
   .page-loading-overlay.show {
@@ -3324,10 +3324,20 @@
     width: 38px;
     height: 38px;
     border-radius: 999px;
-    border: 3px solid rgba(255, 255, 255, .22);
-    border-top-color: rgba(119, 224, 243, .95);
+    border: 3px solid rgba(255, 255, 255, .24);
+    border-top-color: rgba(119, 224, 243, .96);
     animation: pageLoaderSpin .8s linear infinite;
     box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
+  }
+
+  html[data-theme="light"] .page-loading-overlay {
+    background: #ffffff;
+  }
+
+  html[data-theme="light"] .page-loading-spinner {
+    border-color: rgba(15, 23, 42, .22);
+    border-top-color: #0f172a;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, .18);
   }
 
   @keyframes pageLoaderSpin {
@@ -8977,12 +8987,10 @@ function shiftOverviewMonth(delta) {
   if (requested > 0) {
     activeOverviewMonthOffset = 0;
     overviewMonthShiftInFlight = true;
-    showPageLoadingOverlayDelayed(0);
     requestAnimationFrame(() => {
       try { renderOverviewAfterMonthShift(); }
       finally {
         overviewMonthShiftInFlight = false;
-        requestAnimationFrame(() => window.setTimeout(hidePageLoadingOverlay, 80));
       }
     });
     return;
@@ -8991,12 +8999,10 @@ function shiftOverviewMonth(delta) {
   if (Number(delta || 0) < 0 && !hasTransactionsForMonth(targetMonth)) return;
   activeOverviewMonthOffset = requested;
   overviewMonthShiftInFlight = true;
-  showPageLoadingOverlayDelayed(0);
   requestAnimationFrame(() => {
     try { renderOverviewAfterMonthShift(); }
     finally {
       overviewMonthShiftInFlight = false;
-      requestAnimationFrame(() => window.setTimeout(hidePageLoadingOverlay, 80));
     }
   });
 }
@@ -10742,6 +10748,10 @@ function getKnownCardFilters() {
 function updateCardSourceFiltersUi() {
   const wrap = document.getElementById('card-source-filters');
   if (!wrap) return;
+  // v290: hide noisy card-source quick filters from UI (keeps main filters cleaner on mobile).
+  wrap.style.display = 'none';
+  wrap.innerHTML = '';
+  return;
   const activeKinds = String(activePaymentKind || 'all')
     .split(',')
     .map(v => String(v || '').trim())
@@ -12513,10 +12523,12 @@ function renderOverviewAfterMonthShift() {
   const sumDays = document.getElementById('sum-days');
   if (sumDays) sumDays.textContent = getDaysRemaining();
 
-  try { renderBudgetStatus(); } catch (e) { console.error('Budget status render failed:', e); }
-  try { renderAccountBalanceWidget(); } catch (e) { console.error('Account balance render failed:', e); }
-  try { renderBankCards(getTransactionsByBank(true, true)); } catch (e) { console.error('Bank cards render failed:', e); }
-  try { renderOverviewDashboard(); } catch (e) { console.error('Overview dashboard render failed:', e); }
+  requestAnimationFrame(() => {
+    try { renderBudgetStatus(); } catch (e) { console.error('Budget status render failed:', e); }
+    try { renderAccountBalanceWidget(); } catch (e) { console.error('Account balance render failed:', e); }
+    try { renderBankCards(getTransactionsByBank(true, true)); } catch (e) { console.error('Bank cards render failed:', e); }
+    try { renderOverviewDashboard(); } catch (e) { console.error('Overview dashboard render failed:', e); }
+  });
 
   // Keep currently visible pages consistent without forcing full app re-render.
   try {
@@ -13248,6 +13260,10 @@ function getDirectionFilterLabel(direction) {
 function updateTransactionFilterSummary() {
   const wrap = document.getElementById('txn-filter-summary');
   if (!wrap) return;
+  // v291: keep header clean - summary chips are intentionally hidden.
+  wrap.innerHTML = '';
+  wrap.style.display = 'none';
+  return;
   const chips = [];
   if (activeDateFrom || activeDateTo) chips.push(activeDateFrom && activeDateTo ? `${activeDateFrom}–${activeDateTo}` : (activeDateFrom || activeDateTo));
   if (activeDirection && activeDirection !== 'all') chips.push(getDirectionFilterLabel(activeDirection));
@@ -19736,7 +19752,7 @@ function warmStartupCachesDeferred() {
   }
 }
 
-window.addEventListener('DOMContentLoaded', async () => {
+window.addEventListener('DOMContentLoaded', () => {
   const hideStartupLoader = () => {
     try { if (typeof hidePageLoadingOverlay === 'function') hidePageLoadingOverlay(); } catch(_) {}
   };
@@ -19766,11 +19782,16 @@ window.addEventListener('DOMContentLoaded', async () => {
     warmStartupCachesDeferred();
 
     if (SHEETS_URL && isGoogleSheetsEnabled()) {
-      await syncData({ startupMode: true });
-      // syncData already renders fresh data; avoid extra heavy render pass.
-      prepareUiAfterDataLoad({ render: false });
-      warmStartupCachesDeferred();
-      startAutoSync();
+      // Run cloud sync after the first local paint so startup feels instant.
+      setTimeout(() => {
+        syncData({ startupMode: true }).then(() => {
+          prepareUiAfterDataLoad({ render: false });
+          warmStartupCachesDeferred();
+          startAutoSync();
+        }).catch((e) => {
+          console.warn('Startup background sync failed:', e);
+        });
+      }, 80);
     } else if (!SHEETS_URL) {
       const loadStatus = document.getElementById('limits-sync-status');
       if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
@@ -19778,7 +19799,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
   } finally {
     clearTimeout(loaderFailSafe);
-    requestAnimationFrame(() => setTimeout(hideStartupLoader, 140));
+    requestAnimationFrame(() => setTimeout(hideStartupLoader, 60));
   }
 });
 
@@ -31115,6 +31136,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   var windowRenderState = { enabled:false, list:[], loadedCount:0, total:0 };
   var scrollQueued = false;
   var lastAutoLoadAt = 0;
+  var lastTxnPageScrollTop = 0;
 
   function tSafe(key, fallback){
     try { return typeof t === 'function' ? t(key) : fallback; } catch(_) { return fallback; }
@@ -31346,24 +31368,33 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     scrollQueued = true;
     requestAnimationFrame(function(){
       scrollQueued = false;
+      var pageScrollTop = Number(page.scrollTop || 0);
+      var windowScrollTop = Number(window.scrollY || window.pageYOffset || 0);
+      var currentScrollTop = Math.max(pageScrollTop, windowScrollTop);
+      var scrollingDown = currentScrollTop > (lastTxnPageScrollTop + 1);
+      lastTxnPageScrollTop = currentScrollTop;
+      if (!scrollingDown) return;
       var loaded = Number(windowRenderState.loadedCount || 0);
       var totalLoaded = Number(windowRenderState.total || 0);
       if (loaded < totalLoaded) {
         var now = Date.now();
         var triggerReached = false;
         try {
-          // Mobile-friendly trigger: load next page when the "15th of current 20"
-          // (i.e. loaded-5) gets into view instead of loading on tiny scroll nudges.
+          // Human-visible trigger: when the last currently visible row reaches the bottom area,
+          // load +2 so scrolling stays continuous and predictable.
           var rows = listDiv.querySelectorAll('.tx-item');
-          var triggerIndex = Math.max(0, loaded - 5);
+          var triggerIndex = Math.max(0, loaded - 1);
           var triggerRow = rows && rows[triggerIndex];
           if (triggerRow) {
             var rect = triggerRow.getBoundingClientRect();
-            triggerReached = rect.top <= (window.innerHeight - 70);
+            var pageRect = page.getBoundingClientRect();
+            var visibleBottom = Math.min(window.innerHeight, Math.max(0, Math.round(pageRect.bottom)));
+            triggerReached = rect.bottom <= (visibleBottom + 8);
           }
         } catch(_) {}
         var nearPageBottom = (page.scrollTop + page.clientHeight) >= (page.scrollHeight - 180);
-        if ((triggerReached || nearPageBottom) && (now - lastAutoLoadAt) > 520) {
+        var nearWindowBottom = (window.innerHeight + windowScrollTop) >= (document.documentElement.scrollHeight - 160);
+        if ((triggerReached || nearPageBottom || nearWindowBottom) && (now - lastAutoLoadAt) > 140) {
           lastAutoLoadAt = now;
           txnVisibleLimit = Math.min(totalLoaded, Math.max(Number(txnVisibleLimit || PAGE), loaded, PAGE) + SCROLL_LOAD_STEP);
           try { window.updateTxnPage(); } catch(_) {}
@@ -31596,6 +31627,14 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       font-size: clamp(9px, 2.2vw, 10px) !important;
       letter-spacing: -0.02em !important;
     }
+  }
+</style>
+<style id="v290-hide-tx-noisy-filters-css">
+  /* Keep Transactions filter header clean: hide payment-kind row + card-source chips. */
+  #page-txns #payment-kind-filters,
+  #page-txns #card-source-filters,
+  #page-txns #txn-filter-summary {
+    display: none !important;
   }
 </style>
 </body>
