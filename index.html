@@ -9983,7 +9983,8 @@ async function syncArchivedTransactionsFromSheets(spreadsheetId) {
   }
 }
 
-async function syncData() {
+async function syncData(options = {}) {
+  const startupMode = !!(options && options.startupMode);
   clearCloudFirstLocalData();
   if (!isGoogleSheetsEnabled()) {
     console.log('Google Sheets disabled — showing last cached snapshot if available.');
@@ -10028,9 +10029,11 @@ async function syncData() {
     const cachedArchivedTxns = (allTransactions || []).filter(tx => tx && tx.archived);
     allTransactions = sortTransactionsNewestFirst(dedupeTransactionsForCloud([...activeTxns, ...cachedArchivedTxns]));
     saveCachedTransactionsSnapshot();
-    renderAll();
-    applyLanguage();
-    if (loadStatus) loadStatus.textContent = 'Aktuálne transakcie sa načítali. Archív sa doťahuje na pozadí...';
+    if (!startupMode) {
+      renderAll();
+      applyLanguage();
+      if (loadStatus) loadStatus.textContent = 'Aktuálne transakcie sa načítali. Archív sa doťahuje na pozadí...';
+    }
 
     const archivedTxns = await archivedTxnsPromise;
     allTransactions = sortTransactionsNewestFirst(dedupeTransactionsForCloud([...activeTxns, ...archivedTxns]));
@@ -14349,11 +14352,12 @@ function seedBankTrackerLocalTestData(force = false) {
   return true;
 }
 
-function prepareUiAfterDataLoad() {
+function prepareUiAfterDataLoad(options = {}) {
+  const shouldRender = !(options && options.render === false);
   ensureLimitsHistoryForLoadedTransactions();
   populateSimulatorLimitMonthDropdown(getAktuálneMonth());
   fillSimulatorLimitInputs(getAktuálneMonth());
-  renderAll();
+  if (shouldRender) renderAll();
 }
 
 let monthlyRepairTimer = null;
@@ -19657,34 +19661,65 @@ function setAppTheme(theme) {
 })();
 
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
-window.addEventListener('DOMContentLoaded', async () => {
-  applyAppTheme(getAppTheme());
-  clearDemoTransactionsCacheIfNeeded();
-  applyLanguage();
-  migrateCurrencyStorageToSymbols();
-  updateGoogleSheetsToggleUi();
-
-  // Instant startup: render the last cached Google Sheets snapshot and balances first,
-  // then refresh from Google Sheets in the background. Google Sheets remains the master after sync.
-  clearCloudFirstLocalData();
-  loadCachedTransactionsSnapshot();
-  try {
-    if (!SHEETS_URL && isLocalTestDataHost()) seedBankTrackerLocalTestData(true);
-  } catch (e) {
-    document.documentElement.setAttribute('data-local-test-seed', 'error');
-    document.documentElement.setAttribute('data-local-test-seed-error', String(e && e.message ? e.message : e));
-    console.error('Local test data seed failed:', e);
+let startupWarmCachesDone = false;
+function warmStartupCachesDeferred() {
+  if (startupWarmCachesDone) return;
+  startupWarmCachesDone = true;
+  const run = () => {
+    try { saveCachedTransactionsSnapshot(); } catch(_) {}
+    try { rebuildLocalArchiveStatsFromTransactions(); } catch(_) {}
+    try { renderArchiveTrendChart(); } catch(_) {}
+  };
+  if (typeof window.requestIdleCallback === 'function') {
+    requestIdleCallback(() => run(), { timeout: 1200 });
+  } else {
+    setTimeout(run, 260);
   }
-  prepareUiAfterDataLoad();
-  if (SHEETS_URL && isGoogleSheetsEnabled()) {
-    syncData().then(() => {
-      prepareUiAfterDataLoad();
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  const hideStartupLoader = () => {
+    try { if (typeof hidePageLoadingOverlay === 'function') hidePageLoadingOverlay(); } catch(_) {}
+  };
+  try { if (typeof showPageLoadingOverlayDelayed === 'function') showPageLoadingOverlayDelayed(0); } catch(_) {}
+  const loaderFailSafe = setTimeout(hideStartupLoader, 9000);
+
+  try {
+    applyAppTheme(getAppTheme());
+    clearDemoTransactionsCacheIfNeeded();
+    applyLanguage();
+    migrateCurrencyStorageToSymbols();
+    updateGoogleSheetsToggleUi();
+
+    // Instant startup: render the last cached Google Sheets snapshot and balances first,
+    // then refresh from Google Sheets in the background. Google Sheets remains the master after sync.
+    clearCloudFirstLocalData();
+    loadCachedTransactionsSnapshot();
+    try {
+      if (!SHEETS_URL && isLocalTestDataHost()) seedBankTrackerLocalTestData(true);
+    } catch (e) {
+      document.documentElement.setAttribute('data-local-test-seed', 'error');
+      document.documentElement.setAttribute('data-local-test-seed-error', String(e && e.message ? e.message : e));
+      console.error('Local test data seed failed:', e);
+    }
+
+    prepareUiAfterDataLoad();
+    warmStartupCachesDeferred();
+
+    if (SHEETS_URL && isGoogleSheetsEnabled()) {
+      await syncData({ startupMode: true });
+      // syncData already renders fresh data; avoid extra heavy render pass.
+      prepareUiAfterDataLoad({ render: false });
+      warmStartupCachesDeferred();
       startAutoSync();
-    });
-  } else if (!SHEETS_URL) {
-    const loadStatus = document.getElementById('limits-sync-status');
-    if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
-    console.warn('Google Sheets sync skipped on startup: missing sheets_url for this origin.');
+    } else if (!SHEETS_URL) {
+      const loadStatus = document.getElementById('limits-sync-status');
+      if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
+      console.warn('Google Sheets sync skipped on startup: missing sheets_url for this origin.');
+    }
+  } finally {
+    clearTimeout(loaderFailSafe);
+    requestAnimationFrame(() => setTimeout(hideStartupLoader, 140));
   }
 });
 
@@ -31017,6 +31052,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
 (function(){
   'use strict';
   var PAGE = 20;
+  var SCROLL_LOAD_STEP = 2;
   var windowRenderState = { enabled:false, list:[], loadedCount:0, total:0 };
   var scrollQueued = false;
   var lastAutoLoadAt = 0;
@@ -31123,7 +31159,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
 
   window.resetTxnVisibleLimit = function(){ txnVisibleLimit = PAGE; };
   window.showMoreTransactions = function(){
-    txnVisibleLimit = Math.max(Number(txnVisibleLimit || 0), PAGE) + PAGE;
+    txnVisibleLimit = Math.max(Number(txnVisibleLimit || 0), PAGE) + SCROLL_LOAD_STEP;
     try { window.updateTxnPage(true); } catch(_) {}
   };
   window.renderShowMoreTransactionsButton = function(visibleCount, totalCount){
@@ -31234,7 +31270,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       return;
     }
 
-    // No filters: progressive load by 20; append-by-page rendering only (no per-scroll rerender).
+    // No filters: start with first 20, then tiny smooth scroll batches.
     var loadedCount = Math.min(scoped.length, Math.max(PAGE, Number(txnVisibleLimit || PAGE)));
     windowRenderState = { enabled:true, list:scoped, loadedCount:loadedCount, total:scoped.length };
     renderUnfilteredWindow(listDiv, cashflowSlot, totals);
@@ -31268,9 +31304,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
           }
         } catch(_) {}
         var nearPageBottom = (page.scrollTop + page.clientHeight) >= (page.scrollHeight - 180);
-        if ((triggerReached || nearPageBottom) && (now - lastAutoLoadAt) > 320) {
+        if ((triggerReached || nearPageBottom) && (now - lastAutoLoadAt) > 520) {
           lastAutoLoadAt = now;
-          txnVisibleLimit = Math.min(totalLoaded, Math.max(Number(txnVisibleLimit || PAGE), loaded, PAGE) + PAGE);
+          txnVisibleLimit = Math.min(totalLoaded, Math.max(Number(txnVisibleLimit || PAGE), loaded, PAGE) + SCROLL_LOAD_STEP);
           try { window.updateTxnPage(); } catch(_) {}
           return;
         }
@@ -31476,6 +31512,30 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     }
     html.pwa-standalone.ios-device .header:not(.overview-header-v236) {
       padding-top: calc(env(safe-area-inset-top) + 12px) !important;
+    }
+  }
+</style>
+<style id="v289-archive-mobile-cell-fit-css">
+  @media (max-width: 820px) {
+    #page-archive .archive-bank-spent-header,
+    #page-archive .archive-bank-spent-row {
+      grid-template-columns: minmax(82px, .82fr) minmax(92px, .92fr) minmax(92px, .92fr) !important;
+      gap: 6px !important;
+    }
+    #page-archive .archive-bank-spent-cell,
+    #page-archive .archive-bank-income-cell {
+      box-sizing: border-box !important;
+      padding-right: 10px !important;
+      font-size: clamp(11px, 2.9vw, 12.2px) !important;
+      letter-spacing: -0.035em !important;
+      overflow: hidden !important;
+      text-overflow: clip !important;
+      white-space: nowrap !important;
+    }
+    #page-archive .archive-bank-spent-cell .archive-bank-czk-equivalent,
+    #page-archive .archive-bank-income-cell .archive-bank-czk-equivalent {
+      font-size: clamp(9px, 2.2vw, 10px) !important;
+      letter-spacing: -0.02em !important;
     }
   }
 </style>
