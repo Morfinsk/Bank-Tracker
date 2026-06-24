@@ -8400,6 +8400,7 @@ html[data-theme="light"] body::before {
 <div id="bank-manager-sheet" class="bottom-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title-row">
+    <button class="sheet-close manager-sheet-back-btn" type="button" onclick="closeBottomSheets()" aria-label="Back">←</button>
     <div class="sheet-title" data-i18n="manageBanks">Manage banks</div>
     <button class="sheet-close" onclick="closeBottomSheets()">×</button>
   </div>
@@ -8562,6 +8563,9 @@ html[data-theme="light"] body::before {
 
     <button class="mini-action-btn" onclick="openAddBankFromQuick()">
       <span data-i18n="addBank">Add bank</span><small data-i18n="addBankHint">Add a new bank, currency, budget and card limit.</small>
+    </button>
+    <button class="mini-action-btn" onclick="openAddLoanFromQuick()">
+      <span data-i18n="addLoan">Add loan</span><small data-i18n="addLoanHint">Create a new loan/mortgage account.</small>
     </button>
   </div>
 </div>
@@ -13892,16 +13896,16 @@ function showPage(pageId, options = {}) {
     targetPage.classList.add('active');
 
     requestAnimationFrame(() => {
-      targetPage.classList.add('page-tab-fade');
+      targetPage.classList.add('page-light-switch');
       window.setTimeout(() => {
-        targetPage.classList.remove('page-tab-fade');
-      }, 150);
+        targetPage.classList.remove('page-light-switch');
+      }, 240);
     });
   }
 
   if (targetNav) {
     targetNav.classList.add('active', 'tab-just-activated');
-    window.setTimeout(() => targetNav.classList.remove('tab-just-activated'), 140);
+    window.setTimeout(() => targetNav.classList.remove('tab-just-activated'), 260);
   }
 
   if (shouldPushHistory) {
@@ -14801,6 +14805,10 @@ function initBottomSheetDragToClose() {
     const canTrack = (event) => {
       if (!sheet.classList.contains('open')) return false;
       if (isInteractiveTarget(event.target)) return false;
+      if (sheet.id === 'bank-manager-sheet' || sheet.id === 'loan-manager-sheet') {
+        // Manage sheets behave like full cards; disable pull-down sheet dragging.
+        return false;
+      }
 
       // v11: Upgrade has heavy scrollable content. Keep drag-to-close enabled,
       // but only from the handle/header so normal scrolling cannot fight the sheet drag.
@@ -15394,6 +15402,13 @@ function openAddBankFromQuick() {
   setTimeout(() => openAddBankSheet(), 80);
 }
 
+function openAddLoanFromQuick() {
+  closeBottomSheets();
+  setTimeout(() => {
+    if (typeof openLoanManagerSheet === 'function') openLoanManagerSheet({ showAddCard: true });
+  }, 90);
+}
+
 function openAddBankSheet(){initCurrencyDropdowns();openSheet('add-bank-sheet')}
 
 function toDateInputValue(dateObj = new Date()) {
@@ -15620,6 +15635,11 @@ function renderBankManager(){
       </div>
 
       <div class="managed-bank-form">
+        <div class="manager-editor-toolbar">
+          <button class="sheet-close manager-sheet-back-btn" type="button" onclick="toggleBankEdit('${b.id}')" aria-label="Back">←</button>
+          <div class="manager-editor-title">Edit bank</div>
+          <button class="sheet-close" type="button" onclick="closeBottomSheets()" aria-label="Close">×</button>
+        </div>
         <label>${t('bankName')}</label>
         <div class="save-field-wrap">
           <input class="config-input" id="edit-name-${b.id}" value="${escapeAttr(b.name)}" placeholder="${t('bankName')}" oninput="scheduleManagedBankDetailAutoSave('${b.id}', 'name')" onchange="scheduleManagedBankDetailAutoSave('${b.id}', 'name', true)" />
@@ -16878,6 +16898,8 @@ const I18N = {
     addTransactionHint: 'Manually add a new payment or income.',
     addBank: 'Add bank',
     addBankHint: 'Add a new bank, currency, budget and card limit.',
+    addLoan: 'Add loan',
+    addLoanHint: 'Create a new loan/mortgage account.',
     completed: 'Completed',
     notCompleted: 'Missed',
     missingCurrent: 'Missing',
@@ -17148,6 +17170,8 @@ const I18N = {
     addTransactionHint: 'Manuálne zadaj novú platbu alebo príjem.',
     addBank: 'Pridať banku',
     addBankHint: 'Pridaj novú banku, menu, budget a limit karty.',
+    addLoan: 'Pridať úver',
+    addLoanHint: 'Vytvor nový úver/hypotéku.',
     completed: 'splnené',
     notCompleted: 'nesplnené',
     missingCurrent: 'chýba',
@@ -17411,6 +17435,8 @@ const I18N = {
     addTransactionHint: 'Ručně zadej novou platbu nebo příjem.',
     addBank: 'Přidat banku',
     addBankHint: 'Přidej novou banku, měnu, budget a limit karty.',
+    addLoan: 'Přidat úvěr',
+    addLoanHint: 'Vytvoř nový úvěr/hypotéku.',
     completed: 'splněno',
     notCompleted: 'nesplněno',
     missingCurrent: 'chybí',
@@ -18489,6 +18515,34 @@ async function endpointMutationRequest(action, payload = {}, timeoutMs = 15000) 
   return jsonpResult.ok ? jsonpResult : postResult;
 }
 
+let parserRunQueueTimer = null;
+let parserRunInFlight = false;
+let parserRunLastStartAt = 0;
+
+function queueParserRunAfterMutation(reason) {
+  if (!isGoogleSheetsEnabled()) return;
+  if (parserRunQueueTimer) clearTimeout(parserRunQueueTimer);
+  parserRunQueueTimer = setTimeout(async () => {
+    parserRunQueueTimer = null;
+    const now = Date.now();
+    if (parserRunInFlight) return;
+    if ((now - Number(parserRunLastStartAt || 0)) < 12000) return;
+    parserRunInFlight = true;
+    parserRunLastStartAt = now;
+    try {
+      await endpointMutationRequest('runParser', {
+        source: 'app_mutation',
+        reason: String(reason || 'save'),
+        requestedAt: new Date().toISOString()
+      }, 65000);
+    } catch (_) {
+      // Fire-and-forget parser trigger should never block UI flows.
+    } finally {
+      parserRunInFlight = false;
+    }
+  }, 700);
+}
+
 function getEndpointStatusMessage(action, state) {
   const labels = {
     saveToken: {
@@ -18615,6 +18669,9 @@ async function postToBankTrackerEndpoint(action, payload = {}) {
   if (result.ok) {
     if (status) status.textContent = getEndpointStatusMessage(action, 'success');
     console.log('Google Sheets save OK:', action, result.data);
+    if (action === 'saveTransaction' || action === 'saveBank' || action === 'saveLoan') {
+      queueParserRunAfterMutation(action);
+    }
     return true;
   }
 
@@ -29190,14 +29247,13 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       sheet = document.createElement('div');
       sheet.id = 'loan-manager-sheet';
       sheet.className = 'bottom-sheet';
-      sheet.innerHTML = '<div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title">Manage loans</div><button class="sheet-close" onclick="closeBottomSheets()">x</button></div><div class="loan-manager-add-card"></div><div id="loan-manager-list"></div>';
+      sheet.innerHTML = '<div class="sheet-handle"></div><div class="sheet-title-row"><button class="sheet-close manager-sheet-back-btn" type="button" onclick="closeBottomSheets()" aria-label="Back">←</button><div class="sheet-title">Manage loans</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div><div class="loan-manager-add-card"></div><div id="loan-manager-list"></div>';
       document.body.appendChild(sheet);
     }
     var add = sheet.querySelector('.loan-manager-add-card');
     if (add && !byId('new-loan-account-v262')) {
       add.innerHTML = '<div class="loan-manager-add-title">Add loan</div>'
-        + '<button class="config-save" type="button" onclick="toggleLoanAddFormV262()" id="loan-manager-add-toggle-v262">Add loan</button>'
-        + '<div class="loan-manager-add-fields" id="loan-manager-add-fields-v262" style="display:none;">'
+        + '<div class="loan-manager-add-fields" id="loan-manager-add-fields-v262" style="display:block;">'
         + '<label>Loan name</label><input class="config-input" id="new-loan-name" placeholder="Mortgage / Car loan">'
         + '<div class="loan-form-grid-v262"><div><label>Type</label><select class="config-input" id="new-loan-type"><option value="loan">Loan</option><option value="mortgage">Mortgage</option></select></div><div><label>Currency</label><select class="config-input" id="new-loan-currency">' + currencyOptions('CZK') + '</select></div></div>'
         + '<div class="loan-form-grid-v262"><div><label>Linked bank</label><select class="config-input" id="new-loan-bank">' + bankOptions('') + '</select></div><div><label>Account</label><input class="config-input" id="new-loan-account-v262" placeholder="123456789/5500"></div></div>'
@@ -29253,6 +29309,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
         + '<div class="loan-manager-actions"><button class="icon-action-btn edit" type="button" onclick="toggleLoanEditV262(\'' + attr(loan.id) + '\')">...</button><button class="icon-action-btn delete" type="button" onclick="deleteLoanV262(\'' + attr(loan.id) + '\')">x</button></div></div>'
         + '<div class="loan-manager-progress"><div class="loan-manager-progress-row"><span>' + Math.round(pct) + '% paid</span><span>Target 0</span></div><div class="loan-manager-track"><div class="loan-manager-fill" style="width:' + pct.toFixed(1) + '%"></div></div></div>'
         + '<div class="managed-bank-form" id="loan-edit-' + attr(safe) + '">'
+        + '<div class="manager-editor-toolbar"><button class="sheet-close manager-sheet-back-btn" type="button" onclick="toggleLoanEditV262(\'' + attr(loan.id) + '\')" aria-label="Back">←</button><div class="manager-editor-title">Edit loan</div><button class="sheet-close" type="button" onclick="closeBottomSheets()" aria-label="Close">×</button></div>'
         + sheetDetailsHtml(loan)
         + '<label>Loan name</label><input class="config-input" id="loan-name-' + attr(safe) + '" value="' + attr(loan.name) + '">'
         + '<div class="loan-form-grid-v262"><div><label>Type</label><select class="config-input" id="loan-type-' + attr(safe) + '"><option value="loan"' + (loan.type === 'loan' ? ' selected' : '') + '>Loan</option><option value="mortgage"' + (loan.type === 'mortgage' ? ' selected' : '') + '>Mortgage</option></select></div><div><label>Currency</label><select class="config-input" id="loan-currency-' + attr(safe) + '">' + currencyOptions(loan.currency) + '</select></div></div>'
@@ -29281,10 +29338,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     }
     if (shouldOpen) {
       row.classList.add('open');
-      var fields = byId('loan-manager-add-fields-v262');
-      var toggle = byId('loan-manager-add-toggle-v262');
-      if (fields) fields.style.display = 'none';
-      if (toggle) toggle.textContent = 'Add loan';
+      setLoanAddCardVisibility(false);
     }
   };
   window.toggleLoanAddFormV262 = function(){
@@ -29306,6 +29360,12 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     fields.style.display = 'none';
     if (toggle) toggle.textContent = 'Add loan';
   };
+  function setLoanAddCardVisibility(show){
+    var addCard = byId('loan-manager-sheet') && byId('loan-manager-sheet').querySelector('.loan-manager-add-card');
+    var addFields = byId('loan-manager-add-fields-v262');
+    if (addCard) addCard.style.display = show ? 'grid' : 'none';
+    if (addFields) addFields.style.display = show ? 'block' : 'none';
+  }
   window.saveNewLoanFromManager = async function(){
     ensureLoanManagerDom();
     var loan = loanFromForm('new-loan-', '', null);
@@ -29314,10 +29374,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var saved = upsertLoan(loan);
     try { await saveLoanEndpoint(saved); } catch(e) { console.warn('saveLoan failed', e); }
     ['new-loan-name','new-loan-original','new-loan-current','new-loan-payment','new-loan-rate','new-loan-period','new-loan-fixation','new-loan-vs','new-loan-text','new-loan-account-v262'].forEach(function(id){ var el = byId(id); if (el) el.value = ''; });
-    var addFields = byId('loan-manager-add-fields-v262');
-    var addToggle = byId('loan-manager-add-toggle-v262');
-    if (addFields) addFields.style.display = 'none';
-    if (addToggle) addToggle.textContent = 'Add loan';
+    setLoanAddCardVisibility(false);
     window.renderLoanManager();
     try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
     try { if (typeof renderAll === 'function') renderAll(); } catch(_) {}
@@ -29362,10 +29419,18 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
     try { if (typeof renderAll === 'function') renderAll(); } catch(_) {}
   };
-  window.openLoanManagerSheet = function(){
+  window.openLoanManagerSheet = function(options){
+    options = options || {};
     ensureLoanManagerDom();
     window.renderLoanManager();
     if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
+    setLoanAddCardVisibility(!!options.showAddCard);
+    if (options.showAddCard) {
+      var focusTarget = byId('new-loan-name');
+      if (focusTarget && typeof focusTarget.focus === 'function') {
+        setTimeout(function(){ try { focusTarget.focus(); } catch(_) {} }, 80);
+      }
+    }
     var status = byId('loan-save-status-v254') || byId('limits-sync-status');
     if (status) status.textContent = 'Loading loans from Google Sheets...';
     syncLoansNow(true).then(function(ok){
@@ -31002,16 +31067,13 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   }
 </style>
 <style id="v286-mobile-tab-fade-performance-css">
-  /* Mobile performance: tab switch should be pure fade, without slide/scale. */
-  .page.active.page-tab-fade,
-  .page.active.page-light-switch {
-    animation: tabSwitchFadeOnly .14s ease-out !important;
-    will-change: opacity !important;
+  /* Match v250 tab fade behavior and keep slide classes disabled. */
+  .page.active.page-slide-in-right,
+  .page.active.page-slide-in-left,
+  .page.swipe-peeking {
+    animation: none !important;
+    transition: none !important;
     transform: none !important;
-  }
-  @keyframes tabSwitchFadeOnly {
-    from { opacity: .72; }
-    to { opacity: 1; }
   }
   .nav-item.tab-just-activated .nav-icon,
   .nav-item.active .nav-icon {
@@ -31025,6 +31087,94 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   }
   .nav-item:active {
     transform: none !important;
+  }
+</style>
+<style id="v287-manager-card-mobile-ux-css">
+  .manager-sheet-back-btn {
+    margin-right: 6px;
+    font-size: 17px;
+    line-height: 1;
+    font-weight: 900;
+  }
+  #bank-manager-sheet .sheet-handle,
+  #loan-manager-sheet .sheet-handle {
+    display: none !important;
+  }
+  #bank-manager-sheet .sheet-title-row,
+  #loan-manager-sheet .sheet-title-row {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: inherit;
+    padding-top: 6px;
+  }
+  #bank-manager-sheet .managed-bank-monthly-settings {
+    animation: none !important;
+  }
+  /* Open editor as a separate card instead of row slide/accordion. */
+  #bank-manager-sheet .managed-bank-row.open .managed-bank-form,
+  #loan-manager-sheet .loan-manager-card.open .managed-bank-form {
+    position: fixed !important;
+    left: 50% !important;
+    top: 54% !important;
+    transform: translate(-50%, -50%) !important;
+    width: min(94vw, 430px) !important;
+    max-height: 78vh !important;
+    overflow: auto !important;
+    z-index: 380 !important;
+    border: 1px solid rgba(88,166,255,.26) !important;
+    border-radius: 18px !important;
+    padding: 14px !important;
+    background: rgba(8,17,35,.97) !important;
+    box-shadow: 0 18px 55px rgba(0,0,0,.48) !important;
+    margin-top: 0 !important;
+  }
+  html[data-theme="light"] #bank-manager-sheet .managed-bank-row.open .managed-bank-form,
+  html[data-theme="light"] #loan-manager-sheet .loan-manager-card.open .managed-bank-form {
+    background: rgba(248,250,252,.98) !important;
+    border-color: rgba(37,99,235,.22) !important;
+  }
+  #bank-manager-sheet .managed-bank-form .manager-editor-toolbar,
+  #loan-manager-sheet .managed-bank-form .manager-editor-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -6px -2px 12px;
+    padding: 0 2px 8px;
+    background: inherit;
+  }
+  #bank-manager-sheet .managed-bank-form .manager-editor-toolbar .sheet-close,
+  #loan-manager-sheet .managed-bank-form .manager-editor-toolbar .sheet-close {
+    width: 30px;
+    height: 30px;
+  }
+  #bank-manager-sheet .managed-bank-form .manager-editor-toolbar .manager-editor-title,
+  #loan-manager-sheet .managed-bank-form .manager-editor-toolbar .manager-editor-title {
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+</style>
+<style id="v288-mobile-danger-color-lock-css">
+  html,
+  html[data-theme="light"],
+  html[data-theme="dark"] {
+    --danger: #E5005F !important;
+  }
+  .amount-expense,
+  .tx-amount.amount-expense,
+  .tx-amt-compact.amount-expense,
+  .daily-tx-amount.amount-expense,
+  .budget-status-value.amount-expense,
+  .stat-val.amount-expense,
+  .txn-total-values .amount-expense {
+    color: #E5005F !important;
+    -webkit-text-fill-color: #E5005F !important;
   }
 </style>
 <style id="v271-ios-pwa-overview-header-css">
