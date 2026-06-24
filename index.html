@@ -819,7 +819,7 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=274">
+<link rel="manifest" href="./manifest.json?v=284">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -6253,8 +6253,8 @@
 
   .page.active.page-light-switch,
   .page.active.page-tab-fade {
-    animation-duration: .38s !important;
-    animation-timing-function: cubic-bezier(.22, .70, .18, 1) !important;
+    animation-duration: .22s !important;
+    animation-timing-function: ease-out !important;
   }
 
   .fab {
@@ -8959,6 +8959,7 @@ function getCardColor(used, limit) {
 }
 
 let activeOverviewMonthOffset = 0;
+let overviewMonthShiftInFlight = false;
 
 function getAktuálneMonth() {
   const now = new Date();
@@ -8971,24 +8972,33 @@ function hasTransactionsForMonth(monthStr) {
 }
 
 function shiftOverviewMonth(delta) {
+  if (overviewMonthShiftInFlight) return;
   const requested = activeOverviewMonthOffset + Number(delta || 0);
   if (requested > 0) {
     activeOverviewMonthOffset = 0;
-    showPageLoadingOverlayDelayed(90);
-    window.setTimeout(() => {
-      renderAll();
-      requestAnimationFrame(() => window.setTimeout(hidePageLoadingOverlay, 120));
-    }, 0);
+    overviewMonthShiftInFlight = true;
+    showPageLoadingOverlayDelayed(0);
+    requestAnimationFrame(() => {
+      try { renderOverviewAfterMonthShift(); }
+      finally {
+        overviewMonthShiftInFlight = false;
+        requestAnimationFrame(() => window.setTimeout(hidePageLoadingOverlay, 80));
+      }
+    });
     return;
   }
   const targetMonth = addMonthsToMonthStr(getAktuálneMonth(), Number(delta || 0));
   if (Number(delta || 0) < 0 && !hasTransactionsForMonth(targetMonth)) return;
   activeOverviewMonthOffset = requested;
-  showPageLoadingOverlayDelayed(90);
-  window.setTimeout(() => {
-    renderAll();
-    requestAnimationFrame(() => window.setTimeout(hidePageLoadingOverlay, 120));
-  }, 0);
+  overviewMonthShiftInFlight = true;
+  showPageLoadingOverlayDelayed(0);
+  requestAnimationFrame(() => {
+    try { renderOverviewAfterMonthShift(); }
+    finally {
+      overviewMonthShiftInFlight = false;
+      requestAnimationFrame(() => window.setTimeout(hidePageLoadingOverlay, 80));
+    }
+  });
 }
 
 function updateOverviewMonthNavState() {
@@ -11228,6 +11238,15 @@ function renderBudgetStatus() {
   const wrap = document.getElementById('budget-status');
   if (!wrap) return;
 
+  function getBudgetPercentColor(pctRaw) {
+    const pct = Math.max(0, Math.min(100, Number(pctRaw || 0)));
+    if (pct >= 100) return '#E5005F'; // red
+    if (pct >= 76) return '#FF8A3D';  // strong orange
+    if (pct >= 51) return '#FFB86B';  // orange
+    if (pct >= 26) return '#FFE033';  // yellow
+    return '#72F0C8';                 // green
+  }
+
   const rows = BANK_ORDER
     .filter(bankKey => bankKey !== 'csob_cz_credit')
     .map(bankKey => {
@@ -11253,7 +11272,7 @@ function renderBudgetStatus() {
     const remaining = Math.max(budget - spent, 0);
     const pct = Math.min(spent / budget, 1) * 100;
     const status = remaining <= 0 ? t('overBudget') : (warning && remaining <= warning ? t('nearLimit') : t('normal'));
-    const statusColor = remaining <= 0 ? 'var(--danger)' : (warning && remaining <= warning ? 'var(--warn)' : 'var(--ok)');
+    const statusColor = getBudgetPercentColor(pct);
 
     maybeSendBudgetLocalNotification(bankKey, plainBankName(bankKey), spent, budget, remaining, warning);
 
@@ -12469,6 +12488,46 @@ function openOverviewDetailsSection(anchorId = '') {
 
 function closeOverviewDetails() {
   showPage('overview');
+}
+
+function renderOverviewAfterMonthShift() {
+  const month = getAktuálneMonth();
+  const monthAllTxns = allTransactions.filter(t => normalizeMonthStr(t.month) === normalizeMonthStr(month));
+
+  const headerMonth = document.getElementById('header-month');
+  if (headerMonth) headerMonth.textContent = getMonthLabel();
+  updateOverviewMonthNavState();
+  updateUpgradePlanStatus();
+
+  const txnMonthLabel = document.getElementById('txn-month');
+  if (txnMonthLabel) txnMonthLabel.textContent = getMonthLabel();
+  const txnAktuálneDate = document.getElementById('txn-current-date');
+  if (txnAktuálneDate) txnAktuálneDate.textContent = `${t('todayPrefix')}: ${formatDate(new Date())}`;
+
+  const archiveMonthSpent = getArchiveMonthSpentTotalCzk(month);
+  const totalMonthSpent = archiveMonthSpent;
+  const sumTxns = document.getElementById('sum-txns');
+  if (sumTxns) sumTxns.textContent = monthAllTxns.length;
+  const sumAmount = document.getElementById('sum-amount');
+  if (sumAmount) sumAmount.textContent = Math.round(totalMonthSpent).toLocaleString('cs');
+  const sumDays = document.getElementById('sum-days');
+  if (sumDays) sumDays.textContent = getDaysRemaining();
+
+  try { renderBudgetStatus(); } catch (e) { console.error('Budget status render failed:', e); }
+  try { renderAccountBalanceWidget(); } catch (e) { console.error('Account balance render failed:', e); }
+  try { renderBankCards(getTransactionsByBank(true, true)); } catch (e) { console.error('Bank cards render failed:', e); }
+  try { renderOverviewDashboard(); } catch (e) { console.error('Overview dashboard render failed:', e); }
+
+  // Keep currently visible pages consistent without forcing full app re-render.
+  try {
+    if (activePageId === 'txns') {
+      updateTxnPage();
+    } else if (activePageId === 'archive') {
+      renderArchive();
+      renderArchiveTrendChart();
+    }
+  } catch (_) {}
+  try { scheduleFloatingUtilityUpdate(); } catch(_) {}
 }
 
 function renderAll() {
@@ -13994,7 +14053,7 @@ function showPage(pageId, options = {}) {
   const fromHistory = !!(options && options.fromHistory);
   const shouldPushHistory = !fromHistory && window.__bankTrackerTabHistoryReady && activePageId !== pageId;
   const shouldShowLoader = activePageId !== pageId;
-  if (shouldShowLoader) showPageLoadingOverlayDelayed(95);
+  if (shouldShowLoader) showPageLoadingOverlayDelayed(180);
 
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active', 'page-slide-in-right', 'page-slide-in-left', 'swipe-peeking', 'page-tab-fade', 'page-light-switch');
@@ -14013,13 +14072,13 @@ function showPage(pageId, options = {}) {
       targetPage.classList.add('page-light-switch');
       window.setTimeout(() => {
         targetPage.classList.remove('page-light-switch');
-      }, 420);
+      }, 240);
     });
   }
 
   if (targetNav) {
     targetNav.classList.add('active', 'tab-just-activated');
-    window.setTimeout(() => targetNav.classList.remove('tab-just-activated'), 420);
+    window.setTimeout(() => targetNav.classList.remove('tab-just-activated'), 240);
   }
 
   if (shouldPushHistory) {
