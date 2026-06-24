@@ -10224,6 +10224,7 @@ async function syncData(options = {}) {
   } finally {
     if (btn) btn.classList.remove('spinning');
     isSyncing = false;
+    try { recomputeAccountBalancesForLoadedMonths(); } catch (e) { console.warn('Account balance recompute after sync failed:', e); }
     renderAll();
     applyLanguage();
     markCloudSyncCompleted();
@@ -10598,11 +10599,15 @@ async function deleteSingleTransaction(txId) {
   // response; remove locally immediately and let Google Sheets sync finish in background.
   showTopWorkingToast('Deleting...');
 
+  const affectedMonths = new Set();
+  if (tx?.month) affectedMonths.add(normalizeMonthStr(tx.month));
+
   if (tx) {
-    applyLocalAccountBalanceFromTransaction(tx, -1);
     applyLocalArchiveStatsFromTransaction(tx, -1);
+    seedAccountBalanceBasesForMonth(tx.month || getAktuálneMonth());
   }
   allTransactions = allTransactions.filter(t => String(t.id || t.msgId || t.emailId || '') !== targetId && String(t.msgId || t.emailId || t.id || '') !== sheetId);
+  affectedMonths.forEach(month => recomputeAccountBalancesForMonth(month));
   saveCachedTransactionsSnapshot();
   renderAll();
 
@@ -11485,7 +11490,8 @@ function getAccountBalance(bankKey, monthStr = getAktuálneMonth()) {
 }
 
 function setAccountBalance(bankKey, value, monthStr = getAktuálneMonth()) {
-  const amount = Number(value || 0) || 0;
+  const parsed = Number(value);
+  const amount = Number.isFinite(parsed) ? parsed : 0;
   const month = normalizeMonthStr(monthStr || getAktuálneMonth());
   localStorage.setItem(getAccountBalanceStorageKey(bankKey, month), String(amount));
 
@@ -11501,6 +11507,116 @@ function setAccountBalance(bankKey, value, monthStr = getAktuálneMonth()) {
     }
     localStorage.setItem(getAccountBalanceStorageKey(bankKey), String(amount));
   }
+}
+
+function getAccountBalanceBaseStorageKey(bankKey, monthStr = getAktuálneMonth()) {
+  return 'bank_account_balance_base_' + String(bankKey || '').trim() + '_' + normalizeMonthStr(monthStr || getAktuálneMonth());
+}
+
+function getAccountBalanceBase(bankKey, monthStr = getAktuálneMonth()) {
+  const raw = localStorage.getItem(getAccountBalanceBaseStorageKey(bankKey, monthStr));
+  if (raw === null) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function setAccountBalanceBase(bankKey, monthStr, value) {
+  const parsed = Number(value);
+  const amount = Number.isFinite(parsed) ? parsed : 0;
+  localStorage.setItem(getAccountBalanceBaseStorageKey(bankKey, monthStr), String(amount));
+}
+
+function getTransactionBalanceDeltaForBank(bankKey, tx) {
+  const amount = Number(tx?.amount || 0);
+  if (!tx || !Number.isFinite(amount) || amount === 0) return 0;
+
+  if (isCsobCzCreditCardRepaymentTx(tx)) {
+    if (bankKey === 'csob_cz' || bankKey === 'csob_cz_credit') {
+      return canApplyBalanceDeltaForTx(bankKey, tx) ? amount : 0;
+    }
+    return 0;
+  }
+
+  if (isCsobCzCreditCardBalanceTx(tx)) {
+    if (bankKey === 'csob_cz_credit') {
+      return canApplyBalanceDeltaForTx(bankKey, tx) ? -amount : 0;
+    }
+    return 0;
+  }
+
+  if (getBankKey(tx) !== bankKey) return 0;
+  if (!canApplyBalanceDeltaForTx(bankKey, tx)) return 0;
+  return amount;
+}
+
+function sumTransactionBalanceDeltasForBank(bankKey, monthStr, txList = allTransactions) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  return (txList || []).reduce((sum, tx) => {
+    if (!tx || normalizeMonthStr(tx.month) !== month) return sum;
+    return sum + getTransactionBalanceDeltaForBank(bankKey, tx);
+  }, 0);
+}
+
+function ensureAccountBalanceBase(bankKey, monthStr = getAktuálneMonth()) {
+  const stored = getAccountBalanceBase(bankKey, monthStr);
+  if (stored !== null) return stored;
+  const current = getAccountBalance(bankKey, monthStr);
+  const txSum = sumTransactionBalanceDeltasForBank(bankKey, monthStr);
+  const base = Math.round((current - txSum) * 100) / 100;
+  setAccountBalanceBase(bankKey, monthStr, base);
+  return base;
+}
+
+function syncAccountBalanceBaseFromAbsoluteValue(bankKey, monthStr, absoluteBalance) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const txSum = sumTransactionBalanceDeltasForBank(bankKey, month);
+  const abs = Number(absoluteBalance || 0);
+  const base = Math.round((abs - txSum) * 100) / 100;
+  setAccountBalanceBase(bankKey, month, base);
+  setAccountBalance(bankKey, Math.round((base + txSum) * 100) / 100, month);
+}
+
+function recomputeAccountBalanceForBank(bankKey, monthStr = getAktuálneMonth()) {
+  const id = String(bankKey || '').trim();
+  if (!id) return false;
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const base = ensureAccountBalanceBase(id, month);
+  const txSum = sumTransactionBalanceDeltasForBank(id, month);
+  const next = Math.round((base + txSum) * 100) / 100;
+  setAccountBalance(id, next, month);
+  return true;
+}
+
+function recomputeAccountBalancesForMonth(monthStr = getAktuálneMonth()) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const seen = new Set();
+  getAllManagedBanksForBalance(month).forEach(bank => {
+    if (!bank?.id || seen.has(bank.id)) return;
+    seen.add(bank.id);
+    recomputeAccountBalanceForBank(bank.id, month);
+  });
+}
+
+function seedAccountBalanceBasesForMonth(monthStr = getAktuálneMonth()) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  getAllManagedBanksForBalance(month).forEach(bank => {
+    if (!bank?.id) return;
+    if (getAccountBalanceBase(bank.id, month) !== null) return;
+    const txSum = sumTransactionBalanceDeltasForBank(bank.id, month);
+    const current = getAccountBalance(bank.id, month);
+    setAccountBalanceBase(bank.id, month, Math.round((current - txSum) * 100) / 100);
+  });
+}
+
+function recomputeAccountBalancesForLoadedMonths() {
+  const months = new Set([normalizeMonthStr(getAktuálneMonth())]);
+  (allTransactions || []).forEach(tx => {
+    if (tx?.month) months.add(normalizeMonthStr(tx.month));
+  });
+  months.forEach(month => {
+    seedAccountBalanceBasesForMonth(month);
+    recomputeAccountBalancesForMonth(month);
+  });
 }
 
 function getSheetAccountBalanceAuthorityKey(bankKey, monthStr = getAktuálneMonth()) {
@@ -11656,21 +11772,10 @@ function adjustLocalAccountBalance(bankKey, monthStr, delta, tx) {
 }
 
 function applyLocalAccountBalanceFromTransaction(tx, multiplier = 1) {
-  const amount = Number(tx?.amount || 0) * Number(multiplier || 1);
-  if (!tx || !isFinite(amount) || amount === 0) return false;
+  if (!tx) return false;
   const month = normalizeMonthStr(tx.month || getAktuálneMonth());
-
-  if (isCsobCzCreditCardRepaymentTx(tx)) {
-    const changedCurrent = adjustLocalAccountBalance('csob_cz', month, amount, tx);
-    const changedCredit = adjustLocalAccountBalance('csob_cz_credit', month, amount, tx);
-    return changedCurrent || changedCredit;
-  }
-
-  if (isCsobCzCreditCardBalanceTx(tx)) {
-    return adjustLocalAccountBalance('csob_cz_credit', month, -amount, tx);
-  }
-
-  return adjustLocalAccountBalance(getBankKey(tx), month, amount, tx);
+  recomputeAccountBalancesForMonth(month);
+  return true;
 }
 
 function getBankBalanceCurrency(bankKey) {
@@ -14575,6 +14680,7 @@ function prepareUiAfterDataLoad(options = {}) {
   ensureLimitsHistoryForLoadedTransactions();
   populateSimulatorLimitMonthDropdown(getAktuálneMonth());
   fillSimulatorLimitInputs(getAktuálneMonth());
+  try { recomputeAccountBalancesForLoadedMonths(); } catch (e) { console.warn('Account balance recompute on load failed:', e); }
   if (shouldRender) renderAll();
 }
 
@@ -15500,7 +15606,7 @@ async function updateCustomBank(bankId) {
   bank.outgoingAlert = parseFloat(document.getElementById('edit-outgoing-alert-' + bankId)?.value || '0') || 0;
   localStorage.setItem(`bank_card_limit_${bankId}_${normalizeMonthStr(budgetMonth)}`, String(bank.cardLimit));
   setBudgetSettingsForBank(bankId, bank.budget, bank.warning, budgetMonth);
-  setAccountBalance(bankId, bank.balance, budgetMonth);
+  syncAccountBalanceBaseFromAbsoluteValue(bankId, budgetMonth, bank.balance);
   setTransactionAlertSettingsForBank(bankId, bank.incomingAlert, bank.outgoingAlert, budgetMonth);
 
   saveCustomBanks(banks);
@@ -15664,6 +15770,7 @@ function updateManagedTransactionFromButton(button) {
 
   const parsedDate = parseCustomDateStr(dateValue);
   const finalAmount = direction === 'incoming' ? Math.abs(amountValue) : -Math.abs(amountValue);
+  const oldTxSnapshot = { ...tx };
 
   tx.date = formatDate(parsedDate);
   tx.rawDate = parsedDate.toISOString();
@@ -15682,10 +15789,12 @@ function updateManagedTransactionFromButton(button) {
 
   showWorkingToast();
   allTransactions = sortTransactionsNewestFirst(allTransactions);
-  applyLocalAccountBalanceFromTransaction(oldTxSnapshot, -1);
   applyLocalArchiveStatsFromTransaction(oldTxSnapshot, -1);
-  applyLocalAccountBalanceFromTransaction(tx, 1);
   applyLocalArchiveStatsFromTransaction(tx, 1);
+  const oldMonth = normalizeMonthStr(oldTxSnapshot.month || getAktuálneMonth());
+  const newMonth = normalizeMonthStr(tx.month || getAktuálneMonth());
+  recomputeAccountBalancesForMonth(oldMonth);
+  if (newMonth !== oldMonth) recomputeAccountBalancesForMonth(newMonth);
   saveCachedTransactionsSnapshot();
 
   postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
@@ -16345,7 +16454,7 @@ async function autoSaveManagedBankMonthlyField(bankKey, fieldKey = 'settings') {
     saveLimitsForMonth(values.month, limits);
   }
   setBudgetSettingsForBank(bankKey, values.budget, values.warning, values.month);
-  setAccountBalance(bankKey, values.balance, values.month);
+  syncAccountBalanceBaseFromAbsoluteValue(bankKey, values.month, values.balance);
   setTransactionAlertSettingsForBank(bankKey, values.incomingAlert, values.outgoingAlert, values.month);
 
   let ok = await saveBankSettingsEndpoint(bankKey, values.month, values.cardLimit, values.budget, values.warning, values.balance, values.incomingAlert, values.outgoingAlert, values.creditCardLimit);
@@ -16402,7 +16511,7 @@ async function updateSystemBankSettings(bankKey) {
   }
 
   setBudgetSettingsForBank(bankKey, newBudget, newWarning, budgetMonth);
-  setAccountBalance(bankKey, newBalance, monthStr);
+  syncAccountBalanceBaseFromAbsoluteValue(bankKey, monthStr, newBalance);
   setTransactionAlertSettingsForBank(bankKey, newIncomingAlert, newOutgoingAlert, monthStr);
 
   showSavedToast();
@@ -16515,7 +16624,8 @@ async function saveManualTransaction(){
 
   allTransactions.unshift(newTx);
   allTransactions=sortTransactionsNewestFirst(allTransactions);
-  applyLocalAccountBalanceFromTransaction(newTx, 1);
+  seedAccountBalanceBasesForMonth(newTx.month);
+  recomputeAccountBalancesForMonth(newTx.month);
   applyLocalArchiveStatsFromTransaction(newTx, 1);
   saveCachedTransactionsSnapshot();
   closeBottomSheets();
@@ -18634,7 +18744,7 @@ function parseBankSettingsSheetData(raw) {
     if (hasBudget) localStorage.setItem(getBudgetStorageKey(bankId, 'limit', month), String(budget));
     if (hasWarning) localStorage.setItem(getBudgetStorageKey(bankId, 'warn', month), String(warning));
     if (hasBalance && Number.isFinite(balance)) {
-      setAccountBalance(bankId, balance, month);
+      syncAccountBalanceBaseFromAbsoluteValue(bankId, month, balance);
       markSheetAccountBalanceAuthority(bankId, month);
     }
     if (hasIncomingAlert || hasOutgoingAlert) {
@@ -18756,7 +18866,7 @@ function parseBalanceLogSheetData(raw) {
       skippedByArchive++;
       return;
     }
-    setAccountBalance(item.bankId, item.newBalance, item.month);
+    syncAccountBalanceBaseFromAbsoluteValue(item.bankId, item.month, item.newBalance);
     if (item.currency) localStorage.setItem('bank_currency_' + item.bankId, normalizeCurrencyForStorage(item.currency));
     applied++;
   });
@@ -19057,6 +19167,86 @@ let parserRunQueueTimer = null;
 let parserRunInFlight = false;
 let parserRunLastStartAt = 0;
 
+const ENDPOINT_SERIALIZED_ACTIONS = new Set([
+  'saveTransaction',
+  'deleteTransaction',
+  'saveBankSettings',
+  'saveBank',
+  'saveLoan'
+]);
+
+let endpointMutationQueue = [];
+let endpointMutationQueueRunning = false;
+
+function getEndpointMutationJobKey(action, payload = {}) {
+  if (action === 'deleteTransaction') {
+    const id = String(payload.id || payload.msgId || '').trim();
+    return id ? `delete:${id}` : '';
+  }
+  if (action === 'saveTransaction') {
+    const tx = payload.transaction || payload;
+    const id = String(tx.msgId || tx.id || '').trim();
+    return id ? `save:${id}` : '';
+  }
+  return '';
+}
+
+function enqueueEndpointMutation(action, payload = {}, timeoutMs = 15000) {
+  return new Promise((resolve, reject) => {
+    const jobKey = getEndpointMutationJobKey(action, payload);
+    if (jobKey) {
+      if (action === 'deleteTransaction') {
+        const existing = endpointMutationQueue.find(job => job.key === jobKey);
+        if (existing) {
+          existing.waiters.push({ resolve, reject });
+          return;
+        }
+      }
+      if (action === 'saveTransaction') {
+        const existingIdx = endpointMutationQueue.findIndex(job => job.key === jobKey);
+        if (existingIdx >= 0) {
+          const existing = endpointMutationQueue[existingIdx];
+          existing.payload = payload;
+          existing.timeoutMs = timeoutMs;
+          existing.waiters.push({ resolve, reject });
+          return;
+        }
+      }
+    }
+
+    endpointMutationQueue.push({
+      action,
+      payload,
+      timeoutMs,
+      key: jobKey,
+      resolve,
+      reject,
+      waiters: []
+    });
+    drainEndpointMutationQueue();
+  });
+}
+
+async function drainEndpointMutationQueue() {
+  if (endpointMutationQueueRunning) return;
+  endpointMutationQueueRunning = true;
+  try {
+    while (endpointMutationQueue.length) {
+      const job = endpointMutationQueue.shift();
+      const waiters = [{ resolve: job.resolve, reject: job.reject }, ...(job.waiters || [])];
+      try {
+        const result = await endpointMutationRequest(job.action, job.payload, job.timeoutMs);
+        const ok = !!(result && result.ok);
+        waiters.forEach(waiter => waiter.resolve(ok));
+      } catch (err) {
+        waiters.forEach(waiter => waiter.reject(err));
+      }
+    }
+  } finally {
+    endpointMutationQueueRunning = false;
+  }
+}
+
 function queueParserRunAfterMutation(reason) {
   if (!isGoogleSheetsEnabled()) return;
   if (parserRunQueueTimer) clearTimeout(parserRunQueueTimer);
@@ -19185,6 +19375,15 @@ async function postToBankTrackerEndpoint(action, payload = {}) {
   const url = getCurrentWebAppUrl();
   const status = document.getElementById('limits-sync-status');
   const fireAndForgetSave = action === 'saveTransaction' || action === 'saveBank' || action === 'saveLoan';
+  const useSerializedQueue = ENDPOINT_SERIALIZED_ACTIONS.has(action);
+  const runMutation = async (mutationTimeoutMs) => {
+    if (useSerializedQueue) {
+      const ok = await enqueueEndpointMutation(action, payload, mutationTimeoutMs);
+      return { ok, result: { ok, data: ok ? { status: 'success' } : { status: 'error' } } };
+    }
+    const result = await endpointMutationRequest(action, payload, mutationTimeoutMs);
+    return { ok: !!(result && result.ok), result };
+  };
 
   if (!url) {
     console.warn('Apps Script Web App URL is not configured.');
@@ -19205,30 +19404,30 @@ async function postToBankTrackerEndpoint(action, payload = {}) {
   // had already written the row to Google Sheets successfully.
   const mutationTimeoutMs = isLikelyIOSWebKit() || ['saveTransaction', 'deleteTransaction', 'saveBankSettings'].includes(action) ? 60000 : 15000;
   if (fireAndForgetSave) {
-    endpointMutationRequest(action, payload, mutationTimeoutMs).then(result => {
-      if (result && result.ok) {
-        console.log('Google Sheets async save OK:', action, result.data);
+    runMutation(mutationTimeoutMs).then(({ ok, result }) => {
+      if (ok) {
+        console.log('Google Sheets async mutation OK:', action, result && result.data);
         queueParserRunAfterMutation(action);
       } else {
-        console.warn('Google Sheets async save failed:', action, result && result.data ? result.data : {});
+        console.warn('Google Sheets async mutation failed:', action, result && result.data ? result.data : {});
       }
     }).catch(err => {
-      console.warn('Google Sheets async save error:', action, err);
+      console.warn('Google Sheets async mutation error:', action, err);
     });
     return true;
   }
 
-  const result = await endpointMutationRequest(action, payload, mutationTimeoutMs);
-  if (result.ok) {
+  const { ok, result } = await runMutation(mutationTimeoutMs);
+  if (ok) {
     if (status) status.textContent = getEndpointStatusMessage(action, 'success');
-    console.log('Google Sheets save OK:', action, result.data);
+    console.log('Google Sheets mutation OK:', action, result && result.data);
     if (action === 'saveTransaction' || action === 'saveBank' || action === 'saveLoan') {
       queueParserRunAfterMutation(action);
     }
     return true;
   }
 
-  console.error('Google Sheets save failed:', action, JSON.stringify(result.data || {}));
+  console.error('Google Sheets mutation failed:', action, JSON.stringify(result && result.data || {}));
   if (status) status.textContent = getEndpointFailureDetail(action, result);
   return false;
 }
@@ -19674,10 +19873,12 @@ async function saveEditedTransaction() {
   tx.msgId = tx.msgId || tx.id;
 
   allTransactions = sortTransactionsNewestFirst(allTransactions);
-  applyLocalAccountBalanceFromTransaction(oldTxSnapshot, -1);
   applyLocalArchiveStatsFromTransaction(oldTxSnapshot, -1);
-  applyLocalAccountBalanceFromTransaction(tx, 1);
   applyLocalArchiveStatsFromTransaction(tx, 1);
+  const oldMonth = normalizeMonthStr(oldTxSnapshot.month || getAktuálneMonth());
+  const newMonth = normalizeMonthStr(tx.month || getAktuálneMonth());
+  recomputeAccountBalancesForMonth(oldMonth);
+  if (newMonth !== oldMonth) recomputeAccountBalancesForMonth(newMonth);
   saveCachedTransactionsSnapshot();
 
   closeBottomSheets();
