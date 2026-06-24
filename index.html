@@ -8995,6 +8995,7 @@ let activeDrilldownFilter = null; // { type: 'cards'|'spent'|'income'|'overview-
 let activeTxnHistoryScope = 'current';
 let txnCashflowChartType = localStorage.getItem('txn_cashflow_chart_type') || 'bar';
 let archiveTrendChartType = localStorage.getItem('archive_trend_chart_type') || 'line';
+let archiveTrendChartCache = { signature: '', html: '' };
 const TXN_PAGE_SIZE = 20;
 let txnVisibleLimit = TXN_PAGE_SIZE;
 let autoSyncTimer = null;
@@ -10277,31 +10278,31 @@ async function syncData(options = {}) {
     const match = SHEETS_URL.match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (!match) throw new Error('Neplatné URL');
     const spreadsheetId = match[1];
-    const bankSyncPromise = syncBanksFromSheets(spreadsheetId);
-    const fxSyncPromise = syncFxRatesFromSheets(spreadsheetId);
-    const bankSettingsPromise = syncBankSettingsFromSheets(spreadsheetId);
-    const balanceLogPromise = bankSettingsPromise.then(() => syncBalanceLogFromSheets(spreadsheetId));
+
+    if (loadStatus) loadStatus.textContent = 'Načítavam transakcie z Google Sheets...';
     const activeTxnsPromise = fetchSheetTransactions(spreadsheetId, 'Transactions');
     const archivedTxnsPromise = syncArchivedTransactionsFromSheets(spreadsheetId);
-
-    // Render fresh current transactions as soon as possible. Bank_Settings, FX,
-    // Archive_Transactions and Bank_Archive can be slower, so they should not block
-    // the first useful screen. Cached bank/FX values are good enough until refresh settles.
     const activeTxns = await activeTxnsPromise;
-    const cachedArchivedTxns = (allTransactions || []).filter(tx => tx && tx.archived);
-    allTransactions = sortTransactionsNewestFirst(dedupeTransactionsForCloud([...activeTxns, ...cachedArchivedTxns]));
-    saveCachedTransactionsSnapshot();
-    if (!startupMode) {
-      renderAll();
-      applyLanguage();
-      if (loadStatus) loadStatus.textContent = 'Aktuálne transakcie sa načítali. Archív sa doťahuje na pozadí...';
-    }
-
     const archivedTxns = await archivedTxnsPromise;
     allTransactions = sortTransactionsNewestFirst(dedupeTransactionsForCloud([...activeTxns, ...archivedTxns]));
     saveCachedTransactionsSnapshot();
-    await Promise.allSettled([bankSyncPromise, fxSyncPromise, bankSettingsPromise, balanceLogPromise]);
-    if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa načítali správne.';
+
+    if (loadStatus) loadStatus.textContent = 'Načítavam Bank_Archive, FX a zostatky...';
+    await Promise.allSettled([
+      syncBanksFromSheets(spreadsheetId),
+      syncFxRatesFromSheets(spreadsheetId)
+    ]);
+    await syncBankSettingsFromSheets(spreadsheetId);
+    await syncBalanceLogFromSheets(spreadsheetId);
+    reapplySheetAccountBalancesFromStorage();
+
+    if (!startupMode) {
+      renderAll();
+      applyLanguage();
+      if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa načítali správne.';
+    } else if (loadStatus) {
+      loadStatus.textContent = 'Dáta z Google Sheets sa načítali správne.';
+    }
   } catch(e) {
     console.error('Google Sheets transaction sync failed:', e);
     if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa nepodarilo načítať. Zobrazuje sa posledná uložená cache.';
@@ -10309,9 +10310,12 @@ async function syncData(options = {}) {
   } finally {
     if (btn) btn.classList.remove('spinning');
     isSyncing = false;
+    try { reapplySheetAccountBalancesFromStorage(); } catch (e) { console.warn('Sheet balance reapply in finally failed:', e); }
     try { recomputeAccountBalancesForLoadedMonths(); } catch (e) { console.warn('Account balance recompute after sync failed:', e); }
-    renderAll();
-    applyLanguage();
+    if (!startupMode) {
+      renderAll();
+      applyLanguage();
+    }
     markCloudSyncCompleted();
   }
 }
@@ -11650,12 +11654,20 @@ function sumTransactionBalanceDeltasForBank(bankKey, monthStr, txList = allTrans
 }
 
 function ensureAccountBalanceBase(bankKey, monthStr = getAktuálneMonth()) {
-  const stored = getAccountBalanceBase(bankKey, monthStr);
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  if (hasSheetAccountBalanceAuthority(bankKey, month)) {
+    const stored = localStorage.getItem(getSheetAccountBalanceValueKey(bankKey, month));
+    if (stored !== null && Number.isFinite(Number(stored))) {
+      syncAccountBalanceBaseFromAbsoluteValue(bankKey, month, Number(stored));
+      return getAccountBalanceBase(bankKey, month);
+    }
+  }
+  const stored = getAccountBalanceBase(bankKey, month);
   if (stored !== null) return stored;
-  const current = getAccountBalance(bankKey, monthStr);
-  const txSum = sumTransactionBalanceDeltasForBank(bankKey, monthStr);
+  const current = getAccountBalance(bankKey, month);
+  const txSum = sumTransactionBalanceDeltasForBank(bankKey, month);
   const base = Math.round((current - txSum) * 100) / 100;
-  setAccountBalanceBase(bankKey, monthStr, base);
+  setAccountBalanceBase(bankKey, month, base);
   return base;
 }
 
@@ -11672,6 +11684,13 @@ function recomputeAccountBalanceForBank(bankKey, monthStr = getAktuálneMonth())
   const id = String(bankKey || '').trim();
   if (!id) return false;
   const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  if (hasSheetAccountBalanceAuthority(id, month)) {
+    const stored = localStorage.getItem(getSheetAccountBalanceValueKey(id, month));
+    if (stored !== null && Number.isFinite(Number(stored))) {
+      syncAccountBalanceBaseFromAbsoluteValue(id, month, Number(stored));
+      return true;
+    }
+  }
   const base = ensureAccountBalanceBase(id, month);
   const txSum = sumTransactionBalanceDeltasForBank(id, month);
   const next = Math.round((base + txSum) * 100) / 100;
@@ -11693,6 +11712,7 @@ function seedAccountBalanceBasesForMonth(monthStr = getAktuálneMonth()) {
   const month = normalizeMonthStr(monthStr || getAktuálneMonth());
   getAllManagedBanksForBalance(month).forEach(bank => {
     if (!bank?.id) return;
+    if (hasSheetAccountBalanceAuthority(bank.id, month)) return;
     if (getAccountBalanceBase(bank.id, month) !== null) return;
     const txSum = sumTransactionBalanceDeltasForBank(bank.id, month);
     const current = getAccountBalance(bank.id, month);
@@ -11715,6 +11735,35 @@ function getSheetAccountBalanceAuthorityKey(bankKey, monthStr = getAktuálneMont
   return 'bank_account_balance_sheet_authority_' + String(bankKey || '').trim() + '_' + normalizeMonthStr(monthStr || getAktuálneMonth());
 }
 
+function getSheetAccountBalanceValueKey(bankKey, monthStr = getAktuálneMonth()) {
+  return 'bank_sheet_balance_value_' + String(bankKey || '').trim() + '_' + normalizeMonthStr(monthStr || getAktuálneMonth());
+}
+
+function parseSheetAccountBalanceAuthorityKey(key) {
+  const prefix = 'bank_account_balance_sheet_authority_';
+  if (!String(key || '').startsWith(prefix)) return null;
+  const rest = String(key).slice(prefix.length);
+  const match = rest.match(/^(.+)_(\d{2}\/\d{4})$/);
+  if (!match) return null;
+  return { bankKey: match[1], month: match[2] };
+}
+
+function reapplySheetAccountBalancesFromStorage() {
+  try {
+    Object.keys(localStorage).forEach(key => {
+      const parsed = parseSheetAccountBalanceAuthorityKey(key);
+      if (!parsed) return;
+      const stored = localStorage.getItem(getSheetAccountBalanceValueKey(parsed.bankKey, parsed.month));
+      if (stored === null) return;
+      const absolute = Number(stored);
+      if (!Number.isFinite(absolute)) return;
+      syncAccountBalanceBaseFromAbsoluteValue(parsed.bankKey, parsed.month, absolute);
+    });
+  } catch (e) {
+    console.warn('Sheet account balance reapply failed:', e);
+  }
+}
+
 function markSheetAccountBalanceAuthority(bankKey, monthStr = getAktuálneMonth()) {
   const id = String(bankKey || '').trim();
   if (!id) return false;
@@ -11733,6 +11782,18 @@ function clearSheetAccountBalanceAuthorityMarkers() {
   Object.keys(localStorage).forEach(key => {
     if (key.startsWith(prefix)) localStorage.removeItem(key);
   });
+}
+
+function clearSheetAccountBalanceValueKeys() {
+  const prefix = 'bank_sheet_balance_value_';
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith(prefix)) localStorage.removeItem(key);
+  });
+}
+
+function clearSheetAccountBalanceStorage() {
+  clearSheetAccountBalanceAuthorityMarkers();
+  clearSheetAccountBalanceValueKeys();
 }
 
 
@@ -12187,6 +12248,16 @@ function getLatestStoredAccountBalanceForBank(bankKey, selectedMonth = getAktuá
   const normalizedSelected = normalizeMonthStr(selectedMonth || getAktuálneMonth());
   const testSetting = getLocalTestOverviewBankSetting(id, normalizedSelected);
   if (testSetting && testSetting.balance !== undefined) return Number(testSetting.balance || 0) || 0;
+  if (hasSheetAccountBalanceAuthority(id, normalizedSelected)) {
+    const sheetStored = localStorage.getItem(getSheetAccountBalanceValueKey(id, normalizedSelected));
+    if (sheetStored !== null && Number.isFinite(Number(sheetStored))) {
+      return Number(sheetStored);
+    }
+    const exactKey = getAccountBalanceStorageKey(id, normalizedSelected);
+    const exact = localStorage.getItem(exactKey);
+    if (exact !== null) return Number(exact || 0) || 0;
+    return 0;
+  }
   const exactKey = getAccountBalanceStorageKey(id, normalizedSelected);
   const exact = localStorage.getItem(exactKey);
   if (exact !== null) return Number(exact || 0) || 0;
@@ -12848,6 +12919,8 @@ function closeOverviewDetails() {
 
 function renderOverviewAfterMonthShift() {
   const month = getAktuálneMonth();
+  try { reapplySheetAccountBalancesFromStorage(); } catch (_) {}
+  try { recomputeAccountBalancesForMonth(month); } catch (_) {}
   const monthAllTxns = allTransactions.filter(t => normalizeMonthStr(t.month) === normalizeMonthStr(month));
 
   const headerMonth = document.getElementById('header-month');
@@ -15417,6 +15490,7 @@ function initBottomSheetDragToClose() {
   // v9: Drag/pull-down-to-close enabled again, using the proven v4 handler.
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
+    if (sheet.id === 'custom-widget-sheet' || sheet.classList.contains('custom-widget-fullpage')) return;
     if (sheet.dataset.dragToCloseBound === 'true') return;
     sheet.dataset.dragToCloseBound = 'true';
 
@@ -15636,17 +15710,27 @@ function shouldAnimateBottomSheet(sheetId) {
   return ['upgrade-sheet', 'quick-add-sheet', 'bank-manager-sheet', 'txn-filter-sheet'].includes(String(sheetId || ''));
 }
 
+function isFullPageFadeSheet(sheetId) {
+  return String(sheetId || '') === 'custom-widget-sheet';
+}
+
 function openSheet(id){
   document.body.classList.add('sheet-open');
   document.body.dataset.activeSheet = id || '';
 
+  const fullPageFade = isFullPageFadeSheet(id);
   const shouldAnimate = shouldAnimateBottomSheet(id);
 
   const backdrop = document.getElementById('bottom-sheet-backdrop');
-  if (backdrop) backdrop.classList.add('open');
+  if (backdrop) {
+    backdrop.classList.toggle('fullpage-fade-backdrop', fullPageFade);
+    backdrop.classList.add('open');
+  }
+
+  if (fullPageFade) document.body.classList.add('custom-widget-editor-open');
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
-    sheet.classList.remove('open', 'dragging', 'sheet-snapping', 'sheet-no-animation');
+    sheet.classList.remove('open', 'dragging', 'sheet-snapping', 'sheet-no-animation', 'custom-widget-fullpage-open');
     sheet.style.removeProperty('transition');
     sheet.style.removeProperty('animation');
     sheet.style.removeProperty('transform');
@@ -15657,7 +15741,13 @@ function openSheet(id){
   if (sheet) {
     sheet.scrollTop = 0;
 
-    if (!shouldAnimate) {
+    if (fullPageFade) {
+      sheet.classList.add('sheet-no-animation', 'custom-widget-fullpage');
+      requestAnimationFrame(() => {
+        sheet.classList.add('open', 'custom-widget-fullpage-open');
+        scheduleFloatingUtilityUpdate();
+      });
+    } else if (!shouldAnimate) {
       sheet.classList.add('sheet-no-animation', 'open');
       scheduleFloatingUtilityUpdate();
       window.setTimeout(scheduleFloatingUtilityUpdate, 80);
@@ -15670,20 +15760,24 @@ function openSheet(id){
     }
   }
 
-  initBottomSheetDragToClose();
-  if (typeof initGlobalPullDownControl === 'function') initGlobalPullDownControl();
-  if (typeof initSheetPullRefreshGuard === 'function') initSheetPullRefreshGuard();
+  if (!fullPageFade) {
+    initBottomSheetDragToClose();
+    if (typeof initGlobalPullDownControl === 'function') initGlobalPullDownControl();
+    if (typeof initSheetPullRefreshGuard === 'function') initSheetPullRefreshGuard();
+  }
   scheduleFloatingUtilityUpdate();
 }
 function closeBottomSheets(){
-  document.body.classList.remove('sheet-open');
+  document.body.classList.remove('sheet-open', 'custom-widget-editor-open');
   document.body.removeAttribute('data-active-sheet');
 
   const backdrop = document.getElementById('bottom-sheet-backdrop');
-  if (backdrop) backdrop.classList.remove('open');
+  if (backdrop) {
+    backdrop.classList.remove('open', 'fullpage-fade-backdrop');
+  }
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
-    sheet.classList.remove('open', 'dragging', 'sheet-snapping', 'sheet-no-animation');
+    sheet.classList.remove('open', 'dragging', 'sheet-snapping', 'sheet-no-animation', 'custom-widget-fullpage', 'custom-widget-fullpage-open');
     sheet.style.removeProperty('transition');
     sheet.style.removeProperty('animation');
     sheet.style.removeProperty('transform');
@@ -16969,6 +17063,7 @@ function shortArchiveMonthLabel(monthStr) {
 function toggleArchiveTrendChartType() {
   archiveTrendChartType = archiveTrendChartType === 'bars' ? 'line' : 'bars';
   localStorage.setItem('archive_trend_chart_type', archiveTrendChartType);
+  archiveTrendChartCache = { signature: '', html: '' };
   renderArchiveTrendChart();
 }
 
@@ -17403,6 +17498,13 @@ function buildArchiveTrendMonthlyData(months) {
   return monthly;
 }
 
+function getArchiveTrendChartCacheSignature() {
+  const months = getArchiveTrendMonths();
+  const chartType = archiveTrendChartType === 'bars' ? 'bars' : 'line';
+  const txStamp = getLocalCacheTimestamp('cached_txns_updated_at');
+  return `${chartType}|${txStamp}|${months.join('|')}`;
+}
+
 function renderArchiveTrendChart() {
   const wrap = document.getElementById('archive-trend-chart');
   if (!wrap) return;
@@ -17410,6 +17512,24 @@ function renderArchiveTrendChart() {
   const months = getArchiveTrendMonths();
   if (months.length === 0) {
     wrap.innerHTML = `<div class="empty-state" style="padding:22px 0;">${t('noTrendData')}</div>`;
+    archiveTrendChartCache = { signature: getArchiveTrendChartCacheSignature(), html: wrap.innerHTML };
+    return;
+  }
+
+  const cacheSignature = getArchiveTrendChartCacheSignature();
+  if (archiveTrendChartCache.signature === cacheSignature && archiveTrendChartCache.html) {
+    wrap.innerHTML = archiveTrendChartCache.html;
+    const chartType = archiveTrendChartType === 'bars' ? 'bars' : 'line';
+    const toggle = document.getElementById('archive-trend-toggle');
+    const toggleIcon = document.getElementById('archive-trend-toggle-icon');
+    const toggleTitle = chartType === 'bars' ? t('switchToLineChart', 'Switch to line chart') : t('switchToStackedBarChart', 'Switch to stacked bar chart');
+    if (toggle) {
+      toggle.title = toggleTitle;
+      toggle.setAttribute('aria-label', toggleTitle);
+    }
+    if (toggleIcon) {
+      toggleIcon.className = chartType === 'bars' ? 'txn-chart-toggle-icon' : 'txn-chart-toggle-icon bar';
+    }
     return;
   }
 
@@ -17501,6 +17621,7 @@ function renderArchiveTrendChart() {
         ${bars}
       </svg>
     `;
+    archiveTrendChartCache = { signature: cacheSignature, html: wrap.innerHTML };
     return;
   }
 
@@ -17571,6 +17692,7 @@ function renderArchiveTrendChart() {
       }).join('')}
     </svg>
   `;
+  archiveTrendChartCache = { signature: cacheSignature, html: wrap.innerHTML };
 }
 
 
@@ -18891,6 +19013,13 @@ function parseBankSettingsSheetData(raw) {
   };
   const cellText = (cells, i) => i >= 0 ? String(cells[i]?.v ?? cells[i]?.f ?? '').trim() : '';
   const hasCell = (cells, i) => i >= 0 && !!cells[i] && String(cells[i].v ?? cells[i].f ?? '').trim() !== '';
+  const hasNumericCell = (cells, i) => {
+    if (i < 0 || !cells[i]) return false;
+    const raw = cells[i].v ?? cells[i].f;
+    if (raw === 0) return true;
+    if (raw === null || raw === undefined) return false;
+    return String(raw).trim() !== '';
+  };
   const cellNumber = (cells, i) => parseSheetNumber(cells[i]?.v, cells[i]?.f);
   const parseSheetMonth = (cells, i) => {
     const raw = cells[i]?.v ?? cells[i]?.f ?? '';
@@ -18907,6 +19036,8 @@ function parseBankSettingsSheetData(raw) {
     if (mmYyyy) return `${String(parseInt(mmYyyy[1], 10)).padStart(2, '0')}/${mmYyyy[2]}`;
     return '';
   };
+  if (!dataRows.length) return 0;
+  clearSheetAccountBalanceStorage();
   let count = 0;
   dataRows.forEach(row => {
     const c = row.c || [];
@@ -18922,7 +19053,7 @@ function parseBankSettingsSheetData(raw) {
     const hasCreditCardLimit = hasCell(c, idx.creditCardLimit);
     const hasBudget = hasCell(c, idx.budget);
     const hasWarning = hasCell(c, idx.warning);
-    const hasBalance = hasCell(c, idx.balance);
+    const hasBalance = idx.balance >= 0 && hasNumericCell(c, idx.balance);
     const hasIncomingAlert = hasCell(c, idx.incomingAlert);
     const hasOutgoingAlert = hasCell(c, idx.outgoingAlert);
     const hasSpending = hasCell(c, idx.monthlySpending);
@@ -18961,6 +19092,7 @@ function parseBankSettingsSheetData(raw) {
     if (hasBudget) localStorage.setItem(getBudgetStorageKey(bankId, 'limit', month), String(budget));
     if (hasWarning) localStorage.setItem(getBudgetStorageKey(bankId, 'warn', month), String(warning));
     if (hasBalance && Number.isFinite(balance)) {
+      localStorage.setItem(getSheetAccountBalanceValueKey(bankId, month), String(balance));
       syncAccountBalanceBaseFromAbsoluteValue(bankId, month, balance);
       markSheetAccountBalanceAuthority(bankId, month);
     }
@@ -19109,7 +19241,6 @@ async function syncBalanceLogFromSheets(spreadsheetId) {
 
 async function syncBankSettingsFromSheets(spreadsheetId) {
   if (!spreadsheetId) return false;
-  clearSheetAccountBalanceAuthorityMarkers();
   const sheetNames = [
     'Bank_Archive',
     'Overview details',
@@ -20319,32 +20450,31 @@ function setAppTheme(theme) {
 
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
 let startupWarmCachesDone = false;
-function warmStartupCachesDeferred(options = {}) {
-  const force = !!(options && options.force);
-  if (startupWarmCachesDone && !force) return;
+
+function warmHeavyTabCachesSync(options = {}) {
   startupWarmCachesDone = true;
-  const run = () => {
-    try { saveCachedTransactionsSnapshot(); } catch(_) {}
-    try { rebuildLocalArchiveStatsFromTransactions({ force }); } catch(_) {}
-    if (force || !isLocalCacheFresh('cached_archive_chart_updated_at')) {
-      try {
-        renderArchiveTrendChart();
-        markLocalCacheTimestamp('cached_archive_chart_updated_at');
-      } catch(_) {}
-    }
-  };
-  if (typeof window.requestIdleCallback === 'function') {
-    requestIdleCallback(() => run(), { timeout: 1200 });
-  } else {
-    setTimeout(run, 260);
+  try { rebuildLocalArchiveStatsFromTransactions({ force: true }); } catch (e) {
+    console.warn('Archive stats warm-up failed:', e);
   }
+  try { prepareUiAfterDataLoad({ forceArchiveRebuild: false }); } catch (e) {
+    console.warn('Tab warm-up render failed:', e);
+  }
+  try {
+    markLocalCacheTimestamp('cached_archive_stats_updated_at');
+    markLocalCacheTimestamp('cached_archive_chart_updated_at');
+  } catch (_) {}
+}
+try { window.warmHeavyTabCachesSync = warmHeavyTabCachesSync; } catch (_) {}
+
+function warmStartupCachesDeferred(options = {}) {
+  warmHeavyTabCachesSync(options);
 }
 
 window.addEventListener('DOMContentLoaded', () => {
   const loaderFailSafe = setTimeout(() => {
     try {
       if (!allTransactions.length) loadCachedTransactionsSnapshot();
-      prepareUiAfterDataLoad();
+      warmHeavyTabCachesSync({ force: true });
     } catch (_) {}
     finishAppBoot();
   }, 15000);
@@ -20359,8 +20489,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const finishStartup = () => {
       clearTimeout(loaderFailSafe);
-      prepareUiAfterDataLoad();
-      warmStartupCachesDeferred({ force: true });
+      warmHeavyTabCachesSync({ force: true });
       finishAppBoot();
     };
 
@@ -20382,9 +20511,8 @@ window.addEventListener('DOMContentLoaded', () => {
       console.error('Local test data seed failed:', e);
     }
     loadCachedTransactionsSnapshot();
-    warmStartupCachesDeferred();
     clearTimeout(loaderFailSafe);
-    prepareUiAfterDataLoad();
+    warmHeavyTabCachesSync({ force: true });
     finishAppBoot();
     if (!SHEETS_URL) {
       const loadStatus = document.getElementById('limits-sync-status');
@@ -20395,7 +20523,7 @@ window.addEventListener('DOMContentLoaded', () => {
     console.error('Startup bootstrap failed:', e);
     try {
       if (!allTransactions.length) loadCachedTransactionsSnapshot();
-      prepareUiAfterDataLoad();
+      warmHeavyTabCachesSync({ force: true });
     } catch (_) {}
     clearTimeout(loaderFailSafe);
     finishAppBoot();
@@ -24306,7 +24434,6 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       var result = oldShowPage.apply(this, arguments);
       if (plainTabClick) {
         ensureAllTransactionFilters();
-        try { updateTxnPage(); } catch(_) {}
         try { document.getElementById('page-txns')?.scrollTo({ top: 0, behavior: 'auto' }); } catch(_) {}
         try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch(_) {}
       }
@@ -26040,6 +26167,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   function currentTxnSignature(){
     var parts = [];
     try { parts.push('len:' + ((window.allTransactions || allTransactions || []).length || 0)); } catch(_) {}
+    try { parts.push('txStamp:' + getLocalCacheTimestamp('cached_txns_updated_at')); } catch(_) { parts.push('txStamp:0'); }
     ['activeDirection','activeBank','activePaymentKind','activeCardLast4','activeCategory','activeSearch','activeDateFrom','activeDateTo','activeMonthFilter'].forEach(function(k){ parts.push(k + ':' + JSON.stringify(getGlobal(k,''))); });
     parts.push('chart:' + JSON.stringify(getGlobal('txnCashflowChartType','bar')));
     return parts.join('|');
@@ -26143,8 +26271,11 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     try {
       try { updateTransactionDateInputs(); updatePaymentKindFilterUi(); updateCardSourceFiltersUi(); updateDirectionFilterUi(); updateTransactionFilterPanelUi(); } catch(_) {}
       try { activeTxnHistoryScope = 'all'; } catch(_) {}
-      rebuildTxnState(!!force);
-      renderTxnWindow(txnVirtualStart, {force:true, full:true});
+      var rebuilt = rebuildTxnState(!!force);
+      if (!rebuilt && !force && txnState.lastRenderedStart >= 0) return;
+      if (rebuilt) txnVirtualStart = 0;
+      var cashflowSlot = byId('txn-cashflow-slot');
+      renderTxnWindow(txnVirtualStart, { force: true, full: rebuilt || !(cashflowSlot && cashflowSlot.innerHTML) });
     } finally { renderingTxn = false; }
   };
   try { updateTxnPage = window.updateTxnPage; } catch(_) {}
@@ -26159,15 +26290,16 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     try { activeDirection='all'; activeBank='všetky'; activePaymentKind='all'; activeCardLast4=''; activeCategory='všetky'; activeTxnTag='all'; activeSearch=''; activeDateFrom=''; activeDateTo=''; activeMonthFilter=''; activeDrilldownFilter=null; activeTxnHistoryScope='all'; } catch(_) {}
     var s = byId('txn-search'); if (s) s.value = '';
     try { updatePaymentKindFilterUi(); updateCardSourceFiltersUi(); updateDirectionFilterUi(); updateTransactionFilterPanelUi(); updateTransactionDateInputs(); } catch(_) {}
-    txnState.signature = ''; txnVirtualStart = 0;
+    txnVirtualStart = 0;
   }
   var oldShowPage = window.showPage;
   if (typeof oldShowPage === 'function' && !oldShowPage.__v258Wrapped) {
     var wrappedShowPage = function(pageId, options){
-      var plainTx = pageId === 'txns' && !(options && options.preserveFilters);
-      if (plainTx) resetAllTxnFilters();
       var r = oldShowPage.apply(this, arguments);
-      if (plainTx) setTimeout(function(){ resetAllTxnFilters(); window.updateTxnPage(true); try { window.scrollTo({top:0, behavior:'auto'}); } catch(_) {} }, 0);
+      if (pageId === 'txns' && !(options && options.preserveFilters)) {
+        try { window.scrollTo({top:0, behavior:'auto'}); } catch(_) {}
+        try { document.getElementById('page-txns')?.scrollTo({ top: 0, behavior: 'auto' }); } catch(_) {}
+      }
       return r;
     };
     wrappedShowPage.__v258Wrapped = true;
@@ -27317,8 +27449,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   html[data-values-hidden="true"] .wealth-trend,
   html[data-values-hidden="true"] .daily-chart-card svg,
   html[data-values-hidden="true"] .archive-trend-card svg {
-    filter: blur(7px);
-    opacity: .42;
+    filter: none !important;
+    opacity: .16;
     pointer-events: none;
   }
 </style>
@@ -30291,7 +30423,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       sheet = document.createElement('div');
       sheet.id = 'loan-manager-sheet';
       sheet.className = 'bottom-sheet';
-      sheet.innerHTML = '<div class="sheet-handle"></div><div class="sheet-title-row"><button class="sheet-close manager-sheet-back-btn" type="button" onclick="closeBottomSheets()" aria-label="Back">←</button><div class="sheet-title">Manage loans</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div><div class="loan-manager-add-card"></div><div id="loan-manager-list"></div>';
+      sheet.innerHTML = '<div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title">Manage loans</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div><div class="loan-manager-add-card"></div><div id="loan-manager-list"></div>';
       document.body.appendChild(sheet);
     }
     var add = sheet.querySelector('.loan-manager-add-card');
@@ -30340,18 +30472,17 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
         + '<div class="loan-manager-sub">' + esc(loanTypeLabel(loan.type)) + ' - ' + esc(money(-loanOutstanding(loan), loan.currency)) + ' / ' + esc(money(-loanOriginal(loan), loan.currency)) + ' - ' + esc(bankLabel(loan.linkedBankId)) + '</div></div>'
         + '<div class="loan-manager-actions"><button class="icon-action-btn edit" type="button" onclick="toggleLoanEditV262(\'' + attr(loan.id) + '\')">...</button><button class="icon-action-btn delete" type="button" onclick="deleteLoanV262(\'' + attr(loan.id) + '\')">x</button></div></div>'
         + '<div class="loan-manager-progress"><div class="loan-manager-progress-row"><span>' + Math.round(pct) + '% paid</span><span>Target 0</span></div><div class="loan-manager-track"><div class="loan-manager-fill" style="width:' + pct.toFixed(1) + '%"></div></div></div>'
-        + '<div class="managed-bank-form" id="loan-edit-' + attr(safe) + '">'
-        + '<div class="manager-editor-toolbar"><button class="sheet-close manager-sheet-back-btn" type="button" onclick="toggleLoanEditV262(\'' + attr(loan.id) + '\')" aria-label="Back">←</button><div class="manager-editor-title">Edit loan</div><button class="sheet-close" type="button" onclick="closeBottomSheets()" aria-label="Close">×</button></div>'
-        + sheetDetailsHtml(loan)
+        + '<div class="managed-bank-form loan-manager-inline-form-v293" id="loan-edit-' + attr(safe) + '" data-loan-layout-v293="1">'
         + '<label>Loan name</label><input class="config-input" id="loan-name-' + attr(safe) + '" value="' + attr(loan.name) + '">'
-        + '<div class="loan-form-grid-v262"><div><label>Type</label><select class="config-input" id="loan-type-' + attr(safe) + '"><option value="loan"' + (loan.type === 'loan' ? ' selected' : '') + '>Loan</option><option value="mortgage"' + (loan.type === 'mortgage' ? ' selected' : '') + '>Mortgage</option></select></div><div><label>Currency</label><select class="config-input" id="loan-currency-' + attr(safe) + '">' + currencyOptions(loan.currency) + '</select></div></div>'
-        + '<div class="loan-form-grid-v262"><div><label>Linked bank</label><select class="config-input" id="loan-bank-' + attr(safe) + '">' + bankOptions(loan.linkedBankId) + '</select></div><div><label>Account</label><input class="config-input" id="loan-account-v262-' + attr(safe) + '" value="' + attr(loan.account || '') + '"></div></div>'
-        + '<div class="loan-form-grid-v262"><div><label>Original value</label><input class="config-input" id="loan-original-' + attr(safe) + '" type="number" step="0.01" value="' + attr(loanOriginal(loan)) + '"></div><div><label>Outstanding balance</label><input class="config-input" id="loan-current-' + attr(safe) + '" type="number" step="0.01" value="' + attr(loanOutstanding(loan)) + '"></div></div>'
-        + '<div class="loan-form-grid-v262"><div><label>Amount of repayment</label><input class="config-input" id="loan-payment-' + attr(safe) + '" type="number" step="0.01" value="' + attr(loan.monthlyPayment || '') + '"></div><div><label>Interest rate</label><input class="config-input" id="loan-rate-' + attr(safe) + '" value="' + attr(loan.interestRate || '') + '"></div></div>'
-        + '<div class="loan-form-grid-v262"><div><label>Period</label><input class="config-input" id="loan-period-' + attr(safe) + '" value="' + attr(loan.periodValue || '') + '"></div><div><label>Fixation until</label><input class="config-input" id="loan-fixation-' + attr(safe) + '" value="' + attr(loan.fixationUntil || '') + '"></div></div>'
-        + '<label>VS (variable symbol)</label><input class="config-input" id="loan-vs-' + attr(safe) + '" value="' + attr(loan.variableSymbol || '') + '">'
-        + '<label>Match text</label><input class="config-input" id="loan-text-' + attr(safe) + '" value="' + attr(loan.matchText || loan.repaymentText || '') + '">'
-        + '<label>Status</label><select class="config-input" id="loan-status-' + attr(safe) + '"><option value="active"' + (loan.status !== 'paused' ? ' selected' : '') + '>Active</option><option value="paused"' + (loan.status === 'paused' ? ' selected' : '') + '>Paused</option></select>'
+        + '<div class="sheet-grid-2 loan-type-currency-row-v293"><div><label>Loan type</label><select class="config-input" id="loan-type-' + attr(safe) + '"><option value="loan"' + (loan.type === 'loan' ? ' selected' : '') + '>Loan</option><option value="mortgage"' + (loan.type === 'mortgage' ? ' selected' : '') + '>Mortgage</option></select></div><div><label>Currency</label><select class="config-input" id="loan-currency-' + attr(safe) + '">' + currencyOptions(loan.currency) + '</select></div></div>'
+        + '<label>Linked bank</label><select class="config-input" id="loan-bank-' + attr(safe) + '">' + bankOptions(loan.linkedBankId) + '</select>'
+        + '<div class="sheet-grid-2"><div><label>Original loan amount</label><input class="config-input" id="loan-original-' + attr(safe) + '" type="number" step="0.01" value="' + attr(loanOriginal(loan)) + '"></div><div><label>Outstanding balance</label><input class="config-input" id="loan-current-' + attr(safe) + '" type="number" step="0.01" value="' + attr(loanOutstanding(loan)) + '"></div></div>'
+        + '<div class="sheet-grid-2 loan-period-fixation-row-v293"><div><label>Loan period</label><div class="loan-period-combo-v271"><input class="config-input" id="loan-period-' + attr(safe) + '" value="' + attr(loan.periodValue || '') + '"><select class="config-input" id="loan-period-unit-' + attr(safe) + '"><option value="months"' + (loan.periodUnit !== 'years' ? ' selected' : '') + '>Months</option><option value="years"' + (loan.periodUnit === 'years' ? ' selected' : '') + '>Years</option></select></div></div><div><label>Fixation until</label><input class="config-input" id="loan-fixation-' + attr(safe) + '" type="date" value="' + attr(loan.fixationUntil || '') + '"></div></div>'
+        + '<div class="sheet-grid-2 loan-rate-status-row-v293"><div><label>Interest rate %</label><input class="config-input" id="loan-rate-' + attr(safe) + '" value="' + attr(loan.interestRate || '') + '"></div><div><label>Status</label><select class="config-input" id="loan-status-' + attr(safe) + '"><option value="active"' + (loan.status !== 'paused' ? ' selected' : '') + '>Active</option><option value="paused"' + (loan.status === 'paused' ? ' selected' : '') + '>Paused</option></select></div></div>'
+        + '<div class="sheet-grid-2 loan-vs-text-row-v293"><div><label>Variable symbol</label><div class="budget-status-note loan-field-hint-v293">Used to match repayments</div><input class="config-input" id="loan-vs-' + attr(safe) + '" value="' + attr(loan.variableSymbol || '') + '"></div><div><label>Repayment text</label><div class="budget-status-note loan-field-hint-v293">Optional fallback matcher</div><input class="config-input" id="loan-text-' + attr(safe) + '" value="' + attr(loan.matchText || loan.repaymentText || '') + '"></div></div>'
+        + '<input type="hidden" id="loan-account-v262-' + attr(safe) + '" value="' + attr(loan.account || '') + '">'
+        + '<input type="hidden" id="loan-payment-' + attr(safe) + '" value="' + attr(loan.monthlyPayment || '') + '">'
+        + '<input type="hidden" id="loan-alert-' + attr(safe) + '" value="' + attr(loan.alert || loan.alertDays || loan.fixationAlertDays || '') + '">'
         + '<button class="config-save" onclick="updateLoanV262(\'' + attr(loan.id) + '\')">Save loan</button>'
         + '</div></div>';
     }).join('');
@@ -30371,6 +30502,13 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (shouldOpen) {
       row.classList.add('open');
       setLoanAddCardVisibility(false);
+      requestAnimationFrame(function(){
+        if (sheet && row) {
+          try { row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch(_) {
+            try { row.scrollIntoView(true); } catch(__) {}
+          }
+        }
+      });
     }
   };
   window.toggleLoanAddFormV262 = function(){
@@ -31551,7 +31689,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     form.insertBefore(periodRow, rowOne);
   }
   function layoutLoanEditRows(form, safe){
-    if (!form) return;
+    if (!form || form.dataset.loanLayoutV293 === '1') return;
     var existingOne = form.querySelector('.loan-status-fixation-row-v272');
     var existingPeriod = form.querySelector('.loan-period-row-single-v272');
     var existingAlert = form.querySelector('.loan-alert-row-single-v272');
@@ -31642,8 +31780,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
         btn.setAttribute('aria-label', 'Edit');
       });
       var form = byId('loan-edit-' + safe) || row.querySelector('.managed-bank-form');
-      ensurePeriodCombo(byId('loan-period-' + safe), loan);
-      ensureAlertField(form, safe, loan);
+      if (form && form.dataset.loanLayoutV293 !== '1') ensurePeriodCombo(byId('loan-period-' + safe), loan);
+      if (form && form.dataset.loanLayoutV293 !== '1') ensureAlertField(form, safe, loan);
       row.querySelectorAll('button.config-save').forEach(function(button){ button.remove(); });
       FIELD_SELECTORS.forEach(function(pair){
         var fieldKey = pair[0];
@@ -32136,9 +32274,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   #bank-manager-sheet .managed-bank-monthly-settings {
     animation: none !important;
   }
-  /* Open editor as a separate card instead of row slide/accordion. */
-  #bank-manager-sheet .managed-bank-row.open .managed-bank-form,
-  #loan-manager-sheet .loan-manager-card.open .managed-bank-form {
+  /* Open bank editor as a separate card instead of row slide/accordion. */
+  #bank-manager-sheet .managed-bank-row.open .managed-bank-form {
     position: fixed !important;
     left: 50% !important;
     top: 54% !important;
@@ -32154,13 +32291,11 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     box-shadow: 0 18px 55px rgba(0,0,0,.48) !important;
     margin-top: 0 !important;
   }
-  html[data-theme="light"] #bank-manager-sheet .managed-bank-row.open .managed-bank-form,
-  html[data-theme="light"] #loan-manager-sheet .loan-manager-card.open .managed-bank-form {
+  html[data-theme="light"] #bank-manager-sheet .managed-bank-row.open .managed-bank-form {
     background: rgba(248,250,252,.98) !important;
     border-color: rgba(37,99,235,.22) !important;
   }
-  #bank-manager-sheet .managed-bank-form .manager-editor-toolbar,
-  #loan-manager-sheet .managed-bank-form .manager-editor-toolbar {
+  #bank-manager-sheet .managed-bank-form .manager-editor-toolbar {
     position: sticky;
     top: 0;
     z-index: 2;
@@ -32171,13 +32306,11 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     padding: 0 2px 8px;
     background: inherit;
   }
-  #bank-manager-sheet .managed-bank-form .manager-editor-toolbar .sheet-close,
-  #loan-manager-sheet .managed-bank-form .manager-editor-toolbar .sheet-close {
+  #bank-manager-sheet .managed-bank-form .manager-editor-toolbar .sheet-close {
     width: 30px;
     height: 30px;
   }
-  #bank-manager-sheet .managed-bank-form .manager-editor-toolbar .manager-editor-title,
-  #loan-manager-sheet .managed-bank-form .manager-editor-toolbar .manager-editor-title {
+  #bank-manager-sheet .managed-bank-form .manager-editor-toolbar .manager-editor-title {
     font-weight: 800;
     font-size: 13px;
     letter-spacing: .04em;
@@ -32284,6 +32417,127 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     position: static !important;
     top: auto !important;
     padding-top: 0 !important;
+  }
+</style>
+<style id="v290-sync-widget-loans-privacy-css">
+  /* Custom widget builder: full-page fade card instead of slide-up sheet. */
+  #bottom-sheet-backdrop.fullpage-fade-backdrop {
+    background: rgba(4, 10, 22, 0.78) !important;
+    transition: opacity .22s ease !important;
+  }
+  body.custom-widget-editor-open {
+    overflow: hidden !important;
+  }
+  #custom-widget-sheet.custom-widget-fullpage {
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 50% !important;
+    right: auto !important;
+    width: min(100vw, 560px) !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    transform: translateX(-50%) scale(.985) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity .22s ease, transform .22s ease !important;
+    will-change: opacity, transform;
+  }
+  #custom-widget-sheet.custom-widget-fullpage.custom-widget-fullpage-open {
+    transform: translateX(-50%) scale(1) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+  #custom-widget-sheet.custom-widget-fullpage .sheet-handle {
+    display: none !important;
+  }
+
+  /* Privacy: hide chart shapes with opacity only (no expensive blur). */
+  html[data-values-hidden="true"] .mini-gauge-wrap,
+  html[data-values-hidden="true"] .wealth-inline-progress,
+  html[data-values-hidden="true"] .wealth-budget-widget,
+  html[data-values-hidden="true"] .custom-widget-chart,
+  html[data-values-hidden="true"] .budget-progress,
+  html[data-values-hidden="true"] .progress-wrap,
+  html[data-values-hidden="true"] .wealth-trend,
+  html[data-values-hidden="true"] .mini-half-gauge,
+  html[data-values-hidden="true"] .wealth-inline-progress-track,
+  html[data-values-hidden="true"] .daily-chart-card svg,
+  html[data-values-hidden="true"] .archive-trend-card svg {
+    filter: none !important;
+    opacity: .16 !important;
+    pointer-events: none !important;
+  }
+
+  /* Manage loans: keep sheet header visible and fit edit form on screen. */
+  #loan-manager-sheet .sheet-title-row {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 5 !important;
+    background: inherit !important;
+    padding-top: 6px !important;
+  }
+</style>
+<style id="v293-loan-manager-inline-css">
+  /* Manage loans: inline accordion editor like the reference card layout. */
+  #loan-manager-sheet .managed-bank-form .manager-editor-toolbar,
+  #loan-manager-sheet .manager-editor-toolbar {
+    display: none !important;
+  }
+  #loan-manager-sheet .loan-manager-card.open .managed-bank-form,
+  #loan-manager-sheet .loan-manager-card.open .loan-manager-inline-form-v293 {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    z-index: auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin-top: 14px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  #loan-manager-sheet .loan-manager-inline-form-v293 {
+    display: none;
+    gap: 10px;
+  }
+  #loan-manager-sheet .loan-manager-card.open .loan-manager-inline-form-v293 {
+    display: grid !important;
+  }
+  #loan-manager-sheet .loan-field-hint-v293 {
+    margin: -2px 0 6px !important;
+    font-size: 10px !important;
+    line-height: 1.35 !important;
+  }
+  #loan-manager-sheet .loan-period-fixation-row-v293 .loan-period-combo-v271 {
+    display: grid !important;
+    grid-template-columns: minmax(72px, 1fr) minmax(96px, 108px);
+    gap: 8px;
+    align-items: center;
+  }
+  #loan-manager-sheet .loan-period-fixation-row-v293 .loan-period-combo-v271 .config-input {
+    width: 100%;
+    min-width: 0;
+  }
+  #loan-manager-sheet .loan-vs-text-row-v293 .config-input,
+  #loan-manager-sheet .loan-type-currency-row-v293 .config-input,
+  #loan-manager-sheet .loan-rate-status-row-v293 .config-input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  @media (max-width: 430px) {
+    #loan-manager-sheet .sheet-grid-2.loan-type-currency-row-v293,
+    #loan-manager-sheet .sheet-grid-2.loan-period-fixation-row-v293,
+    #loan-manager-sheet .sheet-grid-2.loan-rate-status-row-v293,
+    #loan-manager-sheet .sheet-grid-2.loan-vs-text-row-v293 {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
 </body>
