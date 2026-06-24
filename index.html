@@ -27,6 +27,12 @@
     margin: 0;
     min-height: 100vh;
   }
+  body.app-boot-pending {
+    overflow: hidden;
+  }
+  body.app-boot-pending > :not(#page-loading-overlay) {
+    visibility: hidden !important;
+  }
 
   /* v146 CSOB SK account-currency equivalent + archive readable totals */
   html[data-theme="light"] .tx-account-equivalent,
@@ -786,6 +792,15 @@
   .custom-widget-radio-grid { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
   .custom-widget-choice { border:1px solid rgba(88,166,255,.22); background:rgba(23,38,72,.78); color:#eaf6ff; border-radius:14px; padding:10px 8px; font-size:12px; font-weight:850; text-align:center; }
   .custom-widget-choice.active { border-color: var(--widget-accent, #00E5A0); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--widget-accent, #00E5A0) 55%, transparent); }
+  .custom-widget-multi-grid { display:flex; flex-wrap:wrap; gap:8px; }
+  .custom-widget-account-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(92px, 1fr)); gap:8px; }
+  #cw-payment-kind-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; }
+  .custom-widget-account-grid .custom-widget-choice,
+  #cw-payment-kind-grid .custom-widget-choice { padding:9px 6px; font-size:11px; line-height:1.2; min-height:40px; display:flex; align-items:center; justify-content:center; }
+  .custom-widget-filter-stack { display:grid; gap:12px; }
+  .custom-widget-multi-hint { font-size:11px; color:var(--muted); line-height:1.35; margin-top:6px; }
+  .custom-widget-multi-select { min-height:118px; padding:6px 8px; }
+  .custom-widget-multi-select option { padding:7px 8px; border-radius:8px; }
   .custom-widget-char-counter { font-family:var(--font-mono); font-size:10px; color:var(--muted); text-align:right; margin-top:4px; }
   .custom-widget-hidden-list { padding:0 20px 20px; display:grid; gap:8px; }
   .custom-widget-hidden-item { display:flex; justify-content:space-between; align-items:center; gap:10px; border:1px solid rgba(88,166,255,.16); border-radius:14px; padding:10px 12px; background:rgba(14,25,52,.62); }
@@ -2019,6 +2034,18 @@
     border-radius: 4px;
     background: transparent;
     flex: 0 0 18px;
+  }
+
+  .bank-logo-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    background: #009B77;
+    border-radius: 4px;
+    line-height: 1;
   }
 
   .tx-bank-logo {
@@ -3374,6 +3401,7 @@
 
   .page-loading-overlay.show {
     opacity: 1;
+    pointer-events: all;
   }
 
   .page-loading-spinner {
@@ -6869,7 +6897,14 @@
   stroke-linejoin: round;
   fill: none;
 }
-.txn-filter-toggle-btn:active { transform: scale(.97); }
+.txn-filter-toggle-btn.active {
+  color: var(--accent);
+  border-color: rgba(119,224,243,.45);
+  background: rgba(119,224,243,.12);
+}
+.txn-filter-sheet-grid {
+  padding-bottom: 8px;
+}
 .txn-filter-summary {
   margin-top: 7px;
   display: flex;
@@ -7995,8 +8030,9 @@ html[data-theme="light"] body::before {
     const manualControls = stats?.source === 'manual'
       ? `<div class="custom-widget-manual-controls" onclick="event.stopPropagation()"><button type="button" onclick="adjustCustomWidgetManualValue('${escapeAttr(widget.id)}',-1)">−</button><span>Manual</span><button type="button" onclick="adjustCustomWidgetManualValue('${escapeAttr(widget.id)}',1)">+</button></div>`
       : '';
-    const kindBadge = widget.paymentKind && widget.paymentKind !== 'all' && stats?.source !== 'manual'
-      ? `<div class="custom-widget-period">${escapeHtml(getPaymentKindFilterLabel(widget.paymentKind === 'account' ? 'account' : widget.paymentKind))}</div>`
+    const kindKinds = parseWidgetMultiSelectValue(widget.paymentKind);
+    const kindBadge = kindKinds.length && stats?.source !== 'manual'
+      ? `<div class="custom-widget-period">${escapeHtml(getWidgetPaymentKindSummaryLabel(widget.paymentKind))}</div>`
       : '';
     return `<article class="custom-widget-card" data-id="${escapeAttr(widget.id)}" data-size="${escapeAttr(widget.size || 'medium')}" draggable="true" style="--widget-accent:${escapeAttr(accent)}" onclick="handleCustomWidgetCardClick(event,'${escapeAttr(widget.id)}')" ondragstart="handleCustomWidgetDragStart(event,'${escapeAttr(widget.id)}')" ondragover="handleCustomWidgetDragOver(event)" ondrop="handleCustomWidgetDrop(event,'${escapeAttr(widget.id)}')" ondragend="handleCustomWidgetDragEnd(event)" onpointerdown="handleCustomWidgetPointerDown(event,'${escapeAttr(widget.id)}')" onpointermove="handleCustomWidgetPointerMove(event,'${escapeAttr(widget.id)}')" onpointerup="handleCustomWidgetPointerUp(event,'${escapeAttr(widget.id)}')" onpointercancel="handleCustomWidgetPointerUp(event,'${escapeAttr(widget.id)}')">
       <div class="custom-widget-content">
@@ -8127,7 +8163,11 @@ html[data-theme="light"] body::before {
 </style>
 
 </head>
-<body>
+<body class="app-boot-pending">
+
+<div id="page-loading-overlay" class="page-loading-overlay show" aria-busy="true" aria-live="polite">
+  <div class="page-loading-spinner" aria-hidden="true"></div>
+</div>
 
 <div id="page-overview" class="page active">
   <div class="header overview-header-v236">
@@ -8258,55 +8298,62 @@ html[data-theme="light"] body::before {
         <div class="cat-chip" id="filter-bank-csob-cz" onclick="filterBank('csob_cz')"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/CSOB-CZ.jpg" alt="ČSOB CZ" loading="lazy"><span>ČSOB CZ</span></span></div>
         <div class="cat-chip" id="filter-bank-moneta" onclick="filterBank('moneta')"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Moneta-CZ.png" alt="Moneta" loading="lazy"><span class="moneta-gradient">Moneta</span></span></div>
         <div class="cat-chip" id="filter-bank-air-bank-cz" onclick="filterBank('air_bank_cz')"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Airbank.jpg" alt="Air Bank" loading="lazy"><span>Air Bank</span></span></div>
+        <div class="cat-chip" id="filter-bank-pluxee" onclick="filterBank('pluxee')"><span class="bank-inline-logo"><img class="bank-logo-mini" src="https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Pluxee.jpg" alt="Pluxee" loading="lazy"><span>Pluxee</span></span></div>
       </div>
-    </div>
-  </div>
-
-  <div class="txn-advanced-filters" id="txn-advanced-filters">
-    <div class="txn-advanced-card">
-      <div class="filter-group-title" data-i18n="dateRange">Date range</div>
-      <div class="date-range-filter">
-        <div>
-          <label data-i18n="fromDate">From</label>
-          <input class="config-input" id="txn-date-from" type="date" onchange="handleTransactionDateRange()" />
-        </div>
-        <div>
-          <label data-i18n="toDate">To</label>
-          <input class="config-input" id="txn-date-to" type="date" onchange="handleTransactionDateRange()" />
-        </div>
-      </div>
-      <div class="date-range-clear-wrap">
-        <button class="date-range-clear-btn" onclick="clearTransactionDateRange()" data-i18n="clearDateFilter">Clear date filter</button>
-      </div>
-
-      <div class="filter-group-title" data-i18n="type">Type</div>
-      <div class="cat-grid" id="direction-filters">
-        <div class="txn-filter-pill active" id="filter-dir-all" onclick="filterDirection('all')" data-i18n="all">All</div>
-        <div class="txn-filter-pill" id="filter-dir-incoming" onclick="filterDirection('incoming')" data-i18n="incoming">Incoming</div>
-        <div class="txn-filter-pill" id="filter-dir-outgoing" onclick="filterDirection('outgoing')" data-i18n="outgoing">Outgoing</div>
-      </div>
-
-      <div class="filter-group-title" data-i18n="transactionKind">Payment type</div>
-      <div class="cat-grid payment-kind-grid" id="payment-kind-filters">
-        <div class="txn-filter-pill active" id="filter-kind-all" onclick="filterPaymentKind('all')" data-i18n="all">All</div>
-        <div class="txn-filter-pill" id="filter-kind-card" onclick="filterPaymentKind('card')" data-i18n="cardsOnly">Cards</div>
-        <div class="txn-filter-pill" id="filter-kind-account" onclick="filterPaymentKind('account')" data-i18n="accountsOnly">Transfers</div>
-        <div class="txn-filter-pill" id="filter-kind-cash" onclick="filterPaymentKind('cash')" data-i18n="cashOnly">Cash</div>
-        <div class="txn-filter-pill" id="filter-kind-internal" onclick="filterPaymentKind('internal')" data-i18n="internalTransfers">Internal</div>
-      </div>
-      <div class="cat-grid" id="card-source-filters" style="display:none;"></div>
-
-      <div class="filter-group-title" data-i18n="category">Category</div>
-      <div class="cat-grid" id="cat-filters"></div>
-      <div class="cat-grid txn-category-extra" id="cat-filters-extra"></div>
-      <div id="cat-filters-extra-card" style="display:none;"></div>
-      <div class="filter-group-title">Tag</div>
-      <div class="cat-grid" id="tag-filters"></div>
     </div>
   </div>
 
   <div id="txn-cashflow-slot" class="txn-cashflow-slot"></div>
   <div id="txn-list" style="margin: 0 20px;"></div>
+</div>
+
+<div id="txn-filter-sheet" class="bottom-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title-row">
+    <div class="sheet-title" data-i18n="filters">Filters</div>
+    <button class="sheet-close" type="button" onclick="closeBottomSheets()" aria-label="Close">×</button>
+  </div>
+  <div class="sheet-grid txn-filter-sheet-grid">
+    <div class="filter-group-title" data-i18n="dateRange">Date range</div>
+    <div class="date-range-filter">
+      <div>
+        <label data-i18n="fromDate">From</label>
+        <input class="config-input" id="txn-date-from" type="date" onchange="handleTransactionDateRange()" />
+      </div>
+      <div>
+        <label data-i18n="toDate">To</label>
+        <input class="config-input" id="txn-date-to" type="date" onchange="handleTransactionDateRange()" />
+      </div>
+    </div>
+    <div class="date-range-clear-wrap">
+      <button class="date-range-clear-btn" type="button" onclick="clearTransactionDateRange()" data-i18n="clearDateFilter">Clear date filter</button>
+    </div>
+
+    <div class="filter-group-title" data-i18n="type">Type</div>
+    <div class="cat-grid" id="direction-filters">
+      <div class="txn-filter-pill active" id="filter-dir-all" onclick="filterDirection('all')" data-i18n="all">All</div>
+      <div class="txn-filter-pill" id="filter-dir-incoming" onclick="filterDirection('incoming')" data-i18n="incoming">Incoming</div>
+      <div class="txn-filter-pill" id="filter-dir-outgoing" onclick="filterDirection('outgoing')" data-i18n="outgoing">Outgoing</div>
+    </div>
+
+    <div class="filter-group-title" data-i18n="transactionKind">Payment type</div>
+    <div class="cat-grid payment-kind-grid" id="payment-kind-filters">
+      <div class="txn-filter-pill active" id="filter-kind-all" onclick="filterPaymentKind('all')" data-i18n="all">All</div>
+      <div class="txn-filter-pill" id="filter-kind-card" onclick="filterPaymentKind('card')" data-i18n="cardsOnly">Cards</div>
+      <div class="txn-filter-pill" id="filter-kind-account" onclick="filterPaymentKind('account')" data-i18n="accountsOnly">Transfers</div>
+      <div class="txn-filter-pill" id="filter-kind-cash" onclick="filterPaymentKind('cash')" data-i18n="cashOnly">Cash</div>
+      <div class="txn-filter-pill" id="filter-kind-internal" onclick="filterPaymentKind('internal')" data-i18n="internalTransfers">Internal</div>
+    </div>
+    <div class="cat-grid" id="card-source-filters" style="display:none;"></div>
+
+    <div class="filter-group-title" data-i18n="category">Category</div>
+    <div class="cat-grid" id="cat-filters"></div>
+    <div class="cat-grid txn-category-extra" id="cat-filters-extra"></div>
+    <div id="cat-filters-extra-card" style="display:none;"></div>
+    <div class="filter-group-title">Tag</div>
+    <div class="cat-grid" id="tag-filters"></div>
+    <button class="config-save" type="button" onclick="closeBottomSheets()" data-i18n="done">Done</button>
+  </div>
 </div>
 
 <div id="page-archive" class="page">
@@ -8638,9 +8685,20 @@ html[data-theme="light"] body::before {
       </div>
     </div>
 
-    <div class="custom-widget-row-2">
-      <div><label>Data input</label><select class="config-input" id="cw-source" onchange="handleCustomWidgetSourceChange()"><option value="auto">App data</option><option value="manual">Manual value</option></select></div>
-      <div><label>Transaction type</label><select class="config-input" id="cw-payment-kind" onchange="updateCustomWidgetBuilderPreview()"><option value="all">All</option><option value="card">Card</option><option value="cash">Cash</option><option value="account">Transfer</option></select></div>
+    <div id="cw-source-wrap">
+      <label>Data input</label>
+      <select class="config-input" id="cw-source" onchange="handleCustomWidgetSourceChange()"><option value="auto">App data</option><option value="manual">Manual value</option></select>
+    </div>
+
+    <div id="cw-payment-kind-wrap">
+      <label>Transaction type</label>
+      <div class="custom-widget-radio-grid" id="cw-payment-kind-grid">
+        <button class="custom-widget-choice" type="button" data-value="card" onclick="toggleCustomWidgetPaymentKind('card')">Card</button>
+        <button class="custom-widget-choice" type="button" data-value="account" onclick="toggleCustomWidgetPaymentKind('account')">Transfer</button>
+        <button class="custom-widget-choice" type="button" data-value="cash" onclick="toggleCustomWidgetPaymentKind('cash')">Cash</button>
+        <button class="custom-widget-choice" type="button" data-value="internal" onclick="toggleCustomWidgetPaymentKind('internal')">Internal</button>
+      </div>
+      <input type="hidden" id="cw-payment-kind" value="all" />
     </div>
 
     <div>
@@ -8671,9 +8729,15 @@ html[data-theme="light"] body::before {
       <div><label>Show lower value line</label><select class="config-input" id="cw-show-gauge-amount" onchange="updateCustomWidgetBuilderPreview()"><option value="true">On</option><option value="false">Off</option></select></div>
     </div>
 
-    <div class="custom-widget-row-2">
-      <div><label>Period</label><select class="config-input" id="cw-period" onchange="handleCustomWidgetPeriodChange()"><option value="month">This month</option><option value="year">This year</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="custom">Custom range</option></select></div>
-      <div><label>Account / card</label><select class="config-input" id="cw-account" onchange="updateCustomWidgetBuilderPreview()"></select></div>
+    <div>
+      <label>Period</label>
+      <select class="config-input" id="cw-period" onchange="handleCustomWidgetPeriodChange()"><option value="month">This month</option><option value="year">This year</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="custom">Custom range</option></select>
+    </div>
+
+    <div id="cw-account-wrap">
+      <label>Account / card</label>
+      <div class="custom-widget-account-grid" id="cw-account-grid"></div>
+      <input type="hidden" id="cw-account" value="all" />
     </div>
     <div class="custom-widget-row-2" id="cw-custom-range" style="display:none;">
       <div><label>From</label><input class="config-input" id="cw-from" type="date" onchange="updateCustomWidgetBuilderPreview()" /></div>
@@ -9176,9 +9240,10 @@ const BANKS = {
   csob_cz: { label: 'ČSOB CZ', short: 'ČSOB CZ', color: '#8fbfff', limitKey: 'csobCz', defaultLimit: 5, primaryCurrency: 'CZK', primaryType: 'card', account: '', cards: '', aliases: ['csob cz','čsob cz','csob česk','čsob česk'] },
   csob_cz_credit: { label: 'ČSOB CZ credit card', short: 'Credit card', color: '#8fbfff', limitKey: null, defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'credit', account: '', cards: '', cardLast4: '', aliases: ['csob cz credit card','csob cz kreditka','čsob cz kreditka','kreditní karta čsob','kreditna karta csob'] },
   moneta: { label: '<span class="moneta-gradient">Moneta</span>', short: '<span class="moneta-gradient">Moneta</span>', color: 'var(--moneta-color)', limitKey: 'moneta', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'card', account: '', cards: '', aliases: ['moneta','moneta money','moneta bank'] },
-  air_bank_cz: { label: 'Air Bank', short: 'Air Bank', color: '#b8ff2f', limitKey: 'airBankCz', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'account', account: '', cards: '', aliases: ['air bank','airbank','air bank cz'] }
+  air_bank_cz: { label: 'Air Bank', short: 'Air Bank', color: '#b8ff2f', limitKey: 'airBankCz', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'account', account: '', cards: '', aliases: ['air bank','airbank','air bank cz'] },
+  pluxee: { label: 'Pluxee', short: 'Pluxee', color: '#009B77', limitKey: 'pluxee', defaultLimit: 0, primaryCurrency: 'CZK', primaryType: 'card', account: '', cards: '5310', aliases: ['pluxee','stravenkovy ucet','stravenkový účet','sodexo'] }
 };
-const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','csob_cz_credit','moneta','air_bank_cz'];
+const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','csob_cz_credit','moneta','air_bank_cz','pluxee'];
 
 const BANK_LOGOS = {
   rb_cz: {
@@ -9204,12 +9269,20 @@ const BANK_LOGOS = {
   air_bank_cz: {
     src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Airbank.jpg',
     alt: 'Air Bank'
+  },
+  pluxee: {
+    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Pluxee.jpg',
+    alt: 'Pluxee'
   }
 };
 
 function bankLogoImg(bankKey, className = 'bank-logo-mini') {
   const logo = BANK_LOGOS[bankKey];
   if (!logo) return '';
+  if (!logo.src) {
+    const label = String(logo.text || logo.alt || bankKey || '').trim();
+    return `<span class="${className} bank-logo-text" aria-label="${escapeAttr(logo.alt || label)}">${escapeHtml(label.slice(0, 1))}</span>`;
+  }
   return `<img class="${className}" src="${logo.src}" alt="${logo.alt}" loading="lazy">`;
 }
 
@@ -9239,7 +9312,7 @@ function getStoredSystemBankCards(bankKey, options = {}) {
     });
   };
   const custom = getCustomBanks().find(b => b && b.id === bankKey);
-  addCards(custom?.cards || localStorage.getItem('bank_cards_' + bankKey) || '');
+  addCards(custom?.cards || localStorage.getItem('bank_cards_' + bankKey) || getBankInfo(bankKey)?.cards || '');
   if (bankKey === 'csob_cz' && includeCreditChild) {
     const credit = getCustomBanks().find(b => b && b.id === 'csob_cz_credit');
     addCards(credit?.cards || localStorage.getItem('bank_cards_csob_cz_credit') || '');
@@ -9305,7 +9378,8 @@ function plainBankName(bankKey) {
     csob_cz: 'ČSOB CZ',
     csob_cz_credit: 'CSOB CZ credit card',
     moneta: 'Moneta',
-    air_bank_cz: 'Air Bank'
+    air_bank_cz: 'Air Bank',
+    pluxee: 'Pluxee'
   };
   return names[bankKey] || 'Banka';
 }
@@ -9318,7 +9392,8 @@ function getLimitsForMonth(monthStr) {
     csobSk: saved.csobSk ?? saved.csob ?? CSOB_LIMIT,
     csobCz: saved.csobCz ?? 5,
     moneta: saved.moneta ?? 0,
-    airBankCz: saved.airBankCz ?? 0
+    airBankCz: saved.airBankCz ?? 0,
+    pluxee: saved.pluxee ?? 0
   };
 }
 
@@ -9385,7 +9460,8 @@ function ensureLimitHistoryForMonth(monthStr) {
     csobSk: existing.csobSk ?? existing.csob ?? CSOB_LIMIT,
     csobCz: existing.csobCz ?? 5,
     moneta: existing.moneta ?? 0,
-    airBankCz: existing.airBankCz ?? 0
+    airBankCz: existing.airBankCz ?? 0,
+    pluxee: existing.pluxee ?? 0
   };
   return limitsHistory[monthStr];
 }
@@ -9511,7 +9587,8 @@ function saveLimitsForMonth(monthStr, limits) {
     csobSk: Number.isFinite(limits.csobSk) ? limits.csobSk : existing.csobSk,
     csobCz: Number.isFinite(limits.csobCz) ? limits.csobCz : existing.csobCz,
     moneta: Number.isFinite(limits.moneta) ? limits.moneta : existing.moneta,
-    airBankCz: Number.isFinite(limits.airBankCz) ? limits.airBankCz : existing.airBankCz
+    airBankCz: Number.isFinite(limits.airBankCz) ? limits.airBankCz : existing.airBankCz,
+    pluxee: Number.isFinite(limits.pluxee) ? limits.pluxee : existing.pluxee
   };
   localStorage.setItem('limits_history', JSON.stringify(limitsHistory));
 }
@@ -9555,6 +9632,7 @@ function canonicalBankIdFromSheetRow(id, name, account) {
   const rawId = String(id || '').trim();
   if (rawId === 'csob_cz_credit') return 'csob_cz_credit';
   if (rawId === 'air_bank_cz' || isAirBankLikeValue(name) || isAirBankLikeValue(account)) return 'air_bank_cz';
+  if (rawId === 'pluxee' || String(name || '').toLowerCase().includes('pluxee') || String(name || '').toLowerCase().includes('stravenk')) return 'pluxee';
   return rawId;
 }
 
@@ -9574,8 +9652,10 @@ function getBankKey(t) {
   const csobSkCards = getVisibleCardsForBank('csob_sk');
   const csobCzCards = getVisibleCardsForBank('csob_cz').filter(v => v !== csobCreditCard);
   const airIds = [getStoredSystemBankAccount('air_bank_cz'), ...getVisibleCardsForBank('air_bank_cz')].filter(Boolean);
+  const pluxeeCards = getVisibleCardsForBank('pluxee');
 
   if (combined.includes('air bank') || combined.includes('airbank') || textContainsAnyIdentifier(cardLower, airIds)) return 'air_bank_cz';
+  if (combined.includes('pluxee') || combined.includes('stravenk') || textContainsAnyIdentifier(cardLower, pluxeeCards)) return 'pluxee';
   if (combined.includes('csob cz credit card') || (csobCreditCard && cardLower.includes(csobCreditCard))) return 'csob_cz_credit';
   if ((combined.includes('kredit') || combined.includes('credit card')) && (combined.includes('splátka') || combined.includes('splatka') || combined.includes('repayment') || (csobCreditCard && combined.includes(csobCreditCard)))) return 'csob_cz_credit';
   if (combined.includes('csob cz') || combined.includes('čsob cz') || combined.includes('csob česk') || combined.includes('čsob česk') || textContainsAnyIdentifier(cardLower, csobCzCards) || textContainsAnyIdentifier(cardLower, [getStoredSystemBankAccount('csob_cz')])) return 'csob_cz';
@@ -9768,7 +9848,7 @@ function markLocalCacheTimestamp(key) {
 }
 
 function shouldSkipStartupCloudSync() {
-  return isLocalCacheFresh('cached_cloud_sync_at', LOCAL_SYNC_CACHE_TTL_MS);
+  return false;
 }
 
 function markCloudSyncCompleted() {
@@ -9881,7 +9961,9 @@ function formatFxDateShort(dateStr) {
 function updateAccountBalanceFxBadge() {
   const badge = document.getElementById('account-balance-fx-badge');
   if (!badge) return;
-  if (!fxRatesDate) {
+  const appCurr = currencyCode(getAppCurrency());
+  const needsFxRows = appCurr === 'CZK' && getAllManagedBanksForBalance().some(bank => currencyCode(bank.currency || 'CZK') !== appCurr);
+  if (!fxRatesDate || !needsFxRows) {
     badge.textContent = '';
     badge.classList.remove('show');
     return;
@@ -9891,12 +9973,15 @@ function updateAccountBalanceFxBadge() {
 }
 
 function getCzkEquivalentText(amount, currency) {
-  const curr = currencyCode(currency || 'CZK');
-  const target = getAppCurrency();
-  if (curr === target) return '';
-  const converted = convertSignedAmountCurrency(amount, curr, target);
+  const bankCurr = currencyCode(currency || 'CZK');
+  const appCurr = currencyCode(getAppCurrency());
+  if (bankCurr === appCurr) return '';
+  // Row-level conversion is shown only when app currency is CZK and the bank is foreign.
+  // If app currency is EUR/USD/etc., keep each bank in its native currency without a second line.
+  if (appCurr !== 'CZK') return '';
+  const converted = convertSignedAmountCurrency(amount, bankCurr, appCurr);
   if (!converted) return '';
-  return `≈ ${formatSignedCurrencyAmount(converted, target)}`;
+  return `≈ ${formatSignedCurrencyAmount(converted, getAppCurrency())}`;
 }
 
 function getCurrencyTotals(txns) {
@@ -11126,6 +11211,13 @@ function hidePageLoadingOverlay() {
   }
   const overlay = document.getElementById('page-loading-overlay');
   if (overlay) overlay.classList.remove('show');
+}
+
+function finishAppBoot() {
+  document.body.classList.remove('app-boot-pending');
+  hidePageLoadingOverlay();
+  const overlay = document.getElementById('page-loading-overlay');
+  if (overlay) overlay.removeAttribute('aria-busy');
 }
 
 function exitBankTrackerApp() {
@@ -13472,17 +13564,23 @@ let txnFilterPanelOpen = false;
 
 function toggleTransactionFilterPanel() {
   txnFilterPanelOpen = !txnFilterPanelOpen;
+  if (txnFilterPanelOpen) openSheet('txn-filter-sheet');
+  else closeBottomSheets();
   updateTransactionFilterPanelUi();
 }
 
 function collapseTransactionFilterPanel() {
   txnFilterPanelOpen = false;
+  closeBottomSheets();
   updateTransactionFilterPanelUi();
 }
 
 function updateTransactionFilterPanelUi() {
-  const panel = document.getElementById('txn-advanced-filters');
-  if (panel) panel.classList.toggle('open', !!txnFilterPanelOpen);
+  const sheet = document.getElementById('txn-filter-sheet');
+  const isOpen = !!(sheet && sheet.classList.contains('open'));
+  txnFilterPanelOpen = isOpen;
+  const toggle = document.getElementById('txn-filter-toggle');
+  if (toggle) toggle.classList.toggle('active', isOpen);
   updateTransactionFilterSummary();
 }
 
@@ -13497,6 +13595,119 @@ function getPaymentKindFilterLabel(kind) {
   if (kind === 'cash') return t('cashOnly');
   if (kind === 'internal') return t('internalTransfers');
   return t('all');
+}
+
+function parseWidgetMultiSelectValue(value) {
+  if (value === undefined || value === null || value === '') return [];
+  if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);
+  const raw = String(value).trim();
+  if (!raw || raw === 'all') return [];
+  return raw.split(/[,;|]+/).map(v => v.trim()).filter(Boolean);
+}
+
+function serializeWidgetMultiSelectValue(values) {
+  const list = Array.isArray(values) ? values : parseWidgetMultiSelectValue(values);
+  const unique = [...new Set(list.filter(Boolean))];
+  return unique.length ? unique.join(',') : 'all';
+}
+
+function hasWidgetMultiFilter(value) {
+  return parseWidgetMultiSelectValue(value).length > 0;
+}
+
+function getWidgetPaymentKindSummaryLabel(paymentKindValue) {
+  const kinds = parseWidgetMultiSelectValue(paymentKindValue);
+  if (!kinds.length) return '';
+  return kinds.map(kind => getPaymentKindFilterLabel(kind === 'account' ? 'account' : kind)).join(', ');
+}
+
+function getWidgetAccountSummaryLabel(accountValue) {
+  const accounts = parseWidgetMultiSelectValue(accountValue);
+  if (!accounts.length) return '';
+  return accounts.map(id => plainBankName(id) || id).join(', ');
+}
+
+function widgetPaymentKindMatches(tx, paymentKindValue) {
+  const kinds = parseWidgetMultiSelectValue(paymentKindValue);
+  if (!kinds.length) return true;
+  return kinds.some(kind => {
+    if (kind === 'card') return isCardTransaction(tx);
+    if (kind === 'account') return isAccountTransaction(tx) && !isExcludedFromSpendingStats(tx);
+    if (kind === 'cash') return isCashTransaction(tx);
+    if (kind === 'internal') return isExcludedFromSpendingStats(tx);
+    return false;
+  });
+}
+
+function widgetAccountMatches(tx, accountValue) {
+  const accounts = parseWidgetMultiSelectValue(accountValue);
+  if (!accounts.length) return true;
+  let bankKey = '';
+  try { bankKey = getBudgetBankKeyFromTransaction(tx); } catch (_) {}
+  if (!bankKey) {
+    try { bankKey = getBankKey(tx); } catch (_) {}
+  }
+  return accounts.some(id => id === bankKey || id === tx?.bankId || id === tx?.bank);
+}
+
+function getCustomWidgetPaymentKindSelection() {
+  return [...document.querySelectorAll('#cw-payment-kind-grid .custom-widget-choice.active')]
+    .map(btn => String(btn.dataset.value || '').trim())
+    .filter(Boolean);
+}
+
+function setCustomWidgetPaymentKindSelection(value) {
+  const kinds = parseWidgetMultiSelectValue(value);
+  document.querySelectorAll('#cw-payment-kind-grid .custom-widget-choice').forEach(btn => {
+    btn.classList.toggle('active', kinds.length ? kinds.includes(btn.dataset.value) : false);
+  });
+  const hidden = document.getElementById('cw-payment-kind');
+  if (hidden) hidden.value = serializeWidgetMultiSelectValue(kinds);
+}
+
+function toggleCustomWidgetPaymentKind(kind) {
+  const btn = document.querySelector(`#cw-payment-kind-grid .custom-widget-choice[data-value="${kind}"]`);
+  if (!btn) return;
+  btn.classList.toggle('active');
+  const hidden = document.getElementById('cw-payment-kind');
+  if (hidden) hidden.value = serializeWidgetMultiSelectValue(getCustomWidgetPaymentKindSelection());
+  if (typeof updateCustomWidgetBuilderPreview === 'function') updateCustomWidgetBuilderPreview();
+}
+
+function getCustomWidgetAccountSelection() {
+  return [...document.querySelectorAll('#cw-account-grid .custom-widget-choice.active')]
+    .map(btn => String(btn.dataset.value || '').trim())
+    .filter(Boolean);
+}
+
+function setCustomWidgetAccountSelection(value) {
+  const ids = parseWidgetMultiSelectValue(value);
+  document.querySelectorAll('#cw-account-grid .custom-widget-choice').forEach(btn => {
+    btn.classList.toggle('active', ids.length ? ids.includes(btn.dataset.value) : false);
+  });
+  const hidden = document.getElementById('cw-account');
+  if (hidden) hidden.value = serializeWidgetMultiSelectValue(ids);
+}
+
+function toggleCustomWidgetAccount(bankId) {
+  const btn = document.querySelector(`#cw-account-grid .custom-widget-choice[data-value="${bankId}"]`);
+  if (!btn) return;
+  btn.classList.toggle('active');
+  const hidden = document.getElementById('cw-account');
+  if (hidden) hidden.value = serializeWidgetMultiSelectValue(getCustomWidgetAccountSelection());
+  if (typeof updateCustomWidgetBuilderPreview === 'function') updateCustomWidgetBuilderPreview();
+}
+
+function getCustomWidgetAccountStorageValue() {
+  const hidden = document.getElementById('cw-account');
+  if (hidden && hidden.value) return hidden.value;
+  return serializeWidgetMultiSelectValue(getCustomWidgetAccountSelection());
+}
+
+function getCustomWidgetPaymentKindStorageValue() {
+  const hidden = document.getElementById('cw-payment-kind');
+  if (hidden && hidden.value) return hidden.value;
+  return serializeWidgetMultiSelectValue(getCustomWidgetPaymentKindSelection());
 }
 
 function getDirectionFilterLabel(direction) {
@@ -14153,6 +14364,7 @@ function syncExclusiveBankFilterUi(bankKey) {
   document.getElementById('filter-bank-csob-cz')?.classList.toggle('active', key === 'csob_cz');
   document.getElementById('filter-bank-moneta')?.classList.toggle('active', key === 'moneta');
   document.getElementById('filter-bank-air-bank-cz')?.classList.toggle('active', key === 'air_bank_cz');
+  document.getElementById('filter-bank-pluxee')?.classList.toggle('active', key === 'pluxee');
 }
 
 function setExclusiveTransactionFilters(opts = {}) {
@@ -14272,6 +14484,7 @@ function filterBank(bank) {
   document.getElementById('filter-bank-csob-cz').classList.toggle('active', bank === 'csob_cz');
   document.getElementById('filter-bank-moneta').classList.toggle('active', bank === 'moneta');
   document.getElementById('filter-bank-air-bank-cz')?.classList.toggle('active', bank === 'air_bank_cz');
+  document.getElementById('filter-bank-pluxee')?.classList.toggle('active', bank === 'pluxee');
   updateTxnPage();
 }
 
@@ -15420,7 +15633,7 @@ function initBottomSheetDragToClose() {
 
 function shouldAnimateBottomSheet(sheetId) {
   // v9: match the original v4 sheet animation policy.
-  return ['upgrade-sheet', 'quick-add-sheet', 'bank-manager-sheet'].includes(String(sheetId || ''));
+  return ['upgrade-sheet', 'quick-add-sheet', 'bank-manager-sheet', 'txn-filter-sheet'].includes(String(sheetId || ''));
 }
 
 function openSheet(id){
@@ -15478,6 +15691,7 @@ function closeBottomSheets(){
   });
 
   if (typeof resetManagerFilters === 'function') resetManagerFilters();
+  if (typeof updateTransactionFilterPanelUi === 'function') updateTransactionFilterPanelUi();
   scheduleFloatingUtilityUpdate();
 }
 
@@ -17554,6 +17768,7 @@ const I18N = {
     autosaveHint: 'Changes are saved automatically. A green check means Google Sheets confirmed the save.',
     saveBank: 'Save bank',
     saveTransaction: 'Save transaction',
+    done: 'Done',
     current: 'Current',
     monthly: 'Monthly',
     yearly: 'Yearly',
@@ -17829,6 +18044,7 @@ const I18N = {
     autosaveHint: 'Zmeny sa ukladajú automaticky. Zelená fajka znamená, že Google Sheets potvrdil uloženie.',
     saveBank: 'Uložiť banku',
     saveTransaction: 'Uložiť transakciu',
+    done: 'Hotovo',
     current: 'Aktuálne',
     monthly: 'Mesačne',
     yearly: 'Ročne',
@@ -18097,6 +18313,7 @@ const I18N = {
     autosaveHint: 'Změny se ukládají automaticky. Zelená fajfka znamená, že Google Sheets potvrdil uložení.',
     saveBank: 'Uložit banku',
     saveTransaction: 'Uložit transakci',
+    done: 'Hotovo',
     current: 'Aktuální',
     monthly: 'Měsíčně',
     yearly: 'Ročně',
@@ -20124,11 +20341,13 @@ function warmStartupCachesDeferred(options = {}) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  const hideStartupLoader = () => {
-    try { if (typeof hidePageLoadingOverlay === 'function') hidePageLoadingOverlay(); } catch(_) {}
-  };
-  try { if (typeof showPageLoadingOverlayDelayed === 'function') showPageLoadingOverlayDelayed(0); } catch(_) {}
-  const loaderFailSafe = setTimeout(hideStartupLoader, 9000);
+  const loaderFailSafe = setTimeout(() => {
+    try {
+      if (!allTransactions.length) loadCachedTransactionsSnapshot();
+      prepareUiAfterDataLoad();
+    } catch (_) {}
+    finishAppBoot();
+  }, 15000);
 
   try {
     applyAppTheme(getAppTheme());
@@ -20136,11 +20355,25 @@ window.addEventListener('DOMContentLoaded', () => {
     applyLanguage();
     migrateCurrencyStorageToSymbols();
     updateGoogleSheetsToggleUi();
-
-    // Instant startup: render the last cached Google Sheets snapshot and balances first,
-    // then refresh from Google Sheets in the background. Google Sheets remains the master after sync.
     clearCloudFirstLocalData();
-    loadCachedTransactionsSnapshot();
+
+    const finishStartup = () => {
+      clearTimeout(loaderFailSafe);
+      prepareUiAfterDataLoad();
+      warmStartupCachesDeferred({ force: true });
+      finishAppBoot();
+    };
+
+    if (SHEETS_URL && isGoogleSheetsEnabled()) {
+      syncData({ startupMode: true }).then(() => {
+        startAutoSync();
+      }).catch((e) => {
+        console.warn('Startup cloud sync failed:', e);
+        if (!allTransactions.length) loadCachedTransactionsSnapshot();
+      }).finally(finishStartup);
+      return;
+    }
+
     try {
       if (!SHEETS_URL && isLocalTestDataHost()) seedBankTrackerLocalTestData(true);
     } catch (e) {
@@ -20148,33 +20381,24 @@ window.addEventListener('DOMContentLoaded', () => {
       document.documentElement.setAttribute('data-local-test-seed-error', String(e && e.message ? e.message : e));
       console.error('Local test data seed failed:', e);
     }
-
-    prepareUiAfterDataLoad();
+    loadCachedTransactionsSnapshot();
     warmStartupCachesDeferred();
-
-    if (SHEETS_URL && isGoogleSheetsEnabled()) {
-      // Run cloud sync after the first local paint so startup feels instant.
-      setTimeout(() => {
-        if (shouldSkipStartupCloudSync()) {
-          startAutoSync();
-          return;
-        }
-        syncData({ startupMode: true }).then(() => {
-          prepareUiAfterDataLoad({ render: false });
-          warmStartupCachesDeferred({ force: true });
-          startAutoSync();
-        }).catch((e) => {
-          console.warn('Startup background sync failed:', e);
-        });
-      }, 80);
-    } else if (!SHEETS_URL) {
+    clearTimeout(loaderFailSafe);
+    prepareUiAfterDataLoad();
+    finishAppBoot();
+    if (!SHEETS_URL) {
       const loadStatus = document.getElementById('limits-sync-status');
       if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
       console.warn('Google Sheets sync skipped on startup: missing sheets_url for this origin.');
     }
-  } finally {
+  } catch (e) {
+    console.error('Startup bootstrap failed:', e);
+    try {
+      if (!allTransactions.length) loadCachedTransactionsSnapshot();
+      prepareUiAfterDataLoad();
+    } catch (_) {}
     clearTimeout(loaderFailSafe);
-    requestAnimationFrame(() => setTimeout(hideStartupLoader, 60));
+    finishAppBoot();
   }
 });
 
@@ -20619,10 +20843,13 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   }
 
   function populateCustomWidgetAccountSelect(selected = 'all') {
-    const el = document.getElementById('cw-account');
-    if (!el) return;
-    el.innerHTML = getCustomWidgetAccounts().map(acc => `<option value="${escapeAttr(acc.id)}">${escapeHtml(acc.name)}</option>`).join('');
-    el.value = selected || 'all';
+    const grid = document.getElementById('cw-account-grid');
+    if (!grid) return;
+    grid.innerHTML = getCustomWidgetAccounts()
+      .filter(acc => acc.id !== 'all')
+      .map(acc => `<button class="custom-widget-choice" type="button" data-value="${escapeAttr(acc.id)}" onclick="toggleCustomWidgetAccount('${escapeAttr(acc.id)}')">${escapeHtml(acc.name)}</button>`)
+      .join('');
+    setCustomWidgetAccountSelection(selected);
   }
 
   function selectCustomWidgetPreset(type = 'budget') {
@@ -20763,14 +20990,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     const txns = (allTransactions || [])
       .filter(tx => Number(tx.amount || 0) < 0)
       .filter(tx => !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)))
-      .filter(tx => {
-        if (account === 'all') return true;
-        return getBudgetBankKeyFromTransaction(tx) === account || getBankKey(tx) === account;
-      })
-      .filter(tx => {
-        if (!paymentKind || paymentKind === 'all') return true;
-        return getTransactionPaymentKind(tx) === paymentKind;
-      })
+      .filter(tx => widgetAccountMatches(tx, account))
+      .filter(tx => widgetPaymentKindMatches(tx, paymentKind))
       .filter(tx => {
         const parsed = parseCustomDateStr(tx.rawDate || tx.date);
         if (!parsed || isNaN(parsed.getTime())) return false;
@@ -20902,8 +21123,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     const displayValue = (widget.chart === 'linear') ? escapeHtml(metric.usedLabel || mainValue) : mainValue;
     const displayLimit = (widget.chart === 'linear') ? `/ ${escapeHtml(metric.limitLabel || '')}` : limitValue;
     const mainBlock = isGauge ? '' : `<div class="custom-widget-main"><div><div class="custom-widget-money">${displayValue}</div><div class="custom-widget-limit">${displayLimit}</div></div></div>`;
-    const kindBadge = widget.paymentKind && widget.paymentKind !== 'all' && stats?.source !== 'manual'
-      ? `<div class="custom-widget-period">${escapeHtml(getPaymentKindFilterLabel(widget.paymentKind === 'account' ? 'account' : widget.paymentKind))}</div>`
+    const kindKinds = parseWidgetMultiSelectValue(widget.paymentKind);
+    const kindBadge = kindKinds.length && stats?.source !== 'manual'
+      ? `<div class="custom-widget-period">${escapeHtml(getWidgetPaymentKindSummaryLabel(widget.paymentKind))}</div>`
       : '';
     return `<article class="custom-widget-card" data-id="${escapeAttr(widget.id)}" data-size="${escapeAttr(widget.size || 'medium')}" draggable="true" style="--widget-accent:${escapeAttr(accent)}" onclick="handleCustomWidgetCardClick(event,'${escapeAttr(widget.id)}')" ondragstart="handleCustomWidgetDragStart(event,'${escapeAttr(widget.id)}')" ondragover="handleCustomWidgetDragOver(event)" ondrop="handleCustomWidgetDrop(event,'${escapeAttr(widget.id)}')" ondragend="handleCustomWidgetDragEnd(event)" onpointerdown="handleCustomWidgetPointerDown(event,'${escapeAttr(widget.id)}')" onpointermove="handleCustomWidgetPointerMove(event,'${escapeAttr(widget.id)}')" onpointerup="handleCustomWidgetPointerUp(event,'${escapeAttr(widget.id)}')" onpointercancel="handleCustomWidgetPointerUp(event,'${escapeAttr(widget.id)}')">
       <div class="custom-widget-content">
@@ -20964,7 +21186,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     set('cw-from', existing?.from || '');
     set('cw-to', existing?.to || '');
     set('cw-source', existing?.source || 'auto');
-    set('cw-payment-kind', existing?.paymentKind || 'all');
+    setCustomWidgetPaymentKindSelection(existing?.paymentKind || 'all');
     set('cw-gauge-metric', existing?.gaugeMetric || existing?.linearMetric || 'amount');
     set('cw-show-gauge-percent', String(existing?.showGaugePercent ?? true));
     set('cw-show-gauge-amount', String(existing?.showGaugeAmount ?? true));
@@ -21005,9 +21227,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       period: document.getElementById('cw-period')?.value || 'month',
       from: document.getElementById('cw-from')?.value || '',
       to: document.getElementById('cw-to')?.value || '',
-      account: document.getElementById('cw-account')?.value || 'all',
+      account: getCustomWidgetAccountStorageValue(),
       source: document.getElementById('cw-source')?.value || 'auto',
-      paymentKind: document.getElementById('cw-payment-kind')?.value || 'all',
+      paymentKind: getCustomWidgetPaymentKindStorageValue(),
       gaugeMetric: document.getElementById('cw-gauge-metric')?.value || 'amount',
       linearMetric: document.getElementById('cw-gauge-metric')?.value || 'amount',
       showGaugePercent: document.getElementById('cw-show-gauge-percent')?.value !== 'false',
@@ -21233,13 +21455,19 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     const range = getCustomWidgetPeriodRange(widget);
     activeCategory = 'všetky';
     activeDirection = 'outgoing';
-    activePaymentKind = widget.paymentKind && widget.paymentKind !== 'all' ? widget.paymentKind : 'all';
+    activePaymentKind = (() => {
+      const kinds = parseWidgetMultiSelectValue(widget.paymentKind);
+      return kinds.length === 1 ? kinds[0] : 'all';
+    })();
     activeCardLast4 = '';
     activeSearch = '';
     activeDateFrom = `${range.from.getFullYear()}-${String(range.from.getMonth()+1).padStart(2,'0')}-${String(range.from.getDate()).padStart(2,'0')}`;
     activeDateTo = `${range.to.getFullYear()}-${String(range.to.getMonth()+1).padStart(2,'0')}-${String(range.to.getDate()).padStart(2,'0')}`;
     activeTxnHistoryScope = 'all';
-    activeBank = widget.account && widget.account !== 'all' ? widget.account : 'všetky';
+    activeBank = (() => {
+      const accounts = parseWidgetMultiSelectValue(widget.account);
+      return accounts.length === 1 ? accounts[0] : 'všetky';
+    })();
     showPage('txns', { preserveFilters: true });
     updateTxnPage();
   }
@@ -21607,7 +21835,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       clearThenSet('cw-limit', '0');
       clearThenSet('cw-tx-target', '0');
       setValue('cw-source', 'auto');
-      setValue('cw-payment-kind', 'card');
+      setCustomWidgetPaymentKindSelection('card');
       setValue('cw-gauge-metric', 'amount');
       setValue('cw-show-count', 'false');
       setValue('cw-show-gauge-percent', 'true');
@@ -22865,7 +23093,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   };
 
   function updateBankFilterUiV239(){
-    var ids = { rb_cz:'filter-bank-rb', csob_sk:'filter-bank-csob-sk', csob_cz:'filter-bank-csob-cz', moneta:'filter-bank-moneta', air_bank_cz:'filter-bank-air-bank-cz' };
+    var ids = { rb_cz:'filter-bank-rb', csob_sk:'filter-bank-csob-sk', csob_cz:'filter-bank-csob-cz', moneta:'filter-bank-moneta', air_bank_cz:'filter-bank-air-bank-cz', pluxee:'filter-bank-pluxee' };
     Object.keys(ids).forEach(function(k){ document.getElementById(ids[k])?.classList.toggle('active', hasBank(k)); });
     document.getElementById('filter-bank-all')?.classList.toggle('active', !activeBanks().length);
   }
@@ -23051,7 +23279,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       if (opt.value === 'amount') opt.textContent = 'Amount';
       if (opt.value === 'count') opt.textContent = 'Number of transactions';
     });
-    document.querySelectorAll('#cw-payment-kind option[value="account"]').forEach(function(o){ o.textContent = 'Transfer'; });
+    document.querySelectorAll('#cw-payment-kind-grid .custom-widget-choice[data-value="account"]').forEach(function(o){ o.textContent = 'Transfer'; });
+    document.querySelectorAll('#cw-payment-kind-grid .custom-widget-choice[data-value="internal"]').forEach(function(o){ o.textContent = typeof t === 'function' ? t('internalTransfers') : 'Internal'; });
   }
 
   function boot(){
@@ -25354,9 +25583,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     }
     var loanBox = byId('cw-loan-fields-v240'); if (loanBox) { loanBox.classList.toggle('v254-hidden', !isLoan); loanBox.classList.toggle('is-hidden', !isLoan); }
     updateLoanWidgetInfo();
-    showControl('cw-payment-kind', !isLoan);
+    showControl('cw-payment-kind-wrap', !isLoan);
     showControl('cw-gauge-metric', !isLoan);
-    showControl('cw-account', !isLoan);
+    showControl('cw-account-wrap', !isLoan);
     showControl('cw-period', !isLoan);
     showRow('cw-custom-range', !isLoan && byId('cw-period') && byId('cw-period').value === 'custom');
     showControl('cw-limit', isAmount);
@@ -25379,8 +25608,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var kind = widget.paymentKind || 'all';
     return arr.filter(function(tx){ return Number(tx.amount || 0) < 0; })
       .filter(function(tx){ try { return !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)); } catch(_) { return true; } })
-      .filter(function(tx){ return account === 'all' || txBank(tx) === account; })
-      .filter(function(tx){ return !kind || kind === 'all' || txKind(tx) === kind; })
+      .filter(function(tx){ return widgetAccountMatches(tx, account); })
+      .filter(function(tx){ return widgetPaymentKindMatches(tx, kind); })
       .filter(function(tx){ var d = txDate(tx); return d && d >= range.from && d <= range.to; });
   }
   function widgetStats(widget){
@@ -25469,10 +25698,10 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (source === 'loan') { chart = 'linear'; metric = 'amount'; }
     var values = {
       name:(byId('cw-name') && byId('cw-name').value || '').trim(), chart:chart, size:activeChoice('cw-size-grid','medium'), source:source,
-      paymentKind:byId('cw-payment-kind') && byId('cw-payment-kind').value || 'all', gaugeMetric:metric, linearMetric:metric,
+      paymentKind: getCustomWidgetPaymentKindStorageValue(), gaugeMetric:metric, linearMetric:metric,
       limit:rawNumber(byId('cw-limit') && byId('cw-limit').value), currency:currencyCodeSafe(byId('cw-currency') && byId('cw-currency').value || 'CZK'),
       txTarget:rawNumber(byId('cw-tx-target') && byId('cw-tx-target').value), showCount:byId('cw-show-count') && byId('cw-show-count').value === 'true',
-      period:byId('cw-period') && byId('cw-period').value || 'month', from:byId('cw-from') && byId('cw-from').value || '', to:byId('cw-to') && byId('cw-to').value || '', account:byId('cw-account') && byId('cw-account').value || 'all',
+      period:byId('cw-period') && byId('cw-period').value || 'month', from:byId('cw-from') && byId('cw-from').value || '', to:byId('cw-to') && byId('cw-to').value || '', account: getCustomWidgetAccountStorageValue(),
       manualUsed:rawNumber(byId('cw-manual-used') && byId('cw-manual-used').value), unit:byId('cw-unit') && byId('cw-unit').value || 'entries',
       accent:normalizeHex((byId('cw-accent-hex') && byId('cw-accent-hex').value) || (byId('cw-accent') && byId('cw-accent').value), '#00E5A0'),
       alerts:byId('cw-alerts') && byId('cw-alerts').value === 'true', threshold:rawNumber(byId('cw-threshold') && byId('cw-threshold').value) || 80
@@ -26029,9 +26258,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var isAmount = !isLoan && metric === 'amount';
     var loanBox = byId('cw-loan-fields-v240'); if (loanBox) loanBox.classList.toggle('v258-hidden', !isLoan);
     updateLoanInfo();
-    showControl('cw-payment-kind', !isLoan);
+    showControl('cw-payment-kind-wrap', !isLoan);
     showControl('cw-gauge-metric', !isLoan);
-    showControl('cw-account', !isLoan);
+    showControl('cw-account-wrap', !isLoan);
     showControl('cw-period', !isLoan);
     showControl('cw-limit', false);
     showControl('cw-currency', isAmount || isLoan || source === 'manual');
@@ -26050,8 +26279,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var kind = widget.paymentKind || 'all';
     return arr.filter(function(tx){ return Number(tx.amount || 0) < 0; })
       .filter(function(tx){ try { return !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)); } catch(_) { return true; } })
-      .filter(function(tx){ return account === 'all' || txBank(tx) === account; })
-      .filter(function(tx){ return !kind || kind === 'all' || txKind(tx) === kind; })
+      .filter(function(tx){ return widgetAccountMatches(tx, account); })
+      .filter(function(tx){ return widgetPaymentKindMatches(tx, kind); })
       .filter(function(tx){ var d = txDate(tx); return d && d >= range.from && d <= range.to; });
   }
   function bankIdsForBudget(){
@@ -26200,9 +26429,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var chart = activeChoice('cw-chart-grid','linear');
     var values = {
       name:String(val('cw-name','')).trim(), chart:chart, size:activeChoice('cw-size-grid','medium'), source:source,
-      paymentKind:val('cw-payment-kind','all') || 'all', gaugeMetric:metric, linearMetric:metric,
+      paymentKind: getCustomWidgetPaymentKindStorageValue(), gaugeMetric:metric, linearMetric:metric,
       limit:0, currency:normalizeCurrency(val('cw-currency','CZK') || 'CZK'), txTarget:num(val('cw-tx-target',0)), showCount:val('cw-show-count','false') === 'true',
-      period:val('cw-period','month') || 'month', from:val('cw-from','') || '', to:val('cw-to','') || '', account:val('cw-account','all') || 'all',
+      period:val('cw-period','month') || 'month', from:val('cw-from','') || '', to:val('cw-to','') || '', account: getCustomWidgetAccountStorageValue(),
       manualUsed:num(val('cw-manual-used',0)), unit:val('cw-unit','entries') || 'entries', accent:normalizeHex(val('cw-accent-hex','') || val('cw-accent',''), '#00E5A0'),
       alerts:val('cw-alerts','false') === 'true', threshold:num(val('cw-threshold',80)) || 80
     };
@@ -26553,8 +26782,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var isSpend = st.source === 'auto';
     var isCount = isSpend && st.metric === 'count';
     var isAmount = isSpend && st.metric === 'amount';
-    setVisible('cw-payment-kind', isCount);
-    setVisible('cw-account', isSpend);
+    setVisible('cw-payment-kind-wrap', isCount);
+    setVisible('cw-account-wrap', isSpend);
     setVisible('cw-gauge-metric', isSpend);
     setVisible('cw-currency', isAmount || isManual);
     setVisible('cw-show-count', isAmount);
@@ -26591,8 +26820,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     return txArray().filter(function(tx){ return Number(tx.amount || 0) < 0; })
       .filter(function(tx){ try { return !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)); } catch(_) { return true; } })
       .filter(function(tx){ var d = txDate(tx); return d && d >= r.from && d <= r.to; })
-      .filter(function(tx){ return account === 'all' || txBank(tx) === account; })
-      .filter(function(tx){ return !kind || kind === 'all' || txKind(tx) === kind; });
+      .filter(function(tx){ return widgetAccountMatches(tx, account); })
+      .filter(function(tx){ return widgetPaymentKindMatches(tx, kind); });
   }
   function conv(v, from, to){ try { return convertAmountCurrency(Number(v || 0), from || to, to); } catch(_) { return Number(v || 0); } }
   function bankCurrency(id, fallback){ try { return getBankBudgetCurrency(id) || fallback; } catch(_) { return fallback; } }
@@ -26772,8 +27001,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       source: source,
       dataInput: source,
       currency: currencyCode2(getSelectValue('cw-currency', getCurrency())),
-      account: getSelectValue('cw-account','all') || 'all',
-      paymentKind: getSelectValue('cw-payment-kind','all') || 'all',
+      account: getCustomWidgetAccountStorageValue(),
+      paymentKind: getCustomWidgetPaymentKindStorageValue(),
       gaugeMetric: metric,
       linearMetric: metric,
       txTarget: Math.max(0, toNum(getSelectValue('cw-tx-target','0'))),
@@ -26857,8 +27086,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       setSelectValue('cw-source', sourceNorm(w.source || w.dataInput || ''));
       setSelectValue('cw-name', w.name || '');
       setSelectValue('cw-currency', w.currency || getCurrency());
-      setSelectValue('cw-account', w.account || 'all');
-      setSelectValue('cw-payment-kind', w.paymentKind || 'all');
+      setCustomWidgetPaymentKindSelection(w.paymentKind || 'all');
+      setCustomWidgetAccountSelection(w.account || 'all');
       setSelectValue('cw-gauge-metric', (w.gaugeMetric || w.linearMetric || 'amount') === 'count' ? 'count' : 'amount');
       setSelectValue('cw-tx-target', w.txTarget || '');
       setSelectValue('cw-show-count', String(w.showCount === true));
@@ -26870,7 +27099,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     } else {
       setStateChoice('chart', ''); setStateChoice('size', '');
       ['cw-name','cw-tx-target','cw-manual-used','cw-loan-id'].forEach(function(id){ setSelectValue(id,''); });
-      setSelectValue('cw-source',''); setSelectValue('cw-gauge-metric','amount'); setSelectValue('cw-show-count','false'); setSelectValue('cw-currency', getCurrency()); setSelectValue('cw-account','all'); setSelectValue('cw-payment-kind','all'); setSelectValue('cw-unit','entries');
+      setSelectValue('cw-source',''); setSelectValue('cw-gauge-metric','amount'); setSelectValue('cw-show-count','false'); setSelectValue('cw-currency', getCurrency()); setCustomWidgetAccountSelection('all'); setCustomWidgetPaymentKindSelection('all'); setSelectValue('cw-unit','entries');
     }
     updateBuilderVisibility(); updatePreview();
   }
@@ -27241,8 +27470,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       metric:getValue('cw-gauge-metric','amount'),
       name:getValue('cw-name',''),
       currency:getValue('cw-currency',''),
-      account:getValue('cw-account','all'),
-      paymentKind:getValue('cw-payment-kind','all'),
+      account:getCustomWidgetAccountStorageValue(),
+      paymentKind:getCustomWidgetPaymentKindStorageValue(),
       period:getValue('cw-period','month'),
       from:getValue('cw-from',''),
       to:getValue('cw-to',''),
@@ -27270,8 +27499,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     setValue('cw-gauge-metric', snapshot.metric || 'amount');
     setValue('cw-name', snapshot.name);
     setValue('cw-currency', snapshot.currency);
-    setValue('cw-account', snapshot.account || 'all');
-    setValue('cw-payment-kind', snapshot.paymentKind || 'all');
+    setCustomWidgetAccountSelection(snapshot.account || 'all');
+    setCustomWidgetPaymentKindSelection(snapshot.paymentKind || 'all');
     setValue('cw-period', snapshot.period || 'month');
     setValue('cw-from', snapshot.from);
     setValue('cw-to', snapshot.to);
@@ -27370,28 +27599,26 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     });
   }
   function positionAccountCardNearType(){
-    var kindWrap = controlWrap('cw-payment-kind');
-    var accountWrap = controlWrap('cw-account');
-    var periodWrap = controlWrap('cw-period');
-    if (!kindWrap || !accountWrap) return;
-    var sourceRow = kindWrap.closest('.custom-widget-row-2');
-    if (!sourceRow || !sourceRow.parentNode) return;
-    var row = byId('cw-account-period-row-v264');
-    if (!row) {
-      row = document.createElement('div');
-      row.id = 'cw-account-period-row-v264';
-      row.className = 'custom-widget-row-2';
-      sourceRow.parentNode.insertBefore(row, sourceRow.nextSibling);
+    var kindWrap = controlWrap('cw-payment-kind-wrap');
+    var accountWrap = controlWrap('cw-account-wrap');
+    var parent = kindWrap && kindWrap.parentNode;
+    if (!parent || !accountWrap) return;
+    var oldRow = byId('cw-account-period-row-v264');
+    if (oldRow) {
+      while (oldRow.firstChild) parent.insertBefore(oldRow.firstChild, oldRow);
+      oldRow.parentNode.removeChild(oldRow);
     }
-    if (accountWrap.parentNode !== row) row.appendChild(accountWrap);
-    if (periodWrap && periodWrap.parentNode !== row) row.appendChild(periodWrap);
+    if (kindWrap && accountWrap !== kindWrap.nextElementSibling) {
+      parent.insertBefore(accountWrap, kindWrap.nextElementSibling);
+    }
   }
   function moveDataInputRowUnderName(){
     var nameWrap = controlWrap('cw-name');
-    var source = byId('cw-source');
-    var sourceRow = source && source.closest('.custom-widget-row-2');
-    if (!nameWrap || !sourceRow || !nameWrap.parentNode || sourceRow === nameWrap.nextSibling) return;
-    nameWrap.parentNode.insertBefore(sourceRow, nameWrap.nextSibling);
+    var sourceWrap = controlWrap('cw-source-wrap') || controlWrap('cw-source');
+    if (!nameWrap || !sourceWrap || !nameWrap.parentNode) return;
+    if (sourceWrap !== nameWrap.nextElementSibling) {
+      nameWrap.parentNode.insertBefore(sourceWrap, nameWrap.nextSibling);
+    }
   }
   function positionValueFormatCompanion(){
     var row = byId('cw-value-format-row');
@@ -27518,16 +27745,16 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
         return;
       }
     } catch(_) {}
-    var select = byId('cw-account');
-    if (!select) return;
+    var grid = byId('cw-account-grid');
+    if (!grid) return;
     var ids = [];
     try { ids = (typeof BANK_ORDER !== 'undefined' ? BANK_ORDER : []).slice(); } catch(_) {}
-    select.innerHTML = '<option value="all">All accounts</option>' + ids.map(function(id){
+    grid.innerHTML = ids.map(function(id){
       var name = id;
       try { name = plainBankName(id) || id; } catch(_) {}
-      return '<option value="' + attr(id) + '">' + esc(name) + '</option>';
+      return '<button class="custom-widget-choice" type="button" data-value="' + attr(id) + '" onclick="toggleCustomWidgetAccount(\'' + attr(id) + '\')">' + esc(name) + '</button>';
     }).join('');
-    select.value = selected || 'all';
+    setCustomWidgetAccountSelection(selected || 'all');
   }
   function updateBuilderVisibility(){
     ensureChooseButton('cw-chart-grid', 'Choose');
@@ -27542,15 +27769,15 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
 
     var source = sourceNorm(getValue('cw-source',''));
     var metric = getValue('cw-gauge-metric','amount') === 'count' ? 'count' : 'amount';
-    var spendKind = getValue('cw-payment-kind','all') || 'all';
-    var spendAccount = getValue('cw-account','all') || 'all';
+    var spendKind = getCustomWidgetPaymentKindStorageValue();
+    var spendAccount = getCustomWidgetAccountStorageValue();
     var chart = activeChoice('cw-chart-grid','');
     var isAuto = source === 'auto';
     var isManual = source === 'manual';
     var isLoan = source === 'loan';
     var isAmount = isAuto && metric === 'amount';
     var isCount = isAuto && metric === 'count';
-    var isTypedSpendAmount = isAmount && (spendKind !== 'all' || spendAccount !== 'all');
+    var isTypedSpendAmount = isAmount && (hasWidgetMultiFilter(spendKind) || hasWidgetMultiFilter(spendAccount));
 
     if (isAmount) {
       setValue('cw-period', 'month');
@@ -27558,8 +27785,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     }
 
     setControlVisible('cw-gauge-metric', isAuto);
-    setControlVisible('cw-payment-kind', isAuto);
-    setControlVisible('cw-account', isAuto);
+    setControlVisible('cw-payment-kind-wrap', isAuto);
+    setControlVisible('cw-account-wrap', isAuto);
     setControlVisible('cw-period', isCount);
     setControlVisible('cw-currency', isAmount || isManual);
     var limitWrap = controlWrap('cw-limit');
@@ -27629,9 +27856,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     ['cw-budget-derived-note-v258','cw-budget-derived-note-v259','cw-budget-derived-note-v254','cw-budget-derived-note-v260'].forEach(function(id){
       var note = byId(id);
       if (!note) return;
-      var isPrimary = note === primaryNote;
-      note.style.display = isAmount && isPrimary && isTypedSpendAmount ? '' : 'none';
-      if (isPrimary && isTypedSpendAmount) note.textContent = 'Uses real spend transactions filtered by Type and bank budget limits from Settings.';
+      note.style.display = 'none';
+      note.textContent = '';
     });
     updateLoanNote();
   }
@@ -27774,8 +28000,15 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     return false;
   }
   function txMatchesWidgetAccount(tx, account, widget){
-    account = String(account || 'all');
-    if (!account || account === 'all') return true;
+    var accounts = parseWidgetMultiSelectValue(account);
+    if (!accounts.length) return true;
+    if (accounts.length > 1) {
+      for (var i = 0; i < accounts.length; i++) {
+        if (txMatchesWidgetAccount(tx, accounts[i], widget)) return true;
+      }
+      return false;
+    }
+    account = accounts[0];
     var key = String(txBank(tx) || '');
     if (key === account) return true;
     try { if (typeof matchesActiveBankFilter === 'function' && matchesActiveBankFilter(tx, account)) return true; } catch(_) {}
@@ -27831,7 +28064,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
         return txInWidgetPeriod(tx, widget, range);
       })
       .filter(function(tx){ return txMatchesWidgetAccount(tx, account, widget); })
-      .filter(function(tx){ return !kind || kind === 'all' || txKind(tx) === kind; });
+      .filter(function(tx){ return widgetPaymentKindMatches(tx, kind); });
   }
   function convertAmount(value, from, to){
     try { return convertAmountCurrency(Number(value || 0), from || to, to); } catch(_) {}
@@ -27950,7 +28183,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       var target = Math.max(0, toNum(widget.txTarget || 0));
       return { source:'auto', spent:txns.length, limit:target || 1, target:target, currency:currency, txns:txns, range:range, gaugeMetric:'count' };
     }
-    if ((widget.paymentKind && widget.paymentKind !== 'all') || (widget.account && widget.account !== 'all')) {
+    if (hasWidgetMultiFilter(widget.paymentKind) || hasWidgetMultiFilter(widget.account)) {
       var fallbackBudget = overviewBudgetStats(widget, currency);
       return {
         source:'auto',
@@ -27991,7 +28224,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       var count = Math.min(target, Math.max(1, Math.round(target * 0.58)));
       return { source:'auto', spent:count, limit:target, target:target, currency:currency, txns:Array.from({ length:count }, function(_, index){ return { id:'preview_tx_' + index }; }), range:range, gaugeMetric:'count' };
     }
-    if (widget.paymentKind && widget.paymentKind !== 'all') {
+    if (hasWidgetMultiFilter(widget.paymentKind)) {
       var typedLimit = Math.max(1, toNum(widget.limit || 50000));
       return { source:'auto', spent:Math.round(typedLimit * 0.58), limit:typedLimit, target:0, currency:currency, txns:[], range:range, gaugeMetric:'amount', paymentKind:widget.paymentKind, typedSpend:true };
     }
@@ -28336,6 +28569,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     return '<div class="custom-widget-gauge-wrap"><div class="mini-half-gauge custom-widget-half-gauge"><svg viewBox="0 0 180 112" aria-hidden="true"><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="rgba(88,166,255,.20)" stroke-width="18" stroke-linecap="round" pathLength="100"></path><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="' + attr(arcColor) + '" stroke-width="18" stroke-linecap="round" pathLength="100" stroke-dasharray="' + pct.toFixed(1) + ' 100"></path></svg><div class="mini-half-gauge-center"><span class="pct">' + (showPct ? esc(label) : '') + '</span><span class="caption">' + esc(caption) + '</span></div></div>' + (showLine ? '<div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top"><strong class="custom-widget-gauge-metric-label-v262 custom-widget-fit-value">' + esc(amountLabel) + '</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill" style="width:' + Math.min(100,pct).toFixed(1) + '%;background:' + attr(lowerColor) + '"></div></div></div>' : '') + '</div>';
   }
   function paymentKindLabel(kind){
+    if (!hasWidgetMultiFilter(kind)) return '';
+    try { return getWidgetPaymentKindSummaryLabel(kind); } catch(_) {}
     kind = String(kind || 'all');
     if (!kind || kind === 'all' || kind === 'loan') return '';
     try { return getPaymentKindFilterLabel(kind); } catch(_) {}
@@ -28395,8 +28630,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       source:source,
       dataInput:source,
       currency:currencyCodeSafe(getValue('cw-currency', (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK'))),
-      account:getValue('cw-account','all') || 'all',
-      paymentKind:getValue('cw-payment-kind','all') || 'all',
+      account:getCustomWidgetAccountStorageValue(),
+      paymentKind:getCustomWidgetPaymentKindStorageValue(),
       gaugeMetric:metric,
       linearMetric:metric,
       limit:Math.max(0, toNum(getValue('cw-limit','0'))),
@@ -28523,8 +28758,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       setValue('cw-source', sourceNorm(widget.source || widget.dataInput || 'auto'));
       setValue('cw-name', widget.name || '');
       setValue('cw-currency', widget.currency || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK'));
-      setValue('cw-account', widget.account || 'all');
-      setValue('cw-payment-kind', widget.paymentKind === 'loan' ? 'all' : (widget.paymentKind || 'all'));
+      setCustomWidgetAccountSelection(widget.account || 'all');
+      setCustomWidgetPaymentKindSelection(widget.paymentKind === 'loan' ? 'all' : (widget.paymentKind || 'all'));
       setValue('cw-gauge-metric', (widget.gaugeMetric || widget.linearMetric || 'amount') === 'count' ? 'count' : 'amount');
       setValue('cw-limit', widget.limit || '');
       setValue('cw-tx-target', widget.txTarget || '');
@@ -28548,8 +28783,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       ['cw-name','cw-limit','cw-tx-target','cw-manual-used','cw-from','cw-to','cw-loan-id'].forEach(function(field){ setValue(field, ''); });
       setValue('cw-source', '');
       setValue('cw-currency', typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK');
-      setValue('cw-account', 'all');
-      setValue('cw-payment-kind', 'all');
+      setCustomWidgetAccountSelection('all');
+      setCustomWidgetPaymentKindSelection('all');
       setValue('cw-gauge-metric', 'amount');
       setValue('cw-show-count', 'false');
       setValue('cw-unit', 'entries');
@@ -28797,8 +29032,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     setValue('cw-name', preset.name);
     setValue('cw-source', preset.source);
     setValue('cw-gauge-metric', preset.metric);
-    setValue('cw-account', 'all');
-    setValue('cw-payment-kind', 'all');
+    setCustomWidgetAccountSelection('all');
+    setCustomWidgetPaymentKindSelection('all');
     setValue('cw-period', 'month');
     setValue('cw-tx-target', preset.txTarget);
     setValue('cw-manual-used', preset.manualUsed);
@@ -29740,6 +29975,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       try { if (text === norm(plainBankName(id))) return id; } catch(_) {}
     }
     if (text.indexOf('moneta') >= 0) return 'moneta';
+    if (text.indexOf('pluxee') >= 0 || text.indexOf('stravenk') >= 0) return 'pluxee';
     if (text.indexOf('air bank') >= 0 || text.indexOf('airbank') >= 0) return 'air_bank_cz';
     if (text.indexOf('csob cz') >= 0 || text.indexOf('ceska csob') >= 0) return 'csob_cz';
     if (text.indexOf('csob sk') >= 0 || text.indexOf('slovenska csob') >= 0) return 'csob_sk';
