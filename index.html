@@ -151,6 +151,10 @@
     max-width: 100%;
   }
   .wealth-card-value-green { color: #00E5A0; }
+  #overview-available-cash.amount-expense {
+    color: #E5005F !important;
+    -webkit-text-fill-color: #E5005F !important;
+  }
   .wealth-card-trend .wealth-card-value { color: #dff6ff; }
   .mini-gauge-wrap {
     display:flex;
@@ -456,6 +460,16 @@
     text-transform: uppercase;
     letter-spacing: .08em !important;
     font-weight: 800;
+    margin-bottom: 6px !important;
+  }
+  .summary-sub {
+    color: rgba(199,218,246,.58) !important;
+  }
+  .summary-days-progress-track {
+    background: rgba(88,166,255,.16) !important;
+  }
+  .summary-days-progress-fill {
+    background: rgba(223,244,255,.78) !important;
   }
   .summary-divider {
     background: rgba(88,166,255,.18) !important;
@@ -521,6 +535,9 @@
   }
   html[data-theme="light"] .summary-val { color: #0b1220 !important; }
   html[data-theme="light"] .summary-label { color: #31547d !important; }
+  html[data-theme="light"] .summary-sub { color: #5b7394 !important; }
+  html[data-theme="light"] .summary-days-progress-track { background: rgba(37,99,235,.14) !important; }
+  html[data-theme="light"] .summary-days-progress-fill { background: rgba(37,99,235,.72) !important; }
   html[data-theme="light"] .summary-divider { background: rgba(37,99,235,.14) !important; }
 
 
@@ -944,13 +961,52 @@
     gap: 0;
   }
   .summary-divider { background: var(--border); }
-  .summary-item { padding: 0 16px; text-align: center; }
+  .summary-item {
+    padding: 0 12px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+  }
   .summary-item-clickable { cursor: pointer; }
   .summary-item-clickable:active { opacity: 0.85; }
-  .summary-item:first-child { padding-left: 0; }
-  .summary-item:last-child { padding-right: 0; }
-  .summary-val { font-size: 20px; font-weight: 700; font-family: var(--font-mono); color: var(--accent); }
-  .summary-label { font-size: 11px; color: var(--muted); margin-top: 3px; letter-spacing: .03em; }
+  .summary-label {
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-weight: 800;
+  }
+  .summary-val { font-size: 20px; font-weight: 700; font-family: var(--font-mono); color: var(--accent); line-height: 1.1; }
+  .summary-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 5px;
+    letter-spacing: .02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .summary-days-progress {
+    width: 100%;
+    margin-top: 7px;
+  }
+  .summary-days-progress-track {
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.08);
+    overflow: hidden;
+  }
+  .summary-days-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: rgba(223,244,255,.72);
+    width: 0%;
+    transition: width .28s ease;
+  }
 
   /* Section title */
   .section-title {
@@ -4890,7 +4946,7 @@
     font-weight: 950 !important;
   }
 
-  .account-balance-total-row .account-balance-value {
+  .account-balance-total-row .account-balance-value:not(.amount-expense) {
     color: var(--ok) !important;
   }
 
@@ -7597,14 +7653,19 @@ html[data-theme="light"] body::before {
 
 <style>
   /* v195 Overview details account-balance colors */
-  #page-overview-details .account-balance-row:not(.account-balance-total-row) .account-balance-value {
+  #page-overview-details .account-balance-row:not(.account-balance-total-row) .account-balance-value:not(.amount-expense) {
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
   }
 
-  #page-overview-details .account-balance-total-row .account-balance-value {
+  #page-overview-details .account-balance-total-row .account-balance-value:not(.amount-expense) {
     color: #00E5A0 !important;
     -webkit-text-fill-color: #00E5A0 !important;
+  }
+
+  #page-overview-details .account-balance-total-row .account-balance-value.amount-expense {
+    color: #E5005F !important;
+    -webkit-text-fill-color: #E5005F !important;
   }
 
 
@@ -8092,18 +8153,25 @@ html[data-theme="light"] body::before {
 
   <div class="summary">
     <div class="summary-item">
+      <div class="summary-label" data-i18n="overviewSummaryTransactions">Transactions</div>
       <div class="summary-val" id="sum-txns">0</div>
-      <div class="summary-label" data-i18n="totalTransactions">transactions</div>
+      <div class="summary-sub" data-i18n="overviewSummaryThisMonth">this month</div>
     </div>
     <div class="summary-divider"></div>
     <div class="summary-item summary-item-clickable" role="button" tabindex="0" onclick="openOverviewTotalSpentFilter()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openOverviewTotalSpentFilter();}" title="Show transactions included in total spent">
+      <div class="summary-label" data-i18n="overviewSummaryTotalCzk">Total (CZK)</div>
       <div class="summary-val" id="sum-amount">0</div>
-      <div class="summary-label">CZK</div>
+      <div class="summary-sub" id="sum-amount-full">0 CZK</div>
     </div>
     <div class="summary-divider"></div>
     <div class="summary-item">
-      <div class="summary-val" id="sum-days">0</div>
       <div class="summary-label" data-i18n="daysLeft">days left</div>
+      <div class="summary-val" id="sum-days">0</div>
+      <div class="summary-days-progress" aria-hidden="true">
+        <div class="summary-days-progress-track">
+          <div class="summary-days-progress-fill" id="sum-days-progress-fill"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -8869,6 +8937,8 @@ let autoSyncTimer = null;
 let isSyncing = false;
 let activePageId = 'overview';
 const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minút
+const LOCAL_PRECOMPUTE_CACHE_TTL_MS = 5 * 60 * 1000;
+const LOCAL_SYNC_CACHE_TTL_MS = 5 * 60 * 1000;
 
 
 function getAppCurrency() {
@@ -8975,6 +9045,56 @@ function getAktuálneMonth() {
   const now = new Date();
   now.setMonth(now.getMonth() + activeOverviewMonthOffset);
   return `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+}
+
+function formatOverviewTopAmount(value) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return '0';
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  const formatOneDecimal = (v) => {
+    const rounded = Math.round(v * 10) / 10;
+    const hasDecimal = Math.abs(rounded % 1) > 0.001;
+    return rounded.toLocaleString('en-US', {
+      minimumFractionDigits: hasDecimal ? 1 : 0,
+      maximumFractionDigits: 1
+    });
+  };
+  if (abs >= 1e9) return sign + formatOneDecimal(abs / 1e9) + 'B';
+  if (abs >= 1e6) return sign + formatOneDecimal(abs / 1e6) + 'M';
+  if (abs >= 1e3) return sign + formatOneDecimal(abs / 1e3) + 'K';
+  return sign + Math.round(abs).toLocaleString('cs');
+}
+
+function formatOverviewTopAmountFull(value) {
+  const n = Math.round(Number(value || 0));
+  if (!Number.isFinite(n)) return '0 CZK';
+  return n.toLocaleString('cs-CZ') + ' CZK';
+}
+
+function getOverviewMonthElapsedRatio() {
+  const offset = Number(activeOverviewMonthOffset || 0);
+  if (offset < 0) return 1;
+  if (offset > 0) return 0;
+  const now = new Date();
+  const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  if (!totalDays) return 0;
+  return Math.min(1, Math.max(0, now.getDate() / totalDays));
+}
+
+function updateOverviewSummaryStrip(totalMonthSpent, monthAllTxnsCount) {
+  const sumTxns = document.getElementById('sum-txns');
+  if (sumTxns) sumTxns.textContent = monthAllTxnsCount;
+  const sumAmount = document.getElementById('sum-amount');
+  if (sumAmount) sumAmount.textContent = formatOverviewTopAmount(totalMonthSpent);
+  const sumAmountFull = document.getElementById('sum-amount-full');
+  if (sumAmountFull) sumAmountFull.textContent = formatOverviewTopAmountFull(totalMonthSpent);
+  const sumDays = document.getElementById('sum-days');
+  if (sumDays) sumDays.textContent = getDaysRemaining();
+  const progressFill = document.getElementById('sum-days-progress-fill');
+  if (progressFill) {
+    progressFill.style.width = Math.round(getOverviewMonthElapsedRatio() * 100) + '%';
+  }
 }
 
 function hasTransactionsForMonth(monthStr) {
@@ -9493,9 +9613,16 @@ function getBankStatusText(count, limit, monthStr) {
 }
 
 function getDaysRemaining() {
+  const offset = Number(activeOverviewMonthOffset || 0);
+  if (offset < 0) return 0;
+  if (offset > 0) {
+    const viewDate = new Date();
+    viewDate.setMonth(viewDate.getMonth() + offset);
+    return new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+  }
   const now = new Date();
-  const lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0);
-  return lastDay.getDate() - now.getDate();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return Math.max(0, lastDay.getDate() - now.getDate());
 }
 
 function parseGSheetDate(val) {
@@ -9621,6 +9748,33 @@ function loadCachedTransactionsSnapshot() {
   }
 }
 
+function getLocalCacheTimestamp(key) {
+  try {
+    const ts = Number(localStorage.getItem(key) || 0);
+    return Number.isFinite(ts) && ts > 0 ? ts : 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+function isLocalCacheFresh(key, ttlMs = LOCAL_PRECOMPUTE_CACHE_TTL_MS) {
+  const ts = getLocalCacheTimestamp(key);
+  if (!ts) return false;
+  return (Date.now() - ts) < ttlMs;
+}
+
+function markLocalCacheTimestamp(key) {
+  try { localStorage.setItem(key, String(Date.now())); } catch (_) {}
+}
+
+function shouldSkipStartupCloudSync() {
+  return isLocalCacheFresh('cached_cloud_sync_at', LOCAL_SYNC_CACHE_TTL_MS);
+}
+
+function markCloudSyncCompleted() {
+  markLocalCacheTimestamp('cached_cloud_sync_at');
+}
+
 function saveCachedTransactionsSnapshot() {
   try {
     localStorage.setItem('cached_txns', JSON.stringify(allTransactions || []));
@@ -9675,6 +9829,13 @@ function formatSignedCurrencyAmount(amount, currency) {
   const numeric = Number(amount || 0);
   const sign = numeric < 0 ? '-' : '';
   return sign + formatCurrencyAmount(Math.abs(numeric), currency);
+}
+
+function getSignedAmountClass(value) {
+  const numeric = Number(value || 0);
+  if (numeric < 0) return 'amount-expense';
+  if (numeric > 0) return 'amount-income';
+  return '';
 }
 
 function getTransactionAccountCurrency(tx) {
@@ -9733,9 +9894,9 @@ function getCzkEquivalentText(amount, currency) {
   const curr = currencyCode(currency || 'CZK');
   const target = getAppCurrency();
   if (curr === target) return '';
-  const converted = convertAmountCurrency(amount, curr, target);
-  if (converted === Math.abs(Number(amount) || 0)) return '';
-  return `≈ ${formatCurrencyAmount(converted, target)}`;
+  const converted = convertSignedAmountCurrency(amount, curr, target);
+  if (!converted) return '';
+  return `≈ ${formatSignedCurrencyAmount(converted, target)}`;
 }
 
 function getCurrencyTotals(txns) {
@@ -10065,6 +10226,7 @@ async function syncData(options = {}) {
     isSyncing = false;
     renderAll();
     applyLanguage();
+    markCloudSyncCompleted();
   }
 }
 
@@ -11681,36 +11843,22 @@ function renderAccountBalanceWidget() {
   const parentedCreditIds = new Set(CREDIT_BALANCE_SUBACCOUNTS.map(item => item.id));
   const banks = allBanks.filter(bank => !parentedCreditIds.has(bank.id));
 
-  const totalBalance = banks.reduce((sum, bank) => {
-    const value = convertAmountCurrency(bank.balance || 0, bank.currency || targetCurrency, targetCurrency);
-    return sum + (bank.liability ? -Math.abs(value) : value);
-  }, 0);
-
-  const totalRow = banks.length ? `
-      <div class="budget-bank-row account-balance-row account-balance-total-row" title="${escapeAttr(t('accountBalanceTotal'))}">
-        <div class="budget-status-main">
-          <div class="account-balance-name-wrap">
-            <div class="budget-status-value account-balance-name">Σ ${escapeHtml(t('accountBalanceTotal'))}</div>
-            <div class="budget-status-note">${escapeHtml(t('accountBalanceTotalHint'))}</div>
-          </div>
-          <div class="account-balance-value-wrap">
-            <div class="budget-status-value account-balance-value">${escapeHtml(maskAccountBalanceValue(formatCurrencyAmount(totalBalance, targetCurrency)))}</div>
-          </div>
-        </div>
-      </div>` : '';
+  const totalBalance = getAccountBalanceCashTotal(getAktuálneMonth(), targetCurrency);
 
   const renderSubaccountRow = (item) => {
     const currency = item.currency || 'CZK';
-    const value = formatCurrencyAmount(item.balance || 0, currency);
-    const czkEquivalent = getCzkEquivalentText(item.balance || 0, currency);
+    const raw = Number(item.balance || 0);
+    const value = formatSignedCurrencyAmount(raw, currency);
+    const czkEquivalent = getCzkEquivalentText(raw, currency);
+    const valueClass = getSignedAmountClass(raw);
     return `
-      <div class="budget-bank-row account-balance-row account-balance-sub-row" style="padding:9px 0 9px 18px;border-bottom:1px solid var(--border);">
+      <div class="budget-bank-row account-balance-row account-balance-sub-row account-balance-liability-row" style="padding:9px 0 9px 18px;border-bottom:1px solid var(--border);">
         <div class="budget-status-main">
           <div class="account-balance-name-wrap">
             <div class="budget-status-value account-balance-name" style="color:var(--accent);font-size:14px;">└ ${escapeHtml(item.name)}</div>
           </div>
           <div class="account-balance-value-wrap">
-            <div class="budget-status-value account-balance-value" style="color:var(--accent);">${escapeHtml(maskAccountBalanceValue(value))}</div>
+            <div class="budget-status-value account-balance-value ${valueClass}">${escapeHtml(maskAccountBalanceValue(value))}</div>
             ${maskAccountBalanceNote(czkEquivalent) ? `<div class="budget-status-note account-balance-equivalent">${escapeHtml(czkEquivalent)}</div>` : ''}
           </div>
         </div>
@@ -11719,8 +11867,10 @@ function renderAccountBalanceWidget() {
 
   const rows = banks.map(bank => {
     const currency = bank.currency || 'CZK';
-    const value = formatCurrencyAmount(bank.balance || 0, currency);
-    const czkEquivalent = getCzkEquivalentText(bank.balance || 0, currency);
+    const raw = Number(bank.balance || 0);
+    const value = formatSignedCurrencyAmount(raw, currency);
+    const czkEquivalent = getCzkEquivalentText(raw, currency);
+    const valueClass = getSignedAmountClass(raw);
     const children = creditChildrenByParent[bank.id] || [];
     const hasCreditChildren = children.length > 0;
     const creditExpanded = hasCreditChildren ? isCreditSubaccountExpanded(bank.id) : false;
@@ -11734,7 +11884,7 @@ function renderAccountBalanceWidget() {
             ${childHint}
           </div>
           <div class="account-balance-value-wrap">
-            <div class="budget-status-value account-balance-value" style="color:var(--accent);">${escapeHtml(maskAccountBalanceValue(value))}</div>
+            <div class="budget-status-value account-balance-value ${valueClass}">${escapeHtml(maskAccountBalanceValue(value))}</div>
             ${maskAccountBalanceNote(czkEquivalent) ? `<div class="budget-status-note account-balance-equivalent">${escapeHtml(czkEquivalent)}</div>` : ''}
           </div>
         </div>
@@ -11742,6 +11892,19 @@ function renderAccountBalanceWidget() {
     const childRows = hasCreditChildren && creditExpanded ? children.map(renderSubaccountRow).join('') : '';
     return mainRow + childRows;
   }).join('');
+  const totalClass = getSignedAmountClass(totalBalance);
+  const totalRow = banks.length ? `
+      <div class="budget-bank-row account-balance-row account-balance-total-row" title="${escapeAttr(t('accountBalanceTotal'))}">
+        <div class="budget-status-main">
+          <div class="account-balance-name-wrap">
+            <div class="budget-status-value account-balance-name">Σ ${escapeHtml(t('accountBalanceTotal'))}</div>
+            <div class="budget-status-note">${escapeHtml(t('accountBalanceTotalHint'))}</div>
+          </div>
+          <div class="account-balance-value-wrap">
+            <div class="budget-status-value account-balance-value ${totalClass}">${escapeHtml(maskAccountBalanceValue(formatSignedCurrencyAmount(totalBalance, targetCurrency)))}</div>
+          </div>
+        </div>
+      </div>` : '';
   wrap.innerHTML = banks.length ? (rows + totalRow) : `<div class="budget-status-note">${t('noBanksAdded')}</div>`;
 }
 
@@ -12006,35 +12169,18 @@ function getOverviewPropertiesValue(appCurrency) {
   ]);
 }
 
-function getOverviewDetailsAccountBalanceTotal(monthStr = getAktuálneMonth(), appCurrency = getAppCurrency()) {
+function getAccountBalanceCashTotal(monthStr = getAktuálneMonth(), targetCurrency = getAppCurrency()) {
   const month = normalizeMonthStr(monthStr || getAktuálneMonth());
-  const targetCurrency = appCurrency || getAppCurrency();
-  const allBanks = getAllManagedBanksForBalance(month);
-  const creditChildrenByParent = {};
-
-  CREDIT_BALANCE_SUBACCOUNTS.forEach(config => {
-    const item = getCreditBalanceSubaccountData(config);
-    if (!item || !item.parentId) return;
-    const balanceBank = allBanks.find(b => b.id === item.id);
-    const child = {
-      ...item,
-      balance: balanceBank ? Number(balanceBank.balance || 0) : getCreditOutstandingBalance(item.id),
-      currency: balanceBank?.currency || item.currency || 'CZK',
-      liability: true
-    };
-    if (!creditChildrenByParent[item.parentId]) creditChildrenByParent[item.parentId] = [];
-    creditChildrenByParent[item.parentId].push(child);
-  });
-
+  const target = targetCurrency || getAppCurrency();
   const parentedCreditIds = new Set(CREDIT_BALANCE_SUBACCOUNTS.map(item => item.id));
-  const banks = allBanks.filter(bank => !parentedCreditIds.has(bank.id));
-
-  // Credit-card outstanding balance stays visually visible in Overview details,
-  // but it is not real available cash, so it is never counted into Total.
-  return banks.reduce((sum, bank) => {
-    const value = convertAmountCurrency(bank.balance || 0, bank.currency || targetCurrency, targetCurrency);
-    return sum + (bank.liability ? -Math.abs(value) : value);
+  return getAllManagedBanksForBalance(month).reduce((sum, bank) => {
+    if (!bank || parentedCreditIds.has(bank.id) || bank.liability) return sum;
+    return sum + convertSignedAmountCurrency(Number(bank.balance || 0), bank.currency || target, target);
   }, 0);
+}
+
+function getOverviewDetailsAccountBalanceTotal(monthStr = getAktuálneMonth(), appCurrency = getAppCurrency()) {
+  return getAccountBalanceCashTotal(monthStr, appCurrency || getAppCurrency());
 }
 
 function getOverviewDashboardMetrics() {
@@ -12443,8 +12589,11 @@ function renderOverviewDashboard() {
 
   const availableEl = document.getElementById('overview-available-cash');
   if (availableEl) {
-    availableEl.textContent = formatCurrencyAmount(metrics.availableCash, appCurrency);
-    availableEl.style.color = Number(metrics.availableCash || 0) < 0 ? 'var(--danger)' : '#00E5A0';
+    const cashValue = Number(metrics.availableCash || 0);
+    availableEl.textContent = formatSignedCurrencyAmount(metrics.availableCash, appCurrency);
+    availableEl.classList.toggle('wealth-card-value-green', cashValue >= 0);
+    availableEl.classList.toggle('amount-expense', cashValue < 0);
+    availableEl.style.color = cashValue < 0 ? '#E5005F' : '#00E5A0';
   }
   const cardGauge = document.getElementById('overview-card-limits-gauge');
   if (cardGauge) cardGauge.innerHTML = createOverviewHalfGauge(metrics.cardPct, 'used');
@@ -12516,12 +12665,7 @@ function renderOverviewAfterMonthShift() {
 
   const archiveMonthSpent = getArchiveMonthSpentTotalCzk(month);
   const totalMonthSpent = archiveMonthSpent;
-  const sumTxns = document.getElementById('sum-txns');
-  if (sumTxns) sumTxns.textContent = monthAllTxns.length;
-  const sumAmount = document.getElementById('sum-amount');
-  if (sumAmount) sumAmount.textContent = Math.round(totalMonthSpent).toLocaleString('cs');
-  const sumDays = document.getElementById('sum-days');
-  if (sumDays) sumDays.textContent = getDaysRemaining();
+  updateOverviewSummaryStrip(totalMonthSpent, monthAllTxns.length);
 
   requestAnimationFrame(() => {
     try { renderBudgetStatus(); } catch (e) { console.error('Budget status render failed:', e); }
@@ -12542,9 +12686,10 @@ function renderOverviewAfterMonthShift() {
   try { scheduleFloatingUtilityUpdate(); } catch(_) {}
 }
 
-function renderAll() {
+function renderAll(options = {}) {
+  const forceArchiveRebuild = !!(options && options.forceArchiveRebuild);
   allTransactions = sortTransactionsNewestFirst(allTransactions);
-  rebuildLocalArchiveStatsFromTransactions();
+  rebuildLocalArchiveStatsFromTransactions({ force: forceArchiveRebuild });
 
   const month = getAktuálneMonth();
   const monthTxns = getCurrentMonthOutgoingTransactions();
@@ -12562,9 +12707,7 @@ function renderAll() {
   // Overview headline must stay consistent with archive monthly spent total.
   const archiveMonthSpent = getArchiveMonthSpentTotalCzk(month);
   const totalMonthSpent = archiveMonthSpent;
-  document.getElementById('sum-txns').textContent = monthAllTxns.length;
-  document.getElementById('sum-amount').textContent = Math.round(totalMonthSpent).toLocaleString('cs');
-  document.getElementById('sum-days').textContent = getDaysRemaining();
+  updateOverviewSummaryStrip(totalMonthSpent, monthAllTxns.length);
 
   // Bank budget intentionally includes every payment kind: cards, account payments and cash.
   try {
@@ -15006,10 +15149,6 @@ function initBottomSheetDragToClose() {
     const canTrack = (event) => {
       if (!sheet.classList.contains('open')) return false;
       if (isInteractiveTarget(event.target)) return false;
-      if (sheet.id === 'bank-manager-sheet' || sheet.id === 'loan-manager-sheet') {
-        // Manage sheets behave like full cards; disable pull-down sheet dragging.
-        return false;
-      }
 
       // v11: Upgrade has heavy scrollable content. Keep drag-to-close enabled,
       // but only from the handle/header so normal scrolling cannot fight the sheet drag.
@@ -16472,6 +16611,13 @@ function convertAmountCurrency(amount, fromCurrency, toCurrency) {
   return valueInEur * toRate;
 }
 
+function convertSignedAmountCurrency(amount, fromCurrency, toCurrency) {
+  const numeric = Number(amount) || 0;
+  if (!Number.isFinite(numeric) || numeric === 0) return 0;
+  const sign = numeric < 0 ? -1 : 1;
+  return sign * convertAmountCurrency(Math.abs(numeric), fromCurrency, toCurrency);
+}
+
 function convertTransactionAmount(tx, targetCurrency = 'CZK') {
   return convertAmountCurrency(tx.amount, tx.currency, targetCurrency);
 }
@@ -16619,7 +16765,15 @@ function applyLocalArchiveStatsFromTransaction(tx, multiplier = 1) {
   return true;
 }
 
-function rebuildLocalArchiveStatsFromTransactions() {
+function rebuildLocalArchiveStatsFromTransactions(options = {}) {
+  const force = !!(options && options.force);
+  if (!force) {
+    const txnsAt = getLocalCacheTimestamp('cached_txns_updated_at');
+    const statsAt = getLocalCacheTimestamp('cached_archive_stats_updated_at');
+    if (statsAt && (!txnsAt || txnsAt <= statsAt) && isLocalCacheFresh('cached_archive_stats_updated_at')) {
+      return;
+    }
+  }
   // Rebuild frontend monthly archive cache from the loaded transaction set.
   // This prevents stale Bank_Archive values from overriding what the user can see
   // in the filtered Transactions tab after add/delete/edit.
@@ -16654,6 +16808,7 @@ function rebuildLocalArchiveStatsFromTransactions() {
     setArchiveMonthlyStat(item.bankKey, item.month, 'income', item.income);
     setArchiveMonthlyStat(item.bankKey, item.month, 'net', item.net);
   });
+  markLocalCacheTimestamp('cached_archive_stats_updated_at');
 }
 
 function getArchiveMonthlyStatFromTransactions(bankKey, monthStr, field, targetCurrency) {
@@ -17224,6 +17379,9 @@ const I18N = {
     payments: 'payments',
     daysLeft: 'days left',
     totalTransactions: 'transactions',
+    overviewSummaryTransactions: 'Transactions',
+    overviewSummaryTotalCzk: 'Total (CZK)',
+    overviewSummaryThisMonth: 'this month',
     recentTransactions: 'recent transactions',
     spentByCurrency: 'spent by currency',
     spentByBank: 'spent by bank',
@@ -17496,6 +17654,9 @@ const I18N = {
     payments: 'platieb',
     daysLeft: 'dní zostáva',
     totalTransactions: 'transakcie',
+    overviewSummaryTransactions: 'Transakcie',
+    overviewSummaryTotalCzk: 'Spolu (CZK)',
+    overviewSummaryThisMonth: 'tento mesiac',
     recentTransactions: 'posledné transakcie',
     spentByCurrency: 'minuté podľa meny',
     spentByBank: 'minuté podľa banky',
@@ -17761,6 +17922,9 @@ const I18N = {
     payments: 'plateb',
     daysLeft: 'dní zbývá',
     totalTransactions: 'transakce',
+    overviewSummaryTransactions: 'Transakce',
+    overviewSummaryTotalCzk: 'Celkem (CZK)',
+    overviewSummaryThisMonth: 'tento měsíc',
     recentTransactions: 'poslední transakce',
     spentByCurrency: 'utraceno podle měny',
     spentByBank: 'utraceno podle banky',
@@ -19737,13 +19901,19 @@ function setAppTheme(theme) {
 
 // ── INICIALIZÁCIA A ŠTART APLIKÁCIE ──────────────────────────────
 let startupWarmCachesDone = false;
-function warmStartupCachesDeferred() {
-  if (startupWarmCachesDone) return;
+function warmStartupCachesDeferred(options = {}) {
+  const force = !!(options && options.force);
+  if (startupWarmCachesDone && !force) return;
   startupWarmCachesDone = true;
   const run = () => {
     try { saveCachedTransactionsSnapshot(); } catch(_) {}
-    try { rebuildLocalArchiveStatsFromTransactions(); } catch(_) {}
-    try { renderArchiveTrendChart(); } catch(_) {}
+    try { rebuildLocalArchiveStatsFromTransactions({ force }); } catch(_) {}
+    if (force || !isLocalCacheFresh('cached_archive_chart_updated_at')) {
+      try {
+        renderArchiveTrendChart();
+        markLocalCacheTimestamp('cached_archive_chart_updated_at');
+      } catch(_) {}
+    }
   };
   if (typeof window.requestIdleCallback === 'function') {
     requestIdleCallback(() => run(), { timeout: 1200 });
@@ -19784,9 +19954,13 @@ window.addEventListener('DOMContentLoaded', () => {
     if (SHEETS_URL && isGoogleSheetsEnabled()) {
       // Run cloud sync after the first local paint so startup feels instant.
       setTimeout(() => {
+        if (shouldSkipStartupCloudSync()) {
+          startAutoSync();
+          return;
+        }
         syncData({ startupMode: true }).then(() => {
           prepareUiAfterDataLoad({ render: false });
-          warmStartupCachesDeferred();
+          warmStartupCachesDeferred({ force: true });
           startAutoSync();
         }).catch((e) => {
           console.warn('Startup background sync failed:', e);
@@ -21157,7 +21331,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   function applyGlobalPrivacyMask() {
     updatePrivacyButtons();
     const selectors = [
-      '#sum-txns', '#sum-amount', '#sum-days',
+      '#sum-txns', '#sum-amount', '#sum-amount-full', '#sum-days',
       '#overview-net-worth', '#overview-available-cash', '#overview-cash-total',
       '.custom-widget-money', '.custom-widget-limit', '.custom-widget-count',
       '.custom-widget-gauge-value-line', '.wealth-budget-sparkline-label',
@@ -25915,7 +26089,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     document.documentElement.setAttribute('data-values-hidden', hidden ? 'true':'false');
     var icon=''; try { icon = typeof accountBalanceEyeSvg === 'function' ? accountBalanceEyeSvg(hidden) : (hidden ? '◉':'◎'); } catch(_) { icon = hidden ? '◉':'◎'; }
     ['account-balance-privacy-btn','overview-privacy-btn'].forEach(function(id){ var btn=byId(id); if(btn){ btn.classList.toggle('on', hidden); btn.innerHTML=icon; btn.title=hidden?'Show values':'Hide values'; }});
-    var sel=['#sum-txns','#sum-amount','#sum-days','#overview-net-worth','#overview-available-cash','#overview-cash-total','.summary-val','.wealth-card-value','.wealth-linear-card-value','.wealth-budget-sparkline-label','.custom-widget-money','.custom-widget-limit','.custom-widget-count','.custom-widget-chart-label','.custom-widget-gauge-value-line','.account-balance-value','.account-balance-equivalent','.budget-status-value','.card-count-big','.stat-val','.progress-labels','.wealth-inline-progress-labels','.txn-cashflow-pie-label','.txn-cashflow-axis-label','.txn-cashflow-pie-stat strong','.txn-total-values','.archive-bank-spent-cell','.archive-bank-income-cell'];
+    var sel=['#sum-txns','#sum-amount','#sum-amount-full','#sum-days','#overview-net-worth','#overview-available-cash','#overview-cash-total','.summary-val','.wealth-card-value','.wealth-linear-card-value','.wealth-budget-sparkline-label','.custom-widget-money','.custom-widget-limit','.custom-widget-count','.custom-widget-chart-label','.custom-widget-gauge-value-line','.account-balance-value','.account-balance-equivalent','.budget-status-value','.card-count-big','.stat-val','.progress-labels','.wealth-inline-progress-labels','.txn-cashflow-pie-label','.txn-cashflow-axis-label','.txn-cashflow-pie-stat strong','.txn-total-values','.archive-bank-spent-cell','.archive-bank-income-cell'];
     document.querySelectorAll(sel.join(',')).forEach(function(el){ if(hidden){ saveReal(el); el.textContent = graphNumber(el) ? '0' : maskDots(el.dataset.v258RealValue || el.textContent || ''); } else restoreReal(el); });
   }
   window.toggleAccountBalancePrivacy = function(){ try { localStorage.setItem(PRIVACY_KEY, String(!isHidden())); } catch(_) {} try { if (typeof renderAll === 'function') renderAll(); } catch(_) {} setTimeout(applyPrivacy, 0); setTimeout(applyPrivacy, 120); };
@@ -28934,11 +29108,17 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     });
   }
   function getCashTotal(monthStr, targetCurrency){
+    if (typeof getAccountBalanceCashTotal === 'function') {
+      return getAccountBalanceCashTotal(monthStr, targetCurrency || getCurrencySafe());
+    }
     var allBanks = [];
     try { allBanks = getAllManagedBanksForBalance(monthStr); } catch(_) {}
     var parentedCreditIds = getParentedCreditIds();
     return (allBanks || []).reduce(function(sum, bank){
       if (!bank || parentedCreditIds.has(bank.id) || bank.liability) return sum;
+      if (typeof convertSignedAmountCurrency === 'function') {
+        return sum + convertSignedAmountCurrency(bank.balance || 0, bank.currency || targetCurrency, targetCurrency);
+      }
       return sum + convert(bank.balance || 0, bank.currency || targetCurrency, targetCurrency);
     }, 0);
   }
@@ -29030,9 +29210,10 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     }
     var rows = banks.map(function(bank){
       var code = bank.currency || 'CZK';
-      var raw = bank.liability ? -abs(bank.balance || 0) : Number(bank.balance || 0);
+      var raw = bank.liability ? -abs(bank.balance || 0) : num(bank.balance || 0);
       var value = bank.liability ? liabilityMoney(raw, code) : signedMoney(raw, code);
       var eq = signedCzkEquivalent(raw, code);
+      var valueClass = raw < 0 ? ' amount-expense' : (raw > 0 ? ' amount-income' : '');
       var children = childrenByParent[bank.id] || [];
       var expanded = children.length ? (typeof isCreditSubaccountExpanded === 'function' ? isCreditSubaccountExpanded(bank.id) : true) : false;
       var toggle = children.length
@@ -29046,19 +29227,20 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
         + '<div class="budget-status-main"><div class="account-balance-name-wrap">'
         + '<div class="budget-status-value account-balance-name" style="font-size:15px;display:flex;align-items:center;gap:7px;">' + logo + label + toggle + '</div>' + hint
         + '</div><div class="account-balance-value-wrap">'
-        + '<div class="budget-status-value account-balance-value" style="' + (bank.liability ? 'color:#E5005F;' : 'color:var(--accent);') + '">' + esc(masked(value)) + '</div>'
+        + '<div class="budget-status-value account-balance-value' + valueClass + '"' + (bank.liability ? ' style="color:#E5005F;"' : '') + '>' + esc(masked(value)) + '</div>'
         + (maskedNote(eq) ? '<div class="budget-status-note account-balance-equivalent">' + esc(eq) + '</div>' : '')
         + '</div></div></div>';
       return main + (children.length && expanded ? children.map(renderSubRow).join('') : '');
     }).join('');
     var totalTitle = (typeof t === 'function' ? t('accountBalanceTotal') : 'Account balance total');
     var totalHint = (typeof t === 'function' ? t('accountBalanceTotalHint') : 'Cash and bank accounts only');
+    var totalClass = totalBalance < 0 ? ' amount-expense' : (totalBalance > 0 ? ' amount-income' : '');
     var totalRow = banks.length ? '<div class="budget-bank-row account-balance-row account-balance-total-row" title="' + attr(totalTitle) + '">'
       + '<div class="budget-status-main"><div class="account-balance-name-wrap">'
       + '<div class="budget-status-value account-balance-name">&Sigma; ' + esc(totalTitle) + '</div>'
       + '<div class="budget-status-note">' + esc(totalHint) + '</div>'
       + '</div><div class="account-balance-value-wrap">'
-      + '<div class="budget-status-value account-balance-value">' + esc(masked(signedMoney(totalBalance, targetCurrency))) + '</div>'
+      + '<div class="budget-status-value account-balance-value' + totalClass + '">' + esc(masked(signedMoney(totalBalance, targetCurrency))) + '</div>'
       + '</div></div></div>' : '';
     wrap.innerHTML = banks.length ? rows + totalRow : '<div class="budget-status-note">' + esc(typeof t === 'function' ? t('noBanksAdded') : 'No banks added') + '</div>';
     try { if (typeof window.v260ApplyPrivacyMask === 'function') window.v260ApplyPrivacyMask(); } catch(_) {}
@@ -30065,13 +30247,15 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   #loan-manager-sheet .loan-alert-date-hint-v270.ready {
     color: var(--accent);
   }
-  html[data-theme="light"] #account-balance-widget .account-balance-row:not(.account-balance-liability-row) .account-balance-value,
-  html[data-theme="light"] #account-balance-widget .account-balance-total-row .account-balance-value,
-  html[data-theme="light"] #account-balance-widget .account-balance-row:not(.account-balance-liability-row) .account-balance-name,
+  html[data-theme="light"] #account-balance-widget .account-balance-row:not(.account-balance-liability-row) .account-balance-value:not(.amount-expense),
+  html[data-theme="light"] #account-balance-widget .account-balance-total-row .account-balance-value:not(.amount-expense),
+  html[data-theme="light"] #account-balance-widget .account-balance-row:not(.account-balance-liability-row) .account-balance-name:not(.amount-expense),
   html[data-theme="light"] #account-balance-widget .account-balance-total-row .account-balance-name {
     color: #0f172a !important;
     -webkit-text-fill-color: #0f172a !important;
   }
+  html[data-theme="light"] #account-balance-widget .account-balance-value.amount-expense,
+  html[data-theme="light"] #account-balance-widget .account-balance-total-row .account-balance-value.amount-expense,
   html[data-theme="light"] #account-balance-widget .account-balance-liability-row .account-balance-value,
   html[data-theme="light"] #account-balance-widget .account-balance-liability-row .account-balance-name {
     color: #E5005F !important;
@@ -31392,9 +31576,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
             triggerReached = rect.bottom <= (visibleBottom + 8);
           }
         } catch(_) {}
-        var nearPageBottom = (page.scrollTop + page.clientHeight) >= (page.scrollHeight - 180);
-        var nearWindowBottom = (window.innerHeight + windowScrollTop) >= (document.documentElement.scrollHeight - 160);
-        if ((triggerReached || nearPageBottom || nearWindowBottom) && (now - lastAutoLoadAt) > 140) {
+        if (triggerReached && (now - lastAutoLoadAt) > 140) {
           lastAutoLoadAt = now;
           txnVisibleLimit = Math.min(totalLoaded, Math.max(Number(txnVisibleLimit || PAGE), loaded, PAGE) + SCROLL_LOAD_STEP);
           try { window.updateTxnPage(); } catch(_) {}
@@ -31635,6 +31817,36 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   #page-txns #card-source-filters,
   #page-txns #txn-filter-summary {
     display: none !important;
+  }
+</style>
+<style id="v292-manager-sheet-roller-restore-css">
+  /* Restore classic draggable bottom-sheet behavior for managers. */
+  .manager-sheet-back-btn {
+    display: none !important;
+  }
+  #bank-manager-sheet,
+  #loan-manager-sheet {
+    transform: translateX(-50%) translateY(105%) !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+    transition: transform .28s ease, opacity .18s ease !important;
+    will-change: transform !important;
+  }
+  #bank-manager-sheet.open,
+  #loan-manager-sheet.open {
+    transform: translateX(-50%) translateY(0) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+  #bank-manager-sheet .sheet-handle,
+  #loan-manager-sheet .sheet-handle {
+    display: block !important;
+  }
+  #bank-manager-sheet .sheet-title-row,
+  #loan-manager-sheet .sheet-title-row {
+    position: static !important;
+    top: auto !important;
+    padding-top: 0 !important;
   }
 </style>
 </body>
