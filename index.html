@@ -11949,6 +11949,14 @@ function getOverviewDashboardMetrics() {
     budgetSpent += convertAmountCurrency(spent || 0, bankCurrency || appCurrency, appCurrency);
     budgetLimit += convertAmountCurrency(budget || 0, bankCurrency || appCurrency, appCurrency);
   });
+  // Keep Bank budget "spent" aligned with the Overview top bar (real monthly spent).
+  try {
+    const topBarSpentCzk = Number(getArchiveMonthSpentTotalCzk(month) || 0);
+    const topBarSpentInAppCurrency = Number(convertAmountCurrency(topBarSpentCzk, 'CZK', appCurrency) || 0);
+    if (isFinite(topBarSpentInAppCurrency) && topBarSpentInAppCurrency >= 0) {
+      budgetSpent = topBarSpentInAppCurrency;
+    }
+  } catch (_) {}
   const budgetPct = budgetLimit > 0 ? Math.min(budgetSpent / budgetLimit, 1) : 0;
   const budgetTransactionSeries = getOverviewBudgetTransactionSeries(month, appCurrency);
 
@@ -13884,16 +13892,16 @@ function showPage(pageId, options = {}) {
     targetPage.classList.add('active');
 
     requestAnimationFrame(() => {
-      targetPage.classList.add('page-light-switch');
+      targetPage.classList.add('page-tab-fade');
       window.setTimeout(() => {
-        targetPage.classList.remove('page-light-switch');
-      }, 240);
+        targetPage.classList.remove('page-tab-fade');
+      }, 150);
     });
   }
 
   if (targetNav) {
     targetNav.classList.add('active', 'tab-just-activated');
-    window.setTimeout(() => targetNav.classList.remove('tab-just-activated'), 260);
+    window.setTimeout(() => targetNav.classList.remove('tab-just-activated'), 140);
   }
 
   if (shouldPushHistory) {
@@ -19228,23 +19236,56 @@ function applyAppTheme(theme = getAppTheme()) {
 function setAppTheme(theme) {
   localStorage.setItem('app_theme_user_selected', 'true');
   applyAppTheme(theme);
-  renderAll();
-  applyLanguage();
+  // Avoid full renderAll() on every theme click (heavy on mobile).
+  requestAnimationFrame(() => {
+    try {
+      if (activePageId === 'txns') {
+        updateTxnPage();
+      } else if (activePageId === 'archive') {
+        renderArchive();
+        renderArchiveTrendChart();
+      } else if (activePageId === 'overview' || activePageId === 'overview-details') {
+        renderOverviewDashboard();
+        renderBudgetStatus();
+        renderAccountBalanceWidget();
+      }
+      scheduleFloatingUtilityUpdate();
+    } catch (_) {}
+  });
 }
 
 // Keep system bars synced after Chrome/PWA focus changes.
 (function keepThemeSystemBarsSynced() {
-  const repaint = () => applyAppTheme(getAppTheme());
+  let repaintQueued = false;
+  let lastMetaSyncAt = 0;
+  const repaint = (force = false) => {
+    if (repaintQueued) return;
+    repaintQueued = true;
+    requestAnimationFrame(() => {
+      repaintQueued = false;
+      const now = Date.now();
+      // Skip noisy updates; only keep meta in sync occasionally unless forced.
+      if (!force && (now - lastMetaSyncAt) < 900) return;
+      lastMetaSyncAt = now;
+      const theme = getAppTheme();
+      updateThemeMeta(theme);
+      const darkBtn = document.getElementById('theme-dark-btn');
+      const lightBtn = document.getElementById('theme-light-btn');
+      if (darkBtn) darkBtn.classList.toggle('active', theme === 'dark');
+      if (lightBtn) lightBtn.classList.toggle('active', theme === 'light');
+    });
+  };
 
-  repaint();
-  ['pageshow','focus','blur','resize','orientationchange','visibilitychange','touchend','pointerup','click'].forEach(eventName => {
-    window.addEventListener(eventName, repaint, { passive: true });
-    document.addEventListener(eventName, repaint, { passive: true });
+  repaint(true);
+  ['pageshow', 'focus', 'orientationchange'].forEach(eventName => {
+    window.addEventListener(eventName, () => repaint(true), { passive: true });
   });
-
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) repaint(true);
+  }, { passive: true });
+  window.addEventListener('resize', () => repaint(false), { passive: true });
   if (window.visualViewport) {
-    visualViewport.addEventListener('resize', repaint, { passive: true });
-    visualViewport.addEventListener('scroll', repaint, { passive: true });
+    visualViewport.addEventListener('resize', () => repaint(false), { passive: true });
   }
 })();
 
@@ -26982,13 +27023,16 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var limitTotal = 0;
     ids.forEach(function(id){
       var from = bankCurrency(id, currency);
-      var spent = 0;
       var limit = 0;
-      try { spent = getOverviewBudgetSpentForBank(id, month) || 0; } catch(_) {}
       try { limit = getOverviewBudgetLimitForBank(id, month) || 0; } catch(_) {}
-      spentTotal += convertAmount(spent, from, currency);
       limitTotal += convertAmount(limit, from, currency);
     });
+    // Keep "all banks" spent synced with the Overview top bar real spent.
+    try {
+      var topBarSpentCzk = Number(getArchiveMonthSpentTotalCzk(month) || 0);
+      var topBarSpent = Number(convertAmount(topBarSpentCzk, 'CZK', currency) || 0);
+      if (isFinite(topBarSpent) && topBarSpent >= 0) spentTotal = topBarSpent;
+    } catch (_) {}
     if (!limitTotal) {
       try {
         var metrics = typeof getOverviewDashboardMetrics === 'function' ? getOverviewDashboardMetrics() : null;
@@ -30769,7 +30813,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (!loaded.length) return;
     var first = loaded[0] || {};
     var last = loaded[loaded.length - 1] || {};
-    var renderKey = String(loaded.length) + '|' + String(total) + '|' + String(first.id || first.msgId || '') + '|' + String(last.id || last.msgId || '');
+    var chartTypeKey = '';
+    try { chartTypeKey = String(txnCashflowChartType || 'bar'); } catch(_) { chartTypeKey = 'bar'; }
+    var renderKey = String(loaded.length) + '|' + String(total) + '|' + String(first.id || first.msgId || '') + '|' + String(last.id || last.msgId || '') + '|chart:' + chartTypeKey;
     if (listDiv.getAttribute('data-rendered-key') === renderKey) return;
     var rowsHtml = renderRows(loaded);
     var counter = typeof renderTransactionPagingInfo === 'function' ? renderTransactionPagingInfo(loaded.length, total) : '';
@@ -30953,6 +30999,32 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   #page-overview-details .account-balance-row .account-balance-value.amount-income {
     color: var(--text) !important;
     -webkit-text-fill-color: var(--text) !important;
+  }
+</style>
+<style id="v286-mobile-tab-fade-performance-css">
+  /* Mobile performance: tab switch should be pure fade, without slide/scale. */
+  .page.active.page-tab-fade,
+  .page.active.page-light-switch {
+    animation: tabSwitchFadeOnly .14s ease-out !important;
+    will-change: opacity !important;
+    transform: none !important;
+  }
+  @keyframes tabSwitchFadeOnly {
+    from { opacity: .72; }
+    to { opacity: 1; }
+  }
+  .nav-item.tab-just-activated .nav-icon,
+  .nav-item.active .nav-icon {
+    animation: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  .nav-item,
+  .nav-item.active {
+    transition: background .1s ease, color .1s ease !important;
+  }
+  .nav-item:active {
+    transform: none !important;
   }
 </style>
 <style id="v271-ios-pwa-overview-header-css">
