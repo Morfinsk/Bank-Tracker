@@ -3303,6 +3303,37 @@
     }
   }
 
+  .page-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 12000;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .16s ease;
+    background: rgba(5, 11, 22, .16);
+    backdrop-filter: blur(1.5px);
+  }
+
+  .page-loading-overlay.show {
+    opacity: 1;
+  }
+
+  .page-loading-spinner {
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    border: 3px solid rgba(255, 255, 255, .22);
+    border-top-color: rgba(119, 224, 243, .95);
+    animation: pageLoaderSpin .8s linear infinite;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
+  }
+
+  @keyframes pageLoaderSpin {
+    to { transform: rotate(360deg); }
+  }
+
 
   /* v80 stable bottom sheet drag */
   .bottom-sheet {
@@ -6222,8 +6253,8 @@
 
   .page.active.page-light-switch,
   .page.active.page-tab-fade {
-    animation-duration: .16s !important;
-    animation-timing-function: ease-out !important;
+    animation-duration: .38s !important;
+    animation-timing-function: cubic-bezier(.22, .70, .18, 1) !important;
   }
 
   .fab {
@@ -8397,6 +8428,47 @@ html[data-theme="light"] body::before {
   </div>
 </div>
 
+<div id="add-loan-sheet" class="bottom-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title-row">
+    <div class="sheet-title" data-i18n="addLoan">Add loan</div>
+    <button class="sheet-close" onclick="closeBottomSheets()">×</button>
+  </div>
+  <div class="sheet-grid-2">
+    <div><label>Loan name</label><input class="config-input" id="add-loan-name" placeholder="Mortgage / Car loan" /></div>
+    <div><label>Type</label><select class="config-input" id="add-loan-type"><option value="loan">Loan</option><option value="mortgage">Mortgage</option></select></div>
+  </div>
+  <div class="sheet-grid-2">
+    <div><label data-i18n="currency">Currency</label><select class="config-input" id="add-loan-currency"></select></div>
+    <div><label>Status</label><select class="config-input" id="add-loan-status"><option value="active">Active</option><option value="paused">Paused</option></select></div>
+  </div>
+  <div class="sheet-grid-2">
+    <div><label>Linked bank</label><select class="config-input" id="add-loan-bank"></select></div>
+    <div><label>Account</label><input class="config-input" id="add-loan-account" placeholder="123456789/5500" /></div>
+  </div>
+  <div class="sheet-grid-2">
+    <div><label>Original value</label><input class="config-input" id="add-loan-original" type="number" step="0.01" /></div>
+    <div><label>Outstanding balance</label><input class="config-input" id="add-loan-current" type="number" step="0.01" /></div>
+  </div>
+  <div class="sheet-grid-2">
+    <div><label>Amount of repayment</label><input class="config-input" id="add-loan-payment" type="number" step="0.01" /></div>
+    <div><label>Interest rate</label><input class="config-input" id="add-loan-rate" placeholder="5.49%" /></div>
+  </div>
+  <div class="sheet-grid-2">
+    <div><label>Period</label><input class="config-input" id="add-loan-period" inputmode="numeric" placeholder="360" /></div>
+    <div><label>Period unit</label><select class="config-input" id="add-loan-period-unit"><option value="months">Months</option><option value="years">Years</option></select></div>
+  </div>
+  <div class="sheet-grid-2">
+    <div><label>Fixation until</label><input class="config-input" id="add-loan-fixation" type="date" /></div>
+    <div><label>Fixation alert days</label><input class="config-input" id="add-loan-alert" type="number" min="0" step="1" value="30" /></div>
+  </div>
+  <div class="sheet-grid-2">
+    <div><label>VS (variable symbol)</label><input class="config-input" id="add-loan-vs" inputmode="numeric" placeholder="123456789" /></div>
+    <div><label>Match text</label><input class="config-input" id="add-loan-text" placeholder="Mortgage payment / splatka uveru" /></div>
+  </div>
+  <button class="config-save" onclick="saveLoanFromQuickSheet()">Save loan</button>
+</div>
+
 <div id="bank-manager-sheet" class="bottom-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title-row">
@@ -8902,13 +8974,21 @@ function shiftOverviewMonth(delta) {
   const requested = activeOverviewMonthOffset + Number(delta || 0);
   if (requested > 0) {
     activeOverviewMonthOffset = 0;
-    renderAll();
+    showPageLoadingOverlayDelayed(90);
+    window.setTimeout(() => {
+      renderAll();
+      requestAnimationFrame(() => window.setTimeout(hidePageLoadingOverlay, 120));
+    }, 0);
     return;
   }
   const targetMonth = addMonthsToMonthStr(getAktuálneMonth(), Number(delta || 0));
   if (Number(delta || 0) < 0 && !hasTransactionsForMonth(targetMonth)) return;
   activeOverviewMonthOffset = requested;
-  renderAll();
+  showPageLoadingOverlayDelayed(90);
+  window.setTimeout(() => {
+    renderAll();
+    requestAnimationFrame(() => window.setTimeout(hidePageLoadingOverlay, 120));
+  }, 0);
 }
 
 function updateOverviewMonthNavState() {
@@ -10827,6 +10907,35 @@ function showTopWorkingToast(message) {
   const lang = (typeof getLanguage === 'function' ? getLanguage() : 'en');
   const fallback = lang === 'sk' ? 'Pracujem...' : (lang === 'cs' ? 'Pracuji...' : 'Working...');
   showLargeStatusToast(message || fallback, 'top-loading');
+}
+
+function ensurePageLoadingOverlay() {
+  let overlay = document.getElementById('page-loading-overlay');
+  if (overlay) return overlay;
+  overlay = document.createElement('div');
+  overlay.id = 'page-loading-overlay';
+  overlay.className = 'page-loading-overlay';
+  overlay.innerHTML = '<div class="page-loading-spinner" aria-hidden="true"></div>';
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+let pageLoadingTimer = null;
+function showPageLoadingOverlayDelayed(delayMs = 100) {
+  if (pageLoadingTimer) clearTimeout(pageLoadingTimer);
+  pageLoadingTimer = setTimeout(() => {
+    const overlay = ensurePageLoadingOverlay();
+    overlay.classList.add('show');
+  }, Math.max(0, Number(delayMs || 0)));
+}
+
+function hidePageLoadingOverlay() {
+  if (pageLoadingTimer) {
+    clearTimeout(pageLoadingTimer);
+    pageLoadingTimer = null;
+  }
+  const overlay = document.getElementById('page-loading-overlay');
+  if (overlay) overlay.classList.remove('show');
 }
 
 function exitBankTrackerApp() {
@@ -13881,6 +13990,8 @@ function resetTransactionFilters() {
 function showPage(pageId, options = {}) {
   const fromHistory = !!(options && options.fromHistory);
   const shouldPushHistory = !fromHistory && window.__bankTrackerTabHistoryReady && activePageId !== pageId;
+  const shouldShowLoader = activePageId !== pageId;
+  if (shouldShowLoader) showPageLoadingOverlayDelayed(95);
 
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active', 'page-slide-in-right', 'page-slide-in-left', 'swipe-peeking', 'page-tab-fade', 'page-light-switch');
@@ -13899,13 +14010,13 @@ function showPage(pageId, options = {}) {
       targetPage.classList.add('page-light-switch');
       window.setTimeout(() => {
         targetPage.classList.remove('page-light-switch');
-      }, 240);
+      }, 420);
     });
   }
 
   if (targetNav) {
     targetNav.classList.add('active', 'tab-just-activated');
-    window.setTimeout(() => targetNav.classList.remove('tab-just-activated'), 260);
+    window.setTimeout(() => targetNav.classList.remove('tab-just-activated'), 420);
   }
 
   if (shouldPushHistory) {
@@ -13924,6 +14035,12 @@ function showPage(pageId, options = {}) {
       window.scrollTo({ top: 0, behavior: 'auto' });
     }
     updateTxnPage();
+  }
+
+  if (pageId === 'archive') {
+    window.setTimeout(() => {
+      try { maybeLoadMoreArchiveMonths(); } catch(_) {}
+    }, 20);
   }
 
   if (pageId === 'settings') {
@@ -13949,6 +14066,11 @@ function showPage(pageId, options = {}) {
   }
 
   scheduleFloatingUtilityUpdate();
+  if (shouldShowLoader) {
+    requestAnimationFrame(() => {
+      window.setTimeout(hidePageLoadingOverlay, 120);
+    });
+  }
 }
 
 
@@ -15405,8 +15527,129 @@ function openAddBankFromQuick() {
 function openAddLoanFromQuick() {
   closeBottomSheets();
   setTimeout(() => {
-    if (typeof openLoanManagerSheet === 'function') openLoanManagerSheet({ showAddCard: true });
+    openAddLoanSheet();
   }, 90);
+}
+
+function refreshAddLoanSheetOptions() {
+  const currencySelect = document.getElementById('add-loan-currency');
+  if (currencySelect) currencySelect.innerHTML = getCurrencyOptionsHtml(currencySelect.value || 'CZK');
+  const bankSelect = document.getElementById('add-loan-bank');
+  if (bankSelect) {
+    const selected = String(bankSelect.value || '');
+    bankSelect.innerHTML = '<option value="">No linked bank</option>' + getAllBankOptions(selected);
+    if (!bankSelect.value) bankSelect.value = '';
+  }
+}
+
+function resetAddLoanSheetFields() {
+  const defaults = {
+    'add-loan-name': '',
+    'add-loan-type': 'loan',
+    'add-loan-status': 'active',
+    'add-loan-account': '',
+    'add-loan-original': '',
+    'add-loan-current': '',
+    'add-loan-payment': '',
+    'add-loan-rate': '',
+    'add-loan-period': '',
+    'add-loan-period-unit': 'months',
+    'add-loan-fixation': '',
+    'add-loan-alert': '30',
+    'add-loan-vs': '',
+    'add-loan-text': ''
+  };
+  Object.keys(defaults).forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = defaults[id];
+  });
+}
+
+function openAddLoanSheet() {
+  refreshAddLoanSheetOptions();
+  openSheet('add-loan-sheet');
+  setTimeout(() => {
+    const focusInput = document.getElementById('add-loan-name');
+    if (focusInput && typeof focusInput.focus === 'function') {
+      try { focusInput.focus(); } catch(_) {}
+    }
+  }, 80);
+}
+
+function parseLoanPeriodMonthsFromQuick(value, unit) {
+  const raw = String(value || '').replace(',', '.').trim();
+  const amount = Number(raw);
+  if (!isFinite(amount) || amount <= 0) return 0;
+  return unit === 'years' ? Math.round(amount * 12) : Math.round(amount);
+}
+
+async function saveLoanFromQuickSheet() {
+  const name = String(document.getElementById('add-loan-name')?.value || '').trim();
+  if (!name) {
+    alert('Enter loan name.');
+    document.getElementById('add-loan-name')?.focus?.();
+    return;
+  }
+
+  const originalAmount = Math.abs(parseFloat(document.getElementById('add-loan-original')?.value || '0') || 0);
+  if (!originalAmount) {
+    alert('Enter original value.');
+    document.getElementById('add-loan-original')?.focus?.();
+    return;
+  }
+
+  const currentAmount = Math.abs(parseFloat(document.getElementById('add-loan-current')?.value || '0') || 0);
+  const periodValue = String(document.getElementById('add-loan-period')?.value || '').trim();
+  const periodUnit = String(document.getElementById('add-loan-period-unit')?.value || 'months');
+  const linkedBankId = String(document.getElementById('add-loan-bank')?.value || '').trim();
+  const account = cleanBankAccountValue(document.getElementById('add-loan-account')?.value || '');
+  const rate = String(document.getElementById('add-loan-rate')?.value || '').trim();
+  const vs = String(document.getElementById('add-loan-vs')?.value || '').replace(/\D/g, '').trim();
+  const fixationAlertDays = Math.max(0, parseInt(document.getElementById('add-loan-alert')?.value || '0', 10) || 0);
+
+  const loan = {
+    id: 'loan_' + Date.now().toString(36),
+    name,
+    type: String(document.getElementById('add-loan-type')?.value || 'loan'),
+    currency: normalizeCurrencyForStorage(document.getElementById('add-loan-currency')?.value || 'CZK'),
+    linkedBankId,
+    bankId: linkedBankId,
+    account,
+    originalAmount,
+    currentBalance: -Math.abs(currentAmount),
+    monthlyPayment: Math.abs(parseFloat(document.getElementById('add-loan-payment')?.value || '0') || 0),
+    interestRate: rate,
+    periodValue,
+    periodUnit,
+    periodMonths: parseLoanPeriodMonthsFromQuick(periodValue, periodUnit),
+    fixationUntil: String(document.getElementById('add-loan-fixation')?.value || '').trim(),
+    fixationAlertDays,
+    variableSymbol: vs,
+    vs: vs,
+    matchText: String(document.getElementById('add-loan-text')?.value || '').trim(),
+    repaymentText: String(document.getElementById('add-loan-text')?.value || '').trim(),
+    status: String(document.getElementById('add-loan-status')?.value || 'active'),
+    source: 'manual',
+    active: true
+  };
+
+  try {
+    if (typeof window.upsertBankTrackerLoan === 'function') {
+      window.upsertBankTrackerLoan(loan);
+    } else if (typeof postToBankTrackerEndpoint === 'function') {
+      await postToBankTrackerEndpoint('saveLoan', { loan: loan });
+    }
+    resetAddLoanSheetFields();
+    closeBottomSheets();
+    try { if (typeof renderLoanManager === 'function') renderLoanManager(); } catch(_) {}
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    try { if (typeof renderAll === 'function') renderAll(); } catch(_) {}
+    showSavedToast();
+  } catch (e) {
+    console.warn('saveLoanFromQuickSheet failed:', e);
+    alert('Loan save failed. Please check Google Sheets endpoint.');
+  }
 }
 
 function openAddBankSheet(){initCurrencyDropdowns();openSheet('add-bank-sheet')}
@@ -16773,6 +17016,68 @@ function renderArchiveTrendChart() {
 }
 
 
+let archiveRenderState = { months: [], rendered: 0, monthlyCounts: {}, visibleBankKeys: [] };
+let archiveScrollQueued = false;
+
+function renderArchiveMonthCardHtml(mStr, visibleBankKeys, monthlyCounts) {
+  const rows = visibleBankKeys.map(bankKey => {
+    const bank = getArchiveBankInfo(bankKey);
+    const count = monthlyCounts[mStr]?.[bankKey] || 0;
+    const limit = getArchiveCardLimitForMonth(bankKey, mStr);
+    const logo = bankLogoImg(bankKey);
+    const title = escapeAttr(getArchiveBankName(bankKey));
+    const spent = renderMonthlyArchiveSpentCellHtml(bankKey, mStr);
+    const income = renderMonthlyArchiveIncomeCellHtml(bankKey, mStr);
+    return `<div class="archive-bank-spent-row" title="${title} · ${formatMonthString(mStr)}">
+      <div class="archive-bank-limit-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','cards')" style="color:${bank.color};" title="${title} · ${t('cardsOnly')} · ${t('transactions')}"><span class="bank-inline-logo">${logo}<span>${count}/${limit}</span></span><div>${getBankStatusText(count, limit, mStr)}</div></div>
+      <div class="archive-bank-spent-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','spent')" title="${title} · ${t('spent')} · ${t('outgoing')}">${spent}</div>
+      <div class="archive-bank-income-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','income')" title="${title} · ${t('income')} · ${t('incoming')}">${income}</div>
+    </div>`;
+  }).join('');
+  const totalsRow = renderArchiveMonthTotalsRowHtml(visibleBankKeys, mStr);
+  const header = `<div class="archive-bank-spent-header"><div>${t('bank')}</div><div>${t('spent')}</div><div>${t('income')}</div></div>`;
+  return `<div class="archive-item archive-item-spent-layout"><div class="archive-month-top">${formatMonthString(mStr)}</div><div class="archive-spent-table">${header}${rows}${totalsRow}</div></div>`;
+}
+
+function appendArchiveMonthsChunk(count) {
+  const container = document.getElementById('archive-months-list');
+  const page = document.getElementById('page-archive');
+  if (!container) return;
+  const state = archiveRenderState || {};
+  const months = Array.isArray(state.months) ? state.months : [];
+  const start = Number(state.rendered || 0);
+  if (start >= months.length) return;
+  const end = Math.min(months.length, start + Math.max(1, Number(count || 1)));
+  const html = months.slice(start, end).map(mStr => {
+    return renderArchiveMonthCardHtml(mStr, state.visibleBankKeys || [], state.monthlyCounts || {});
+  }).join('');
+  container.insertAdjacentHTML('beforeend', html);
+  state.rendered = end;
+  archiveRenderState = state;
+  if (page && page.classList.contains('active') && state.rendered < months.length) {
+    if (page.scrollHeight <= (page.clientHeight + 60)) {
+      // Keep filling just enough cards so user always gets a scroll target.
+      requestAnimationFrame(() => appendArchiveMonthsChunk(1));
+    }
+  }
+}
+
+function maybeLoadMoreArchiveMonths() {
+  const page = document.getElementById('page-archive');
+  const container = document.getElementById('archive-months-list');
+  if (!page || !container || !page.classList.contains('active')) return;
+  const state = archiveRenderState || {};
+  if (!Array.isArray(state.months) || state.rendered >= state.months.length) return;
+  if (archiveScrollQueued) return;
+  archiveScrollQueued = true;
+  requestAnimationFrame(() => {
+    archiveScrollQueued = false;
+    const nearPageBottom = (page.scrollTop + page.clientHeight) >= (page.scrollHeight - 220);
+    if (!nearPageBottom) return;
+    appendArchiveMonthsChunk(2);
+  });
+}
+
 function renderArchive() {
   const container = document.getElementById('archive-months-list');
   if (!container) return;
@@ -16787,6 +17092,7 @@ function renderArchive() {
 
   if (monthsInSpecs.length === 0) {
     container.innerHTML = `<div class="empty-state" style="padding:20px 0;">${t('archiveEmpty')}</div>`;
+    archiveRenderState = { months: [], rendered: 0, monthlyCounts: {}, visibleBankKeys: [] };
     return;
   }
 
@@ -16801,30 +17107,19 @@ function renderArchive() {
     monthlyCounts[month][bankKey] = (monthlyCounts[month][bankKey] || 0) + 1;
   });
 
-  // Keep configured banks visible even when month values are 0/0.
-  // Hiding zero rows caused confusion (e.g. Air Bank disappeared after zeroed month).
   const visibleBankKeys = getDynamicArchiveBankKeys(monthlyCounts)
     .filter(bankKey => bankKey !== 'csob_cz_credit');
 
-  container.innerHTML = monthsInSpecs.map(mStr => {
-    const rows = visibleBankKeys.map(bankKey => {
-      const bank = getArchiveBankInfo(bankKey);
-      const count = monthlyCounts[mStr]?.[bankKey] || 0;
-      const limit = getArchiveCardLimitForMonth(bankKey, mStr);
-      const logo = bankLogoImg(bankKey);
-      const title = escapeAttr(getArchiveBankName(bankKey));
-      const spent = renderMonthlyArchiveSpentCellHtml(bankKey, mStr);
-      const income = renderMonthlyArchiveIncomeCellHtml(bankKey, mStr);
-      return `<div class="archive-bank-spent-row" title="${title} · ${formatMonthString(mStr)}">
-        <div class="archive-bank-limit-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','cards')" style="color:${bank.color};" title="${title} · ${t('cardsOnly')} · ${t('transactions')}"><span class="bank-inline-logo">${logo}<span>${count}/${limit}</span></span><div>${getBankStatusText(count, limit, mStr)}</div></div>
-        <div class="archive-bank-spent-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','spent')" title="${title} · ${t('spent')} · ${t('outgoing')}">${spent}</div>
-        <div class="archive-bank-income-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','income')" title="${title} · ${t('income')} · ${t('incoming')}">${income}</div>
-      </div>`;
-    }).join('');
-    const totalsRow = renderArchiveMonthTotalsRowHtml(visibleBankKeys, mStr);
-    const header = `<div class="archive-bank-spent-header"><div>${t('bank')}</div><div>${t('spent')}</div><div>${t('income')}</div></div>`;
-    return `<div class="archive-item archive-item-spent-layout"><div class="archive-month-top">${formatMonthString(mStr)}</div><div class="archive-spent-table">${header}${rows}${totalsRow}</div></div>`;
-  }).join('');
+  archiveRenderState = {
+    months: monthsInSpecs,
+    rendered: 0,
+    monthlyCounts: monthlyCounts,
+    visibleBankKeys: visibleBankKeys
+  };
+
+  // Fast first paint: latest month first, older months on-demand while scrolling.
+  container.innerHTML = '';
+  appendArchiveMonthsChunk(1);
 }
 
 
@@ -18646,25 +18941,40 @@ async function testGoogleSheetsEndpointFromApp() {
 async function postToBankTrackerEndpoint(action, payload = {}) {
   const url = getCurrentWebAppUrl();
   const status = document.getElementById('limits-sync-status');
+  const fireAndForgetSave = action === 'saveTransaction' || action === 'saveBank' || action === 'saveLoan';
 
   if (!url) {
     console.warn('Apps Script Web App URL is not configured.');
-    if (status) status.textContent = 'Web App URL nie je nastavená. Dáta sú uložené iba lokálne.';
+    if (status && !fireAndForgetSave) status.textContent = 'Web App URL nie je nastavená. Dáta sú uložené iba lokálne.';
     return false;
   }
   if (!isValidAppsScriptExecUrl(url)) {
     console.warn('Invalid Apps Script Web App URL. Use /exec deployment URL, not editor URL.');
-    if (status) status.textContent = 'Používaš nesprávnu Apps Script URL. Potrebuješ Web App /exec URL.';
+    if (status && !fireAndForgetSave) status.textContent = 'Používaš nesprávnu Apps Script URL. Potrebuješ Web App /exec URL.';
     return false;
   }
 
-  if (status) status.textContent = getEndpointStatusMessage(action, 'pending');
+  if (status && !fireAndForgetSave) status.textContent = getEndpointStatusMessage(action, 'pending');
 
   // v155: save/delete transaction can take longer because the backend now also
   // updates balance, monthly stats, notification logs and FCM token cleanup.
   // A short timeout made the app show "transaction failed" even when Apps Script
   // had already written the row to Google Sheets successfully.
   const mutationTimeoutMs = isLikelyIOSWebKit() || ['saveTransaction', 'deleteTransaction', 'saveBankSettings'].includes(action) ? 60000 : 15000;
+  if (fireAndForgetSave) {
+    endpointMutationRequest(action, payload, mutationTimeoutMs).then(result => {
+      if (result && result.ok) {
+        console.log('Google Sheets async save OK:', action, result.data);
+        queueParserRunAfterMutation(action);
+      } else {
+        console.warn('Google Sheets async save failed:', action, result && result.data ? result.data : {});
+      }
+    }).catch(err => {
+      console.warn('Google Sheets async save error:', action, err);
+    });
+    return true;
+  }
+
   const result = await endpointMutationRequest(action, payload, mutationTimeoutMs);
   if (result.ok) {
     if (status) status.textContent = getEndpointStatusMessage(action, 'success');
@@ -29251,22 +29561,10 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       document.body.appendChild(sheet);
     }
     var add = sheet.querySelector('.loan-manager-add-card');
-    if (add && !byId('new-loan-account-v262')) {
-      add.innerHTML = '<div class="loan-manager-add-title">Add loan</div>'
-        + '<div class="loan-manager-add-fields" id="loan-manager-add-fields-v262" style="display:block;">'
-        + '<label>Loan name</label><input class="config-input" id="new-loan-name" placeholder="Mortgage / Car loan">'
-        + '<div class="loan-form-grid-v262"><div><label>Type</label><select class="config-input" id="new-loan-type"><option value="loan">Loan</option><option value="mortgage">Mortgage</option></select></div><div><label>Currency</label><select class="config-input" id="new-loan-currency">' + currencyOptions('CZK') + '</select></div></div>'
-        + '<div class="loan-form-grid-v262"><div><label>Linked bank</label><select class="config-input" id="new-loan-bank">' + bankOptions('') + '</select></div><div><label>Account</label><input class="config-input" id="new-loan-account-v262" placeholder="123456789/5500"></div></div>'
-        + '<div class="loan-form-grid-v262"><div><label>Original value</label><input class="config-input" id="new-loan-original" type="number" step="0.01"></div><div><label>Outstanding balance</label><input class="config-input" id="new-loan-current" type="number" step="0.01"></div></div>'
-        + '<div class="loan-form-grid-v262"><div><label>Amount of repayment</label><input class="config-input" id="new-loan-payment" type="number" step="0.01"></div><div><label>Interest rate</label><input class="config-input" id="new-loan-rate" placeholder="5.49%"></div></div>'
-        + '<div class="loan-form-grid-v262"><div><label>Period</label><input class="config-input" id="new-loan-period" placeholder="5 years"></div><div><label>Fixation until</label><input class="config-input" id="new-loan-fixation" placeholder="2029-06-30"></div></div>'
-        + '<label>VS (variable symbol)</label><input class="config-input" id="new-loan-vs" placeholder="123456789">'
-        + '<label>Match text</label><input class="config-input" id="new-loan-text" placeholder="Mortgage payment / splatka uveru">'
-        + '<button class="config-save" onclick="saveNewLoanFromManager()">Save loan</button><div id="loan-save-status-v254" class="loan-manager-status-v254"></div>'
-        + '</div>';
+    if (add) {
+      add.innerHTML = '';
+      add.style.display = 'none';
     }
-    var bankSelect = byId('new-loan-bank');
-    if (bankSelect) bankSelect.innerHTML = bankOptions(bankSelect.value || '');
   }
   function field(id){ return byId(id) && byId(id).value || ''; }
   function loanFromForm(prefix, id, existing){
@@ -29342,42 +29640,16 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     }
   };
   window.toggleLoanAddFormV262 = function(){
-    var fields = byId('loan-manager-add-fields-v262');
-    var toggle = byId('loan-manager-add-toggle-v262');
-    if (!fields) return;
-    var opening = fields.style.display === 'none' || !fields.style.display;
-    if (opening) {
-      var sheet = byId('loan-manager-sheet');
-      if (sheet) {
-        sheet.querySelectorAll('.loan-manager-card.open[data-loan-id]').forEach(function(card){
-          card.classList.remove('open');
-        });
-      }
-      fields.style.display = 'block';
-      if (toggle) toggle.textContent = 'Hide add loan';
-      return;
-    }
-    fields.style.display = 'none';
-    if (toggle) toggle.textContent = 'Add loan';
+    if (typeof openAddLoanSheet === 'function') openAddLoanSheet();
   };
-  function setLoanAddCardVisibility(show){
+  function setLoanAddCardVisibility(){
     var addCard = byId('loan-manager-sheet') && byId('loan-manager-sheet').querySelector('.loan-manager-add-card');
     var addFields = byId('loan-manager-add-fields-v262');
-    if (addCard) addCard.style.display = show ? 'grid' : 'none';
-    if (addFields) addFields.style.display = show ? 'block' : 'none';
+    if (addCard) addCard.style.display = 'none';
+    if (addFields) addFields.style.display = 'none';
   }
   window.saveNewLoanFromManager = async function(){
-    ensureLoanManagerDom();
-    var loan = loanFromForm('new-loan-', '', null);
-    if (!loan.originalAmount) { alert('Enter original value.'); return; }
-    loan.id = 'loan_' + Date.now().toString(36);
-    var saved = upsertLoan(loan);
-    try { await saveLoanEndpoint(saved); } catch(e) { console.warn('saveLoan failed', e); }
-    ['new-loan-name','new-loan-original','new-loan-current','new-loan-payment','new-loan-rate','new-loan-period','new-loan-fixation','new-loan-vs','new-loan-text','new-loan-account-v262'].forEach(function(id){ var el = byId(id); if (el) el.value = ''; });
-    setLoanAddCardVisibility(false);
-    window.renderLoanManager();
-    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
-    try { if (typeof renderAll === 'function') renderAll(); } catch(_) {}
+    if (typeof openAddLoanSheet === 'function') openAddLoanSheet();
   };
   window.updateLoanV262 = async function(id){
     var existing = loanById(id);
@@ -29419,18 +29691,11 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
     try { if (typeof renderAll === 'function') renderAll(); } catch(_) {}
   };
-  window.openLoanManagerSheet = function(options){
-    options = options || {};
+  window.openLoanManagerSheet = function(){
     ensureLoanManagerDom();
     window.renderLoanManager();
     if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
-    setLoanAddCardVisibility(!!options.showAddCard);
-    if (options.showAddCard) {
-      var focusTarget = byId('new-loan-name');
-      if (focusTarget && typeof focusTarget.focus === 'function') {
-        setTimeout(function(){ try { focusTarget.focus(); } catch(_) {} }, 80);
-      }
-    }
+    setLoanAddCardVisibility();
     var status = byId('loan-save-status-v254') || byId('limits-sync-status');
     if (status) status.textContent = 'Loading loans from Google Sheets...';
     syncLoansNow(true).then(function(ok){
@@ -30616,6 +30881,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     removeEmptyLoanRows(form);
   }
   function decorateNewLoanForm(){
+    var addCard = byId('loan-manager-sheet') && byId('loan-manager-sheet').querySelector('.loan-manager-add-card');
+    if (!addCard || getComputedStyle(addCard).display === 'none') return;
     var input = byId('new-loan-period');
     if (input) ensurePeriodCombo(input, { periodUnit: byId('new-loan-period-unit') && byId('new-loan-period-unit').value || 'months' });
     ensureNewAlertField();
@@ -30697,10 +30964,6 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       var result = previousOpen.apply(this, arguments);
       clearLoanCenterToast();
       decorateLoanManager();
-      var addFields = byId('loan-manager-add-fields-v262');
-      var addToggle = byId('loan-manager-add-toggle-v262');
-      if (addFields) addFields.style.display = 'none';
-      if (addToggle) addToggle.textContent = 'Add loan';
       setTimeout(decorateLoanManager, 80);
       setTimeout(decorateLoanManager, 500);
       setTimeout(clearLoanCenterToast, 0);
@@ -30992,9 +31255,20 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       var totalLoaded = Number(windowRenderState.total || 0);
       if (loaded < totalLoaded) {
         var now = Date.now();
-        var nearPageBottom = (page.scrollTop + page.clientHeight) >= (page.scrollHeight - 240);
-        var nearWinBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 260);
-        if ((nearPageBottom || nearWinBottom) && (now - lastAutoLoadAt) > 180) {
+        var triggerReached = false;
+        try {
+          // Mobile-friendly trigger: load next page when the "15th of current 20"
+          // (i.e. loaded-5) gets into view instead of loading on tiny scroll nudges.
+          var rows = listDiv.querySelectorAll('.tx-item');
+          var triggerIndex = Math.max(0, loaded - 5);
+          var triggerRow = rows && rows[triggerIndex];
+          if (triggerRow) {
+            var rect = triggerRow.getBoundingClientRect();
+            triggerReached = rect.top <= (window.innerHeight - 70);
+          }
+        } catch(_) {}
+        var nearPageBottom = (page.scrollTop + page.clientHeight) >= (page.scrollHeight - 180);
+        if ((triggerReached || nearPageBottom) && (now - lastAutoLoadAt) > 320) {
           lastAutoLoadAt = now;
           txnVisibleLimit = Math.min(totalLoaded, Math.max(Number(txnVisibleLimit || PAGE), loaded, PAGE) + PAGE);
           try { window.updateTxnPage(); } catch(_) {}
@@ -31003,9 +31277,15 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       }
     });
   }
-  window.addEventListener('scroll', onUnfilteredScroll, { passive:true });
+  window.addEventListener('scroll', function(){
+    onUnfilteredScroll();
+    try { maybeLoadMoreArchiveMonths(); } catch(_) {}
+  }, { passive:true });
   document.addEventListener('scroll', function(ev){
     if (ev.target && ev.target.id === 'page-txns') onUnfilteredScroll();
+    if (ev.target && ev.target.id === 'page-archive') {
+      try { maybeLoadMoreArchiveMonths(); } catch(_) {}
+    }
   }, true);
 })();
 </script>
