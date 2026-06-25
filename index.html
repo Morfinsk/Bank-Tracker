@@ -961,8 +961,46 @@
     transition: all .2s;
   }
   .sync-btn:active { transform: scale(0.92); color: var(--accent); }
-  .sync-btn.spinning { animation: spin 1s linear infinite; }
+  .sync-btn.spinning .sync-btn-icon {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+    transform-origin: center center;
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Global sync pill — visible on every tab while cloud sync runs. */
+  .global-sync-indicator {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    right: 10px;
+    z-index: 12050;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    background: rgba(13, 22, 38, .94);
+    border: 1px solid rgba(88, 166, 255, .28);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .28);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: rgba(208, 228, 255, .96);
+    pointer-events: none;
+  }
+  .global-sync-indicator.show { display: inline-flex; }
+  .global-sync-indicator-icon {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+    transform-origin: center center;
+  }
+  html.android-pwa-perf .global-sync-indicator-icon,
+  html.mobile-perf-mode .global-sync-indicator-icon,
+  html.android-pwa-perf .sync-btn.spinning .sync-btn-icon,
+  html.mobile-perf-mode .sync-btn.spinning .sync-btn-icon {
+    animation: spin 1s linear infinite !important;
+  }
 
   /* Summary strip */
   .summary {
@@ -3137,6 +3175,18 @@
   body.sheet-open {
     overscroll-behavior-y: none;
     overscroll-behavior-x: none;
+    overflow: hidden !important;
+  }
+
+  body.sheet-open .page.active {
+    overflow: hidden !important;
+    touch-action: none !important;
+    pointer-events: none !important;
+  }
+
+  body.sheet-open .bottom-sheet.open {
+    pointer-events: auto !important;
+    touch-action: pan-y !important;
   }
 
   body.sheet-open .page,
@@ -6565,13 +6615,15 @@
   }
 
   #loan-manager-sheet .sheet-handle,
-  #loan-manager-sheet .sheet-title-row {
+  #loan-manager-sheet .sheet-title-row,
+  #loan-manager-sheet .loan-manager-sheet-note {
     touch-action: none !important;
     cursor: grab;
   }
 
   #loan-manager-sheet.dragging .sheet-handle,
-  #loan-manager-sheet.dragging .sheet-title-row {
+  #loan-manager-sheet.dragging .sheet-title-row,
+  #loan-manager-sheet.dragging .loan-manager-sheet-note {
     cursor: grabbing;
   }
 
@@ -8251,6 +8303,11 @@ html[data-theme="light"] body::before {
 </head>
 <body class="app-boot-pending">
 
+<div id="global-sync-indicator" class="global-sync-indicator" hidden aria-live="polite">
+  <span class="global-sync-indicator-icon" aria-hidden="true">↻</span>
+  <span>Syncing…</span>
+</div>
+
 <div id="page-loading-overlay" class="page-loading-overlay show" aria-busy="true" aria-live="polite">
   <div class="page-loading-spinner" aria-hidden="true"></div>
 </div>
@@ -8260,7 +8317,7 @@ html[data-theme="light"] body::before {
     <div class="overview-header-row overview-header-top-v236">
       <div class="header-title" data-i18n="appTitle">Bank Tracker</div>
       <div class="overview-header-actions-v236">
-        <button class="sync-btn overview-header-icon-v236" id="sync-btn" type="button" onclick="syncData()" data-i18n-title="syncTitle" title="Sync" aria-label="Refresh">↻</button>
+        <button class="sync-btn overview-header-icon-v236" id="sync-btn" type="button" onclick="syncData()" data-i18n-title="syncTitle" title="Sync" aria-label="Refresh"><span class="sync-btn-icon" aria-hidden="true">↻</span></button>
         <button class="sync-btn overview-header-icon-v236 overview-login-btn-v236" id="overview-login-btn" type="button" onclick="openLoginPlaceholderV236()" title="Login" aria-label="Login">👤</button>
       </div>
     </div>
@@ -8698,6 +8755,15 @@ html[data-theme="light"] body::before {
   <div id="bank-manager-list"></div>
 </div>
 
+<div id="loan-manager-sheet" class="bottom-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title-row">
+    <div class="sheet-title">Manage loans</div>
+    <button class="sheet-close" type="button" onclick="closeBottomSheets()" aria-label="Close">×</button>
+  </div>
+  <div class="loan-manager-sheet-note">Create mortgage / loan accounts here. The parser updates Current balance in the Loans tab when a matching repayment transaction arrives.</div>
+  <div id="loan-manager-list"></div>
+</div>
 
 
 
@@ -8729,7 +8795,7 @@ html[data-theme="light"] body::before {
   </div>
 </div>
 
-<div id="custom-widget-sheet" class="bottom-sheet custom-widget-sheet bottom-sheet-widget">
+<div id="custom-widget-sheet" class="bottom-sheet custom-widget-sheet custom-widget-editor-page-v236">
   <div class="sheet-handle"></div>
   <div class="sheet-title-row custom-widget-sheet-header-v296">
     <div class="sheet-title" id="custom-widget-sheet-title">Add widget</div>
@@ -12920,10 +12986,19 @@ function createOverviewBudgetSparkline(used = 0, limit = 0, currency, txSeries =
       </svg>
     </div>`;
 }
+function updateGlobalSyncIndicator(active) {
+  const el = document.getElementById('global-sync-indicator');
+  if (!el) return;
+  el.classList.toggle('show', !!active);
+  el.hidden = !active;
+}
+try { window.updateGlobalSyncIndicator = updateGlobalSyncIndicator; } catch (_) {}
+
 function setOverviewBalanceSyncState(active) {
   document.querySelectorAll('.wealth-card-net, .wealth-card-cash').forEach(card => {
     card.classList.toggle('is-balance-syncing', !!active);
   });
+  updateGlobalSyncIndicator(active);
 }
 try { window.setOverviewBalanceSyncState = setOverviewBalanceSyncState; } catch (_) {}
 
@@ -13038,7 +13113,7 @@ function renderOverviewDashboard() {
 function playOverviewChartIntro() {
   const root = document.getElementById('page-overview');
   if (!root) return;
-  if (!root.querySelector('.overview-widget-arc, .overview-widget-line, .overview-widget-fill')) return;
+  if (!root.querySelector('.overview-widget-arc, .overview-widget-line, .overview-widget-fill, .wealth-networth-trend-line-v238')) return;
   root.classList.remove('overview-charts-animating');
   void root.offsetWidth;
   requestAnimationFrame(() => {
@@ -13200,8 +13275,9 @@ function renderAll(options = {}) {
   }
 
 
-  // A (perf): only render the active heavy tab now; the rest render on visit.
-  renderDeferredTabSections(monthTxns);
+  // Render all tabs eagerly so tab switches never show a loading spinner.
+  renderTransactionsSection(monthTxns);
+  renderArchiveSection();
   populateSimulatorLimitMonthDropdown(getSimulatorLimitMonth());
   populateSettingsLimitMonthDropdown(getSettingsLimitMonth());
 
@@ -14791,16 +14867,6 @@ function showPage(pageId, options = {}) {
   const previousPageId = activePageId;
   const fromHistory = !!(options && options.fromHistory);
   const shouldPushHistory = !fromHistory && window.__bankTrackerTabHistoryReady && activePageId !== pageId;
-  const shouldShowLoader = activePageId !== pageId;
-  // A (perf): when entering a tab whose heavy content has not been rendered yet,
-  // show the loading spinner instantly and defer the heavy render to the next
-  // frame so the tab/nav switch feels immediate.
-  const wantsDirtyDeferred = !options.preserveFilters &&
-    ((pageId === 'txns' && __btTxnsTabDirty) || (pageId === 'archive' && __btArchiveTabDirty));
-  if (shouldShowLoader) {
-    if (wantsDirtyDeferred) showPageLoadingOverlayNow();
-    else showPageLoadingOverlayDelayed(180);
-  }
 
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active', 'page-slide-in-right', 'page-slide-in-left', 'swipe-peeking', 'page-tab-fade', 'page-light-switch');
@@ -14843,9 +14909,7 @@ function showPage(pageId, options = {}) {
       if (page) page.scrollTop = 0;
       window.scrollTo({ top: 0, behavior: 'auto' });
     }
-    // When the heavy render is being deferred (spinner showing), the rAF tail
-    // renders the list; otherwise render now so filter changes apply immediately.
-    if (!wantsDirtyDeferred) renderTransactionsSection();
+    renderTransactionsSection();
   }
 
   if (pageId === 'archive') {
@@ -14877,19 +14941,6 @@ function showPage(pageId, options = {}) {
   }
 
   scheduleFloatingUtilityUpdate();
-  if (shouldShowLoader) {
-    if (wantsDirtyDeferred) {
-      // Let the tab switch + spinner paint first, then render the heavy section.
-      requestAnimationFrame(() => {
-        renderDirtyTabSection(pageId);
-        requestAnimationFrame(() => window.setTimeout(hidePageLoadingOverlay, 60));
-      });
-    } else {
-      requestAnimationFrame(() => {
-        window.setTimeout(hidePageLoadingOverlay, 120);
-      });
-    }
-  }
 
   // Animate Overview widget charts when the user navigates TO Overview (not on refresh).
   if (pageId === 'overview' && previousPageId !== 'overview') {
@@ -15702,7 +15753,7 @@ function initBottomSheetDragToClose() {
   // v9: Drag/pull-down-to-close enabled again, using the proven v4 handler.
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
-    if (sheet.id === 'custom-widget-sheet' || sheet.classList.contains('bottom-sheet-widget')) return;
+    if (sheet.id === 'custom-widget-sheet' || sheet.classList.contains('custom-widget-fullpage') || sheet.classList.contains('bottom-sheet-widget')) return;
     if (sheet.dataset.dragToCloseBound === 'true') return;
     sheet.dataset.dragToCloseBound = 'true';
 
@@ -15930,31 +15981,56 @@ function initBottomSheetDragToClose() {
 }
 
 
+let __sheetScrollLockY = 0;
+
+function lockPageScrollForSheet() {
+  if (document.body.dataset.sheetScrollLocked === 'true') return;
+  __sheetScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
+  document.body.dataset.sheetScrollLocked = 'true';
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${__sheetScrollLockY}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.style.width = '100%';
+}
+
+function unlockPageScrollForSheet() {
+  if (document.body.dataset.sheetScrollLocked !== 'true') return;
+  document.body.dataset.sheetScrollLocked = 'false';
+  document.body.style.removeProperty('position');
+  document.body.style.removeProperty('top');
+  document.body.style.removeProperty('left');
+  document.body.style.removeProperty('right');
+  document.body.style.removeProperty('width');
+  window.scrollTo(0, __sheetScrollLockY || 0);
+}
+
 function shouldAnimateBottomSheet(sheetId) {
   return ['upgrade-sheet', 'quick-add-sheet', 'bank-manager-sheet', 'loan-manager-sheet', 'txn-filter-sheet', 'custom-widget-sheet'].includes(String(sheetId || ''));
 }
 
-function isCustomWidgetSlideSheet(sheetId) {
+function isCustomWidgetFullpageSheet(sheetId) {
   return String(sheetId || '') === 'custom-widget-sheet';
 }
 
 function openSheet(id){
   document.body.classList.add('sheet-open');
   document.body.dataset.activeSheet = id || '';
+  lockPageScrollForSheet();
 
-  const customWidgetSlide = isCustomWidgetSlideSheet(id);
+  const customWidgetFullpage = isCustomWidgetFullpageSheet(id);
   const shouldAnimate = shouldAnimateBottomSheet(id);
 
   const backdrop = document.getElementById('bottom-sheet-backdrop');
   if (backdrop) {
-    backdrop.classList.toggle('fullpage-fade-backdrop', false);
+    backdrop.classList.toggle('fullpage-fade-backdrop', !!customWidgetFullpage);
     backdrop.classList.add('open');
   }
 
-  if (customWidgetSlide) document.body.classList.add('custom-widget-editor-open');
+  if (customWidgetFullpage) document.body.classList.add('custom-widget-editor-open');
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
-    sheet.classList.remove('open', 'dragging', 'sheet-snapping', 'sheet-no-animation', 'custom-widget-fullpage', 'custom-widget-fullpage-open');
+    sheet.classList.remove('open', 'dragging', 'sheet-snapping', 'sheet-no-animation', 'custom-widget-fullpage', 'custom-widget-fullpage-open', 'bottom-sheet-widget');
     sheet.style.removeProperty('transition');
     sheet.style.removeProperty('animation');
     sheet.style.removeProperty('transform');
@@ -15965,10 +16041,10 @@ function openSheet(id){
   if (sheet) {
     sheet.scrollTop = 0;
 
-    if (customWidgetSlide) {
-      sheet.classList.add('bottom-sheet-widget');
+    if (customWidgetFullpage) {
+      sheet.classList.add('custom-widget-fullpage');
       requestAnimationFrame(() => {
-        sheet.classList.add('open');
+        sheet.classList.add('open', 'custom-widget-fullpage-open');
         scheduleFloatingUtilityUpdate();
       });
     } else if (!shouldAnimate) {
@@ -15984,7 +16060,7 @@ function openSheet(id){
     }
   }
 
-  if (!customWidgetSlide) {
+  if (!customWidgetFullpage) {
     initBottomSheetDragToClose();
     if (typeof initGlobalPullDownControl === 'function') initGlobalPullDownControl();
     if (typeof initSheetPullRefreshGuard === 'function') initSheetPullRefreshGuard();
@@ -15994,6 +16070,7 @@ function openSheet(id){
 function closeBottomSheets(){
   document.body.classList.remove('sheet-open', 'custom-widget-editor-open');
   document.body.removeAttribute('data-active-sheet');
+  unlockPageScrollForSheet();
 
   const backdrop = document.getElementById('bottom-sheet-backdrop');
   if (backdrop) {
@@ -16001,7 +16078,7 @@ function closeBottomSheets(){
   }
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
-    sheet.classList.remove('open', 'dragging', 'sheet-snapping', 'sheet-no-animation', 'custom-widget-fullpage', 'custom-widget-fullpage-open');
+    sheet.classList.remove('open', 'dragging', 'sheet-snapping', 'sheet-no-animation', 'custom-widget-fullpage', 'custom-widget-fullpage-open', 'bottom-sheet-widget');
     sheet.style.removeProperty('transition');
     sheet.style.removeProperty('animation');
     sheet.style.removeProperty('transform');
@@ -20775,9 +20852,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
     if (SHEETS_URL && isGoogleSheetsEnabled()) {
       startAutoSync();
-      syncData({ backgroundMode: true }).catch((e) => {
-        console.warn('Background cloud sync failed:', e);
-      });
+      window.setTimeout(() => {
+        syncData({ backgroundMode: true }).catch((e) => {
+          console.warn('Background cloud sync failed:', e);
+        });
+      }, 700);
       return;
     }
 
@@ -24253,24 +24332,35 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     return rows.map(function(row){ return '<option value="' + row[0] + '"' + (row[0] === selected ? ' selected' : '') + '>' + row[1] + '</option>'; }).join('');
   }
   function ensureLoanManagerDom(){
-    if (!document.getElementById('loan-manager-sheet')) {
-      var sheet = document.createElement('div');
-      sheet.id = 'loan-manager-sheet';
-      sheet.className = 'bottom-sheet';
-      sheet.innerHTML = '<div class="sheet-handle"></div>'
-        + '<div class="sheet-title-row"><div class="sheet-title">Manage loans</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>'
-        + '<div class="loan-manager-sheet-note">Create mortgage / loan accounts here. The parser updates Current balance in the Loans tab when a matching repayment transaction arrives.</div>'
-        + '<div class="loan-manager-add-card">'
-        + '<div class="loan-manager-add-title">Add loan</div>'
-        + '<label>Loan name</label><input class="config-input" id="new-loan-name" placeholder="Mortgage / Car loan">'
-        + '<div class="sheet-grid-2"><div><label>Currency</label><select class="config-input" id="new-loan-currency">' + getCurrencyOptions('CZK') + '</select></div><div><label>Linked bank</label><select class="config-input" id="new-loan-bank">' + getLoanBankOptions('') + '</select></div></div>'
-        + '<div class="sheet-grid-2"><div><label>Original loan amount</label><input class="config-input" id="new-loan-original" type="number" step="0.01" placeholder="1500000"></div><div><label>Outstanding balance</label><input class="config-input" id="new-loan-current" type="number" step="0.01" placeholder="1100000"></div></div>'
-        + '<div class="budget-status-note">Enter loan values as positive amounts. Bank Tracker stores the debt safely in the background and repayments move the balance toward 0.</div>'
-        + '<button class="config-save" onclick="saveNewLoanFromManager()">Save loan</button>'
-        + '</div>'
-        + '<div id="loan-manager-list"></div>';
-      document.body.appendChild(sheet);
+    if (document.getElementById('loan-manager-sheet')) {
+      if (!document.getElementById('settings-manage-loans-v241')) {
+        var bankButtonRow = document.querySelector('.primary-action-row .add-bank-btn[onclick*="openBankManagerSheet"]')?.closest('.primary-action-row');
+        if (bankButtonRow) {
+          var block = document.createElement('div');
+          block.id = 'settings-manage-loans-v241';
+          block.innerHTML = '<div class="section-title" style="margin-top:6px;">Manage loans</div><div class="primary-action-row"><button class="add-bank-btn" onclick="openLoanManagerSheet()">Manage loans</button></div>';
+          bankButtonRow.insertAdjacentElement('afterend', block);
+        }
+      }
+      return;
     }
+    var sheet = document.createElement('div');
+    sheet.id = 'loan-manager-sheet';
+    sheet.className = 'bottom-sheet';
+    sheet.innerHTML = '<div class="sheet-handle"></div>'
+      + '<div class="sheet-title-row"><div class="sheet-title">Manage loans</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div>'
+      + '<div class="loan-manager-sheet-note">Create mortgage / loan accounts here. The parser updates Current balance in the Loans tab when a matching repayment transaction arrives.</div>'
+      + '<div class="loan-manager-add-card">'
+      + '<div class="loan-manager-add-title">Add loan</div>'
+      + '<label>Loan name</label><input class="config-input" id="new-loan-name" placeholder="Mortgage / Car loan">'
+      + '<div class="sheet-grid-2"><div><label>Currency</label><select class="config-input" id="new-loan-currency">' + getCurrencyOptions('CZK') + '</select></div><div><label>Linked bank</label><select class="config-input" id="new-loan-bank">' + getLoanBankOptions('') + '</select></div></div>'
+      + '<div class="sheet-grid-2"><div><label>Original loan amount</label><input class="config-input" id="new-loan-original" type="number" step="0.01" placeholder="1500000"></div><div><label>Outstanding balance</label><input class="config-input" id="new-loan-current" type="number" step="0.01" placeholder="1100000"></div></div>'
+      + '<div class="budget-status-note">Enter loan values as positive amounts. Bank Tracker stores the debt safely in the background and repayments move the balance toward 0.</div>'
+      + '<button class="config-save" onclick="saveNewLoanFromManager()">Save loan</button>'
+      + '</div>'
+      + '<div id="loan-manager-list"></div>';
+    document.body.appendChild(sheet);
+    try { if (typeof initBottomSheetDragToClose === 'function') initBottomSheetDragToClose(); } catch (_) {}
     if (!document.getElementById('settings-manage-loans-v241')) {
       var bankButtonRow = document.querySelector('.primary-action-row .add-bank-btn[onclick*="openBankManagerSheet"]')?.closest('.primary-action-row');
       if (bankButtonRow) {
@@ -24307,9 +24397,19 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     return await postToBankTrackerEndpoint('deleteLoan', { loanId: loan.id, id: loan.id });
   }
   window.openLoanManagerSheet = function(){
-    ensureLoanManagerDom();
-    renderLoanManager();
+    var list = document.getElementById('loan-manager-list');
+    if (list) list.innerHTML = '<div class="archive-detail-loader">Loading loans…</div>';
     if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
+    window.setTimeout(function(){
+      requestAnimationFrame(function(){
+        try { renderLoanManager(); } catch (_) {}
+      });
+    }, 48);
+    window.setTimeout(function(){
+      syncLoansNow(true).then(function(){
+        try { renderLoanManager(); } catch (_) {}
+      });
+    }, 120);
   };
   window.saveNewLoanFromManager = async function(){
     ensureLoanManagerDom();
@@ -25903,11 +26003,20 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     try { if (typeof renderAll === 'function') renderAll(); } catch(_) {}
   };
   window.openLoanManagerSheet = function(){
-    ensureLoanManagerDom();
-    window.renderLoanManager();
+    var list = document.getElementById('loan-manager-list');
+    if (list) list.innerHTML = '<div class="archive-detail-loader">Loading loans…</div>';
     if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
-    setLoanStatus('Loading loans from Google Sheets...');
-    syncLoansNow(true).then(function(ok){ setLoanStatus(ok ? 'Loans loaded.' : 'Using local loan cache.'); window.renderLoanManager(); });
+    window.setTimeout(function(){
+      requestAnimationFrame(function(){
+        try { window.renderLoanManager(); } catch (_) {}
+      });
+    }, 48);
+    window.setTimeout(function(){
+      syncLoansNow(true).then(function(ok){
+        setLoanStatus(ok ? 'Loans loaded.' : 'Using local loan cache.');
+        try { window.renderLoanManager(); } catch (_) {}
+      });
+    }, 120);
   };
   try { openLoanManagerSheet = window.openLoanManagerSheet; } catch(_) {}
 
@@ -30851,19 +30960,22 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   }
   function ensureLoanManagerDom(){
     var sheet = byId('loan-manager-sheet');
-    if (!sheet) {
-      sheet = document.createElement('div');
-      sheet.id = 'loan-manager-sheet';
-      sheet.className = 'bottom-sheet';
-      sheet.innerHTML = '<div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title">Manage loans</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div><div class="loan-manager-add-card"></div><div id="loan-manager-list"></div>';
-      document.body.appendChild(sheet);
-      try { if (typeof initBottomSheetDragToClose === 'function') initBottomSheetDragToClose(); } catch(_) {}
+    if (!sheet) return;
+    if (!sheet.querySelector('#loan-manager-list')) {
+      var list = document.createElement('div');
+      list.id = 'loan-manager-list';
+      sheet.appendChild(list);
+    }
+    if (!sheet.querySelector('.loan-manager-sheet-note')) {
+      var note = document.createElement('div');
+      note.className = 'loan-manager-sheet-note';
+      note.textContent = 'Create mortgage / loan accounts here. The parser updates Current balance in the Loans tab when a matching repayment transaction arrives.';
+      var listEl = sheet.querySelector('#loan-manager-list');
+      if (listEl) sheet.insertBefore(note, listEl);
+      else sheet.appendChild(note);
     }
     var add = sheet.querySelector('.loan-manager-add-card');
-    if (add) {
-      add.innerHTML = '';
-      add.style.display = 'none';
-    }
+    if (add) add.style.display = 'none';
   }
   function field(id){ return byId(id) && byId(id).value || ''; }
   function loanFromForm(prefix, id, existing){
@@ -30896,6 +31008,12 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       list.innerHTML = '<div class="empty-state" style="padding:22px 8px;">No loans loaded. Check Google Sheets tab Loans / Loan_Settings.</div>';
       return;
     }
+    var bankOptsCache = Object.create(null);
+    function bankOptsFor(selected){
+      var key = String(selected || '');
+      if (!bankOptsCache[key]) bankOptsCache[key] = bankOptions(selected);
+      return bankOptsCache[key];
+    }
     list.innerHTML = loans.map(function(loan){
       var safe = safeId(loan.id);
       var paid = Math.max(0, loanOriginal(loan) - loanOutstanding(loan));
@@ -30908,7 +31026,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
         + '<div class="managed-bank-form loan-manager-inline-form-v293" id="loan-edit-' + attr(safe) + '" data-loan-layout-v293="1">'
         + '<label>Loan name</label><input class="config-input" id="loan-name-' + attr(safe) + '" value="' + attr(loan.name) + '">'
         + '<div class="sheet-grid-2 loan-type-currency-row-v293"><div><label>Loan type</label><select class="config-input" id="loan-type-' + attr(safe) + '"><option value="loan"' + (loan.type === 'loan' ? ' selected' : '') + '>Loan</option><option value="mortgage"' + (loan.type === 'mortgage' ? ' selected' : '') + '>Mortgage</option></select></div><div><label>Currency</label><select class="config-input" id="loan-currency-' + attr(safe) + '">' + currencyOptions(loan.currency) + '</select></div></div>'
-        + '<label>Linked bank</label><select class="config-input" id="loan-bank-' + attr(safe) + '">' + bankOptions(loan.linkedBankId) + '</select>'
+        + '<label>Linked bank</label><select class="config-input" id="loan-bank-' + attr(safe) + '">' + bankOptsFor(loan.linkedBankId) + '</select>'
         + '<div class="sheet-grid-2"><div><label>Original loan amount</label><input class="config-input" id="loan-original-' + attr(safe) + '" type="number" step="0.01" value="' + attr(loanOriginal(loan)) + '"></div><div><label>Outstanding balance</label><input class="config-input" id="loan-current-' + attr(safe) + '" type="number" step="0.01" value="' + attr(loanOutstanding(loan)) + '"></div></div>'
         + '<div class="sheet-grid-2 loan-period-fixation-row-v293"><div><label>Loan period</label><div class="loan-period-combo-v271"><input class="config-input" id="loan-period-' + attr(safe) + '" value="' + attr(loan.periodValue || '') + '"><select class="config-input" id="loan-period-unit-' + attr(safe) + '"><option value="months"' + (loan.periodUnit !== 'years' ? ' selected' : '') + '>Months</option><option value="years"' + (loan.periodUnit === 'years' ? ' selected' : '') + '>Years</option></select></div></div><div><label>Fixation until</label><input class="config-input" id="loan-fixation-' + attr(safe) + '" type="date" value="' + attr(loan.fixationUntil || '') + '"></div></div>'
         + '<div class="sheet-grid-2 loan-rate-status-row-v293"><div><label>Interest rate %</label><input class="config-input" id="loan-rate-' + attr(safe) + '" value="' + attr(loan.interestRate || '') + '"></div><div><label>Status</label><select class="config-input" id="loan-status-' + attr(safe) + '"><option value="active"' + (loan.status !== 'paused' ? ' selected' : '') + '>Active</option><option value="paused"' + (loan.status === 'paused' ? ' selected' : '') + '>Paused</option></select></div></div>'
@@ -30997,16 +31115,20 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     try { if (typeof renderAll === 'function') renderAll(); } catch(_) {}
   };
   window.openLoanManagerSheet = function(){
-    ensureLoanManagerDom();
-    window.renderLoanManager();
+    var list = byId('loan-manager-list');
+    if (list) list.innerHTML = '<div class="archive-detail-loader">Loading loans…</div>';
     if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
     setLoanAddCardVisibility();
-    var status = byId('loan-save-status-v254') || byId('limits-sync-status');
-    if (status) status.textContent = 'Loading loans from Google Sheets...';
-    syncLoansNow(true).then(function(ok){
-      if (status) status.textContent = ok ? 'Loans loaded from Google Sheets.' : 'Using local loan cache.';
-      window.renderLoanManager();
-    });
+    window.setTimeout(function(){
+      requestAnimationFrame(function(){
+        try { window.renderLoanManager(); } catch (_) {}
+      });
+    }, 48);
+    window.setTimeout(function(){
+      syncLoansNow(true).then(function(){
+        try { window.renderLoanManager(); } catch (_) {}
+      });
+    }, 120);
   };
   window.getBankTrackerLoans = function(){ return getLoans(true); };
   window.saveBankTrackerLoans = saveLoans;
@@ -31030,7 +31152,6 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   function boot(){
     saveLoans(getLoans(true));
     ensureLoanManagerDom();
-    try { window.renderLoanManager(); } catch(_) {}
     setTimeout(function(){ syncLoansNow(false); }, 350);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once:true });
@@ -32254,8 +32375,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       var draft = captureLoanManagerDraft();
       var result = previousRender.apply(this, arguments);
       restoreLoanManagerDraft(draft);
-      decorateLoanManager();
-      setTimeout(function(){
+      window.setTimeout(function(){
         restoreLoanManagerDraft(draft);
         decorateLoanManager();
       }, 0);
@@ -32268,13 +32388,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   var previousOpen = window.openLoanManagerSheet;
   if (typeof previousOpen === 'function' && !previousOpen.__v271LoanAutosaveFeWrapped) {
     var wrappedOpen = function(){
-      var result = previousOpen.apply(this, arguments);
       clearLoanCenterToast();
-      decorateLoanManager();
-      setTimeout(decorateLoanManager, 80);
-      setTimeout(decorateLoanManager, 500);
-      setTimeout(clearLoanCenterToast, 0);
-      return result;
+      return previousOpen.apply(this, arguments);
     };
     wrappedOpen.__v271LoanAutosaveFeWrapped = true;
     window.openLoanManagerSheet = wrappedOpen;
@@ -33124,42 +33239,45 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     }
   }
 
-  /* Add widget: lightweight slide-up sheet instead of full-page fade. */
-  #custom-widget-sheet.bottom-sheet-widget {
-    top: auto !important;
+  /* Add widget: full-page fade editor (no slide-up sheet). */
+  #custom-widget-sheet.custom-widget-fullpage,
+  #custom-widget-sheet.custom-widget-editor-page-v236 {
+    top: 0 !important;
     bottom: 0 !important;
     left: 50% !important;
     right: auto !important;
-    width: 100% !important;
-    max-width: 430px !important;
-    height: 80vh !important;
-    max-height: 80vh !important;
-    border-radius: 16px 16px 0 0 !important;
-    transform: translateX(-50%) translateY(100%) !important;
-    opacity: 1 !important;
+    width: min(100vw, 560px) !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    transform: translateX(-50%) !important;
+    opacity: 0 !important;
     pointer-events: none !important;
-    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
-    will-change: transform !important;
+    transition: opacity .22s ease !important;
+    will-change: opacity !important;
     contain: layout style !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
     overscroll-behavior: contain !important;
     touch-action: pan-y !important;
-    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.18) !important;
+    box-shadow: none !important;
   }
-  #custom-widget-sheet.bottom-sheet-widget.open {
-    transform: translateX(-50%) translateY(0) !important;
+  #custom-widget-sheet.custom-widget-fullpage.open,
+  #custom-widget-sheet.custom-widget-fullpage.custom-widget-fullpage-open,
+  #custom-widget-sheet.custom-widget-editor-page-v236.open {
+    opacity: 1 !important;
     pointer-events: auto !important;
+  }
+  #custom-widget-sheet.custom-widget-fullpage .sheet-handle,
+  #custom-widget-sheet.custom-widget-editor-page-v236 .sheet-handle {
+    display: none !important;
   }
   body.custom-widget-editor-open {
     overflow: hidden !important;
   }
-  #custom-widget-sheet.bottom-sheet-widget .custom-widget-preview {
-    contain: layout paint style;
-    transform: translateZ(0);
-  }
-  #custom-widget-sheet.bottom-sheet-widget .custom-widget-preview svg {
-    transform: translateZ(0);
+  #bottom-sheet-backdrop.fullpage-fade-backdrop.open {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
   #bottom-sheet-backdrop.open {
     backdrop-filter: none !important;
