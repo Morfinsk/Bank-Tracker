@@ -7921,7 +7921,7 @@ html[data-theme="light"] body::before {
     if (source) {
       const label = source.closest('div')?.querySelector('label');
       if (label) label.textContent = 'Data input';
-      setSelectOptionText('cw-source', { auto: 'App data', manual: 'Manual value' });
+      setSelectOptionText('cw-source', { auto: 'Spent data', manual: 'Manual value' });
     }
     const metric = byId('cw-gauge-metric');
     if (metric) {
@@ -8687,7 +8687,7 @@ html[data-theme="light"] body::before {
 
     <div id="cw-source-wrap">
       <label>Data input</label>
-      <select class="config-input" id="cw-source" onchange="handleCustomWidgetSourceChange()"><option value="auto">App data</option><option value="manual">Manual value</option></select>
+      <select class="config-input" id="cw-source" onchange="handleCustomWidgetSourceChange()"><option value="auto">Spent data</option><option value="manual">Manual value</option></select>
     </div>
 
     <div id="cw-payment-kind-wrap">
@@ -8710,7 +8710,7 @@ html[data-theme="light"] body::before {
     </div>
 
     <div class="custom-widget-row-2">
-      <div><label>Budget limit</label><input class="config-input" id="cw-limit" type="number" min="0" placeholder="100000" oninput="updateCustomWidgetBuilderPreview()" /></div>
+      <div><label>Widget budget (optional)</label><input class="config-input" id="cw-limit" type="number" min="0" placeholder="100000" oninput="updateCustomWidgetBuilderPreview()" /></div>
       <div><label>Currency</label><select class="config-input" id="cw-currency" onchange="updateCustomWidgetBuilderPreview()"><option value="CZK">Kč</option><option value="EUR">€</option></select></div>
     </div>
 
@@ -8751,8 +8751,8 @@ html[data-theme="light"] body::before {
       <div><label>Alerts</label><select class="config-input" id="cw-alerts" onchange="updateCustomWidgetBuilderPreview()"><option value="false">Off</option><option value="true">On</option></select></div>
       <div><label>Alert threshold %</label><input class="config-input" id="cw-threshold" type="number" min="1" max="100" value="80" oninput="updateCustomWidgetBuilderPreview()" /></div>
     </div>
-    <div class="custom-widget-row-2">
-      <button class="config-save" type="button" onclick="saveCustomWidgetFromBuilder()">Save widget</button>
+    <div class="custom-widget-row-2 custom-widget-save-row-v295">
+      <button class="config-save custom-widget-save-btn-v295" type="button" onclick="saveCustomWidgetFromBuilder()">Save widget</button>
       <button class="config-save" type="button" id="cw-hide-btn" onclick="hideCustomWidgetFromBuilder()" style="display:none;">Hide</button>
     </div>
     <button class="config-save custom-widget-danger" type="button" id="cw-delete-btn" onclick="deleteCustomWidgetFromBuilder()" style="display:none; margin:0 20px 18px; width:calc(100% - 40px);">Delete widget</button>
@@ -10248,6 +10248,7 @@ async function syncArchivedTransactionsFromSheets(spreadsheetId) {
 
 async function syncData(options = {}) {
   const startupMode = !!(options && options.startupMode);
+  const backgroundMode = !!(options && options.backgroundMode);
   clearCloudFirstLocalData();
   if (!isGoogleSheetsEnabled()) {
     console.log('Google Sheets disabled — showing last cached snapshot if available.');
@@ -10271,7 +10272,7 @@ async function syncData(options = {}) {
   }
   isSyncing = true;
   const loadStatus = document.getElementById('limits-sync-status');
-  if (loadStatus) loadStatus.textContent = 'Načítavam dáta z Google Sheets...';
+  if (loadStatus && !backgroundMode) loadStatus.textContent = 'Načítavam dáta z Google Sheets...';
   const btn = document.getElementById('sync-btn');
   if (btn) btn.classList.add('spinning');
   try {
@@ -10296,12 +10297,14 @@ async function syncData(options = {}) {
     await syncBalanceLogFromSheets(spreadsheetId);
     reapplySheetAccountBalancesFromStorage();
 
-    if (!startupMode) {
+    if (!startupMode && !backgroundMode) {
       renderAll();
       applyLanguage();
       if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa načítali správne.';
-    } else if (loadStatus) {
+    } else if (loadStatus && !backgroundMode) {
       loadStatus.textContent = 'Dáta z Google Sheets sa načítali správne.';
+    } else if (loadStatus && backgroundMode) {
+      loadStatus.textContent = 'Synchronizácia s Google Sheets dokončená.';
     }
   } catch(e) {
     console.error('Google Sheets transaction sync failed:', e);
@@ -10312,7 +10315,7 @@ async function syncData(options = {}) {
     isSyncing = false;
     try { reapplySheetAccountBalancesFromStorage(); } catch (e) { console.warn('Sheet balance reapply in finally failed:', e); }
     try { recomputeAccountBalancesForLoadedMonths(); } catch (e) { console.warn('Account balance recompute after sync failed:', e); }
-    if (!startupMode) {
+    if (backgroundMode || !startupMode) {
       renderAll();
       applyLanguage();
     }
@@ -15882,8 +15885,18 @@ function toggleBankEdit(bankId) {
   const row = document.getElementById('bank-row-' + bankId);
   if (!row) return;
   const shouldOpen = !row.classList.contains('open');
+  const sheet = document.getElementById('bank-manager-sheet');
   document.querySelectorAll('#bank-manager-list .managed-bank-row.open').forEach(item => item.classList.remove('open'));
-  if (shouldOpen) row.classList.add('open');
+  if (shouldOpen) {
+    row.classList.add('open');
+    requestAnimationFrame(() => {
+      if (sheet && row) {
+        try { row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) {
+          try { row.scrollIntoView(true); } catch (_) {}
+        }
+      }
+    });
+  }
 }
 
 async function updateCustomBank(bankId) {
@@ -16512,11 +16525,11 @@ function renderBankManager(){
         </div>
       </div>
 
-      <div class="managed-bank-form">
-        <div class="manager-editor-toolbar">
+      <div class="managed-bank-form bank-manager-inline-form-v294">
+        <div class="manager-editor-toolbar bank-manager-inline-toolbar-v294">
           <button class="sheet-close manager-sheet-back-btn" type="button" onclick="toggleBankEdit('${b.id}')" aria-label="Back">←</button>
           <div class="manager-editor-title">Edit bank</div>
-          <button class="sheet-close" type="button" onclick="closeBottomSheets()" aria-label="Close">×</button>
+          <span class="bank-manager-toolbar-spacer-v294" aria-hidden="true"></span>
         </div>
         <label>${t('bankName')}</label>
         <div class="save-field-wrap">
@@ -20474,9 +20487,11 @@ window.addEventListener('DOMContentLoaded', () => {
   const loaderFailSafe = setTimeout(() => {
     try {
       if (!allTransactions.length) loadCachedTransactionsSnapshot();
-      warmHeavyTabCachesSync({ force: true });
     } catch (_) {}
     finishAppBoot();
+    window.setTimeout(() => {
+      try { warmHeavyTabCachesSync({ force: true }); } catch (_) {}
+    }, 0);
   }, 15000);
 
   try {
@@ -20486,20 +20501,22 @@ window.addEventListener('DOMContentLoaded', () => {
     migrateCurrencyStorageToSymbols();
     updateGoogleSheetsToggleUi();
     clearCloudFirstLocalData();
+    loadCachedTransactionsSnapshot();
+    try { reapplySheetAccountBalancesFromStorage(); } catch (_) {}
+    try { recomputeAccountBalancesForLoadedMonths(); } catch (_) {}
 
-    const finishStartup = () => {
-      clearTimeout(loaderFailSafe);
-      warmHeavyTabCachesSync({ force: true });
-      finishAppBoot();
-    };
+    finishAppBoot();
+    clearTimeout(loaderFailSafe);
+
+    window.setTimeout(() => {
+      try { warmHeavyTabCachesSync({ force: true }); } catch (_) {}
+    }, 0);
 
     if (SHEETS_URL && isGoogleSheetsEnabled()) {
-      syncData({ startupMode: true }).then(() => {
-        startAutoSync();
-      }).catch((e) => {
-        console.warn('Startup cloud sync failed:', e);
-        if (!allTransactions.length) loadCachedTransactionsSnapshot();
-      }).finally(finishStartup);
+      startAutoSync();
+      syncData({ backgroundMode: true }).catch((e) => {
+        console.warn('Background cloud sync failed:', e);
+      });
       return;
     }
 
@@ -20511,9 +20528,6 @@ window.addEventListener('DOMContentLoaded', () => {
       console.error('Local test data seed failed:', e);
     }
     loadCachedTransactionsSnapshot();
-    clearTimeout(loaderFailSafe);
-    warmHeavyTabCachesSync({ force: true });
-    finishAppBoot();
     if (!SHEETS_URL) {
       const loadStatus = document.getElementById('limits-sync-status');
       if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
@@ -20523,10 +20537,11 @@ window.addEventListener('DOMContentLoaded', () => {
     console.error('Startup bootstrap failed:', e);
     try {
       if (!allTransactions.length) loadCachedTransactionsSnapshot();
-      warmHeavyTabCachesSync({ force: true });
     } catch (_) {}
-    clearTimeout(loaderFailSafe);
     finishAppBoot();
+    window.setTimeout(() => {
+      try { warmHeavyTabCachesSync({ force: true }); } catch (_) {}
+    }, 0);
   }
 });
 
@@ -22933,7 +22948,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var label = document.getElementById('cw-gauge-metric')?.closest('div')?.querySelector('label');
     if (label) label.textContent = 'Data source';
     setOptionText('cw-gauge-metric', { amount: 'Amount', count: 'Number of transactions' });
-    setOptionText('cw-source', { auto: 'App data', manual: 'Manual value' });
+    setOptionText('cw-source', { auto: 'Spent data', manual: 'Manual value' });
   }
   // Override older relabel patch that changed datasource back to Slovak.
   var oldRelabelBuilder = window.relabelBuilder;
@@ -25642,7 +25657,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       var opt = document.createElement('option'); opt.value = 'loan'; opt.textContent = 'Loan data'; src.appendChild(opt);
     }
     Array.prototype.forEach.call(src.options || [], function(o){
-      if (o.value === 'auto') o.textContent = 'App data';
+      if (o.value === 'auto') o.textContent = 'Spent data';
       if (o.value === 'manual') o.textContent = 'Manual data';
       if (o.value === 'loan') o.textContent = 'Loan data';
     });
@@ -26337,7 +26352,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       if (!Array.prototype.some.call(src.options || [], function(o){ return o.value === 'loan'; })) {
         var opt = document.createElement('option'); opt.value = 'loan'; opt.textContent = 'Loan data'; src.appendChild(opt);
       }
-      Array.prototype.forEach.call(src.options || [], function(o){ if (sourceNorm(o.value) === 'auto') { o.value='auto'; o.textContent='App data'; } if (sourceNorm(o.value) === 'manual') { o.value='manual'; o.textContent='Manual data'; } if (sourceNorm(o.value) === 'loan') { o.value='loan'; o.textContent='Loan data'; } });
+      Array.prototype.forEach.call(src.options || [], function(o){ if (sourceNorm(o.value) === 'auto') { o.value='auto'; o.textContent='Spent data'; } if (sourceNorm(o.value) === 'manual') { o.value='manual'; o.textContent='Manual data'; } if (sourceNorm(o.value) === 'loan') { o.value='loan'; o.textContent='Loan data'; } });
     }
     var metric = byId('cw-gauge-metric');
     if (metric) Array.prototype.forEach.call(metric.options || [], function(o){ if (o.value === 'amount') o.textContent = 'Amount'; if (o.value === 'count') o.textContent = 'Number of transactions'; });
@@ -26829,7 +26844,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   function ensureWidgetSourceOptions(){
     var sel = byId('cw-source'); if (!sel) return;
     var keep = sel.value;
-    sel.innerHTML = '<option value="">Choose one</option><option value="auto">Spend data</option><option value="loan">Loan data</option><option value="manual">Manual data</option>';
+    sel.innerHTML = '<option value="">Choose one</option><option value="auto">Spent data</option><option value="loan">Loan data</option><option value="manual">Manual data</option>';
     var normalized = sourceNorm(keep);
     sel.value = normalized || '';
   }
@@ -27354,7 +27369,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     justify-content: space-between;
   }
   .custom-widget-linear-axis-v272.custom-widget-linear-axis-even-v278 span {
-    flex: 0 0 2ch;
+    flex: 1 1 0;
+    min-width: 0;
     font-variant-numeric: tabular-nums;
     position: static;
     text-align: center;
@@ -27701,7 +27717,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var select = byId('cw-source');
     if (!select) return;
     var keep = sourceNorm(select.value);
-    select.innerHTML = '<option value="">Choose one</option><option value="auto">Spend data</option><option value="manual">Manual value</option><option value="loan">Loan data</option>';
+    select.innerHTML = '<option value="">Choose one</option><option value="auto">Spent data</option><option value="manual">Manual value</option><option value="loan">Loan data</option>';
     select.value = keep || '';
   }
   function ensureValueFormatField(){
@@ -27809,7 +27825,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       box = document.createElement('div');
       box.id = 'cw-loan-fields-v259';
       box.className = 'custom-widget-loan-fields-v259 v259-hidden';
-      box.innerHTML = '<label>Loan / mortgage</label><select class="config-input" id="cw-loan-id" onchange="updateCustomWidgetBuilderPreview()"></select><div class="v259-note" id="cw-loan-readonly-v259"></div>';
+      box.innerHTML = '<label>Loan / mortgage</label><select class="config-input" id="cw-loan-id" onchange="updateCustomWidgetBuilderPreview()"></select>';
       var grid = byId('custom-widget-modal-grid') || source.closest('.custom-widget-modal-grid');
       if (grid) grid.insertBefore(box, source.closest('.custom-widget-row-2') ? source.closest('.custom-widget-row-2').nextSibling : null);
     }
@@ -27858,17 +27874,20 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     return 'Loan repayment';
   }
   function updateLoanNote(){
-    var note = byId('cw-loan-readonly-v259') || byId('cw-loan-readonly-v254');
-    if (!note) return;
-    var loan = loanById(getValue('cw-loan-id',''));
-    if (!loan) {
-      note.textContent = 'Choose a loan from Settings / Manage loans.';
-      return;
+    ['cw-loan-readonly-v259', 'cw-loan-readonly-v254', 'loan-widget-readonly-v245'].forEach(function(id){
+      var note = byId(id);
+      if (!note) return;
+      note.textContent = '';
+      note.innerHTML = '';
+      note.style.display = 'none';
+      try { note.remove(); } catch(_) {}
+    });
+    var loanBox = byId('cw-loan-fields-v240') || byId('cw-loan-fields-v259');
+    if (loanBox) {
+      loanBox.querySelectorAll('.v259-note, .loan-widget-readonly-v254, .loan-widget-readonly-v245').forEach(function(node){
+        try { node.remove(); } catch(_) {}
+      });
     }
-    var bank = loan.linkedBankId || 'No linked bank';
-    try { if (loan.linkedBankId && typeof plainBankName === 'function') bank = plainBankName(loan.linkedBankId); } catch(_) {}
-    var payment = loanMonthlyPayment(loan);
-    note.innerHTML = 'Original: <strong>' + esc(compactMoney(-abs(loan.originalAmount), loan.currency, true)) + '</strong><br>Outstanding: <strong>' + esc(compactMoney(-abs(loan.currentBalance), loan.currency, true)) + '</strong>' + (payment ? '<br>Payment: <strong>' + esc(compactMoney(payment, loan.currency, true)) + '/mo</strong>' : '') + '<br>' + esc(loanPeriodLabel(loan)) + '<br>Linked bank: <strong>' + esc(bank) + '</strong>';
   }
   function populateAccounts(selected){
     try {
@@ -27912,19 +27931,18 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var isTypedSpendAmount = isAmount && (hasWidgetMultiFilter(spendKind) || hasWidgetMultiFilter(spendAccount));
 
     if (isAmount) {
-      setValue('cw-period', 'month');
       setValue('cw-show-count', 'false');
     }
 
     setControlVisible('cw-gauge-metric', isAuto);
     setControlVisible('cw-payment-kind-wrap', isAuto);
     setControlVisible('cw-account-wrap', isAuto);
-    setControlVisible('cw-period', isCount);
+    setControlVisible('cw-period', isAuto && (isAmount || isCount));
     setControlVisible('cw-currency', isAmount || isManual);
     var limitWrap = controlWrap('cw-limit');
     var limitLabel = limitWrap && limitWrap.querySelector('label');
-    if (limitLabel) limitLabel.textContent = isManual ? 'Target value' : 'Budget limit';
-    setControlVisible('cw-limit', isManual);
+    if (limitLabel) limitLabel.textContent = isManual ? 'Target value' : 'Widget budget (optional)';
+    setControlVisible('cw-limit', (isAuto && isAmount) || isManual);
     setControlVisible('cw-tx-target', isCount);
     setControlVisible('cw-show-count', false);
     setControlVisible('cw-show-gauge-percent', activeChoice('cw-chart-grid','') === 'gauge');
@@ -28220,24 +28238,43 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       try { return Math.max(0, Number(getOverviewBudgetLimitForBank(id, month) || 0)) > 0; } catch(_) { return false; }
     });
   }
+  function widgetSelectedBankIds(widget){
+    try {
+      return parseWidgetMultiSelectValue(widget && widget.account).filter(function(id){
+        return id && id !== 'all' && id !== 'csob_cz_credit';
+      });
+    } catch(_) { return []; }
+  }
+  function widgetBudgetLimitFor(widget, currency){
+    widget = widget || {};
+    var custom = Math.max(0, toNum(widget.limit || 0));
+    if (custom > 0) return custom;
+    return Math.max(0, overviewBudgetStats(widget, currency).limit || 0);
+  }
   function overviewBudgetStats(widget, currency){
     widget = widget || {};
     currency = currencyCodeSafe(currency || widget.currency || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK'));
     var month = '';
-    try { month = getAktuĂˇlneMonth(); } catch(_) {}
-    var selectedAccount = String(widget.account || 'all');
-    if (selectedAccount && selectedAccount !== 'all') {
-      var selectedFrom = bankCurrency(selectedAccount, currency);
+    try { month = getAktuálneMonth(); } catch(_) { try { month = getAktuĂˇlneMonth(); } catch(__) {} }
+    var selectedIds = widgetSelectedBankIds(widget);
+    if (selectedIds.length) {
       var selectedSpent = 0;
       var selectedLimit = 0;
-      try { selectedSpent = getOverviewBudgetSpentForBank(selectedAccount, month) || 0; } catch(_) {}
-      try { selectedLimit = getOverviewBudgetLimitForBank(selectedAccount, month) || 0; } catch(_) {}
+      selectedIds.forEach(function(id){
+        var from = bankCurrency(id, currency);
+        var spent = 0;
+        var limit = 0;
+        try { spent = getOverviewBudgetSpentForBank(id, month) || 0; } catch(_) {}
+        try { limit = getOverviewBudgetLimitForBank(id, month) || 0; } catch(_) {}
+        selectedSpent += convertAmount(spent, from, currency);
+        selectedLimit += convertAmount(limit, from, currency);
+      });
       return {
-        spent:Math.max(0, convertAmount(selectedSpent, selectedFrom, currency)),
-        limit:Math.max(0, convertAmount(selectedLimit, selectedFrom, currency)),
+        spent:Math.max(0, selectedSpent),
+        limit:Math.max(0, selectedLimit),
         currency:currency,
-        bankCount:selectedLimit ? 1 : 0,
-        bankIds:selectedLimit ? [selectedAccount] : []
+        bankCount:selectedIds.length,
+        bankIds:selectedIds.slice()
       };
     }
     var ids = overviewBudgetBankIds(month);
@@ -28315,12 +28352,18 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       var target = Math.max(0, toNum(widget.txTarget || 0));
       return { source:'auto', spent:txns.length, limit:target || 1, target:target, currency:currency, txns:txns, range:range, gaugeMetric:'count' };
     }
-    if (hasWidgetMultiFilter(widget.paymentKind) || hasWidgetMultiFilter(widget.account)) {
+    var customWidgetBudget = Math.max(0, toNum(widget.limit || 0));
+    var usePeriodSpend = hasWidgetMultiFilter(widget.paymentKind)
+      || hasWidgetMultiFilter(widget.account)
+      || customWidgetBudget > 0
+      || String(widget.period || 'month') !== 'month';
+    if (usePeriodSpend) {
       var fallbackBudget = overviewBudgetStats(widget, currency);
+      var resolvedLimit = widgetBudgetLimitFor(widget, currency);
       return {
         source:'auto',
         spent:spendAmountForTxns(txns, currency),
-        limit:fallbackBudget.limit || 1,
+        limit:resolvedLimit > 0 ? resolvedLimit : (fallbackBudget.limit > 0 ? fallbackBudget.limit : 1),
         target:0,
         currency:currency,
         txns:txns,
@@ -28331,7 +28374,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       };
     }
     var budgetStats = overviewBudgetStats(widget, currency);
-    return { source:'auto', spent:budgetStats.spent, limit:budgetStats.limit || 1, target:0, currency:budgetStats.currency || currency, txns:[], range:range, gaugeMetric:'amount', budgetBankCount:budgetStats.bankCount || 0, budgetBankIds:budgetStats.bankIds || [] };
+    var resolvedBudgetLimit = widgetBudgetLimitFor(widget, currency);
+    return { source:'auto', spent:budgetStats.spent, limit:resolvedBudgetLimit > 0 ? resolvedBudgetLimit : (budgetStats.limit || 1), target:0, currency:budgetStats.currency || currency, txns:[], range:range, gaugeMetric:'amount', budgetBankCount:budgetStats.bankCount || 0, budgetBankIds:budgetStats.bankIds || [] };
   }
   function demoStatsForWidget(widget){
     widget = widget || {};
@@ -28558,6 +28602,47 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (!ticks.length || ticks[ticks.length - 1].label !== lastLabel) ticks.push(axisTick(lastLabel, 1));
     return ticks;
   }
+  function axisLabelCountForSize(size){
+    if (size === 'small') return 3;
+    if (size === 'large') return 8;
+    return 6;
+  }
+  function evenSpanDateLabels(from, to, labelCount, formatter){
+    formatter = formatter || shortDateLabel;
+    var spanDays = Math.max(1, Math.round((to.getTime() - from.getTime()) / 86400000) + 1);
+    var count = Math.max(2, Math.min(labelCount || 6, spanDays));
+    var labels = [];
+    var seen = {};
+    for (var i = 0; i < count; i++) {
+      var index = count === 1 ? 0 : Math.round(i * (spanDays - 1) / (count - 1));
+      var day = new Date(from.getFullYear(), from.getMonth(), from.getDate() + index);
+      var label = formatter(day);
+      if (!label || seen[label]) continue;
+      seen[label] = true;
+      labels.push(label);
+    }
+    if (!labels.length) {
+      labels.push(formatter(from));
+      var endLabel = formatter(to);
+      if (endLabel !== labels[0]) labels.push(endLabel);
+    }
+    return renderEvenAxisLabels(labels);
+  }
+  function yearEvenMonthLabels(size){
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var count = axisLabelCountForSize(size);
+    if (count >= 12) return renderEvenAxisLabels(months);
+    var labels = [];
+    for (var i = 0; i < count; i++) {
+      var monthIndex = count === 1 ? 0 : Math.round(i * 11 / (count - 1));
+      labels.push(months[monthIndex]);
+    }
+    var unique = [];
+    labels.forEach(function(label){
+      if (unique[unique.length - 1] !== label) unique.push(label);
+    });
+    return renderEvenAxisLabels(unique);
+  }
   function loanTotalMonths(loan){
     loan = loan || {};
     var unit = String(loan.periodUnit || loan.period_unit || '').toLowerCase();
@@ -28603,50 +28688,105 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var period = String(widget.period || 'month');
     var spanDays = Math.max(1, Math.round((to.getTime() - from.getTime()) / 86400000) + 1);
     var size = widgetSizeName(widget);
-    var ticks;
-    if (period === 'year' || spanDays >= 330) {
-      var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      var monthStep = size === 'small' ? 3 : (size === 'large' ? 1 : 2);
-      ticks = [];
-      for (var m = 0; m < 12; m += monthStep) ticks.push(axisTick(months[m], m / 11));
-      if (ticks[ticks.length - 1].label !== 'Dec') ticks.push(axisTick('Dec', 1));
-    } else if (period === 'month') {
+    var labelCount = axisLabelCountForSize(size);
+    if (period === 'year' || spanDays >= 330) return yearEvenMonthLabels(size);
+    if (period === 'month') {
       if (size === 'small') {
-        var last = daysInMonth(from);
-        ticks = [axisTick('1', 0), axisTick(String(Math.max(1, Math.round(last / 2))), .5), axisTick(String(last), 1)];
-      } else {
-        var monthLast = daysInMonth(from);
-        return renderEvenAxisLabels(dayLabelsEvery(monthLast, 3));
+        var lastDay = daysInMonth(from);
+        return renderEvenAxisLabels(['1', String(Math.max(1, Math.round(lastDay / 2))), String(lastDay)]);
       }
-    } else if (spanDays <= 31) {
-      if (size === 'small') {
-        ticks = [axisTick(shortDateLabel(from), 0), axisTick(shortDateLabel(new Date(from.getTime() + (to.getTime() - from.getTime()) / 2)), .5), axisTick(shortDateLabel(to), 1)];
-      } else {
-        ticks = steppedDateTicks(from, to, Math.ceil(spanDays / 3), function(day){ return String(day.getDate()); });
-      }
-    } else {
-      ticks = steppedDateTicks(from, to, size === 'large' ? 8 : (size === 'medium' ? 6 : 3), shortDateLabel);
+      return renderEvenAxisLabels(dayLabelsEvery(daysInMonth(from), 3));
     }
-    return renderAxisTicks(ticks);
+    if (period === '7d' || period === '30d' || spanDays <= 31) {
+      return evenSpanDateLabels(from, to, labelCount, shortDateLabel);
+    }
+    return evenSpanDateLabels(from, to, labelCount, shortDateLabel);
+  }
+  function dateRatioInRange(date, from, to){
+    if (!date || !from || !to || isNaN(date.getTime()) || isNaN(from.getTime()) || isNaN(to.getTime())) return 0;
+    var startMs = new Date(from.getFullYear(), from.getMonth(), from.getDate()).getTime();
+    var endMs = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999).getTime();
+    if (endMs <= startMs) return 0;
+    var dayMs = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    dayMs = Math.max(startMs, Math.min(endMs, dayMs));
+    return (dayMs - startMs) / (endMs - startMs);
+  }
+  function shouldUseSpendTimelineLine(widget, stats){
+    if (sourceNorm(widget.source || widget.dataInput || stats.source || '') !== 'auto') return false;
+    var metric = widget.gaugeMetric || widget.linearMetric || stats.gaugeMetric || 'amount';
+    if (metric === 'count' || metric === 'loan') return false;
+    return Array.isArray(stats.txns);
+  }
+  function buildSpendTimeline(widget, stats){
+    stats = stats || {};
+    var range = stats.range || currentPeriodRange(widget);
+    var from = range && range.from;
+    var to = range && range.to;
+    var currency = currencyCodeSafe(stats.currency || widget.currency || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK'));
+    var limit = Math.max(0, toNum(stats.limit || 0));
+    var txns = (stats.txns || []).slice().filter(function(tx){ return tx && txDate(tx); });
+    txns.sort(function(a, b){
+      var da = txDate(a), db = txDate(b);
+      return (da.getTime() || 0) - (db.getTime() || 0);
+    });
+    var points = [{ ratio: 0, amount: 0 }];
+    var cumulative = 0;
+    txns.forEach(function(tx){
+      cumulative += Math.abs(convertAmountCurrencySafe(tx, currency));
+      points.push({ ratio: dateRatioInRange(txDate(tx), from, to), amount: cumulative });
+    });
+    return { points: points, cumulative: cumulative, limit: limit, lastRatio: points.length ? points[points.length - 1].ratio : 0 };
+  }
+  function timelinePointX(ratio, x1, width, amount){
+    var px = x1 + width * Math.max(0, Math.min(1, ratio));
+    if (amount > 0 && ratio > 0 && px < x1 + 10) px = x1 + 10;
+    return Number(px.toFixed(1));
+  }
+  function buildUsedStrokePath(points, x1, width, yFn, isDecline){
+    if (!points || !points.length) return '';
+    var coords = points.map(function(p){
+      return { x: timelinePointX(p.ratio, x1, width, p.amount), y: yFn(p.amount) };
+    });
+    if (coords.length === 1) coords.push({ x: coords[0].x, y: coords[0].y });
+    if (coords.length === 2) {
+      var curX = coords[1].x;
+      var firstY = coords[0].y;
+      var currentY = coords[1].y;
+      var usedSpan = Math.max(1, curX - x1);
+      var usedC1X = x1 + Math.min(18, usedSpan * .45);
+      var usedC2X = curX - Math.min(20, usedSpan * .45);
+      var usedBend = isDecline ? -Math.min(5, usedSpan * .28) : Math.min(7, usedSpan * .35);
+      return 'M' + coords[0].x + ' ' + firstY.toFixed(2) + ' C' + usedC1X.toFixed(1) + ' ' + (firstY - 2).toFixed(2) + ', ' + usedC2X.toFixed(1) + ' ' + (currentY + usedBend).toFixed(2) + ', ' + curX + ' ' + currentY.toFixed(2);
+    }
+    var path = 'M' + coords[0].x + ' ' + coords[0].y.toFixed(2);
+    for (var i = 1; i < coords.length; i++) path += ' L' + coords[i].x + ' ' + coords[i].y.toFixed(2);
+    return path;
   }
   function makeLine(widget, stats){
+    stats = stats || statsForWidget(widget);
     var metric = metricFor(widget, stats);
     var accent = chartColor(widget, metric);
     var blue = '#388BFD';
     var rawUsed = Math.max(0, Number(metric.used || 0));
     var rawLimit = Math.max(0, Number(metric.limit || 0));
+    var timeline = shouldUseSpendTimelineLine(widget, stats) ? buildSpendTimeline(widget, stats) : null;
     var ratio = rawLimit > 0 ? rawUsed / rawLimit : Number(metric.pct || 0);
     if (metric.mode === 'loan') {
       var originalForRatio = Math.max(1, Number(metric.original || metric.limit || 1));
       var currentForRatio = Math.max(0, Math.min(originalForRatio, Number(metric.current != null ? metric.current : (originalForRatio - rawUsed))));
       ratio = (originalForRatio - currentForRatio) / originalForRatio;
+    } else if (timeline) {
+      rawUsed = Math.max(0, timeline.cumulative);
+      rawLimit = Math.max(0, timeline.limit || rawLimit);
+      ratio = Math.max(0, Math.min(1, timeline.lastRatio));
     }
     var pct = Math.max(0, Math.min(1, ratio));
     var isDecline = metric.mode === 'loan' || String((widget && (widget.linearDirection || widget.trendType || widget.direction)) || '') === 'decline';
     var x1 = LINE_GRAPH_X1, yBase = 56, x2 = LINE_GRAPH_X2, width = x2 - x1, height = 50;
     var curX = x1 + width * pct;
-    if (pct > 0 && curX < x1 + 10) curX = x1 + 10;
-    if (pct < 1 && curX > x2 - 10) curX = x2 - 10;
+    if (!timeline && pct > 0 && curX < x1 + 10) curX = x1 + 10;
+    if (!timeline && pct < 1 && curX > x2 - 10) curX = x2 - 10;
+    if (timeline) curX = timelinePointX(timeline.lastRatio, x1, width, rawUsed);
     curX = Number(curX.toFixed(1));
     var maxValue, startValue, currentValue, targetValue;
     if (isDecline) {
@@ -28657,7 +28797,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       targetValue = 0;
       maxValue = Math.max(startValue, 1) * 1.08;
     } else {
-      var usedForLine = rawLimit > 0 ? rawLimit * pct : rawUsed;
+      var usedForLine = timeline ? rawUsed : (rawLimit > 0 ? rawLimit * pct : rawUsed);
       maxValue = Math.max(rawLimit, usedForLine, 1) * 1.08;
       startValue = 0;
       currentValue = usedForLine;
@@ -28676,7 +28816,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var usedBend = isDecline ? -Math.min(5, usedSpan * .28) : Math.min(7, usedSpan * .35);
     var projectionBend1 = isDecline ? Math.min(5, projectionSpan * .10) : -Math.min(1, projectionSpan * .04);
     var projectionBend2 = isDecline ? -Math.min(2, projectionSpan * .05) : Math.min(4, projectionSpan * .08);
-    var usedPath = 'M' + x1 + ' ' + firstY.toFixed(2) + ' C' + usedC1X.toFixed(1) + ' ' + (firstY - 2).toFixed(2) + ', ' + usedC2X.toFixed(1) + ' ' + (currentY + usedBend).toFixed(2) + ', ' + curX + ' ' + currentY.toFixed(2);
+    var usedPath = timeline
+      ? buildUsedStrokePath(timeline.points, x1, width, y, isDecline)
+      : ('M' + x1 + ' ' + firstY.toFixed(2) + ' C' + usedC1X.toFixed(1) + ' ' + (firstY - 2).toFixed(2) + ', ' + usedC2X.toFixed(1) + ' ' + (currentY + usedBend).toFixed(2) + ', ' + curX + ' ' + currentY.toFixed(2));
     var projectionPath = 'M' + curX + ' ' + currentY.toFixed(2) + ' C' + projectionC1X.toFixed(1) + ' ' + (currentY + projectionBend1).toFixed(2) + ', ' + projectionC2X.toFixed(1) + ' ' + (targetY + projectionBend2).toFixed(2) + ', ' + x2 + ' ' + targetY.toFixed(2);
     return '<div class="custom-widget-linear-v260"><div class="custom-widget-linear-label-v260 custom-widget-fit-value">' + esc(metric.label) + '</div><svg viewBox="0 0 114 64" preserveAspectRatio="none" aria-hidden="true">'
       + '<path class="custom-widget-axis-line-v274" d="M' + x1 + ' ' + yBase + ' H' + x2 + ' M' + x1 + ' ' + yBase + ' V' + (yBase - height) + '"></path>'
@@ -28805,10 +28947,6 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       values.linearDirection = 'decline';
       values.trendType = 'decline';
     } else if (source === 'auto' && metric === 'amount') {
-      values.period = 'month';
-      values.from = '';
-      values.to = '';
-      values.limit = 0;
       values.txTarget = 0;
       values.showCount = false;
     }
@@ -32538,6 +32676,80 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     #loan-manager-sheet .sheet-grid-2.loan-vs-text-row-v293 {
       grid-template-columns: 1fr;
     }
+  }
+</style>
+<style id="v294-bank-manager-inline-widget-fix-css">
+  /* Manage banks: inline accordion editor with visible back button. */
+  #bank-manager-sheet .managed-bank-form {
+    display: none;
+    margin-top: 14px;
+    gap: 10px;
+  }
+  #bank-manager-sheet .managed-bank-row.open .managed-bank-form,
+  #bank-manager-sheet .managed-bank-row.open .bank-manager-inline-form-v294 {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    z-index: auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin-top: 14px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    display: grid !important;
+  }
+  #bank-manager-sheet .bank-manager-inline-toolbar-v294 {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px;
+    padding: 0 0 8px;
+    background: inherit;
+  }
+  #bank-manager-sheet .bank-manager-inline-toolbar-v294 .manager-sheet-back-btn {
+    display: inline-flex !important;
+    margin-right: 4px;
+  }
+  #bank-manager-sheet .bank-manager-toolbar-spacer-v294 {
+    flex: 1 1 auto;
+  }
+  #bank-manager-sheet .sheet-title-row {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 5 !important;
+    background: inherit !important;
+  }
+
+  /* Widget builder: hide loan detail note under loan selector. */
+  #cw-loan-readonly-v259,
+  #cw-loan-readonly-v254,
+  #loan-widget-readonly-v245,
+  .loan-widget-readonly-v254,
+  .loan-widget-readonly-v245,
+  .custom-widget-loan-fields-v259 .v259-note,
+  .custom-widget-loan-fields-v240 .loan-note-v240 {
+    display: none !important;
+  }
+
+  /* Widget builder: full-width save button. */
+  #custom-widget-sheet .custom-widget-save-row-v295 {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  #custom-widget-sheet .custom-widget-save-row-v295 .config-save {
+    width: 100%;
+    margin: 0;
   }
 </style>
 </body>
