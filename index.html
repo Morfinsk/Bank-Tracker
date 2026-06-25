@@ -6435,6 +6435,81 @@
     to { opacity: 1; transform: scaleY(1); }
   }
 
+  /* Overview chart intro — triggered when user switches TO the Overview tab. */
+  @keyframes btOverviewDrawArc {
+    from { stroke-dashoffset: 100; }
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes btOverviewDrawLine {
+    from { stroke-dashoffset: 100; }
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes btOverviewGrowX {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+
+  #page-overview.overview-charts-animating .overview-widget-arc {
+    stroke-dashoffset: 100;
+    animation: btOverviewDrawArc .9s cubic-bezier(.22,.61,.36,1) forwards;
+  }
+  #page-overview.overview-charts-animating .overview-widget-line {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: btOverviewDrawLine 1.05s cubic-bezier(.22,.61,.36,1) forwards;
+  }
+  #page-overview.overview-charts-animating .overview-widget-line.is-projection {
+    animation-delay: .18s;
+  }
+  #page-overview.overview-charts-animating .overview-widget-fill {
+    transform-origin: left center;
+    transform: scaleX(0);
+    animation: btOverviewGrowX .8s cubic-bezier(.22,.61,.36,1) forwards;
+  }
+
+  /* Balance cards: sync badge + subtle dim while cloud data refreshes. */
+  .wealth-card-net,
+  .wealth-card-cash {
+    position: relative;
+  }
+  .overview-balance-sync-badge {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: rgba(148, 186, 255, .92);
+    white-space: nowrap;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .wealth-card.is-balance-syncing .overview-balance-sync-badge {
+    display: inline-flex;
+  }
+  .wealth-card.is-balance-syncing .wealth-card-value {
+    opacity: .72;
+  }
+  .overview-balance-sync-badge .sync-mini-icon {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #page-overview.overview-charts-animating .overview-widget-arc,
+    #page-overview.overview-charts-animating .overview-widget-line,
+    #page-overview.overview-charts-animating .overview-widget-fill {
+      animation: none !important;
+      stroke-dashoffset: 0 !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     .bottom-sheet,
@@ -8228,6 +8303,7 @@ html[data-theme="light"] body::before {
 
   <div id="overview-dashboard" class="wealth-dashboard">
     <button class="wealth-card wealth-card-net wealth-card-blue" type="button" onclick="openOverviewDetailsSection('account-balance-anchor')">
+      <span class="overview-balance-sync-badge" aria-live="polite"><span class="sync-mini-icon" aria-hidden="true">↻</span> Updating…</span>
       <div class="wealth-card-head">
         <div class="wealth-card-title">Total net worth</div>
       </div>
@@ -8235,6 +8311,7 @@ html[data-theme="light"] body::before {
     </button>
 
     <button class="wealth-card wealth-card-cash wealth-card-wide" type="button" onclick="openOverviewDetailsSection('account-balance-anchor')">
+      <span class="overview-balance-sync-badge" aria-live="polite"><span class="sync-mini-icon" aria-hidden="true">↻</span> Updating…</span>
       <div class="wealth-card-head">
         <div class="wealth-card-title">Available cash</div>
         <div class="wealth-card-icon" aria-hidden="true">💶</div>
@@ -10270,6 +10347,7 @@ async function syncData(options = {}) {
   if (loadStatus && !backgroundMode) loadStatus.textContent = 'Načítavam dáta z Google Sheets...';
   const btn = document.getElementById('sync-btn');
   if (btn) btn.classList.add('spinning');
+  try { lockOverviewBalanceDatasets(); setOverviewBalanceSyncState(true); } catch (_) {}
   try {
     const match = SHEETS_URL.match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (!match) throw new Error('Neplatné URL');
@@ -10293,8 +10371,6 @@ async function syncData(options = {}) {
     reapplySheetAccountBalancesFromStorage();
 
     if (!startupMode && !backgroundMode) {
-      renderAll();
-      applyLanguage();
       if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa načítali správne.';
     } else if (loadStatus && !backgroundMode) {
       loadStatus.textContent = 'Dáta z Google Sheets sa načítali správne.';
@@ -10311,9 +10387,12 @@ async function syncData(options = {}) {
     try { reapplySheetAccountBalancesFromStorage(); } catch (e) { console.warn('Sheet balance reapply in finally failed:', e); }
     try { recomputeAccountBalancesForLoadedMonths(); } catch (e) { console.warn('Account balance recompute after sync failed:', e); }
     if (backgroundMode || !startupMode) {
+      try { window.__overviewBalanceAnimateNext = true; } catch (_) {}
       renderAll();
       applyLanguage();
+      try { window.__overviewBalanceAnimateNext = false; } catch (_) {}
     }
+    try { setOverviewBalanceSyncState(false); } catch (_) {}
     markCloudSyncCompleted();
   }
 }
@@ -11204,6 +11283,12 @@ function showPageLoadingOverlayDelayed(delayMs = 100) {
     const overlay = ensurePageLoadingOverlay();
     overlay.classList.add('show');
   }, Math.max(0, Number(delayMs || 0)));
+}
+
+function showPageLoadingOverlayNow() {
+  if (pageLoadingTimer) { clearTimeout(pageLoadingTimer); pageLoadingTimer = null; }
+  const overlay = ensurePageLoadingOverlay();
+  overlay.classList.add('show');
 }
 
 function hidePageLoadingOverlay() {
@@ -12539,7 +12624,7 @@ function createOverviewHalfGauge(percent, caption, mainText = '') {
           </linearGradient>
         </defs>
         <path d="M16 56 A44 44 0 0 1 104 56" fill="none" stroke="rgba(112,145,204,.18)" stroke-width="10" stroke-linecap="round"></path>
-        <path d="M16 56 A44 44 0 0 1 104 56" fill="none" stroke="url(#wealthGaugeGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${progress} ${circumference}"></path>
+        <path class="wealth-gauge-arc" pathLength="100" d="M16 56 A44 44 0 0 1 104 56" fill="none" stroke="url(#wealthGaugeGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${pct} 100"></path>
       </svg>
       <div class="mini-half-gauge-center">
         <span class="pct">${centerText}</span>
@@ -12558,7 +12643,7 @@ function createOverviewInlineProgress(leftText, rightText, ratio, statusText, st
       <span>${escapeHtml(String(rightText || '0'))}</span>
     </div>
     <div class="wealth-inline-progress-track">
-      <div class="wealth-inline-progress-fill ${escapeAttr(statusClass || '')}" style="width:${Math.max(width, statusClass === 'is-empty' ? 4 : 0)}%;"></div>
+      <div class="wealth-inline-progress-fill wealth-anim-fill ${escapeAttr(statusClass || '')}" style="width:${Math.max(width, statusClass === 'is-empty' ? 4 : 0)}%;"></div>
     </div>`;
 }
 
@@ -12580,7 +12665,7 @@ function createCreditCardLimitProgress(used, limit, available, currency) {
       <span class="wealth-credit-progress-pair">${escapeHtml(pairText)}</span>
     </div>
     <div class="wealth-credit-progress-track" title="${escapeAttr(`${usedText} / ${limitText}`)}">
-      <div class="wealth-credit-progress-used ${escapeAttr(fillClass)}" style="width:${fillWidth}%;"></div>
+      <div class="wealth-credit-progress-used wealth-anim-fill ${escapeAttr(fillClass)}" style="width:${fillWidth}%;"></div>
     </div>`;
 }
 
@@ -12828,13 +12913,64 @@ function createOverviewBudgetSparkline(used = 0, limit = 0, currency, txSeries =
         </defs>
         ${spentAreaPath ? `<path d="${spentAreaPath}" fill="url(#budgetUsedAreaV190)"></path>` : ''}
         ${remainingAreaPath ? `<path d="${remainingAreaPath}" fill="url(#budgetRemainAreaV190)"></path>` : ''}
-        ${spentLinePath ? `<path d="${spentLinePath}" fill="none" stroke="#00E5A0" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"></path>` : ''}
-        ${remainingLinePath ? `<path d="${remainingLinePath}" fill="none" stroke="#388bfd" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"></path>` : ''}
+        ${spentLinePath ? `<path class="wealth-spark-line" pathLength="100" d="${spentLinePath}" fill="none" stroke="#00E5A0" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"></path>` : ''}
+        ${remainingLinePath ? `<path class="wealth-spark-line is-projection" pathLength="100" d="${remainingLinePath}" fill="none" stroke="#388bfd" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"></path>` : ''}
         <circle cx="${currentPoint.x.toFixed(2)}" cy="${currentPoint.y.toFixed(2)}" r="1.55" fill="#ffffff" opacity="0.95"></circle>
         <circle cx="${currentPoint.x.toFixed(2)}" cy="${currentPoint.y.toFixed(2)}" r="0.92" fill="#00E5A0"></circle>
       </svg>
     </div>`;
 }
+function setOverviewBalanceSyncState(active) {
+  document.querySelectorAll('.wealth-card-net, .wealth-card-cash').forEach(card => {
+    card.classList.toggle('is-balance-syncing', !!active);
+  });
+}
+try { window.setOverviewBalanceSyncState = setOverviewBalanceSyncState; } catch (_) {}
+
+function lockOverviewBalanceDatasets() {
+  try {
+    const metrics = typeof getOverviewDashboardMetrics === 'function' ? getOverviewDashboardMetrics() : null;
+    if (!metrics) return;
+    const net = document.getElementById('overview-net-worth');
+    const cash = document.getElementById('overview-available-cash');
+    if (net && net.dataset.balanceValue == null) {
+      net.dataset.balanceValue = String(Number(metrics.totalNetWorth || 0));
+    }
+    if (cash && cash.dataset.balanceValue == null) {
+      cash.dataset.balanceValue = String(Number(metrics.availableCash || 0));
+    }
+  } catch (_) {}
+}
+
+function applyOverviewBalanceEl(el, amount, currency, options = {}) {
+  if (!el) return;
+  const target = Number(amount || 0);
+  const curr = currency || getAppCurrency();
+  const animate = !!(options && options.animate);
+  const from = Number(el.dataset.balanceValue ?? target);
+  el.dataset.balanceValue = String(target);
+
+  const paint = (value) => {
+    el.textContent = formatSignedCurrencyAmount(value, curr);
+  };
+
+  if (!animate || Math.abs(from - target) < 0.5 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    paint(target);
+    return;
+  }
+
+  const start = performance.now();
+  const duration = 420;
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    paint(from + (target - from) * eased);
+    if (t < 1) requestAnimationFrame(step);
+    else paint(target);
+  };
+  requestAnimationFrame(step);
+}
+
 function renderOverviewDashboard() {
   const netWorthEl = document.getElementById('overview-net-worth');
   if (!netWorthEl) return;
@@ -12850,13 +12986,13 @@ function renderOverviewDashboard() {
     txns: (allTransactions || []).length
   }));
 
-  netWorthEl.textContent = formatSignedCurrencyAmount(metrics.totalNetWorth, appCurrency);
+  applyOverviewBalanceEl(netWorthEl, metrics.totalNetWorth, appCurrency, { animate: !!window.__overviewBalanceAnimateNext });
   netWorthEl.style.color = Number(metrics.totalNetWorth || 0) < 0 ? 'var(--danger)' : '#f8fbff';
 
   const availableEl = document.getElementById('overview-available-cash');
   if (availableEl) {
     const cashValue = Number(metrics.availableCash || 0);
-    availableEl.textContent = formatSignedCurrencyAmount(metrics.availableCash, appCurrency);
+    applyOverviewBalanceEl(availableEl, metrics.availableCash, appCurrency, { animate: !!window.__overviewBalanceAnimateNext });
     availableEl.classList.toggle('wealth-card-value-green', cashValue >= 0);
     availableEl.classList.toggle('amount-expense', cashValue < 0);
     availableEl.style.color = cashValue < 0 ? '#E5005F' : '#00E5A0';
@@ -12898,6 +13034,19 @@ function renderOverviewDashboard() {
     }
   }
 }
+
+function playOverviewChartIntro() {
+  const root = document.getElementById('page-overview');
+  if (!root) return;
+  if (!root.querySelector('.overview-widget-arc, .overview-widget-line, .overview-widget-fill')) return;
+  root.classList.remove('overview-charts-animating');
+  void root.offsetWidth;
+  requestAnimationFrame(() => {
+    root.classList.add('overview-charts-animating');
+    window.setTimeout(() => root.classList.remove('overview-charts-animating'), 1500);
+  });
+}
+try { window.playOverviewChartIntro = playOverviewChartIntro; } catch (_) {}
 
 function openOverviewDetailsSection(anchorId = '') {
   renderAccountBalanceWidget();
@@ -12954,6 +13103,49 @@ function renderOverviewAfterMonthShift() {
   try { scheduleFloatingUtilityUpdate(); } catch(_) {}
 }
 
+// A (perf): lazy per-tab rendering. The heavy tabs (Transactions, Archive) are
+// only rendered when their tab is actually visited, instead of during the
+// startup render burst. They are flagged "dirty" whenever underlying data
+// changes so the next visit re-renders fresh content.
+let __btTxnsTabDirty = true;
+let __btArchiveTabDirty = true;
+
+function renderTransactionsSection(monthTxns) {
+  try {
+    updateTxnPage(monthTxns || getCurrentMonthOutgoingTransactions());
+    bindTransactionDeleteGestures();
+    __btTxnsTabDirty = false;
+  } catch (e) {
+    console.error('Transactions section render failed:', e);
+  }
+}
+
+function renderArchiveSection() {
+  try {
+    renderArchive();
+    renderArchiveTrendChart();
+    __btArchiveTabDirty = false;
+  } catch (e) {
+    console.error('Archive section render failed:', e);
+  }
+}
+
+// Render the heavy section for the currently active tab now; mark the others
+// dirty so they render on first visit.
+function renderDeferredTabSections(monthTxns) {
+  if (activePageId === 'txns') renderTransactionsSection(monthTxns);
+  else __btTxnsTabDirty = true;
+  if (activePageId === 'archive') renderArchiveSection();
+  else __btArchiveTabDirty = true;
+}
+
+function renderDirtyTabSection(pageId) {
+  if (pageId === 'txns' && __btTxnsTabDirty) { renderTransactionsSection(); return true; }
+  if (pageId === 'archive' && __btArchiveTabDirty) { renderArchiveSection(); return true; }
+  return false;
+}
+try { window.renderDirtyTabSection = renderDirtyTabSection; } catch (_) {}
+
 function renderAll(options = {}) {
   const forceArchiveRebuild = !!(options && options.forceArchiveRebuild);
   allTransactions = sortTransactionsNewestFirst(allTransactions);
@@ -13008,10 +13200,8 @@ function renderAll(options = {}) {
   }
 
 
-  updateTxnPage(monthTxns);
-  renderArchive();
-  renderArchiveTrendChart();
-  bindTransactionDeleteGestures();
+  // A (perf): only render the active heavy tab now; the rest render on visit.
+  renderDeferredTabSections(monthTxns);
   populateSimulatorLimitMonthDropdown(getSimulatorLimitMonth());
   populateSettingsLimitMonthDropdown(getSettingsLimitMonth());
 
@@ -14598,10 +14788,19 @@ function resetTransactionFilters() {
 }
 
 function showPage(pageId, options = {}) {
+  const previousPageId = activePageId;
   const fromHistory = !!(options && options.fromHistory);
   const shouldPushHistory = !fromHistory && window.__bankTrackerTabHistoryReady && activePageId !== pageId;
   const shouldShowLoader = activePageId !== pageId;
-  if (shouldShowLoader) showPageLoadingOverlayDelayed(180);
+  // A (perf): when entering a tab whose heavy content has not been rendered yet,
+  // show the loading spinner instantly and defer the heavy render to the next
+  // frame so the tab/nav switch feels immediate.
+  const wantsDirtyDeferred = !options.preserveFilters &&
+    ((pageId === 'txns' && __btTxnsTabDirty) || (pageId === 'archive' && __btArchiveTabDirty));
+  if (shouldShowLoader) {
+    if (wantsDirtyDeferred) showPageLoadingOverlayNow();
+    else showPageLoadingOverlayDelayed(180);
+  }
 
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active', 'page-slide-in-right', 'page-slide-in-left', 'swipe-peeking', 'page-tab-fade', 'page-light-switch');
@@ -14644,7 +14843,9 @@ function showPage(pageId, options = {}) {
       if (page) page.scrollTop = 0;
       window.scrollTo({ top: 0, behavior: 'auto' });
     }
-    updateTxnPage();
+    // When the heavy render is being deferred (spinner showing), the rAF tail
+    // renders the list; otherwise render now so filter changes apply immediately.
+    if (!wantsDirtyDeferred) renderTransactionsSection();
   }
 
   if (pageId === 'archive') {
@@ -14677,9 +14878,22 @@ function showPage(pageId, options = {}) {
 
   scheduleFloatingUtilityUpdate();
   if (shouldShowLoader) {
-    requestAnimationFrame(() => {
-      window.setTimeout(hidePageLoadingOverlay, 120);
-    });
+    if (wantsDirtyDeferred) {
+      // Let the tab switch + spinner paint first, then render the heavy section.
+      requestAnimationFrame(() => {
+        renderDirtyTabSection(pageId);
+        requestAnimationFrame(() => window.setTimeout(hidePageLoadingOverlay, 60));
+      });
+    } else {
+      requestAnimationFrame(() => {
+        window.setTimeout(hidePageLoadingOverlay, 120);
+      });
+    }
+  }
+
+  // Animate Overview widget charts when the user navigates TO Overview (not on refresh).
+  if (pageId === 'overview' && previousPageId !== 'overview') {
+    requestAnimationFrame(() => playOverviewChartIntro());
   }
 }
 
@@ -20550,6 +20764,7 @@ window.addEventListener('DOMContentLoaded', () => {
     loadCachedTransactionsSnapshot();
     try { reapplySheetAccountBalancesFromStorage(); } catch (_) {}
     try { recomputeAccountBalancesForLoadedMonths(); } catch (_) {}
+    try { renderAll(); } catch (_) {}
 
     finishAppBoot();
     clearTimeout(loaderFailSafe);
@@ -23116,7 +23331,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var lastLabel = data[data.length-1].month ? monthShort(data[data.length-1].month) : 'now';
     slot.innerHTML = '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'
       + '<path class="wealth-networth-trend-area-v238" d="'+attr(area)+'"></path>'
-      + '<path class="wealth-networth-trend-line-v238" d="'+attr(path)+'"></path>'
+      + '<path class="overview-widget-line wealth-networth-trend-line-v238" pathLength="100" d="'+attr(path)+'"></path>'
       + '<circle class="wealth-networth-trend-dot-v238" cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="2"></circle>'
       + '</svg><div class="wealth-networth-trend-caption-v238"><span>'+esc(firstLabel)+'</span><span>Net worth trend</span><span>'+esc(lastLabel)+'</span></div>';
   }
@@ -28906,8 +29121,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       + '<path class="custom-widget-axis-line-v274" d="M' + x1 + ' ' + yBase + ' H' + x2 + ' M' + x1 + ' ' + yBase + ' V' + (yBase - height) + '"></path>'
       + '<path d="' + attr(usedPath) + ' L' + curX + ' ' + yBase + ' L' + x1 + ' ' + yBase + ' Z" fill="' + attr(hexToRgba(accent,.22)) + '"></path>'
       + '<path d="' + attr(projectionPath) + ' L' + x2 + ' ' + yBase + ' L' + curX + ' ' + yBase + ' Z" fill="rgba(56,139,253,.13)"></path>'
-      + '<path d="' + attr(usedPath) + '" fill="none" stroke="' + attr(accent) + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round"></path>'
-      + '<path d="' + attr(projectionPath) + '" fill="none" stroke="' + blue + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round" opacity=".94"></path>'
+      + '<path class="overview-widget-line" pathLength="100" d="' + attr(usedPath) + '" fill="none" stroke="' + attr(accent) + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round"></path>'
+      + '<path class="overview-widget-line is-projection" pathLength="100" d="' + attr(projectionPath) + '" fill="none" stroke="' + blue + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round" opacity=".94"></path>'
       + '<circle cx="' + curX + '" cy="' + currentY.toFixed(2) + '" r=".95" fill="#fff" opacity=".95"></circle>'
       + '<circle cx="' + curX + '" cy="' + currentY.toFixed(2) + '" r=".48" fill="' + attr(accent) + '"></circle>'
       + '</svg>' + linearAxisLabels(widget, stats) + '</div>';
@@ -28922,7 +29137,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var showPct = widget.showGaugePercent !== false;
     var showLine = widget.showGaugeAmount !== false;
     var amountLabel = metric.label;
-    return '<div class="custom-widget-gauge-wrap"><div class="mini-half-gauge custom-widget-half-gauge"><svg viewBox="0 0 180 112" aria-hidden="true"><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="rgba(88,166,255,.20)" stroke-width="18" stroke-linecap="round" pathLength="100"></path><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="' + attr(arcColor) + '" stroke-width="18" stroke-linecap="round" pathLength="100" stroke-dasharray="' + pct.toFixed(1) + ' 100"></path></svg><div class="mini-half-gauge-center"><span class="pct">' + (showPct ? esc(label) : '') + '</span><span class="caption">' + esc(caption) + '</span></div></div>' + (showLine ? '<div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top"><strong class="custom-widget-gauge-metric-label-v262 custom-widget-fit-value">' + esc(amountLabel) + '</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill" style="width:' + Math.min(100,pct).toFixed(1) + '%;background:' + attr(lowerColor) + '"></div></div></div>' : '') + '</div>';
+    return '<div class="custom-widget-gauge-wrap"><div class="mini-half-gauge custom-widget-half-gauge"><svg viewBox="0 0 180 112" aria-hidden="true"><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="rgba(88,166,255,.20)" stroke-width="18" stroke-linecap="round" pathLength="100"></path><path class="overview-widget-arc" d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="' + attr(arcColor) + '" stroke-width="18" stroke-linecap="round" pathLength="100" stroke-dasharray="' + pct.toFixed(1) + ' 100"></path></svg><div class="mini-half-gauge-center"><span class="pct">' + (showPct ? esc(label) : '') + '</span><span class="caption">' + esc(caption) + '</span></div></div>' + (showLine ? '<div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top"><strong class="custom-widget-gauge-metric-label-v262 custom-widget-fit-value">' + esc(amountLabel) + '</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill overview-widget-fill" style="width:' + Math.min(100,pct).toFixed(1) + '%;background:' + attr(lowerColor) + '"></div></div></div>' : '') + '</div>';
   }
   function paymentKindLabel(kind){
     if (!hasWidgetMultiFilter(kind)) return '';
