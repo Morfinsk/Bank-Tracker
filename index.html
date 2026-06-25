@@ -20473,7 +20473,10 @@ let startupWarmCachesDone = false;
 
 function warmHeavyTabCachesSync(options = {}) {
   startupWarmCachesDone = true;
-  try { rebuildLocalArchiveStatsFromTransactions({ force: true }); } catch (e) {
+  // B (perf): only force a full archive-stats rebuild when explicitly requested.
+  // On a normal refresh the cached stats are reused (rebuild self-skips when fresh),
+  // which removes a large synchronous localStorage scan + per-transaction conversion pass.
+  try { rebuildLocalArchiveStatsFromTransactions({ force: !!(options && options.force) }); } catch (e) {
     console.warn('Archive stats warm-up failed:', e);
   }
   try { prepareUiAfterDataLoad({ forceArchiveRebuild: false }); } catch (e) {
@@ -20490,6 +20493,42 @@ function warmStartupCachesDeferred(options = {}) {
   warmHeavyTabCachesSync(options);
 }
 
+// C (perf): coalesce the startup burst of renderAll() calls.
+// During the first few seconds after load, multiple modules + the background
+// sync can each trigger a full renderAll (which re-renders every tab). This
+// collapses repeated calls within the same frame into a single render, so the
+// heavy work runs once instead of many times. After the startup window,
+// renderAll behaves synchronously again to preserve existing semantics.
+(function setupStartupRenderCoalescer(){
+  if (typeof renderAll !== 'function' || renderAll.__btCoalesced) return;
+  const originalRenderAll = renderAll;
+  const STARTUP_COALESCE_UNTIL = Date.now() + 3000;
+  let scheduled = false;
+  let queuedForceArchive = false;
+
+  const runQueuedRender = () => {
+    scheduled = false;
+    const force = queuedForceArchive;
+    queuedForceArchive = false;
+    try { originalRenderAll.call(window, { forceArchiveRebuild: force }); }
+    catch (e) { console.warn('Coalesced renderAll failed:', e); }
+  };
+
+  const coalescedRenderAll = function(options = {}) {
+    // After the startup window, keep the original synchronous behavior.
+    if (Date.now() > STARTUP_COALESCE_UNTIL) return originalRenderAll.call(this, options);
+    if (options && options.forceArchiveRebuild) queuedForceArchive = true;
+    if (scheduled) return;
+    scheduled = true;
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(runQueuedRender);
+    else window.setTimeout(runQueuedRender, 16);
+  };
+  coalescedRenderAll.__btCoalesced = true;
+
+  renderAll = coalescedRenderAll;
+  try { window.renderAll = coalescedRenderAll; } catch (_) {}
+})();
+
 window.addEventListener('DOMContentLoaded', () => {
   const loaderFailSafe = setTimeout(() => {
     try {
@@ -20497,7 +20536,7 @@ window.addEventListener('DOMContentLoaded', () => {
     } catch (_) {}
     finishAppBoot();
     window.setTimeout(() => {
-      try { warmHeavyTabCachesSync({ force: true }); } catch (_) {}
+      try { warmHeavyTabCachesSync({ force: false }); } catch (_) {}
     }, 0);
   }, 15000);
 
@@ -20516,7 +20555,7 @@ window.addEventListener('DOMContentLoaded', () => {
     clearTimeout(loaderFailSafe);
 
     window.setTimeout(() => {
-      try { warmHeavyTabCachesSync({ force: true }); } catch (_) {}
+      try { warmHeavyTabCachesSync({ force: false }); } catch (_) {}
     }, 0);
 
     if (SHEETS_URL && isGoogleSheetsEnabled()) {
@@ -20547,7 +20586,7 @@ window.addEventListener('DOMContentLoaded', () => {
     } catch (_) {}
     finishAppBoot();
     window.setTimeout(() => {
-      try { warmHeavyTabCachesSync({ force: true }); } catch (_) {}
+      try { warmHeavyTabCachesSync({ force: false }); } catch (_) {}
     }, 0);
   }
 });
