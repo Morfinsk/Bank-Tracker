@@ -8643,21 +8643,9 @@ html[data-theme="light"] body::before {
 
 <div id="custom-widget-sheet" class="bottom-sheet custom-widget-sheet">
   <div class="sheet-handle"></div>
-  <div class="sheet-title-row">
+  <div class="sheet-title-row custom-widget-sheet-header-v296">
     <div class="sheet-title" id="custom-widget-sheet-title">Add widget</div>
     <button class="sheet-close" onclick="closeCustomWidgetBuilder()">×</button>
-  </div>
-  <div class="custom-widget-type-picker">
-    <label>Choose widget</label>
-    <div class="custom-widget-type-grid">
-      <button class="custom-widget-type-btn" type="button" onclick="selectCustomWidgetPreset('card_limits')">Bank card limits<span>Amount used</span></button>
-      <button class="custom-widget-type-btn" type="button" onclick="selectCustomWidgetPreset('credit_card')">Credit card<span>Amount used</span></button>
-      <button class="custom-widget-type-btn" type="button" onclick="selectCustomWidgetPreset('budget')">Budget<span>Spend limit</span></button>
-      <button class="custom-widget-type-btn" type="button" onclick="selectCustomWidgetPreset('bonus')">Bonus<span>Card count</span></button>
-      <button class="custom-widget-type-btn" type="button" onclick="selectCustomWidgetPreset('goal')">Goal<span>Simple tracker</span></button>
-      <button class="custom-widget-type-btn" type="button" onclick="selectCustomWidgetPreset('manual')">Manual<span>Cash / own value</span></button>
-    </div>
-    <div class="custom-widget-gesture-hint">Tap = transactions detail · double tap = delete · long press = move/reorder.</div>
   </div>
   <div class="custom-widget-preview" id="custom-widget-preview"></div>
   <div class="custom-widget-modal-grid">
@@ -8740,16 +8728,12 @@ html[data-theme="light"] body::before {
       <input type="hidden" id="cw-account" value="all" />
     </div>
     <div class="custom-widget-row-2" id="cw-custom-range" style="display:none;">
-      <div><label>From</label><input class="config-input" id="cw-from" type="date" onchange="updateCustomWidgetBuilderPreview()" /></div>
-      <div><label>To</label><input class="config-input" id="cw-to" type="date" onchange="updateCustomWidgetBuilderPreview()" /></div>
+      <div><label>From</label><input class="config-input" id="cw-from" type="date" onchange="updateCustomWidgetBuilderPreview()" oninput="updateCustomWidgetBuilderPreview()" /></div>
+      <div><label>To</label><input class="config-input" id="cw-to" type="date" onchange="updateCustomWidgetBuilderPreview()" oninput="updateCustomWidgetBuilderPreview()" /></div>
     </div>
     <div class="custom-widget-row-2">
       <div><label>Accent colour</label><input class="config-input" id="cw-accent" type="color" value="#00E5A0" onchange="updateCustomWidgetBuilderPreview()" /></div>
       <div><label>Custom hex</label><input class="config-input" id="cw-accent-hex" maxlength="7" placeholder="#00E5A0" oninput="syncCustomWidgetHexInput()" /></div>
-    </div>
-    <div class="custom-widget-row-2">
-      <div><label>Alerts</label><select class="config-input" id="cw-alerts" onchange="updateCustomWidgetBuilderPreview()"><option value="false">Off</option><option value="true">On</option></select></div>
-      <div><label>Alert threshold %</label><input class="config-input" id="cw-threshold" type="number" min="1" max="100" value="80" oninput="updateCustomWidgetBuilderPreview()" /></div>
     </div>
     <div class="custom-widget-row-2 custom-widget-save-row-v295">
       <button class="config-save custom-widget-save-btn-v295" type="button" onclick="saveCustomWidgetFromBuilder()">Save widget</button>
@@ -27985,7 +27969,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     }
     var range = byId('cw-custom-range');
     if (range) {
-      var showRange = isCount && getValue('cw-period','month') === 'custom';
+      var showRange = !isLoan && getValue('cw-period','month') === 'custom';
       range.classList.toggle('v254-hidden', !showRange);
       range.classList.toggle('v258-hidden', !showRange);
       range.classList.toggle('v259-hidden', !showRange);
@@ -28035,7 +28019,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (parts.length === 2 && parts[0] && parts[1]) {
       return { from:new Date(parts[1], parts[0] - 1, 1), to:new Date(parts[1], parts[0], 0, 23, 59, 59, 999), label:month };
     }
-    return { from:new Date(now.getFullYear(), now.getMonth(), 1), to:now, label:'This month' };
+    return { from:new Date(now.getFullYear(), now.getMonth(), 1), to:new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999), label:'This month' };
   }
   function txDate(tx){
     try {
@@ -28677,37 +28661,75 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     }
     return [axisTick('0', 0), axisTick('50%', .5), axisTick('100%', 1)];
   }
+  function dedupeAxisTicks(ticks){
+    var out = [];
+    (ticks || []).forEach(function(tick){
+      if (!tick || tick.label === '') return;
+      var prev = out[out.length - 1];
+      if (prev && Math.abs(Number(prev.ratio || 0) - Number(tick.ratio || 0)) < 0.001) out[out.length - 1] = tick;
+      else if (!prev || prev.label !== tick.label) out.push(tick);
+    });
+    return out;
+  }
+  function monthDayAxisTicks(from, labelCount){
+    var lastDay = daysInMonth(from);
+    var count = Math.max(2, Math.min(labelCount || 6, lastDay));
+    var ticks = [];
+    for (var i = 0; i < count; i++) {
+      var day = count === 1 ? 1 : Math.round(1 + i * (lastDay - 1) / (count - 1));
+      ticks.push(axisTick(String(day), lastDay > 1 ? (day - 1) / (lastDay - 1) : 0));
+    }
+    return renderAxisTicks(dedupeAxisTicks(ticks));
+  }
+  function spanDateAxisTicks(from, to, labelCount, formatter){
+    formatter = formatter || shortDateLabel;
+    var spanDays = Math.max(1, Math.round((to.getTime() - from.getTime()) / 86400000) + 1);
+    var count = Math.max(2, Math.min(labelCount || 6, spanDays));
+    var ticks = [];
+    for (var i = 0; i < count; i++) {
+      var index = count === 1 ? 0 : Math.round(i * (spanDays - 1) / (count - 1));
+      var day = new Date(from.getFullYear(), from.getMonth(), from.getDate() + index);
+      ticks.push(axisTick(formatter(day), spanDays > 1 ? index / (spanDays - 1) : 0));
+    }
+    return renderAxisTicks(dedupeAxisTicks(ticks));
+  }
+  function yearMonthAxisTicks(size){
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var count = axisLabelCountForSize(size);
+    if (count >= 12) {
+      return renderAxisTicks(months.map(function(name, index){ return axisTick(name, index / 11); }));
+    }
+    var ticks = [];
+    for (var i = 0; i < count; i++) {
+      var monthIndex = count === 1 ? 0 : Math.round(i * 11 / (count - 1));
+      ticks.push(axisTick(months[monthIndex], monthIndex / 11));
+    }
+    return renderAxisTicks(dedupeAxisTicks(ticks));
+  }
+  function chartAxisRange(widget, stats){
+    return (stats && stats.range) || currentPeriodRange(widget);
+  }
   function linearAxisLabels(widget, stats){
     widget = widget || {};
     stats = stats || {};
     if (sourceNorm(widget.source || widget.dataInput || stats.source || '') === 'loan') return renderAxisTicks(loanAxisTicks(widget, stats));
-    var range = stats.range || currentPeriodRange(widget);
+    var range = chartAxisRange(widget, stats);
     var from = range && range.from;
     var to = range && range.to;
     if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return '';
     var period = String(widget.period || 'month');
     var spanDays = Math.max(1, Math.round((to.getTime() - from.getTime()) / 86400000) + 1);
-    var size = widgetSizeName(widget);
-    var labelCount = axisLabelCountForSize(size);
-    if (period === 'year' || spanDays >= 330) return yearEvenMonthLabels(size);
-    if (period === 'month') {
-      if (size === 'small') {
-        var lastDay = daysInMonth(from);
-        return renderEvenAxisLabels(['1', String(Math.max(1, Math.round(lastDay / 2))), String(lastDay)]);
-      }
-      return renderEvenAxisLabels(dayLabelsEvery(daysInMonth(from), 3));
-    }
-    if (period === '7d' || period === '30d' || spanDays <= 31) {
-      return evenSpanDateLabels(from, to, labelCount, shortDateLabel);
-    }
-    return evenSpanDateLabels(from, to, labelCount, shortDateLabel);
+    var labelCount = axisLabelCountForSize(widgetSizeName(widget));
+    if (period === 'year' || spanDays >= 330) return yearMonthAxisTicks(widgetSizeName(widget));
+    if (period === 'month') return monthDayAxisTicks(from, labelCount);
+    return spanDateAxisTicks(from, to, labelCount, shortDateLabel);
   }
   function dateRatioInRange(date, from, to){
     if (!date || !from || !to || isNaN(date.getTime()) || isNaN(from.getTime()) || isNaN(to.getTime())) return 0;
-    var startMs = new Date(from.getFullYear(), from.getMonth(), from.getDate()).getTime();
-    var endMs = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999).getTime();
+    var startMs = new Date(from.getFullYear(), from.getMonth(), from.getDate(), 12, 0, 0, 0).getTime();
+    var endMs = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 12, 0, 0, 0).getTime();
     if (endMs <= startMs) return 0;
-    var dayMs = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    var dayMs = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0).getTime();
     dayMs = Math.max(startMs, Math.min(endMs, dayMs));
     return (dayMs - startMs) / (endMs - startMs);
   }
@@ -28719,7 +28741,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   }
   function buildSpendTimeline(widget, stats){
     stats = stats || {};
-    var range = stats.range || currentPeriodRange(widget);
+    var range = chartAxisRange(widget, stats);
     var from = range && range.from;
     var to = range && range.to;
     var currency = currencyCodeSafe(stats.currency || widget.currency || (typeof getAppCurrency === 'function' ? getAppCurrency() : 'CZK'));
@@ -28737,15 +28759,13 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     });
     return { points: points, cumulative: cumulative, limit: limit, lastRatio: points.length ? points[points.length - 1].ratio : 0 };
   }
-  function timelinePointX(ratio, x1, width, amount){
-    var px = x1 + width * Math.max(0, Math.min(1, ratio));
-    if (amount > 0 && ratio > 0 && px < x1 + 10) px = x1 + 10;
-    return Number(px.toFixed(1));
+  function timelinePointX(ratio, x1, width){
+    return Number((x1 + width * Math.max(0, Math.min(1, ratio))).toFixed(1));
   }
   function buildUsedStrokePath(points, x1, width, yFn, isDecline){
     if (!points || !points.length) return '';
     var coords = points.map(function(p){
-      return { x: timelinePointX(p.ratio, x1, width, p.amount), y: yFn(p.amount) };
+      return { x: timelinePointX(p.ratio, x1, width), y: yFn(p.amount) };
     });
     if (coords.length === 1) coords.push({ x: coords[0].x, y: coords[0].y });
     if (coords.length === 2) {
@@ -28786,7 +28806,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var curX = x1 + width * pct;
     if (!timeline && pct > 0 && curX < x1 + 10) curX = x1 + 10;
     if (!timeline && pct < 1 && curX > x2 - 10) curX = x2 - 10;
-    if (timeline) curX = timelinePointX(timeline.lastRatio, x1, width, rawUsed);
+    if (timeline) curX = timelinePointX(timeline.lastRatio, x1, width);
     curX = Number(curX.toFixed(1));
     var maxValue, startValue, currentValue, targetValue;
     if (isDecline) {
@@ -28922,8 +28942,8 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       showGaugePercent:getValue('cw-show-gauge-percent','true') !== 'false',
       showGaugeAmount:getValue('cw-show-gauge-amount','true') !== 'false',
       valueFormat:getValue('cw-value-format','compact') === 'full' ? 'full' : 'compact',
-      alerts:getValue('cw-alerts','false') === 'true',
-      threshold:Math.max(1, Math.min(100, toNum(getValue('cw-threshold','80')) || 80))
+      alerts:false,
+      threshold:80
     };
     if (source === 'loan') {
       var loan = loanById(getValue('cw-loan-id',''));
@@ -29045,8 +29065,6 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       setValue('cw-show-gauge-percent', String(widget.showGaugePercent !== false));
       setValue('cw-show-gauge-amount', String(widget.showGaugeAmount !== false));
       setValue('cw-value-format', valueFormatFor(widget));
-      setValue('cw-alerts', String(widget.alerts === true));
-      setValue('cw-threshold', widget.threshold || 80);
     } else {
       setChoice('chart', 'linear');
       setChoice('size', 'medium');
@@ -29064,8 +29082,6 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       setValue('cw-show-gauge-percent', 'true');
       setValue('cw-show-gauge-amount', 'true');
       setValue('cw-value-format', 'compact');
-      setValue('cw-alerts', 'false');
-      setValue('cw-threshold', '80');
     }
     updatePreviewNow();
   }
@@ -29077,6 +29093,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (!values.source) { alert('Choose data input.'); return; }
     if (values.source === 'loan' && !values.loanId) { alert('Choose Loan / mortgage.'); return; }
     if (values.source === 'auto' && values.gaugeMetric === 'count' && values.txTarget <= 0) { alert('Transaction target is required.'); return; }
+    if (values.period === 'custom' && (!values.from || !values.to)) { alert('Choose custom range From and To dates.'); return; }
 
     var widgets = getWidgets();
     var state = finalBuilderState || {};
@@ -32750,6 +32767,33 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   #custom-widget-sheet .custom-widget-save-row-v295 .config-save {
     width: 100%;
     margin: 0;
+  }
+
+  /* Widget builder: compact header, more preview space. */
+  #custom-widget-sheet .sheet-handle {
+    display: none !important;
+  }
+  #custom-widget-sheet .custom-widget-sheet-header-v296 {
+    min-height: 0 !important;
+    padding: 12px 14px 8px !important;
+    border-bottom: 1px solid rgba(120, 160, 220, 0.12) !important;
+    background: inherit !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+  #custom-widget-sheet .custom-widget-sheet-header-v296 .sheet-title {
+    display: block !important;
+    font-size: 17px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+  }
+  #custom-widget-sheet .custom-widget-preview {
+    margin-top: 0 !important;
+    padding-top: 4px !important;
+  }
+  #custom-widget-sheet .custom-widget-type-picker,
+  #custom-widget-sheet .custom-widget-gesture-hint {
+    display: none !important;
   }
 </style>
 </body>
