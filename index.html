@@ -6165,6 +6165,7 @@
   html.android-pwa-perf body[data-active-sheet="add-transaction-sheet"] #add-transaction-sheet,
   html.android-pwa-perf body[data-active-sheet="archive-bank-detail-sheet"] #archive-bank-detail-sheet,
   html.android-pwa-perf body[data-active-sheet="bank-manager-sheet"] #bank-manager-sheet,
+  html.android-pwa-perf body[data-active-sheet="loan-manager-sheet"] #loan-manager-sheet,
   html.android-pwa-perf body[data-active-sheet="upgrade-sheet"] #upgrade-sheet {
 
     transition: none !important;
@@ -6175,6 +6176,7 @@
   html.android-pwa-perf body[data-active-sheet="add-transaction-sheet"] #add-transaction-sheet.sheet-snapping,
   html.android-pwa-perf body[data-active-sheet="archive-bank-detail-sheet"] #archive-bank-detail-sheet.sheet-snapping,
   html.android-pwa-perf body[data-active-sheet="bank-manager-sheet"] #bank-manager-sheet.sheet-snapping,
+  html.android-pwa-perf body[data-active-sheet="loan-manager-sheet"] #loan-manager-sheet.sheet-snapping,
   html.android-pwa-perf body[data-active-sheet="upgrade-sheet"] #upgrade-sheet.sheet-snapping {
 
     transition: none !important;
@@ -6482,11 +6484,20 @@
     box-shadow: none !important;
   }
 
-  #upgrade-sheet .sheet-handle,
-  #upgrade-sheet .sheet-title-row,
   #bank-manager-sheet .sheet-handle,
   #bank-manager-sheet .sheet-title-row {
     touch-action: none !important;
+  }
+
+  #loan-manager-sheet .sheet-handle,
+  #loan-manager-sheet .sheet-title-row {
+    touch-action: none !important;
+    cursor: grab;
+  }
+
+  #loan-manager-sheet.dragging .sheet-handle,
+  #loan-manager-sheet.dragging .sheet-title-row {
+    cursor: grabbing;
   }
 
   html.mobile-perf-mode body[data-active-sheet="upgrade-sheet"] #upgrade-sheet,
@@ -8641,7 +8652,7 @@ html[data-theme="light"] body::before {
   </div>
 </div>
 
-<div id="custom-widget-sheet" class="bottom-sheet custom-widget-sheet">
+<div id="custom-widget-sheet" class="bottom-sheet custom-widget-sheet bottom-sheet-widget">
   <div class="sheet-handle"></div>
   <div class="sheet-title-row custom-widget-sheet-header-v296">
     <div class="sheet-title" id="custom-widget-sheet-title">Add widget</div>
@@ -15477,7 +15488,7 @@ function initBottomSheetDragToClose() {
   // v9: Drag/pull-down-to-close enabled again, using the proven v4 handler.
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
-    if (sheet.id === 'custom-widget-sheet' || sheet.classList.contains('custom-widget-fullpage')) return;
+    if (sheet.id === 'custom-widget-sheet' || sheet.classList.contains('bottom-sheet-widget')) return;
     if (sheet.dataset.dragToCloseBound === 'true') return;
     sheet.dataset.dragToCloseBound = 'true';
 
@@ -15510,6 +15521,7 @@ function initBottomSheetDragToClose() {
       const rect = sheet.getBoundingClientRect();
       const titleRow = sheet.querySelector('.sheet-title-row');
       const handle = sheet.querySelector('.sheet-handle');
+      const managerHeaderExtra = sheet.querySelector('.manager-search-wrap, .loan-manager-sheet-note');
 
       let height = 138;
 
@@ -15523,7 +15535,16 @@ function initBottomSheetDragToClose() {
         height = Math.max(height, handleBottom + 82);
       }
 
-      return Math.min(Math.max(height, 132), 220);
+      if (managerHeaderExtra) {
+        const extraBottom = managerHeaderExtra.getBoundingClientRect().bottom - rect.top;
+        height = Math.max(height, extraBottom + 12);
+      }
+
+      if (sheet.id === 'bank-manager-sheet' || sheet.id === 'loan-manager-sheet') {
+        height = Math.max(height, 188);
+      }
+
+      return Math.min(Math.max(height, 132), 260);
     };
 
     const canTrack = (event) => {
@@ -15582,7 +15603,8 @@ function initBottomSheetDragToClose() {
       clearRaf();
       sheet.classList.remove('dragging');
       sheet.classList.add('sheet-snapping');
-      sheet.style.setProperty('transition', 'transform .20s cubic-bezier(.22,.72,.23,1)', 'important');
+      const snapMs = (sheet.id === 'bank-manager-sheet' || sheet.id === 'loan-manager-sheet') ? '.16s' : '.20s';
+      sheet.style.setProperty('transition', `transform ${snapMs} cubic-bezier(.22,.72,.23,1)`, 'important');
       setSheetY(0);
 
       window.setTimeout(() => {
@@ -15592,7 +15614,7 @@ function initBottomSheetDragToClose() {
           sheet.style.removeProperty('transform');
         }
         resetState();
-      }, 220);
+      }, (sheet.id === 'bank-manager-sheet' || sheet.id === 'loan-manager-sheet') ? 170 : 220);
     };
 
     const beginTracking = (event) => {
@@ -15663,7 +15685,9 @@ function initBottomSheetDragToClose() {
       if (!isTracking || (event && event.pointerId !== undefined && event.pointerId !== pointerId)) return;
 
       const deltaY = Math.max(0, currentY - startY);
-      const closeThreshold = Math.max(120, sheetHeight * 0.5);
+      const closeThreshold = (sheet.id === 'bank-manager-sheet' || sheet.id === 'loan-manager-sheet')
+        ? Math.max(96, sheetHeight * 0.34)
+        : Math.max(120, sheetHeight * 0.5);
 
       try { sheet.releasePointerCapture(pointerId); } catch (_) {}
 
@@ -15693,11 +15717,10 @@ function initBottomSheetDragToClose() {
 
 
 function shouldAnimateBottomSheet(sheetId) {
-  // v9: match the original v4 sheet animation policy.
-  return ['upgrade-sheet', 'quick-add-sheet', 'bank-manager-sheet', 'txn-filter-sheet'].includes(String(sheetId || ''));
+  return ['upgrade-sheet', 'quick-add-sheet', 'bank-manager-sheet', 'loan-manager-sheet', 'txn-filter-sheet', 'custom-widget-sheet'].includes(String(sheetId || ''));
 }
 
-function isFullPageFadeSheet(sheetId) {
+function isCustomWidgetSlideSheet(sheetId) {
   return String(sheetId || '') === 'custom-widget-sheet';
 }
 
@@ -15705,19 +15728,19 @@ function openSheet(id){
   document.body.classList.add('sheet-open');
   document.body.dataset.activeSheet = id || '';
 
-  const fullPageFade = isFullPageFadeSheet(id);
+  const customWidgetSlide = isCustomWidgetSlideSheet(id);
   const shouldAnimate = shouldAnimateBottomSheet(id);
 
   const backdrop = document.getElementById('bottom-sheet-backdrop');
   if (backdrop) {
-    backdrop.classList.toggle('fullpage-fade-backdrop', fullPageFade);
+    backdrop.classList.toggle('fullpage-fade-backdrop', false);
     backdrop.classList.add('open');
   }
 
-  if (fullPageFade) document.body.classList.add('custom-widget-editor-open');
+  if (customWidgetSlide) document.body.classList.add('custom-widget-editor-open');
 
   document.querySelectorAll('.bottom-sheet').forEach(sheet => {
-    sheet.classList.remove('open', 'dragging', 'sheet-snapping', 'sheet-no-animation', 'custom-widget-fullpage-open');
+    sheet.classList.remove('open', 'dragging', 'sheet-snapping', 'sheet-no-animation', 'custom-widget-fullpage', 'custom-widget-fullpage-open');
     sheet.style.removeProperty('transition');
     sheet.style.removeProperty('animation');
     sheet.style.removeProperty('transform');
@@ -15728,10 +15751,10 @@ function openSheet(id){
   if (sheet) {
     sheet.scrollTop = 0;
 
-    if (fullPageFade) {
-      sheet.classList.add('sheet-no-animation', 'custom-widget-fullpage');
+    if (customWidgetSlide) {
+      sheet.classList.add('bottom-sheet-widget');
       requestAnimationFrame(() => {
-        sheet.classList.add('open', 'custom-widget-fullpage-open');
+        sheet.classList.add('open');
         scheduleFloatingUtilityUpdate();
       });
     } else if (!shouldAnimate) {
@@ -15747,7 +15770,7 @@ function openSheet(id){
     }
   }
 
-  if (!fullPageFade) {
+  if (!customWidgetSlide) {
     initBottomSheetDragToClose();
     if (typeof initGlobalPullDownControl === 'function') initGlobalPullDownControl();
     if (typeof initSheetPullRefreshGuard === 'function') initSheetPullRefreshGuard();
@@ -30580,6 +30603,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       sheet.className = 'bottom-sheet';
       sheet.innerHTML = '<div class="sheet-handle"></div><div class="sheet-title-row"><div class="sheet-title">Manage loans</div><button class="sheet-close" onclick="closeBottomSheets()">×</button></div><div class="loan-manager-add-card"></div><div id="loan-manager-list"></div>';
       document.body.appendChild(sheet);
+      try { if (typeof initBottomSheetDragToClose === 'function') initBottomSheetDragToClose(); } catch(_) {}
     }
     var add = sheet.querySelector('.loan-manager-add-card');
     if (add) {
@@ -32794,6 +32818,98 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   #custom-widget-sheet .custom-widget-type-picker,
   #custom-widget-sheet .custom-widget-gesture-hint {
     display: none !important;
+  }
+</style>
+<style id="v297-sheet-performance-css">
+  /* Manage banks + loans: same fast GPU slide (no fade/stacked animations). */
+  #bank-manager-sheet,
+  #loan-manager-sheet {
+    top: auto !important;
+    bottom: 0 !important;
+    transform: translateX(-50%) translateY(100%) !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    will-change: transform !important;
+    contain: layout style !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.28) !important;
+  }
+  #bank-manager-sheet.open,
+  #loan-manager-sheet.open {
+    transform: translateX(-50%) translateY(0) !important;
+    pointer-events: auto !important;
+  }
+  #bank-manager-sheet .sheet-handle,
+  #loan-manager-sheet .sheet-handle {
+    display: block !important;
+    position: relative;
+    z-index: 3;
+  }
+  #bank-manager-sheet .sheet-title-row,
+  #loan-manager-sheet .sheet-title-row {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 5 !important;
+    background: inherit !important;
+    touch-action: none !important;
+    cursor: grab;
+  }
+  #bank-manager-sheet.dragging .sheet-title-row,
+  #loan-manager-sheet.dragging .sheet-handle,
+  #loan-manager-sheet.dragging .sheet-title-row {
+    cursor: grabbing;
+  }
+  @media (hover: none), (pointer: coarse), (max-width: 700px) {
+    #bank-manager-sheet .sheet-handle::before,
+    #loan-manager-sheet .sheet-handle::before {
+      width: min(390px, 96vw) !important;
+      height: 132px !important;
+    }
+  }
+
+  /* Add widget: lightweight slide-up sheet instead of full-page fade. */
+  #custom-widget-sheet.bottom-sheet-widget {
+    top: auto !important;
+    bottom: 0 !important;
+    left: 50% !important;
+    right: auto !important;
+    width: 100% !important;
+    max-width: 430px !important;
+    height: 80vh !important;
+    max-height: 80vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    transform: translateX(-50%) translateY(100%) !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    will-change: transform !important;
+    contain: layout style !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.18) !important;
+  }
+  #custom-widget-sheet.bottom-sheet-widget.open {
+    transform: translateX(-50%) translateY(0) !important;
+    pointer-events: auto !important;
+  }
+  body.custom-widget-editor-open {
+    overflow: hidden !important;
+  }
+  #custom-widget-sheet.bottom-sheet-widget .custom-widget-preview {
+    contain: layout paint style;
+    transform: translateZ(0);
+  }
+  #custom-widget-sheet.bottom-sheet-widget .custom-widget-preview svg {
+    transform: translateZ(0);
+  }
+  #bottom-sheet-backdrop.open {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 </style>
 </body>
