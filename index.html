@@ -10412,6 +10412,22 @@ async function syncArchivedTransactionsFromSheets(spreadsheetId) {
 async function syncData(options = {}) {
   const startupMode = !!(options && options.startupMode);
   const backgroundMode = !!(options && options.backgroundMode);
+  const showFullScreenLoader = !!(options && options.showFullScreenLoader);
+  let fullScreenLoaderClosed = false;
+  const closeFullScreenLoader = (shouldAnimateOverview = false) => {
+    if (!showFullScreenLoader || fullScreenLoaderClosed) return;
+    fullScreenLoaderClosed = true;
+    finishAppBoot();
+    if (shouldAnimateOverview) requestAnimationFrame(() => playOverviewChartIntro());
+  };
+
+  if (showFullScreenLoader) {
+    document.body.classList.add('app-boot-pending');
+    showPageLoadingOverlayNow();
+    const overlay = ensurePageLoadingOverlay();
+    if (overlay) overlay.setAttribute('aria-busy', 'true');
+  }
+
   ensureDefaultConfig();
   clearCloudFirstLocalData();
   if (!isGoogleSheetsEnabled()) {
@@ -10420,6 +10436,7 @@ async function syncData(options = {}) {
     renderAll();
     applyLanguage();
     updateGoogleSheetsToggleUi();
+    closeFullScreenLoader(false);
     return;
   }
 
@@ -10432,6 +10449,7 @@ async function syncData(options = {}) {
     if (!allTransactions.length) loadCachedTransactionsSnapshot();
     renderAll();
     applyLanguage();
+    closeFullScreenLoader(false);
     return;
   }
   isSyncing = true;
@@ -10491,6 +10509,8 @@ async function syncData(options = {}) {
     }
     try { setOverviewBalanceSyncState(false); } catch (_) {}
     markCloudSyncCompleted();
+    const overviewVisible = activePageId === 'overview' || !!document.getElementById('page-overview')?.classList.contains('active');
+    closeFullScreenLoader(overviewVisible);
   }
 }
 
@@ -14973,8 +14993,10 @@ function showPage(pageId, options = {}) {
 
   scheduleFloatingUtilityUpdate();
 
-  // Animate Overview widget charts when the user navigates TO Overview (not on refresh).
-  if (pageId === 'overview' && previousPageId !== 'overview') {
+  // Always replay Overview chart intro when Overview tab is clicked.
+  // This keeps the behavior consistent even when user is already on Overview
+  // and taps the tab again from a different scroll position.
+  if (pageId === 'overview') {
     requestAnimationFrame(() => playOverviewChartIntro());
   }
 }
@@ -15328,14 +15350,13 @@ document.addEventListener('visibilitychange', () => {
   var now = Date.now();
   var hiddenForMs = now - Number(lastHiddenAtMs || 0);
   var sinceLastResumeSync = now - Number(lastResumeSyncAtMs || 0);
-  // Keep app resume instant on mobile: avoid immediate heavy sync
-  // for quick app switches and repeated foregrounding.
+  // Resume sync only after meaningful background time to avoid noisy refreshes.
   if (hiddenForMs < 4000) return;
   if (sinceLastResumeSync < 120000) return;
   lastResumeSyncAtMs = now;
   setTimeout(function(){
     if (!document.hidden && !isSyncing && SHEETS_URL) {
-      syncData();
+      syncData({ showFullScreenLoader: true });
     }
   }, 650);
 });
@@ -15850,6 +15871,12 @@ function initBottomSheetDragToClose() {
       // v11: Upgrade has heavy scrollable content. Keep drag-to-close enabled,
       // but only from the handle/header so normal scrolling cannot fight the sheet drag.
       if (sheet.id === 'upgrade-sheet') {
+        return !!(event.target && event.target.closest && event.target.closest('.sheet-handle, .sheet-title-row'));
+      }
+
+      // Manager sheets should scroll smoothly without accidental drag-close from content.
+      // Allow drag-close only from the top handle/title row.
+      if (sheet.id === 'bank-manager-sheet' || sheet.id === 'loan-manager-sheet') {
         return !!(event.target && event.target.closest && event.target.closest('.sheet-handle, .sheet-title-row'));
       }
 
@@ -20875,6 +20902,23 @@ window.addEventListener('DOMContentLoaded', () => {
     try { recomputeAccountBalancesForLoadedMonths(); } catch (_) {}
     try { renderAll(); } catch (_) {}
 
+    if (SHEETS_URL && isGoogleSheetsEnabled()) {
+      startAutoSync();
+      window.setTimeout(() => {
+        syncData({ showFullScreenLoader: true })
+          .catch((e) => {
+            console.warn('Startup cloud sync failed:', e);
+          })
+          .finally(() => {
+            clearTimeout(loaderFailSafe);
+            window.setTimeout(() => {
+              try { warmHeavyTabCachesSync({ force: false }); } catch (_) {}
+            }, 0);
+          });
+      }, 120);
+      return;
+    }
+
     finishAppBoot();
     clearTimeout(loaderFailSafe);
 
@@ -20889,16 +20933,6 @@ window.addEventListener('DOMContentLoaded', () => {
           ? 'Na mobile treba v Settings zadať Google Sheets URL (ukladá sa zvlášť pre každé zariadenie).'
           : 'Google Sheets URL is empty. Paste/save the Sheets URL in Settings to load Overview details.';
       }
-    }
-
-    if (SHEETS_URL && isGoogleSheetsEnabled()) {
-      startAutoSync();
-      window.setTimeout(() => {
-        syncData({ backgroundMode: true }).catch((e) => {
-          console.warn('Background cloud sync failed:', e);
-        });
-      }, 700);
-      return;
     }
 
     try {
@@ -24443,14 +24477,18 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
     window.setTimeout(function(){
       requestAnimationFrame(function(){
-        try { renderLoanManager(); } catch (_) {}
-      });
-    }, 48);
-    window.setTimeout(function(){
-      syncLoansNow(true).then(function(){
-        try { renderLoanManager(); } catch (_) {}
+        requestAnimationFrame(function(){
+          try { renderLoanManager(); } catch (_) {}
+        });
       });
     }, 120);
+    window.setTimeout(function(){
+      syncLoansNow(false).then(function(loaded){
+        if (!loaded) {
+          try { renderLoanManager(); } catch (_) {}
+        }
+      });
+    }, 540);
   };
   window.saveNewLoanFromManager = async function(){
     ensureLoanManagerDom();
@@ -26049,15 +26087,19 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
     window.setTimeout(function(){
       requestAnimationFrame(function(){
-        try { window.renderLoanManager(); } catch (_) {}
-      });
-    }, 48);
-    window.setTimeout(function(){
-      syncLoansNow(true).then(function(ok){
-        setLoanStatus(ok ? 'Loans loaded.' : 'Using local loan cache.');
-        try { window.renderLoanManager(); } catch (_) {}
+        requestAnimationFrame(function(){
+          try { window.renderLoanManager(); } catch (_) {}
+        });
       });
     }, 120);
+    window.setTimeout(function(){
+      syncLoansNow(false).then(function(ok){
+        setLoanStatus(ok ? 'Loans loaded.' : 'Using local loan cache.');
+        if (!ok) {
+          try { window.renderLoanManager(); } catch (_) {}
+        }
+      });
+    }, 540);
   };
   try { openLoanManagerSheet = window.openLoanManagerSheet; } catch(_) {}
 
@@ -31062,7 +31104,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       return '<div class="loan-manager-card" id="loan-row-' + attr(safe) + '" data-loan-id="' + attr(loan.id) + '">'
         + '<div class="loan-manager-top"><div class="loan-manager-main"><div class="loan-manager-title">' + esc(loan.name) + '</div>'
         + '<div class="loan-manager-sub">' + esc(loanTypeLabel(loan.type)) + ' - ' + esc(money(-loanOutstanding(loan), loan.currency)) + ' / ' + esc(money(-loanOriginal(loan), loan.currency)) + ' - ' + esc(bankLabel(loan.linkedBankId)) + '</div></div>'
-        + '<div class="loan-manager-actions"><button class="icon-action-btn edit" type="button" onclick="toggleLoanEditV262(\'' + attr(loan.id) + '\')">...</button><button class="icon-action-btn delete" type="button" onclick="deleteLoanV262(\'' + attr(loan.id) + '\')">x</button></div></div>'
+        + '<div class="loan-manager-actions"><button class="icon-action-btn edit" type="button" onclick="toggleLoanEditV262(\'' + attr(loan.id) + '\')" title="Edit" aria-label="Edit">✎</button><button class="icon-action-btn delete" type="button" onclick="deleteLoanV262(\'' + attr(loan.id) + '\')" title="Delete" aria-label="Delete">×</button></div></div>'
         + '<div class="loan-manager-progress"><div class="loan-manager-progress-row"><span>' + Math.round(pct) + '% paid</span><span>Target 0</span></div><div class="loan-manager-track"><div class="loan-manager-fill" style="width:' + pct.toFixed(1) + '%"></div></div></div>'
         + '<div class="managed-bank-form loan-manager-inline-form-v293" id="loan-edit-' + attr(safe) + '" data-loan-layout-v293="1">'
         + '<label>Loan name</label><input class="config-input" id="loan-name-' + attr(safe) + '" value="' + attr(loan.name) + '">'
@@ -31162,14 +31204,18 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     setLoanAddCardVisibility();
     window.setTimeout(function(){
       requestAnimationFrame(function(){
-        try { window.renderLoanManager(); } catch (_) {}
-      });
-    }, 48);
-    window.setTimeout(function(){
-      syncLoansNow(true).then(function(){
-        try { window.renderLoanManager(); } catch (_) {}
+        requestAnimationFrame(function(){
+          try { window.renderLoanManager(); } catch (_) {}
+        });
       });
     }, 120);
+    window.setTimeout(function(){
+      syncLoansNow(false).then(function(loaded){
+        if (!loaded) {
+          try { window.renderLoanManager(); } catch (_) {}
+        }
+      });
+    }, 540);
   };
   window.getBankTrackerLoans = function(){ return getLoans(true); };
   window.saveBankTrackerLoans = saveLoans;
@@ -33323,6 +33369,23 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   #bottom-sheet-backdrop.open {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+</style>
+<style id="v291-widget-editor-scroll-fix-css">
+  /* Add widget: avoid bottom-edge scroll lock on mobile. */
+  #custom-widget-sheet.custom-widget-fullpage,
+  #custom-widget-sheet.custom-widget-editor-page-v236 {
+    contain: none !important;
+    overscroll-behavior-y: auto !important;
+    padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important;
+    scroll-padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important;
+  }
+  #custom-widget-sheet .custom-widget-modal-grid {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+  }
+  body.custom-widget-editor-open .bottom-nav {
+    pointer-events: none !important;
+    opacity: 0 !important;
   }
 </style>
 <style id="v290-settings-toggle-ios-css">
