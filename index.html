@@ -7483,18 +7483,14 @@ html[data-theme="light"] body::before {
   #page-txns .cat-chip,
   #page-txns .txn-filter-pill,
   #page-settings .theme-mode-toggle button,
-  #page-settings .config-input,
-  #page-settings .toggle-switch,
-  #page-settings .sheets-toggle-switch {
+  #page-settings .config-input {
     background: rgba(88,166,255,.10) !important;
     border-color: rgba(88,166,255,.20) !important;
   }
 
   #page-txns .cat-chip.active,
   #page-txns .txn-filter-pill.active,
-  #page-settings .theme-mode-toggle button.active,
-  #page-settings .toggle-switch.on,
-  #page-settings .sheets-toggle-switch.on {
+  #page-settings .theme-mode-toggle button.active {
     background: rgba(114,246,165,.16) !important;
     border-color: rgba(114,246,165,.34) !important;
     color: #dfffee !important;
@@ -7547,9 +7543,7 @@ html[data-theme="light"] body::before {
   html[data-theme="light"] #page-txns .cat-chip,
   html[data-theme="light"] #page-txns .txn-filter-pill,
   html[data-theme="light"] #page-settings .theme-mode-toggle button,
-  html[data-theme="light"] #page-settings .config-input,
-  html[data-theme="light"] #page-settings .toggle-switch,
-  html[data-theme="light"] #page-settings .sheets-toggle-switch {
+  html[data-theme="light"] #page-settings .config-input {
     background: rgba(37,99,235,.08) !important;
     border-color: rgba(37,99,235,.16) !important;
     color: #173055 !important;
@@ -7557,9 +7551,7 @@ html[data-theme="light"] body::before {
 
   html[data-theme="light"] #page-txns .cat-chip.active,
   html[data-theme="light"] #page-txns .txn-filter-pill.active,
-  html[data-theme="light"] #page-settings .theme-mode-toggle button.active,
-  html[data-theme="light"] #page-settings .toggle-switch.on,
-  html[data-theme="light"] #page-settings .sheets-toggle-switch.on {
+  html[data-theme="light"] #page-settings .theme-mode-toggle button.active {
     background: rgba(22,163,74,.12) !important;
     border-color: rgba(22,163,74,.28) !important;
     color: #166534 !important;
@@ -10234,7 +10226,31 @@ function isGoogleSheetsGvizUrl(url) {
   return /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[^/]+\/gviz\/tq/i.test(String(url || ''));
 }
 
-function fetchGvizViaJsonp(url, timeoutMs = 20000) {
+function isMobileOrStandaloneClient() {
+  try {
+    if (document.documentElement.classList.contains('mobile-perf-mode')) return true;
+    if (document.documentElement.classList.contains('pwa-standalone')) return true;
+    if (typeof isLikelyIOSWebKit === 'function' && isLikelyIOSWebKit()) return true;
+  } catch (_) {}
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+}
+
+function getGvizFetchTimeoutMs() {
+  return isMobileOrStandaloneClient() ? 45000 : 20000;
+}
+
+function getGvizSyncFailureHint() {
+  if (!String(SHEETS_URL || '').trim()) {
+    return ' V Settings skontroluj Google Sheets URL — na mobile sa ukladá zvlast pre kazde zariadenie.';
+  }
+  if (isMobileOrStandaloneClient()) {
+    return ' Na mobile/PWA musi byt Sheet verejny (Share -> Anyone with the link / General access: Anyone). iPhone nema Google cookies zo Safari.';
+  }
+  return ' Skontroluj, ci je Google Sheet zdielany verejne a URL v Settings je spravna.';
+}
+
+function fetchGvizViaJsonp(url, timeoutMs) {
+  const waitMs = Math.max(5000, Number(timeoutMs || getGvizFetchTimeoutMs()));
   return new Promise((resolve, reject) => {
     const callbackName = `__btGvizCb_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const script = document.createElement('script');
@@ -10253,7 +10269,8 @@ function fetchGvizViaJsonp(url, timeoutMs = 20000) {
         reject(error);
         return;
       }
-      const ok = !!data && data.status !== 'error';
+      const gvizErrors = Array.isArray(data && data.errors) ? data.errors : [];
+      const ok = !!data && data.status !== 'error' && !gvizErrors.length;
       const raw = `google.visualization.Query.setResponse(${JSON.stringify(data || {})});`;
       resolve({
         ok,
@@ -10264,6 +10281,8 @@ function fetchGvizViaJsonp(url, timeoutMs = 20000) {
     };
 
     window[callbackName] = (data) => finish(data);
+    script.async = true;
+    script.referrerPolicy = 'no-referrer';
     script.onerror = () => finish(null, new Error('Google Sheets JSONP script load failed'));
 
     try {
@@ -10277,8 +10296,8 @@ function fetchGvizViaJsonp(url, timeoutMs = 20000) {
       gvizUrl.searchParams.set('tqx', `${tqx};responseHandler:${callbackName}`);
       gvizUrl.searchParams.set('cacheBust', String(Date.now()) + '_' + Math.random().toString(36).slice(2));
       script.src = gvizUrl.toString();
-      document.head.appendChild(script);
-      timer = window.setTimeout(() => finish(null, new Error('Google Sheets JSONP timeout')), timeoutMs);
+      (document.body || document.head || document.documentElement).appendChild(script);
+      timer = window.setTimeout(() => finish(null, new Error('Google Sheets JSONP timeout')), waitMs);
     } catch (e) {
       finish(null, e);
     }
@@ -10287,7 +10306,13 @@ function fetchGvizViaJsonp(url, timeoutMs = 20000) {
 
 async function fetchNoStore(url) {
   if (isGoogleSheetsGvizUrl(url)) {
-    return fetchGvizViaJsonp(url);
+    const timeoutMs = getGvizFetchTimeoutMs();
+    try {
+      return await fetchGvizViaJsonp(url, timeoutMs);
+    } catch (firstError) {
+      await new Promise(resolve => window.setTimeout(resolve, isMobileOrStandaloneClient() ? 700 : 250));
+      return fetchGvizViaJsonp(url, timeoutMs);
+    }
   }
   return fetch(url, {
     cache: 'no-store',
@@ -10387,6 +10412,7 @@ async function syncArchivedTransactionsFromSheets(spreadsheetId) {
 async function syncData(options = {}) {
   const startupMode = !!(options && options.startupMode);
   const backgroundMode = !!(options && options.backgroundMode);
+  ensureDefaultConfig();
   clearCloudFirstLocalData();
   if (!isGoogleSheetsEnabled()) {
     console.log('Google Sheets disabled — showing last cached snapshot if available.');
@@ -10445,7 +10471,12 @@ async function syncData(options = {}) {
     }
   } catch(e) {
     console.error('Google Sheets transaction sync failed:', e);
-    if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa nepodarilo načítať. Zobrazuje sa posledná uložená cache.';
+    const syncHint = getGvizSyncFailureHint();
+    if (loadStatus) {
+      loadStatus.textContent = allTransactions.length
+        ? ('Sync zlyhal — zobrazuje sa posledná cache.' + syncHint)
+        : ('Dáta sa nepodarilo načítať.' + syncHint);
+    }
     if (!allTransactions.length) loadCachedTransactionsSnapshot();
   } finally {
     if (btn) btn.classList.remove('spinning');
@@ -20837,6 +20868,7 @@ window.addEventListener('DOMContentLoaded', () => {
     applyLanguage();
     migrateCurrencyStorageToSymbols();
     updateGoogleSheetsToggleUi();
+    ensureDefaultConfig();
     clearCloudFirstLocalData();
     loadCachedTransactionsSnapshot();
     try { reapplySheetAccountBalancesFromStorage(); } catch (_) {}
@@ -20849,6 +20881,15 @@ window.addEventListener('DOMContentLoaded', () => {
     window.setTimeout(() => {
       try { warmHeavyTabCachesSync({ force: false }); } catch (_) {}
     }, 0);
+
+    if (!SHEETS_URL) {
+      const loadStatus = document.getElementById('limits-sync-status');
+      if (loadStatus) {
+        loadStatus.textContent = isMobileOrStandaloneClient()
+          ? 'Na mobile treba v Settings zadať Google Sheets URL (ukladá sa zvlášť pre každé zariadenie).'
+          : 'Google Sheets URL is empty. Paste/save the Sheets URL in Settings to load Overview details.';
+      }
+    }
 
     if (SHEETS_URL && isGoogleSheetsEnabled()) {
       startAutoSync();
@@ -33282,6 +33323,77 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   #bottom-sheet-backdrop.open {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+</style>
+<style id="v290-settings-toggle-ios-css">
+  /* Settings toggles only: solid blue track when ON (iOS-style), grey when OFF. */
+  #page-settings #push-toggle.toggle-switch,
+  #page-settings #sheets-toggle.sheets-toggle-switch,
+  #page-settings .toggle-switch,
+  #page-settings .sheets-toggle-switch {
+    position: relative !important;
+    width: 48px !important;
+    height: 28px !important;
+    min-width: 48px !important;
+    flex: 0 0 48px !important;
+    border-radius: 999px !important;
+    background: #334155 !important;
+    border: 1px solid rgba(148, 163, 184, .28) !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, .18) !important;
+    cursor: pointer !important;
+    transition: background .2s ease, border-color .2s ease !important;
+    color: transparent !important;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  #page-settings #push-toggle.toggle-switch::after,
+  #page-settings #sheets-toggle.sheets-toggle-switch::after,
+  #page-settings .toggle-switch::after,
+  #page-settings .sheets-toggle-switch::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 3px !important;
+    left: 3px !important;
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 999px !important;
+    background: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .28) !important;
+    transition: left .2s ease !important;
+  }
+
+  #page-settings #push-toggle.toggle-switch.on,
+  #page-settings #sheets-toggle.sheets-toggle-switch.on,
+  #page-settings .toggle-switch.on,
+  #page-settings .sheets-toggle-switch.on {
+    background: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, .12) !important;
+  }
+
+  #page-settings #push-toggle.toggle-switch.on::after,
+  #page-settings #sheets-toggle.sheets-toggle-switch.on::after,
+  #page-settings .toggle-switch.on::after,
+  #page-settings .sheets-toggle-switch.on::after {
+    left: 23px !important;
+  }
+
+  html[data-theme="light"] #page-settings #push-toggle.toggle-switch,
+  html[data-theme="light"] #page-settings #sheets-toggle.sheets-toggle-switch,
+  html[data-theme="light"] #page-settings .toggle-switch,
+  html[data-theme="light"] #page-settings .sheets-toggle-switch {
+    background: #cbd5e1 !important;
+    border-color: rgba(100, 116, 139, .35) !important;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, .08) !important;
+  }
+
+  html[data-theme="light"] #page-settings #push-toggle.toggle-switch.on,
+  html[data-theme="light"] #page-settings #sheets-toggle.sheets-toggle-switch.on,
+  html[data-theme="light"] #page-settings .toggle-switch.on,
+  html[data-theme="light"] #page-settings .sheets-toggle-switch.on {
+    background: #2563eb !important;
+    border-color: #2563eb !important;
   }
 </style>
 </body>
