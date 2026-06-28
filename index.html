@@ -8293,14 +8293,14 @@ html[data-theme="light"] body::before {
 </style>
 
 </head>
-<body class="app-boot-pending">
+<body>
 
 <div id="global-sync-indicator" class="global-sync-indicator" hidden aria-live="polite">
   <span class="global-sync-indicator-icon" aria-hidden="true">↻</span>
   <span>Syncing…</span>
 </div>
 
-<div id="page-loading-overlay" class="page-loading-overlay show" aria-busy="true" aria-live="polite">
+<div id="page-loading-overlay" class="page-loading-overlay" aria-live="polite">
   <div class="page-loading-spinner" aria-hidden="true"></div>
 </div>
 
@@ -10409,7 +10409,122 @@ async function syncArchivedTransactionsFromSheets(spreadsheetId) {
   }
 }
 
+const __btPerfState = {
+  samples: [],
+  maxSamples: 60
+};
+
+function btPerfNow() {
+  try { return (window.performance && typeof window.performance.now === 'function') ? window.performance.now() : Date.now(); }
+  catch (_) { return Date.now(); }
+}
+
+function btPerfLog(name, durationMs, details = '') {
+  const ms = Number(durationMs || 0);
+  const item = {
+    name: String(name || 'metric'),
+    ms: Math.max(0, Math.round(ms * 10) / 10),
+    at: new Date().toISOString(),
+    details: details ? String(details) : ''
+  };
+  __btPerfState.samples.push(item);
+  if (__btPerfState.samples.length > __btPerfState.maxSamples) {
+    __btPerfState.samples.splice(0, __btPerfState.samples.length - __btPerfState.maxSamples);
+  }
+  try {
+    const tail = item.details ? ` (${item.details})` : '';
+    console.info(`[BT PERF] ${item.name}: ${item.ms}ms${tail}`);
+  } catch (_) {}
+}
+
+function btPerfSummarize(samples, nameFilter) {
+  const rows = (samples || []).filter((row) => !nameFilter || row.name === nameFilter);
+  if (!rows.length) return null;
+  const values = rows.map((row) => Number(row.ms || 0)).sort((a, b) => a - b);
+  const total = values.reduce((sum, value) => sum + value, 0);
+  const p95Index = Math.max(0, Math.min(values.length - 1, Math.ceil(values.length * 0.95) - 1));
+  return {
+    count: values.length,
+    avgMs: Math.round((total / values.length) * 10) / 10,
+    minMs: values[0],
+    maxMs: values[values.length - 1],
+    p95Ms: values[p95Index]
+  };
+}
+
+window.getBankTrackerPerfSummary = function() {
+  const samples = (__btPerfState.samples || []).slice();
+  const names = [...new Set(samples.map((row) => row.name))];
+  const summary = {};
+  names.forEach((name) => {
+    summary[name] = btPerfSummarize(samples, name);
+  });
+  summary.all = btPerfSummarize(samples);
+  return summary;
+};
+
+window.printBankTrackerPerfMetrics = function() {
+  try {
+    const rows = (__btPerfState.samples || []).slice(-25);
+    if (!rows.length) {
+      console.info('[BT PERF] No samples yet.');
+      return null;
+    }
+    console.table(rows);
+    const summary = window.getBankTrackerPerfSummary();
+    console.info('[BT PERF] Summary (avg / p95 ms):');
+    Object.keys(summary).forEach((key) => {
+      if (key === 'all' || !summary[key]) return;
+      const item = summary[key];
+      console.info(`  ${key}: avg ${item.avgMs}ms, p95 ${item.p95Ms}ms (${item.count} samples)`);
+    });
+    if (summary.all) {
+      console.info(`  all: avg ${summary.all.avgMs}ms, p95 ${summary.all.p95Ms}ms (${summary.all.count} samples)`);
+    }
+    return { rows, summary };
+  } catch (_) {
+    console.info('[BT PERF] print failed');
+    return null;
+  }
+};
+
+window.runBankTrackerPerfSmokeTest = async function(options = {}) {
+  const tabIds = ['overview', 'txns', 'archive', 'settings'];
+  const tabSwitches = Math.max(3, Number(options && options.tabSwitches) || 5);
+  const syncRuns = Math.max(0, Number(options && options.syncRuns) || 1);
+  const includeSync = !(options && options.includeSync === false);
+  const originalTab = String(activePageId || 'overview');
+  const startedAt = btPerfNow();
+
+  console.info(`[BT PERF] Smoke test started (tabs=${tabSwitches}, sync=${includeSync ? syncRuns : 0})`);
+
+  for (let i = 0; i < tabSwitches; i += 1) {
+    const tabId = tabIds[i % tabIds.length];
+    try { showPage(tabId); } catch (e) { console.warn('[BT PERF] showPage failed:', tabId, e); }
+    await new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+    await new Promise((resolve) => window.setTimeout(resolve, 140));
+  }
+
+  try { showPage(originalTab); } catch (_) {}
+
+  if (includeSync && syncRuns > 0 && typeof syncData === 'function' && SHEETS_URL) {
+    for (let i = 0; i < syncRuns; i += 1) {
+      try {
+        await syncData({ backgroundMode: true });
+      } catch (e) {
+        console.warn('[BT PERF] syncData smoke run failed:', e);
+      }
+    }
+  }
+
+  btPerfLog('perfSmokeTest', btPerfNow() - startedAt, `tabs=${tabSwitches},sync=${includeSync ? syncRuns : 0}`);
+  return window.printBankTrackerPerfMetrics();
+};
+
 async function syncData(options = {}) {
+  const syncPerfStart = btPerfNow();
   const startupMode = !!(options && options.startupMode);
   const backgroundMode = !!(options && options.backgroundMode);
   const showFullScreenLoader = !!(options && options.showFullScreenLoader);
@@ -10418,7 +10533,7 @@ async function syncData(options = {}) {
     if (!showFullScreenLoader || fullScreenLoaderClosed) return;
     fullScreenLoaderClosed = true;
     finishAppBoot();
-    if (shouldAnimateOverview) requestAnimationFrame(() => playOverviewChartIntro());
+    if (shouldAnimateOverview && !__overviewChartBootIntroDone) scheduleOverviewChartBootIntroOnce();
   };
 
   if (showFullScreenLoader) {
@@ -10503,7 +10618,7 @@ async function syncData(options = {}) {
     try { recomputeAccountBalancesForLoadedMonths(); } catch (e) { console.warn('Account balance recompute after sync failed:', e); }
     if (backgroundMode || !startupMode) {
       try { window.__overviewBalanceAnimateNext = true; } catch (_) {}
-      renderAll();
+      renderAll({ deferHeavy: !!backgroundMode, visibleOnly: true });
       applyLanguage();
       try { window.__overviewBalanceAnimateNext = false; } catch (_) {}
     }
@@ -10511,6 +10626,11 @@ async function syncData(options = {}) {
     markCloudSyncCompleted();
     const overviewVisible = activePageId === 'overview' || !!document.getElementById('page-overview')?.classList.contains('active');
     closeFullScreenLoader(overviewVisible);
+    btPerfLog('syncData', btPerfNow() - syncPerfStart, [
+      startupMode ? 'startup' : 'manual',
+      backgroundMode ? 'background' : 'foreground',
+      showFullScreenLoader ? 'overlay' : 'no-overlay'
+    ].join(','));
   }
 }
 
@@ -13159,12 +13279,29 @@ function renderOverviewDashboard() {
       );
     }
   }
+  try {
+    if (!__overviewChartBootIntroDone) scheduleOverviewChartBootIntroOnce();
+    else setupOverviewScrollChartAnimations();
+  } catch (_) {}
 }
 
-function playOverviewChartIntro() {
+let __overviewChartBootIntroDone = false;
+let __overviewChartIntroLastAt = 0;
+const OVERVIEW_CHART_INTRO_COOLDOWN_MS = 2200;
+
+function playOverviewChartIntro(options = {}) {
+  const reason = String((options && options.reason) || 'generic');
+  const force = !!(options && options.force);
+  const now = Date.now();
+  if (!force) {
+    if (!__overviewChartBootIntroDone && reason !== 'boot') return;
+    if ((now - __overviewChartIntroLastAt) < OVERVIEW_CHART_INTRO_COOLDOWN_MS) return;
+  }
+
   const root = document.getElementById('page-overview');
   if (!root) return;
   if (!root.querySelector('.overview-widget-arc, .overview-widget-line, .overview-widget-fill, .wealth-networth-trend-line-v238')) return;
+  __overviewChartIntroLastAt = now;
   root.classList.remove('overview-charts-animating');
   void root.offsetWidth;
   requestAnimationFrame(() => {
@@ -13172,6 +13309,60 @@ function playOverviewChartIntro() {
     window.setTimeout(() => root.classList.remove('overview-charts-animating'), 1500);
   });
 }
+
+function scheduleOverviewChartBootIntroOnce() {
+  if (__overviewChartBootIntroDone) return;
+  const root = document.getElementById('page-overview');
+  if (!root || !root.querySelector('.overview-widget-arc, .overview-widget-line, .overview-widget-fill, .wealth-networth-trend-line-v238')) return;
+  __overviewChartBootIntroDone = true;
+  requestAnimationFrame(() => {
+    playOverviewChartIntro({ reason: 'boot', force: true });
+    try { setupOverviewScrollChartAnimations({ armDelayMs: 1700 }); } catch (_) {}
+  });
+}
+
+let __overviewChartScrollObserver = null;
+let __overviewChartScrollAnimLastMs = 0;
+
+function setupOverviewScrollChartAnimations(options = {}) {
+  const page = document.getElementById('page-overview');
+  if (!page) return;
+  try { if (__overviewChartScrollObserver) __overviewChartScrollObserver.disconnect(); } catch (_) {}
+  __overviewChartScrollObserver = null;
+  if (!('IntersectionObserver' in window)) return;
+
+  const watch = [
+    document.getElementById('overview-card-limits-gauge')?.closest('.wealth-card'),
+    document.getElementById('overview-bank-budget-line')?.closest('.wealth-card'),
+    page.querySelector('.wealth-networth-trend-v238')?.closest('.wealth-card'),
+    page.querySelector('.custom-widget-card')
+  ].filter(Boolean);
+  if (!watch.length) return;
+
+  let skipInitialPass = true;
+  const armDelayMs = Math.max(400, Number(options && options.armDelayMs) || 1200);
+
+  __overviewChartScrollObserver = new IntersectionObserver((entries) => {
+    if (skipInitialPass || activePageId !== 'overview') return;
+    const now = Date.now();
+    if ((now - __overviewChartScrollAnimLastMs) < OVERVIEW_CHART_INTRO_COOLDOWN_MS) return;
+    for (const entry of entries) {
+      if (!entry || !entry.isIntersecting || entry.intersectionRatio < 0.42) continue;
+      __overviewChartScrollAnimLastMs = now;
+      playOverviewChartIntro({ reason: 'scroll' });
+      break;
+    }
+  }, {
+    root: page,
+    threshold: [0.42]
+  });
+
+  watch.forEach((el) => {
+    try { __overviewChartScrollObserver.observe(el); } catch (_) {}
+  });
+  window.setTimeout(() => { skipInitialPass = false; }, armDelayMs);
+}
+try { window.setupOverviewScrollChartAnimations = setupOverviewScrollChartAnimations; } catch (_) {}
 try { window.playOverviewChartIntro = playOverviewChartIntro; } catch (_) {}
 
 function openOverviewDetailsSection(anchorId = '') {
@@ -13272,10 +13463,40 @@ function renderDirtyTabSection(pageId) {
 }
 try { window.renderDirtyTabSection = renderDirtyTabSection; } catch (_) {}
 
+function bootstrapUiFromCache(options = {}) {
+  const bootstrapPerfStart = btPerfNow();
+  const deferHeavy = options.deferHeavy !== false;
+  try { finishAppBoot(); } catch (_) {}
+  try { loadCachedTransactionsSnapshot(); } catch (_) {}
+  try { reapplySheetAccountBalancesFromStorage(); } catch (_) {}
+  try {
+    const headerMonth = document.getElementById('header-month');
+    if (headerMonth) headerMonth.textContent = getMonthLabel();
+    updateOverviewMonthNavState();
+  } catch (_) {}
+  btPerfLog('bootstrapShell', btPerfNow() - bootstrapPerfStart, 'cache+header');
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(() => {
+      try { recomputeAccountBalancesForLoadedMonths(); } catch (_) {}
+    }, { timeout: 1200 });
+  } else {
+    window.setTimeout(() => { try { recomputeAccountBalancesForLoadedMonths(); } catch (_) {} }, 0);
+  }
+  try { renderAll({ visibleOnly: true, deferHeavy }); } catch (_) {}
+  try { applyLanguage(); } catch (_) {}
+  btPerfLog('bootstrapCache', btPerfNow() - bootstrapPerfStart, deferHeavy ? 'defer-heavy' : 'eager-heavy');
+}
+try { window.bootstrapUiFromCache = bootstrapUiFromCache; } catch (_) {}
+
 function renderAll(options = {}) {
+  const renderAllPerfStart = btPerfNow();
   const forceArchiveRebuild = !!(options && options.forceArchiveRebuild);
+  const renderVisibleOnly = options.eagerAllTabs !== true;
+  const deferHeavy = !!(options && options.deferHeavy);
   allTransactions = sortTransactionsNewestFirst(allTransactions);
-  rebuildLocalArchiveStatsFromTransactions({ force: forceArchiveRebuild });
+  if (!(deferHeavy && !forceArchiveRebuild)) {
+    rebuildLocalArchiveStatsFromTransactions({ force: forceArchiveRebuild });
+  }
 
   const month = getAktuálneMonth();
   const monthTxns = getCurrentMonthOutgoingTransactions();
@@ -13295,44 +13516,64 @@ function renderAll(options = {}) {
   const totalMonthSpent = archiveMonthSpent;
   updateOverviewSummaryStrip(totalMonthSpent, monthAllTxns.length);
 
-  // Bank budget intentionally includes every payment kind: cards, account payments and cash.
-  try {
-    renderBudgetStatus();
-  } catch (e) {
-    document.documentElement.setAttribute('data-render-budget-error', String(e && e.message ? e.message : e));
-    console.error('Budget status render failed:', e);
-  }
-  try {
-    renderAccountBalanceWidget();
-  } catch (e) {
-    document.documentElement.setAttribute('data-render-balance-error', String(e && e.message ? e.message : e));
-    console.error('Account balance render failed:', e);
+  const renderHeavyOverviewSections = () => {
+    try {
+      renderBudgetStatus();
+    } catch (e) {
+      document.documentElement.setAttribute('data-render-budget-error', String(e && e.message ? e.message : e));
+      console.error('Budget status render failed:', e);
+    }
+    try {
+      renderAccountBalanceWidget();
+    } catch (e) {
+      document.documentElement.setAttribute('data-render-balance-error', String(e && e.message ? e.message : e));
+      console.error('Account balance render failed:', e);
+    }
+    let byBankMonth = {};
+    try {
+      byBankMonth = getTransactionsByBank(true, true);
+      renderBankCards(byBankMonth);
+    } catch (e) {
+      document.documentElement.setAttribute('data-render-cards-error', String(e && e.message ? e.message : e));
+      console.error('Bank cards render failed:', e);
+    }
+    try {
+      renderOverviewDashboard();
+    } catch (e) {
+      document.documentElement.setAttribute('data-render-overview-error', String(e && e.message ? e.message : e));
+      console.error('Overview dashboard render failed:', e);
+    }
+  };
+
+  const shouldDeferHeavy = deferHeavy && renderVisibleOnly && (activePageId === 'overview' || !!document.getElementById('page-overview')?.classList.contains('active'));
+  if (shouldDeferHeavy) {
+    const runDeferredHeavy = () => {
+      try { renderHeavyOverviewSections(); } catch (e) { console.error('Deferred overview render failed:', e); }
+    };
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(runDeferredHeavy, { timeout: 900 });
+    } else {
+      requestAnimationFrame(runDeferredHeavy);
+    }
+  } else {
+    renderHeavyOverviewSections();
   }
 
-  // Bank card limits intentionally use card-only transactions.
-  let byBankMonth = {};
-  try {
-    byBankMonth = getTransactionsByBank(true, true);
-    renderBankCards(byBankMonth);
-  } catch (e) {
-    document.documentElement.setAttribute('data-render-cards-error', String(e && e.message ? e.message : e));
-    console.error('Bank cards render failed:', e);
+  // Default: render only the visible tab eagerly and mark the rest dirty.
+  if (renderVisibleOnly) {
+    renderDeferredTabSections(monthTxns);
+  } else {
+    renderTransactionsSection(monthTxns);
+    renderArchiveSection();
   }
-  try {
-    renderOverviewDashboard();
-  } catch (e) {
-    document.documentElement.setAttribute('data-render-overview-error', String(e && e.message ? e.message : e));
-    console.error('Overview dashboard render failed:', e);
-  }
-
-
-  // Render all tabs eagerly so tab switches never show a loading spinner.
-  renderTransactionsSection(monthTxns);
-  renderArchiveSection();
   populateSimulatorLimitMonthDropdown(getSimulatorLimitMonth());
   populateSettingsLimitMonthDropdown(getSettingsLimitMonth());
 
   applyLanguage();
+  btPerfLog('renderAll', btPerfNow() - renderAllPerfStart, [
+    renderVisibleOnly ? 'visible-only' : 'full',
+    shouldDeferHeavy ? 'defer-heavy' : 'eager-heavy'
+  ].join(','));
 }
 
 function renderBankCards(byBank) {
@@ -14915,6 +15156,7 @@ function resetTransactionFilters() {
 }
 
 function showPage(pageId, options = {}) {
+  const showPagePerfStart = btPerfNow();
   const previousPageId = activePageId;
   const fromHistory = !!(options && options.fromHistory);
   const shouldPushHistory = !fromHistory && window.__bankTrackerTabHistoryReady && activePageId !== pageId;
@@ -14964,6 +15206,7 @@ function showPage(pageId, options = {}) {
   }
 
   if (pageId === 'archive') {
+    try { renderDirtyTabSection('archive'); } catch (_) {}
     window.setTimeout(() => {
       try { maybeLoadMoreArchiveMonths(); } catch(_) {}
     }, 20);
@@ -14993,12 +15236,17 @@ function showPage(pageId, options = {}) {
 
   scheduleFloatingUtilityUpdate();
 
-  // Always replay Overview chart intro when Overview tab is clicked.
-  // This keeps the behavior consistent even when user is already on Overview
-  // and taps the tab again from a different scroll position.
   if (pageId === 'overview') {
-    requestAnimationFrame(() => playOverviewChartIntro());
+    requestAnimationFrame(() => {
+      playOverviewChartIntro({ reason: 'tab', force: true });
+      try { setupOverviewScrollChartAnimations({ armDelayMs: 1200 }); } catch (_) {}
+    });
   }
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      btPerfLog('tabSwitch', btPerfNow() - showPagePerfStart, String(pageId || 'unknown'));
+    });
+  });
 }
 
 
@@ -15356,7 +15604,7 @@ document.addEventListener('visibilitychange', () => {
   lastResumeSyncAtMs = now;
   setTimeout(function(){
     if (!document.hidden && !isSyncing && SHEETS_URL) {
-      syncData({ showFullScreenLoader: true });
+      syncData({ backgroundMode: true });
     }
   }, 650);
 });
@@ -15758,6 +16006,8 @@ function initGlobalPullDownControl() {
     const openSheet = document.querySelector('.bottom-sheet.open');
     const sheetOpen = document.body.classList.contains('sheet-open') && !!openSheet;
     const insideSheet = !!(openSheet && event.target.closest && event.target.closest('.bottom-sheet.open'));
+    const managerSheetOpen = !!(openSheet && (openSheet.id === 'bank-manager-sheet' || openSheet.id === 'loan-manager-sheet'));
+    const managerHandleGesture = !!(managerSheetOpen && event.target && event.target.closest && event.target.closest('.sheet-handle, .sheet-title-row, .loan-manager-sheet-note'));
 
     const atTop =
       window.scrollY <= 0 &&
@@ -15773,7 +16023,9 @@ function initGlobalPullDownControl() {
 
     // Let the bottom sheet drag handler own gestures that start inside the sheet.
     if (insideSheet) {
-      if (pullingDown && openSheet.scrollTop <= 0 && event.cancelable) event.preventDefault();
+      if ((pullingDown && openSheet.scrollTop <= 0 && event.cancelable) || (managerHandleGesture && event.cancelable)) {
+        event.preventDefault();
+      }
       return;
     }
 
@@ -15926,7 +16178,8 @@ function initBottomSheetDragToClose() {
       clearRaf();
       sheet.classList.remove('dragging');
       sheet.classList.add('sheet-snapping');
-      const snapMs = (sheet.id === 'bank-manager-sheet' || sheet.id === 'loan-manager-sheet') ? '.16s' : '.20s';
+      const managerSheet = sheet.id === 'bank-manager-sheet' || sheet.id === 'loan-manager-sheet';
+      const snapMs = managerSheet ? '0s' : '.20s';
       sheet.style.setProperty('transition', `transform ${snapMs} cubic-bezier(.22,.72,.23,1)`, 'important');
       setSheetY(0);
 
@@ -15937,7 +16190,7 @@ function initBottomSheetDragToClose() {
           sheet.style.removeProperty('transform');
         }
         resetState();
-      }, (sheet.id === 'bank-manager-sheet' || sheet.id === 'loan-manager-sheet') ? 170 : 220);
+      }, managerSheet ? 24 : 220);
     };
 
     const beginTracking = (event) => {
@@ -16040,11 +16293,16 @@ function initBottomSheetDragToClose() {
 
 
 let __sheetScrollLockY = 0;
+let __sheetScrollLockMode = 'none';
 
 function lockPageScrollForSheet() {
   if (document.body.dataset.sheetScrollLocked === 'true') return;
+  const activeSheetId = String(document.body.dataset.activeSheet || '');
+  const lightweightLock = activeSheetId === 'bank-manager-sheet' || activeSheetId === 'loan-manager-sheet';
   __sheetScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
+  __sheetScrollLockMode = lightweightLock ? 'light' : 'fixed';
   document.body.dataset.sheetScrollLocked = 'true';
+  if (lightweightLock) return;
   document.body.style.position = 'fixed';
   document.body.style.top = `-${__sheetScrollLockY}px`;
   document.body.style.left = '0';
@@ -16060,11 +16318,14 @@ function unlockPageScrollForSheet() {
   document.body.style.removeProperty('left');
   document.body.style.removeProperty('right');
   document.body.style.removeProperty('width');
-  window.scrollTo(0, __sheetScrollLockY || 0);
+  if (__sheetScrollLockMode === 'fixed') {
+    window.scrollTo(0, __sheetScrollLockY || 0);
+  }
+  __sheetScrollLockMode = 'none';
 }
 
 function shouldAnimateBottomSheet(sheetId) {
-  return ['upgrade-sheet', 'quick-add-sheet', 'bank-manager-sheet', 'loan-manager-sheet', 'txn-filter-sheet', 'custom-widget-sheet'].includes(String(sheetId || ''));
+  return ['upgrade-sheet', 'quick-add-sheet', 'txn-filter-sheet', 'custom-widget-sheet'].includes(String(sheetId || ''));
 }
 
 function isCustomWidgetFullpageSheet(sheetId) {
@@ -16715,7 +16976,21 @@ function openAddTransactionSheet(){
     }, document.documentElement.classList.contains('android-pwa-perf') ? 80 : 20);
   });
 }
-function openBankManagerSheet(){switchManagementTab('banks');renderBankManager();openSheet('bank-manager-sheet')}
+function openBankManagerSheet(){
+  switchManagementTab('banks');
+  if (typeof openSheet === 'function') openSheet('bank-manager-sheet');
+  window.setTimeout(function(){
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(function(){
+        try { renderBankManager(); } catch (_) {}
+      }, { timeout: 1200 });
+      return;
+    }
+    requestAnimationFrame(function(){
+      try { renderBankManager(); } catch (_) {}
+    });
+  }, 140);
+}
 
 async function saveNewBank(){
   const name=document.getElementById('new-bank-name')?.value.trim();
@@ -20828,9 +21103,6 @@ function warmHeavyTabCachesSync(options = {}) {
   try { rebuildLocalArchiveStatsFromTransactions({ force: !!(options && options.force) }); } catch (e) {
     console.warn('Archive stats warm-up failed:', e);
   }
-  try { prepareUiAfterDataLoad({ forceArchiveRebuild: false }); } catch (e) {
-    console.warn('Tab warm-up render failed:', e);
-  }
   try {
     markLocalCacheTimestamp('cached_archive_stats_updated_at');
     markLocalCacheTimestamp('cached_archive_chart_updated_at');
@@ -20853,20 +21125,30 @@ function warmStartupCachesDeferred(options = {}) {
   const originalRenderAll = renderAll;
   const STARTUP_COALESCE_UNTIL = Date.now() + 3000;
   let scheduled = false;
-  let queuedForceArchive = false;
+  let queuedOptions = { deferHeavy: false, eagerAllTabs: false, forceArchiveRebuild: false };
+
+  const mergeQueuedRenderAllOptions = (options = {}) => {
+    if (options.deferHeavy) queuedOptions.deferHeavy = true;
+    if (options.eagerAllTabs) queuedOptions.eagerAllTabs = true;
+    if (options.forceArchiveRebuild) queuedOptions.forceArchiveRebuild = true;
+  };
 
   const runQueuedRender = () => {
     scheduled = false;
-    const force = queuedForceArchive;
-    queuedForceArchive = false;
-    try { originalRenderAll.call(window, { forceArchiveRebuild: force }); }
+    const opts = {
+      deferHeavy: !!queuedOptions.deferHeavy,
+      eagerAllTabs: !!queuedOptions.eagerAllTabs,
+      forceArchiveRebuild: !!queuedOptions.forceArchiveRebuild
+    };
+    queuedOptions = { deferHeavy: false, eagerAllTabs: false, forceArchiveRebuild: false };
+    try { originalRenderAll.call(window, opts); }
     catch (e) { console.warn('Coalesced renderAll failed:', e); }
   };
 
   const coalescedRenderAll = function(options = {}) {
     // After the startup window, keep the original synchronous behavior.
     if (Date.now() > STARTUP_COALESCE_UNTIL) return originalRenderAll.call(this, options);
-    if (options && options.forceArchiveRebuild) queuedForceArchive = true;
+    mergeQueuedRenderAllOptions(options || {});
     if (scheduled) return;
     scheduled = true;
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(runQueuedRender);
@@ -20880,10 +21162,7 @@ function warmStartupCachesDeferred(options = {}) {
 
 window.addEventListener('DOMContentLoaded', () => {
   const loaderFailSafe = setTimeout(() => {
-    try {
-      if (!allTransactions.length) loadCachedTransactionsSnapshot();
-    } catch (_) {}
-    finishAppBoot();
+    try { finishAppBoot(); } catch (_) {}
     window.setTimeout(() => {
       try { warmHeavyTabCachesSync({ force: false }); } catch (_) {}
     }, 0);
@@ -20892,20 +21171,16 @@ window.addEventListener('DOMContentLoaded', () => {
   try {
     applyAppTheme(getAppTheme());
     clearDemoTransactionsCacheIfNeeded();
-    applyLanguage();
     migrateCurrencyStorageToSymbols();
     updateGoogleSheetsToggleUi();
     ensureDefaultConfig();
     clearCloudFirstLocalData();
-    loadCachedTransactionsSnapshot();
-    try { reapplySheetAccountBalancesFromStorage(); } catch (_) {}
-    try { recomputeAccountBalancesForLoadedMonths(); } catch (_) {}
-    try { renderAll(); } catch (_) {}
+    bootstrapUiFromCache({ deferHeavy: true });
 
     if (SHEETS_URL && isGoogleSheetsEnabled()) {
       startAutoSync();
       window.setTimeout(() => {
-        syncData({ showFullScreenLoader: true })
+        syncData({ backgroundMode: true })
           .catch((e) => {
             console.warn('Startup cloud sync failed:', e);
           })
@@ -20915,11 +21190,10 @@ window.addEventListener('DOMContentLoaded', () => {
               try { warmHeavyTabCachesSync({ force: false }); } catch (_) {}
             }, 0);
           });
-      }, 120);
+      }, 180);
       return;
     }
 
-    finishAppBoot();
     clearTimeout(loaderFailSafe);
 
     window.setTimeout(() => {
@@ -20942,7 +21216,7 @@ window.addEventListener('DOMContentLoaded', () => {
       document.documentElement.setAttribute('data-local-test-seed-error', String(e && e.message ? e.message : e));
       console.error('Local test data seed failed:', e);
     }
-    loadCachedTransactionsSnapshot();
+    try { renderAll({ visibleOnly: true }); } catch (_) {}
     if (!SHEETS_URL) {
       const loadStatus = document.getElementById('limits-sync-status');
       if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
@@ -21701,9 +21975,27 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     </article>`;
   }
 
+  let customWidgetLazyObserver = null;
+  let customWidgetLazyHydrateTimer = null;
+
+  function shouldUseCustomWidgetLazyRender() {
+    try {
+      if (document.documentElement.classList.contains('mobile-perf-mode')) return true;
+      return !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
+    } catch (_) {
+      return false;
+    }
+  }
+
   function renderCustomWidgets() {
     const slot = document.getElementById('custom-widget-dashboard');
     if (!slot) return;
+    try { if (customWidgetLazyObserver) customWidgetLazyObserver.disconnect(); } catch (_) {}
+    customWidgetLazyObserver = null;
+    if (customWidgetLazyHydrateTimer) {
+      clearTimeout(customWidgetLazyHydrateTimer);
+      customWidgetLazyHydrateTimer = null;
+    }
     const widgets = loadCustomWidgets();
     const visible = widgets.filter(w => !w.hidden);
     if (!visible.length) {
@@ -21711,7 +22003,57 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       renderCustomWidgetHiddenList();
       return;
     }
-    slot.innerHTML = visible.map(w => renderCustomWidgetCard(w, getCustomWidgetStats(w))).join('');
+    const lazyMode = shouldUseCustomWidgetLazyRender();
+    if (!lazyMode || visible.length <= 3) {
+      slot.innerHTML = visible.map(w => renderCustomWidgetCard(w, getCustomWidgetStats(w))).join('');
+      renderCustomWidgetHiddenList();
+      return;
+    }
+
+    const viewportHeight = Math.max(560, Number(window.innerHeight || 0));
+    const initialCount = Math.max(2, Math.min(visible.length, Math.ceil(viewportHeight / 260) + 1));
+    const cardsHtml = visible.map((widget, idx) => {
+      if (idx < initialCount) return renderCustomWidgetCard(widget, getCustomWidgetStats(widget));
+      return `<article class="custom-widget-card custom-widget-lazy-shell" data-widget-lazy-index="${idx}" aria-hidden="true"><div class="custom-widget-meta"><strong>${escapeHtml(widget.name || 'Widget')}</strong><span>Loading widget…</span></div></article>`;
+    }).join('');
+    slot.innerHTML = cardsHtml;
+
+    const hydrateWidgetAtIndex = (idx) => {
+      const target = slot.querySelector(`[data-widget-lazy-index="${idx}"]`);
+      if (!target) return;
+      const widget = visible[idx];
+      if (!widget) return;
+      target.outerHTML = renderCustomWidgetCard(widget, getCustomWidgetStats(widget));
+    };
+
+    try {
+      customWidgetLazyObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const idx = Number(entry.target && entry.target.dataset && entry.target.dataset.widgetLazyIndex);
+          observer.unobserve(entry.target);
+          if (!Number.isFinite(idx)) return;
+          hydrateWidgetAtIndex(idx);
+        });
+      }, {
+        root: null,
+        rootMargin: '280px 0px',
+        threshold: 0.01
+      });
+      slot.querySelectorAll('.custom-widget-lazy-shell').forEach((node) => customWidgetLazyObserver.observe(node));
+    } catch (_) {}
+
+    // Failsafe: hydrate remaining cards after interaction settles.
+    customWidgetLazyHydrateTimer = window.setTimeout(() => {
+      slot.querySelectorAll('.custom-widget-lazy-shell').forEach((node) => {
+        const idx = Number(node && node.dataset && node.dataset.widgetLazyIndex);
+        if (Number.isFinite(idx)) hydrateWidgetAtIndex(idx);
+      });
+      try { if (customWidgetLazyObserver) customWidgetLazyObserver.disconnect(); } catch (_) {}
+      customWidgetLazyObserver = null;
+      customWidgetLazyHydrateTimer = null;
+    }, 2800);
+
     renderCustomWidgetHiddenList();
   }
 
@@ -24476,19 +24818,24 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (list) list.innerHTML = '<div class="archive-detail-loader">Loading loans…</div>';
     if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
     window.setTimeout(function(){
-      requestAnimationFrame(function(){
-        requestAnimationFrame(function(){
-          try { renderLoanManager(); } catch (_) {}
-        });
-      });
-    }, 120);
+      var runRender = function(){
+        var sheet = document.getElementById('loan-manager-sheet');
+        if (!sheet || !sheet.classList.contains('open')) return;
+        try { renderLoanManager(); } catch (_) {}
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(runRender, { timeout: 1400 });
+      } else {
+        requestAnimationFrame(runRender);
+      }
+    }, 260);
     window.setTimeout(function(){
       syncLoansNow(false).then(function(loaded){
         if (!loaded) {
           try { renderLoanManager(); } catch (_) {}
         }
       });
-    }, 540);
+    }, 900);
   };
   window.saveNewLoanFromManager = async function(){
     ensureLoanManagerDom();
@@ -25164,7 +25511,16 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   var oldOpenLoan = window.openLoanManagerSheet;
   window.openLoanManagerSheet = function(){
     var r = oldOpenLoan ? oldOpenLoan.apply(this, arguments) : undefined;
-    setTimeout(function(){ ensureLoanPeriodFields(); try { renderLoanManager && renderLoanManager(); } catch(_) {} }, 0);
+    setTimeout(function(){
+      var run = function(){
+        var sheet = document.getElementById('loan-manager-sheet');
+        if (!sheet || !sheet.classList.contains('open')) return;
+        ensureLoanPeriodFields();
+        try { renderLoanManager && renderLoanManager(); } catch(_) {}
+      };
+      if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 1200 });
+      else requestAnimationFrame(run);
+    }, 260);
     return r;
   };
 
@@ -25422,7 +25778,16 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   window.openLoanManagerSheet = function(){
     cleanLoanStorage();
     var result = previousOpenLoanManagerSheet ? previousOpenLoanManagerSheet.apply(this, arguments) : undefined;
-    setTimeout(function(){ cleanLoanStorage(); if (typeof window.renderLoanManager === 'function') window.renderLoanManager(); }, 0);
+    setTimeout(function(){
+      var run = function(){
+        var sheet = document.getElementById('loan-manager-sheet');
+        if (!sheet || !sheet.classList.contains('open')) return;
+        cleanLoanStorage();
+        if (typeof window.renderLoanManager === 'function') window.renderLoanManager();
+      };
+      if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 1200 });
+      else requestAnimationFrame(run);
+    }, 280);
     return result;
   };
 
@@ -25607,7 +25972,16 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   window.openLoanManagerSheet = function(){
     cleanLoanStorage();
     var result = previousOpen ? previousOpen.apply(this, arguments) : undefined;
-    setTimeout(function(){ cleanLoanStorage(); if (typeof window.renderLoanManager === 'function') window.renderLoanManager(); }, 50);
+    setTimeout(function(){
+      var run = function(){
+        var sheet = document.getElementById('loan-manager-sheet');
+        if (!sheet || !sheet.classList.contains('open')) return;
+        cleanLoanStorage();
+        if (typeof window.renderLoanManager === 'function') window.renderLoanManager();
+      };
+      if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 1300 });
+      else requestAnimationFrame(run);
+    }, 320);
     return result;
   };
 
@@ -26086,12 +26460,17 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (list) list.innerHTML = '<div class="archive-detail-loader">Loading loans…</div>';
     if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
     window.setTimeout(function(){
-      requestAnimationFrame(function(){
-        requestAnimationFrame(function(){
-          try { window.renderLoanManager(); } catch (_) {}
-        });
-      });
-    }, 120);
+      var runRender = function(){
+        var sheet = document.getElementById('loan-manager-sheet');
+        if (!sheet || !sheet.classList.contains('open')) return;
+        try { window.renderLoanManager(); } catch (_) {}
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(runRender, { timeout: 1400 });
+      } else {
+        requestAnimationFrame(runRender);
+      }
+    }, 260);
     window.setTimeout(function(){
       syncLoansNow(false).then(function(ok){
         setLoanStatus(ok ? 'Loans loaded.' : 'Using local loan cache.');
@@ -26099,7 +26478,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
           try { window.renderLoanManager(); } catch (_) {}
         }
       });
-    }, 540);
+    }, 900);
   };
   try { openLoanManagerSheet = window.openLoanManagerSheet; } catch(_) {}
 
@@ -29667,19 +30046,39 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     });
   }
   function rerenderPrivacyTargets(){
-    ['renderOverviewDashboard','renderAccountBalanceWidget','renderCustomWidgets','updateTxnPage','renderArchivePage','renderOverviewDetailsPage'].forEach(function(name){
-      try {
-        if (typeof window[name] === 'function') window[name]();
-      } catch(_) {}
-    });
+    try { if (typeof window.renderOverviewDashboard === 'function') window.renderOverviewDashboard(); } catch(_) {}
+    try { if (typeof window.renderAccountBalanceWidget === 'function') window.renderAccountBalanceWidget(); } catch(_) {}
+    var page = String(window.activePageId || (typeof activePageId !== 'undefined' ? activePageId : '') || '');
+    if (page === 'overview') {
+      try { if (typeof window.renderCustomWidgets === 'function') window.renderCustomWidgets(); } catch(_) {}
+      return;
+    }
+    if (page === 'txns') {
+      try { if (typeof window.updateTxnPage === 'function') window.updateTxnPage(); } catch(_) {}
+      return;
+    }
+    if (page === 'archive') {
+      try { if (typeof window.renderArchivePage === 'function') window.renderArchivePage(); } catch(_) {}
+      return;
+    }
+    if (page === 'overview-details') {
+      try { if (typeof window.renderOverviewDetailsPage === 'function') window.renderOverviewDetailsPage(); } catch(_) {}
+    }
   }
   function togglePrivacyStable(){
     var next = !isPrivacyHidden();
     try { localStorage.setItem(PRIVACY_KEY, String(next)); } catch(_) {}
     document.documentElement.setAttribute('data-values-hidden', next ? 'true' : 'false');
-    if (!next) rerenderPrivacyTargets();
+    applyPrivacyStable();
+    if (!next) {
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(function(){ requestAnimationFrame(rerenderPrivacyTargets); });
+      } else {
+        setTimeout(rerenderPrivacyTargets, 32);
+      }
+    }
     setTimeout(applyPrivacyStable, 0);
-    setTimeout(applyPrivacyStable, 120);
+    setTimeout(applyPrivacyStable, 90);
   }
   function wrapRenderForPrivacy(name){
     var fn = window[name] || (typeof globalThis[name] === 'function' ? globalThis[name] : null);
@@ -31203,19 +31602,24 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
     setLoanAddCardVisibility();
     window.setTimeout(function(){
-      requestAnimationFrame(function(){
-        requestAnimationFrame(function(){
-          try { window.renderLoanManager(); } catch (_) {}
-        });
-      });
-    }, 120);
+      var runRender = function(){
+        var sheet = byId('loan-manager-sheet');
+        if (!sheet || !sheet.classList.contains('open')) return;
+        try { window.renderLoanManager(); } catch (_) {}
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(runRender, { timeout: 1400 });
+      } else {
+        requestAnimationFrame(runRender);
+      }
+    }, 260);
     window.setTimeout(function(){
       syncLoansNow(false).then(function(loaded){
         if (!loaded) {
           try { window.renderLoanManager(); } catch (_) {}
         }
       });
-    }, 540);
+    }, 900);
   };
   window.getBankTrackerLoans = function(){ return getLoans(true); };
   window.saveBankTrackerLoans = saveLoans;
@@ -33371,6 +33775,29 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     -webkit-backdrop-filter: none !important;
   }
 </style>
+<style id="v292-manager-no-slide-css">
+  /* Manage banks/loans: remove open/close slide/fade transitions to stop jerk. */
+  #bank-manager-sheet,
+  #loan-manager-sheet,
+  #bank-manager-sheet.open,
+  #loan-manager-sheet.open,
+  #bank-manager-sheet.sheet-snapping,
+  #loan-manager-sheet.sheet-snapping {
+    transition: none !important;
+    animation: none !important;
+  }
+  /* Keep Loans manager as instant card (no bottom-up roller). */
+  #loan-manager-sheet {
+    transform: translateX(-50%) translateY(0) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  #loan-manager-sheet.open {
+    transform: translateX(-50%) translateY(0) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+</style>
 <style id="v291-widget-editor-scroll-fix-css">
   /* Add widget: avoid bottom-edge scroll lock on mobile. */
   #custom-widget-sheet.custom-widget-fullpage,
@@ -33386,6 +33813,34 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   body.custom-widget-editor-open .bottom-nav {
     pointer-events: none !important;
     opacity: 0 !important;
+  }
+</style>
+<style id="v293-mobile-content-visibility-css">
+  /* Mobile: render heavy cards only when they enter viewport. */
+  @media (max-width: 900px) {
+    #page-overview .wealth-card,
+    #page-overview .budget-status,
+    #page-overview .custom-widget-card,
+    #page-overview .daily-chart-card,
+    #page-txns .txn-cashflow-card,
+    #page-archive .archive-trend-card,
+    #page-archive .archive-container,
+    #page-settings .managed-bank-row,
+    #page-settings .loan-manager-card {
+      content-visibility: auto;
+      contain-intrinsic-size: 320px;
+    }
+    .custom-widget-lazy-shell {
+      min-height: 212px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .custom-widget-lazy-shell .custom-widget-meta {
+      width: 100%;
+      text-align: center;
+      opacity: .86;
+    }
   }
 </style>
 <style id="v290-settings-toggle-ios-css">
