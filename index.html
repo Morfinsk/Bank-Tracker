@@ -9310,27 +9310,26 @@ function hasTransactionsForMonth(monthStr) {
 function shiftOverviewMonth(delta) {
   if (overviewMonthShiftInFlight) return;
   const requested = activeOverviewMonthOffset + Number(delta || 0);
+  let nextOffset = requested;
   if (requested > 0) {
-    activeOverviewMonthOffset = 0;
-    overviewMonthShiftInFlight = true;
+    nextOffset = 0;
+  } else if (Number(delta || 0) < 0) {
+    const targetMonth = addMonthsToMonthStr(getAktuálneMonth(), Number(delta || 0));
+    if (!hasTransactionsForMonth(targetMonth)) return;
+  }
+
+  overviewMonthShiftInFlight = true;
+  activeOverviewMonthOffset = nextOffset;
+  const finishShift = () => { overviewMonthShiftInFlight = false; };
+  if (activePageId === 'overview') {
     requestAnimationFrame(() => {
       try { renderOverviewAfterMonthShift(); }
-      finally {
-        overviewMonthShiftInFlight = false;
-      }
+      finally { finishShift(); }
     });
-    return;
-  }
-  const targetMonth = addMonthsToMonthStr(getAktuálneMonth(), Number(delta || 0));
-  if (Number(delta || 0) < 0 && !hasTransactionsForMonth(targetMonth)) return;
-  activeOverviewMonthOffset = requested;
-  overviewMonthShiftInFlight = true;
-  requestAnimationFrame(() => {
+  } else {
     try { renderOverviewAfterMonthShift(); }
-    finally {
-      overviewMonthShiftInFlight = false;
-    }
-  });
+    finally { finishShift(); }
+  }
 }
 
 function updateOverviewMonthNavState() {
@@ -13374,8 +13373,8 @@ function scheduleOverviewChartBootIntroOnce() {
   });
 }
 
-function animateOverviewChartsAfterMonthReturn() {
-  if (activePageId !== 'overview' || activeOverviewMonthOffset !== 0) return;
+function animateOverviewChartsAfterMonthShift() {
+  if (activePageId !== 'overview') return;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       animateVisibleOverviewChartCards();
@@ -13476,7 +13475,7 @@ function renderOverviewAfterMonthShift() {
     try { renderAccountBalanceWidget(); } catch (e) { console.error('Account balance render failed:', e); }
     try { renderBankCards(getTransactionsByBank(true, true)); } catch (e) { console.error('Bank cards render failed:', e); }
     try { renderOverviewDashboard(); } catch (e) { console.error('Overview dashboard render failed:', e); }
-    try { animateOverviewChartsAfterMonthReturn(); } catch (_) {}
+    try { animateOverviewChartsAfterMonthShift(); } catch (_) {}
   });
 
   // Keep currently visible pages consistent without forcing full app re-render.
