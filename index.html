@@ -3846,7 +3846,7 @@
   }
 
 
-  /* v87 global pull-down closes sheet, page refresh disabled */
+  /* v87 global pull-down closes sheet; custom in-app pull-to-refresh handles page sync */
   html,
   body {
     overscroll-behavior: none;
@@ -3868,6 +3868,64 @@
   body.sheet-open {
     overflow: hidden;
     overscroll-behavior: none;
+  }
+
+  #bt-pull-refresh {
+    position: fixed;
+    top: max(8px, env(safe-area-inset-top));
+    left: 50%;
+    z-index: 140;
+    pointer-events: none;
+    transform: translate3d(-50%, -140%, 0);
+    opacity: 0;
+    transition: transform .22s ease, opacity .22s ease;
+  }
+
+  #bt-pull-refresh.is-visible {
+    opacity: 1;
+  }
+
+  #bt-pull-refresh.is-refreshing .bt-pull-refresh-icon {
+    animation: spin 1s linear infinite;
+  }
+
+  .bt-pull-refresh-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(8, 17, 31, .94);
+    border: 1px solid rgba(148, 186, 255, .28);
+    color: rgba(148, 186, 255, .95);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+  }
+
+  .bt-pull-refresh-icon {
+    font-size: 16px;
+    line-height: 1;
+    display: inline-block;
+    transform-origin: center center;
+  }
+
+  html[data-theme="light"] .bt-pull-refresh-inner {
+    background: rgba(248, 250, 252, .96);
+    border-color: rgba(37, 99, 235, .22);
+    color: rgba(37, 99, 235, .92);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .12);
+  }
+
+  .page.ptr-pulling {
+    transition: none !important;
+  }
+
+  .page.ptr-releasing {
+    transition: transform .22s ease !important;
   }
 
   .bottom-sheet.open {
@@ -6511,18 +6569,31 @@
   #page-overview.overview-summary-revealing .summary-item:nth-of-type(3) { animation-delay: .14s; }
   #page-overview.overview-summary-revealing .summary-item:nth-of-type(5) { animation-delay: .24s; }
 
-  .overview-details-progress-animating {
+  #page-overview-details.overview-details-entering .budget-progress-fill:not(.overview-details-bar-show):not(.overview-details-bar-animating),
+  #page-overview-details.overview-details-entering .card-widget .progress-fill:not(.overview-details-bar-show):not(.overview-details-bar-animating) {
     transform-origin: left center;
     transform: scaleX(0);
     transition: none !important;
+  }
+
+  #page-overview-details .budget-progress-fill.overview-details-bar-animating,
+  #page-overview-details .card-widget .progress-fill.overview-details-bar-animating {
+    transform-origin: left center;
     animation: btOverviewGrowX 1.35s cubic-bezier(.18,.78,.24,1) forwards;
+    transition: none !important;
+  }
+
+  #page-overview-details .budget-progress-fill.overview-details-bar-show,
+  #page-overview-details .card-widget .progress-fill.overview-details-bar-show {
+    transform-origin: left center;
+    transform: scaleX(1);
+    transition: none !important;
   }
 
   #page-overview-details .budget-progress-fill,
   #page-overview-details .card-widget .progress-fill {
     transition: none !important;
     transform-origin: left center;
-    will-change: transform;
   }
 
   #page-overview-details .budget-progress,
@@ -6541,7 +6612,7 @@
   .overview-chart-animating .wealth-spark-line.is-projection {
     stroke-dasharray: 100;
     stroke-dashoffset: 100;
-    animation: btOverviewDrawLine 1.85s ease-out forwards;
+    animation: btOverviewDrawLine 1.35s ease-out forwards;
     animation-delay: 1.85s;
   }
   .overview-chart-animating .overview-widget-fill,
@@ -6587,7 +6658,12 @@
   @media (prefers-reduced-motion: reduce) {
     #page-overview.overview-summary-revealing .summary-item,
     #page-overview.summary-days-progress-animating .summary-days-progress-fill,
-    .overview-details-progress-animating,
+    #page-overview-details.overview-details-entering .budget-progress-fill:not(.overview-details-bar-show):not(.overview-details-bar-animating),
+    #page-overview-details.overview-details-entering .card-widget .progress-fill:not(.overview-details-bar-show):not(.overview-details-bar-animating),
+    #page-overview-details .budget-progress-fill.overview-details-bar-animating,
+    #page-overview-details .card-widget .progress-fill.overview-details-bar-animating,
+    #page-overview-details .budget-progress-fill.overview-details-bar-show,
+    #page-overview-details .card-widget .progress-fill.overview-details-bar-show,
     .overview-chart-animating .overview-widget-arc,
     .overview-chart-animating .wealth-gauge-arc,
     .overview-chart-animating .overview-widget-line,
@@ -10666,6 +10742,7 @@ async function syncData(options = {}) {
     try { recomputeAccountBalancesForLoadedMonths(); } catch (e) { console.warn('Account balance recompute after sync failed:', e); }
     if (backgroundMode || !startupMode) {
       if (activePageId === 'overview') {
+        try { window.__overviewChartSigsBeforeSync = captureOverviewChartSignatures(); } catch (_) {}
         try { window.__overviewPendingSyncChartAnim = true; } catch (_) {}
       }
       try { window.__overviewBalanceAnimateNext = true; } catch (_) {}
@@ -13296,16 +13373,79 @@ function renderOverviewDashboard() {
       );
     }
   }
-  try { setupOverviewScrollChartAnimations(); } catch (_) {}
+}
+
+function getOverviewChartCardKey(card) {
+  if (!card) return '';
+  if (card.classList.contains('wealth-card-net') || card.querySelector('#overview-net-worth')) return 'builtin:net-worth';
+  if (card.querySelector('#overview-card-limits-gauge')) return 'builtin:card-limits';
+  if (card.querySelector('#overview-bank-budget-line')) return 'builtin:bank-budget';
+  const widgetId = card.getAttribute('data-widget-id') || card.id;
+  if (widgetId) return 'widget:' + widgetId;
+  return 'card:' + (card.className || 'unknown');
+}
+
+function getOverviewChartCardSignature(card) {
+  if (!card) return '';
+  const parts = [];
+  card.querySelectorAll('.wealth-gauge-arc, .overview-widget-arc').forEach((el) => parts.push(el.getAttribute('stroke-dasharray') || ''));
+  card.querySelectorAll('.overview-widget-line, .wealth-spark-line, .wealth-networth-trend-line-v238').forEach((el) => parts.push(el.getAttribute('d') || ''));
+  card.querySelectorAll('.overview-widget-fill, .wealth-inline-progress-fill, .custom-widget-gauge-fill').forEach((el) => parts.push(el.style.width || ''));
+  card.querySelectorAll('.wealth-card-value, .custom-widget-gauge-metric-label-v262, .custom-widget-linear-label-v260, .custom-widget-fit-value').forEach((el) => {
+    parts.push(String(el.textContent || '').replace(/\s+/g, ' ').trim());
+  });
+  return parts.join('|');
+}
+
+function getOverviewSummarySignature() {
+  const page = document.getElementById('page-overview');
+  if (!page) return '';
+  const parts = [];
+  page.querySelectorAll('.summary-item').forEach((el) => parts.push(String(el.textContent || '').replace(/\s+/g, ' ').trim()));
+  const daysFill = document.getElementById('sum-days-progress-fill');
+  if (daysFill) parts.push(String(daysFill.style.width || ''));
+  return parts.join('|');
+}
+
+function captureOverviewChartSignatures() {
+  const page = document.getElementById('page-overview');
+  const sigs = { __summary: getOverviewSummarySignature() };
+  if (!page) return sigs;
+  getOverviewChartCards(page).forEach((card) => {
+    const key = getOverviewChartCardKey(card);
+    if (key) sigs[key] = getOverviewChartCardSignature(card);
+  });
+  return sigs;
+}
+
+function overviewChartCardDataChanged(card, beforeSigs) {
+  if (!beforeSigs) return true;
+  const key = getOverviewChartCardKey(card);
+  if (!key) return true;
+  return beforeSigs[key] !== getOverviewChartCardSignature(card);
+}
+
+function getOverviewIntroCards(page, options = {}) {
+  const mode = options.mode || 'visible';
+  const beforeSigs = options.beforeSigs || null;
+  return getOverviewChartCards(page).filter((card) => {
+    if (!overviewChartCardHasGraphics(card)) return false;
+    if (!isOverviewChartCardVisible(card)) return false;
+    if (mode === 'changed-visible') return overviewChartCardDataChanged(card, beforeSigs);
+    return true;
+  });
 }
 
 let __overviewChartBootIntroDone = false;
 let __overviewChartScrollObserver = null;
 let __overviewChartScrollLive = false;
 const __overviewChartWasVisible = new WeakMap();
+const __overviewChartIntroPlayed = new WeakSet();
 const OVERVIEW_LINE_DRAW_MS = 1850;
 const OVERVIEW_PROJECTION_DELAY_MS = 1850;
+const OVERVIEW_PROJECTION_DRAW_MS = 1350;
 const OVERVIEW_PROGRESS_DRAW_MS = 1350;
+const OVERVIEW_DETAILS_BAR_STAGGER_MS = 45;
 
 function getOverviewChartCards(page = document.getElementById('page-overview')) {
   if (!page) return [];
@@ -13366,7 +13506,7 @@ function stopOverviewGaugeArcAnimations(card) {
 function getOverviewChartCardAnimDuration(card) {
   const hasProjection = !!(card && card.querySelector('.overview-widget-line.is-projection, .wealth-spark-line.is-projection'));
   return hasProjection
-    ? (OVERVIEW_LINE_DRAW_MS + OVERVIEW_PROJECTION_DELAY_MS + 450)
+    ? (OVERVIEW_PROJECTION_DELAY_MS + OVERVIEW_PROJECTION_DRAW_MS + 450)
     : (OVERVIEW_LINE_DRAW_MS + 450);
 }
 
@@ -13376,6 +13516,7 @@ function animateOverviewChartCard(card) {
   card.classList.remove('overview-chart-animating');
   void card.offsetWidth;
   card.classList.add('overview-chart-animating');
+  __overviewChartIntroPlayed.add(card);
   runOverviewGaugeArcAnimations(card);
   const duration = getOverviewChartCardAnimDuration(card);
   window.setTimeout(() => {
@@ -13412,53 +13553,107 @@ function animateOverviewDaysLeftProgress() {
   window.setTimeout(() => page.classList.remove('summary-days-progress-animating'), 1400);
 }
 
-function animateVisibleOverviewChartCards() {
+function animateOverviewChartsIntro(options = {}) {
   const page = document.getElementById('page-overview');
   if (!page || activePageId !== 'overview') return;
-  const cards = getOverviewChartCards(page)
-    .filter((card) => overviewChartCardHasGraphics(card) && isOverviewChartCardVisible(card));
-  requestAnimationFrame(() => {
+  const mode = options.mode || 'visible';
+  const beforeSigs = mode === 'changed-visible'
+    ? (options.beforeSigs || window.__overviewChartSigsBeforeSync || null)
+    : null;
+
+  const run = () => {
+    const cards = getOverviewIntroCards(page, { mode, beforeSigs });
     cards.forEach((card) => animateOverviewChartCard(card));
-    if (isOverviewChartCardVisible(page.querySelector('.summary-days-progress'))) {
-      animateOverviewDaysLeftProgress();
+
+    const summaryChanged = !beforeSigs || getOverviewSummarySignature() !== beforeSigs.__summary;
+    if (mode === 'visible' || summaryChanged) {
+      try { playOverviewSummaryStripReveal(); } catch (_) {}
     }
+
+    if (mode === 'changed-visible') {
+      window.__overviewSyncChangedChartKeys = new Set(cards.map(getOverviewChartCardKey).filter(Boolean));
+      window.__overviewChartSigsBeforeSync = null;
+    } else {
+      window.__overviewSyncChangedChartKeys = null;
+    }
+
+    try { setupOverviewScrollChartAnimations(); } catch (_) {}
+    return cards.length;
+  };
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const animated = run();
+      if (mode !== 'changed-visible' && animated === 0) {
+        const hasVisibleCharts = getOverviewChartCards(page)
+          .some((card) => overviewChartCardHasGraphics(card) && isOverviewChartCardVisible(card));
+        if (hasVisibleCharts) {
+          window.setTimeout(() => { try { run(); } catch (_) {} }, 80);
+        }
+      }
+    });
   });
+}
+
+function animateVisibleOverviewChartCards() {
+  animateOverviewChartsIntro();
 }
 
 function scheduleOverviewChartBootIntroOnce() {
   if (__overviewChartBootIntroDone || activePageId !== 'overview') return;
   const page = document.getElementById('page-overview');
   if (!page) return;
-  const hasCharts = getOverviewChartCards(page).some((card) => overviewChartCardHasGraphics(card) && isOverviewChartCardVisible(card));
-  const hasDaysBar = isOverviewChartCardVisible(page.querySelector('.summary-days-progress'));
-  if (!hasCharts && !hasDaysBar) return;
+  const hasCharts = getOverviewChartCards(page).some((card) => overviewChartCardHasGraphics(card));
+  if (!hasCharts && !page.querySelector('.summary-days-progress')) return;
   __overviewChartBootIntroDone = true;
+  animateOverviewChartsIntro({ mode: 'visible' });
   requestAnimationFrame(() => {
-    animateVisibleOverviewChartCards();
-    try { setupOverviewScrollChartAnimations(); } catch (_) {}
+    requestAnimationFrame(() => {
+      try { finishOverviewChartRenderCycle(); } catch (_) {}
+    });
   });
 }
 
 function animateOverviewChartsAfterSync() {
   if (activePageId !== 'overview') return;
+  __overviewChartBootIntroDone = true;
+  const beforeSigs = window.__overviewChartSigsBeforeSync || null;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      animateVisibleOverviewChartCards();
-      try { setupOverviewScrollChartAnimations(); } catch (_) {}
+      if (!beforeSigs) {
+        animateOverviewChartsIntro({ mode: 'visible' });
+        return;
+      }
+      const page = document.getElementById('page-overview');
+      const chartChanged = !!(page && getOverviewChartCards(page).some((card) => overviewChartCardDataChanged(card, beforeSigs)));
+      const summaryChanged = getOverviewSummarySignature() !== beforeSigs.__summary;
+      if (!chartChanged && !summaryChanged) {
+        window.__overviewChartSigsBeforeSync = null;
+        window.__overviewSyncChangedChartKeys = null;
+        try { setupOverviewScrollChartAnimations(); } catch (_) {}
+        return;
+      }
+      animateOverviewChartsIntro({ mode: 'changed-visible', beforeSigs });
     });
   });
 }
 
 function finishOverviewChartRenderCycle() {
   try {
+    const page = document.getElementById('page-overview');
+    const hasCharts = !!(page && getOverviewChartCards(page).some((card) => overviewChartCardHasGraphics(card)));
+    if (!hasCharts) return;
+
+    if (!__overviewChartBootIntroDone) {
+      scheduleOverviewChartBootIntroOnce();
+      return;
+    }
     if (window.__overviewPendingSyncChartAnim) {
       window.__overviewPendingSyncChartAnim = false;
       animateOverviewChartsAfterSync();
-    } else if (!__overviewChartBootIntroDone) {
-      scheduleOverviewChartBootIntroOnce();
-    } else {
-      setupOverviewScrollChartAnimations();
+      return;
     }
+    setupOverviewScrollChartAnimations();
   } catch (_) {}
 }
 try { window.finishOverviewChartRenderCycle = finishOverviewChartRenderCycle; } catch (_) {}
@@ -13467,8 +13662,7 @@ function animateOverviewChartsAfterMonthShift() {
   if (activePageId !== 'overview') return;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      animateVisibleOverviewChartCards();
-      try { setupOverviewScrollChartAnimations(); } catch (_) {}
+      animateOverviewChartsIntro();
     });
   });
 }
@@ -13496,6 +13690,11 @@ function setupOverviewScrollChartAnimations() {
       const wasVisible = !!__overviewChartWasVisible.get(target);
       __overviewChartWasVisible.set(target, nowVisible);
       if (!nowVisible || wasVisible) continue;
+      const cardKey = target.classList.contains('summary-days-progress')
+        ? null
+        : getOverviewChartCardKey(target);
+      const syncChangedOnly = window.__overviewSyncChangedChartKeys;
+      if (syncChangedOnly && cardKey && !syncChangedOnly.has(cardKey) && __overviewChartIntroPlayed.has(target)) continue;
       if (target.classList.contains('summary-days-progress')) {
         animateOverviewDaysLeftProgress();
       } else {
@@ -13514,7 +13713,10 @@ function setupOverviewScrollChartAnimations() {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       watch.forEach((el) => {
-        __overviewChartWasVisible.set(el, isOverviewChartCardVisible(el));
+        __overviewChartWasVisible.set(
+          el,
+          __overviewChartIntroPlayed.has(el) && isOverviewChartCardVisible(el)
+        );
       });
       __overviewChartScrollLive = true;
     });
@@ -13522,7 +13724,8 @@ function setupOverviewScrollChartAnimations() {
 }
 try { window.setupOverviewScrollChartAnimations = setupOverviewScrollChartAnimations; } catch (_) {}
 try { window.animateVisibleOverviewChartCards = animateVisibleOverviewChartCards; } catch (_) {}
-try { window.playOverviewChartIntro = animateVisibleOverviewChartCards; } catch (_) {}
+try { window.animateOverviewChartsIntro = animateOverviewChartsIntro; } catch (_) {}
+try { window.playOverviewChartIntro = animateOverviewChartsIntro; } catch (_) {}
 
 let __overviewDetailsScrollObserver = null;
 let __overviewDetailsScrollLive = false;
@@ -13543,21 +13746,52 @@ function getOverviewDetailsAnimatedElements(page = document.getElementById('page
   return items;
 }
 
-function animateOverviewDetailsElement(el) {
-  if (!el) return false;
-  el.classList.remove('overview-details-progress-animating');
-  void el.offsetWidth;
-  el.classList.add('overview-details-progress-animating');
-  window.setTimeout(() => el.classList.remove('overview-details-progress-animating'), OVERVIEW_PROGRESS_DRAW_MS + 350);
+function resetOverviewDetailsBarAnimations(page = document.getElementById('page-overview-details')) {
+  if (!page) return;
+  page.classList.remove('overview-details-entering');
+  getOverviewDetailsAnimatedElements(page).forEach((el) => {
+    el.classList.remove('overview-details-bar-animating', 'overview-details-bar-show');
+    el.style.animationDelay = '';
+  });
+}
+
+function prepareOverviewDetailsBars(page = document.getElementById('page-overview-details')) {
+  if (!page) return;
+  resetOverviewDetailsBarAnimations(page);
+  page.classList.add('overview-details-entering');
+}
+
+function onOverviewDetailsBarAnimEnd(ev) {
+  const el = ev.target;
+  if (!el || ev.animationName !== 'btOverviewGrowX') return;
+  el.classList.remove('overview-details-bar-animating');
+  el.classList.add('overview-details-bar-show');
+  el.style.animationDelay = '';
+}
+
+function animateOverviewDetailsElement(el, delayMs = 0) {
+  if (!el || el.classList.contains('overview-details-bar-animating') || el.classList.contains('overview-details-bar-show')) return false;
+  el.style.animationDelay = delayMs > 0 ? `${delayMs}ms` : '';
+  el.addEventListener('animationend', onOverviewDetailsBarAnimEnd, { once: true });
+  el.classList.add('overview-details-bar-animating');
   return true;
 }
 
-function animateVisibleOverviewDetailsElements() {
+function startOverviewDetailsBarAnimations() {
   const page = document.getElementById('page-overview-details');
   if (!page || activePageId !== 'overview-details') return;
-  getOverviewDetailsAnimatedElements(page)
-    .filter(isOverviewDetailsElementVisible)
-    .forEach(animateOverviewDetailsElement);
+  page.classList.add('overview-details-entering');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const bars = getOverviewDetailsAnimatedElements(page);
+      bars.forEach((el, index) => animateOverviewDetailsElement(el, index * OVERVIEW_DETAILS_BAR_STAGGER_MS));
+      try { setupOverviewDetailsScrollAnimations(); } catch (_) {}
+    });
+  });
+}
+
+function animateVisibleOverviewDetailsElements() {
+  startOverviewDetailsBarAnimations();
 }
 
 function setupOverviewDetailsScrollAnimations() {
@@ -13594,7 +13828,13 @@ function setupOverviewDetailsScrollAnimations() {
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      watch.forEach(el => __overviewDetailsWasVisible.set(el, isOverviewDetailsElementVisible(el)));
+      watch.forEach((el) => {
+        __overviewDetailsWasVisible.set(
+          el,
+          (el.classList.contains('overview-details-bar-show') || el.classList.contains('overview-details-bar-animating'))
+            && isOverviewDetailsElementVisible(el)
+        );
+      });
       __overviewDetailsScrollLive = true;
     });
   });
@@ -13602,6 +13842,7 @@ function setupOverviewDetailsScrollAnimations() {
 try { window.setupOverviewDetailsScrollAnimations = setupOverviewDetailsScrollAnimations; } catch (_) {}
 
 function openOverviewDetailsSection(anchorId = '') {
+  prepareOverviewDetailsBars();
   renderAccountBalanceWidget();
   renderBudgetStatus();
   renderBankCards(getTransactionsByBank(true, true));
@@ -13723,9 +13964,7 @@ function bootstrapUiFromCache(options = {}) {
   try { renderAll({ visibleOnly: true, deferHeavy }); } catch (_) {}
   try { applyLanguage(); } catch (_) {}
   if (activePageId === 'overview' || document.getElementById('page-overview')?.classList.contains('active')) {
-    requestAnimationFrame(() => {
-      try { playOverviewSummaryStripReveal(); } catch (_) {}
-    });
+    /* Chart + summary intro runs after dashboard render via finishOverviewChartRenderCycle. */
   }
   btPerfLog('bootstrapCache', btPerfNow() - bootstrapPerfStart, deferHeavy ? 'defer-heavy' : 'eager-heavy');
 }
@@ -13794,7 +14033,7 @@ function renderAll(options = {}) {
       try { renderHeavyOverviewSections(); } catch (e) { console.error('Deferred overview render failed:', e); }
     };
     if (typeof requestIdleCallback === 'function') {
-      requestIdleCallback(runDeferredHeavy, { timeout: 900 });
+      requestIdleCallback(runDeferredHeavy, { timeout: 350 });
     } else {
       requestAnimationFrame(runDeferredHeavy);
     }
@@ -15481,18 +15720,14 @@ function showPage(pageId, options = {}) {
 
   if (pageId === 'overview') {
     requestAnimationFrame(() => {
-      try { playOverviewSummaryStripReveal(); } catch (_) {}
-      try { animateVisibleOverviewChartCards(); } catch (_) {}
-      try { setupOverviewScrollChartAnimations(); } catch (_) {}
+      try { animateOverviewChartsIntro({ mode: 'visible' }); } catch (_) {}
     });
   }
 
   if (pageId === 'overview-details') {
+    prepareOverviewDetailsBars();
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        try { animateVisibleOverviewDetailsElements(); } catch (_) {}
-        try { setupOverviewDetailsScrollAnimations(); } catch (_) {}
-      });
+      try { startOverviewDetailsBarAnimations(); } catch (_) {}
     });
   }
   requestAnimationFrame(() => {
@@ -16305,6 +16540,174 @@ function initSheetOpenPullRefreshGuard() {
   initGlobalPullDownControl();
 }
 
+function ensurePullToRefreshUi() {
+  let el = document.getElementById('bt-pull-refresh');
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = 'bt-pull-refresh';
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML = '<div class="bt-pull-refresh-inner"><span class="bt-pull-refresh-icon" aria-hidden="true">↻</span><span class="bt-pull-refresh-text">Potiahnite pre obnovenie</span></div>';
+  document.body.appendChild(el);
+  return el;
+}
+
+function isAppScrollAtTopForPullRefresh() {
+  const windowTop = (typeof getWindowScrollTopValue === 'function' ? getWindowScrollTopValue() : (window.pageYOffset || 0)) <= 1;
+  const pageId = typeof getActivePageId === 'function' ? getActivePageId() : (activePageId || 'overview');
+  const activePage = document.getElementById('page-' + pageId);
+  const pageTop = !activePage || activePage.scrollTop <= 1;
+  return windowTop && pageTop;
+}
+
+function getActivePageElementForPullRefresh() {
+  const pageId = typeof getActivePageId === 'function' ? getActivePageId() : (activePageId || 'overview');
+  return document.getElementById('page-' + pageId);
+}
+
+function setPullToRefreshPageOffset(y, releasing) {
+  const page = getActivePageElementForPullRefresh();
+  if (!page) return;
+  page.classList.toggle('ptr-pulling', y > 0 && !releasing);
+  page.classList.toggle('ptr-releasing', !!releasing);
+  page.style.transform = y > 0 ? `translate3d(0, ${y}px, 0)` : '';
+  if (releasing && y <= 0) {
+    window.setTimeout(() => {
+      page.classList.remove('ptr-releasing');
+      page.style.transform = '';
+    }, 240);
+  }
+}
+
+async function runPullToRefresh() {
+  if (window.__btPullRefreshRunning) return;
+  window.__btPullRefreshRunning = true;
+  const el = ensurePullToRefreshUi();
+  const text = el.querySelector('.bt-pull-refresh-text');
+  el.classList.add('is-visible', 'is-refreshing');
+  el.style.transition = 'transform .22s ease, opacity .22s ease';
+  el.style.transform = 'translate3d(-50%, 0, 0)';
+  if (text) text.textContent = 'Obnovujem…';
+  setPullToRefreshPageOffset(0, true);
+  try {
+    if (typeof syncData === 'function') {
+      await syncData({ backgroundMode: true });
+    } else {
+      try { loadCachedTransactionsSnapshot(); } catch (_) {}
+      try { renderAll({ deferHeavy: true, visibleOnly: true }); } catch (_) {}
+      try { applyLanguage(); } catch (_) {}
+      if (activePageId === 'overview') {
+        try { animateOverviewChartsIntro({ mode: 'visible' }); } catch (_) {}
+      } else if (activePageId === 'overview-details') {
+        try { startOverviewDetailsBarAnimations(); } catch (_) {}
+      }
+    }
+  } catch (err) {
+    console.warn('Pull-to-refresh failed:', err);
+  } finally {
+    el.classList.remove('is-refreshing');
+    el.style.transform = 'translate3d(-50%, -140%, 0)';
+    window.setTimeout(() => el.classList.remove('is-visible'), 180);
+    window.__btPullRefreshRunning = false;
+  }
+}
+
+function initPullToRefresh() {
+  if (window.__btPullToRefreshReady) return;
+  window.__btPullToRefreshReady = true;
+  ensurePullToRefreshUi();
+
+  const THRESHOLD = 72;
+  const MAX_PULL = 118;
+  let startY = 0;
+  let startX = 0;
+  let tracking = false;
+  let pulling = false;
+  let pull = 0;
+
+  const isBlockedTarget = (target) => {
+    return !!(target && target.closest && target.closest('input, textarea, select, .bottom-sheet, .bottom-sheet-backdrop'));
+  };
+
+  const canPullToRefresh = () => {
+    if (window.__btPullRefreshRunning || isSyncing) return false;
+    if (document.body.classList.contains('sheet-open')) return false;
+    if (document.querySelector('.bottom-sheet.open')) return false;
+    return isAppScrollAtTopForPullRefresh();
+  };
+
+  const resetPull = (animateBack) => {
+    tracking = false;
+    pulling = false;
+    pull = 0;
+    const el = document.getElementById('bt-pull-refresh');
+    if (el && !window.__btPullRefreshRunning) {
+      el.style.transition = animateBack ? 'transform .22s ease, opacity .22s ease' : 'none';
+      el.style.transform = 'translate3d(-50%, -140%, 0)';
+      if (animateBack) el.classList.remove('is-visible');
+      const icon = el.querySelector('.bt-pull-refresh-icon');
+      if (icon) icon.style.transform = '';
+      const text = el.querySelector('.bt-pull-refresh-text');
+      if (text) text.textContent = 'Potiahnite pre obnovenie';
+    }
+    setPullToRefreshPageOffset(0, animateBack);
+  };
+
+  window.addEventListener('touchstart', (event) => {
+    if (!event.touches || event.touches.length !== 1) return;
+    if (!canPullToRefresh()) return;
+    if (isBlockedTarget(event.target)) return;
+    startY = event.touches[0].clientY;
+    startX = event.touches[0].clientX;
+    tracking = true;
+    pulling = false;
+    pull = 0;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (event) => {
+    if (!tracking || !event.touches || event.touches.length !== 1) return;
+    if (!canPullToRefresh()) {
+      resetPull(true);
+      return;
+    }
+
+    const touch = event.touches[0];
+    const deltaY = touch.clientY - startY;
+    const deltaX = touch.clientX - startX;
+    if (deltaY <= 0) {
+      if (pulling) resetPull(false);
+      return;
+    }
+    if (Math.abs(deltaY) <= Math.abs(deltaX) * 1.15) return;
+
+    pulling = true;
+    pull = Math.min(deltaY * 0.5, MAX_PULL);
+    if (event.cancelable) event.preventDefault();
+
+    const el = ensurePullToRefreshUi();
+    el.style.transition = 'none';
+    el.style.transform = `translate3d(-50%, ${Math.max(0, pull - 18)}px, 0)`;
+    el.classList.add('is-visible');
+    const text = el.querySelector('.bt-pull-refresh-text');
+    if (text) text.textContent = pull >= THRESHOLD ? 'Pustite pre obnovenie' : 'Potiahnite pre obnovenie';
+    const icon = el.querySelector('.bt-pull-refresh-icon');
+    if (icon) icon.style.transform = `rotate(${Math.min(pull / THRESHOLD, 1) * 180}deg)`;
+    setPullToRefreshPageOffset(Math.round(pull * 0.34), false);
+  }, { passive: false });
+
+  window.addEventListener('touchend', () => {
+    if (!tracking) return;
+    const shouldRefresh = pulling && pull >= THRESHOLD;
+    tracking = false;
+    pulling = false;
+    pull = 0;
+    if (shouldRefresh) runPullToRefresh();
+    else resetPull(true);
+  }, { passive: true });
+
+  window.addEventListener('touchcancel', () => resetPull(true), { passive: true });
+}
+try { window.initPullToRefresh = initPullToRefresh; } catch (_) {}
+
 // ── BOTTOM SHEET DRAG DOWN TO CLOSE — LARGE TOUCH ZONE ─────
 function initBottomSheetDragToClose() {
   // v9: Drag/pull-down-to-close enabled again, using the proven v4 handler.
@@ -16635,6 +17038,7 @@ function openSheet(id){
   if (!customWidgetFullpage) {
     initBottomSheetDragToClose();
     if (typeof initGlobalPullDownControl === 'function') initGlobalPullDownControl();
+    if (typeof initPullToRefresh === 'function') initPullToRefresh();
     if (typeof initSheetPullRefreshGuard === 'function') initSheetPullRefreshGuard();
   }
   scheduleFloatingUtilityUpdate();
@@ -21490,6 +21894,7 @@ window.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', initBottomSheetDragToClose);
 
 document.addEventListener('DOMContentLoaded', initGlobalPullDownControl);
+document.addEventListener('DOMContentLoaded', initPullToRefresh);
 document.addEventListener('DOMContentLoaded', initTabHistory);
 document.addEventListener('DOMContentLoaded', updateFloatingUtilityButtons);
 document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers);
@@ -34197,3 +34602,4 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
 </style>
 </body>
 </html>
+8
