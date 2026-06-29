@@ -1062,7 +1062,7 @@
   }
   #page-overview.summary-days-progress-animating .summary-days-progress-fill {
     transform: scaleX(0);
-    animation: btOverviewGrowX .85s cubic-bezier(.22,.61,.36,1) forwards;
+    animation: btOverviewGrowX 1.35s cubic-bezier(.18,.78,.24,1) forwards;
   }
 
   /* Section title */
@@ -6490,10 +6490,6 @@
   }
 
   /* Overview chart intro — triggered when user switches TO the Overview tab. */
-  @keyframes btOverviewDrawArc {
-    from { stroke-dashoffset: 100; }
-    to { stroke-dashoffset: 0; }
-  }
   @keyframes btOverviewDrawLine {
     from { stroke-dashoffset: 100; }
     to { stroke-dashoffset: 0; }
@@ -6502,23 +6498,58 @@
     from { transform: scaleX(0); }
     to { transform: scaleX(1); }
   }
+  @keyframes btOverviewSummaryIn {
+    from { opacity: 0; transform: translateX(-16px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  #page-overview.overview-summary-revealing .summary-item {
+    opacity: 0;
+    transform: translateX(-16px);
+    animation: btOverviewSummaryIn .65s ease-out forwards;
+  }
+  #page-overview.overview-summary-revealing .summary-item:nth-of-type(1) { animation-delay: .04s; }
+  #page-overview.overview-summary-revealing .summary-item:nth-of-type(3) { animation-delay: .14s; }
+  #page-overview.overview-summary-revealing .summary-item:nth-of-type(5) { animation-delay: .24s; }
 
-  .overview-chart-animating .overview-widget-arc {
-    stroke-dashoffset: 100;
-    animation: btOverviewDrawArc .9s cubic-bezier(.22,.61,.36,1) forwards;
-  }
-  .overview-chart-animating .overview-widget-line {
-    stroke-dasharray: 100;
-    stroke-dashoffset: 100;
-    animation: btOverviewDrawLine 1.05s cubic-bezier(.22,.61,.36,1) forwards;
-  }
-  .overview-chart-animating .overview-widget-line.is-projection {
-    animation-delay: .18s;
-  }
-  .overview-chart-animating .overview-widget-fill {
+  .overview-details-progress-animating {
     transform-origin: left center;
     transform: scaleX(0);
-    animation: btOverviewGrowX .8s cubic-bezier(.22,.61,.36,1) forwards;
+    transition: none !important;
+    animation: btOverviewGrowX 1.35s cubic-bezier(.18,.78,.24,1) forwards;
+  }
+
+  #page-overview-details .budget-progress-fill,
+  #page-overview-details .card-widget .progress-fill {
+    transition: none !important;
+    transform-origin: left center;
+    will-change: transform;
+  }
+
+  #page-overview-details .budget-progress,
+  #page-overview-details .card-widget .progress-track {
+    overflow: hidden;
+  }
+
+  .overview-chart-animating .overview-widget-line,
+  .overview-chart-animating .wealth-spark-line,
+  .overview-chart-animating .wealth-networth-trend-line-v238 {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: btOverviewDrawLine 1.85s ease-out forwards;
+  }
+  .overview-chart-animating .overview-widget-line.is-projection,
+  .overview-chart-animating .wealth-spark-line.is-projection {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: btOverviewDrawLine 1.85s ease-out forwards;
+    animation-delay: 1.85s;
+  }
+  .overview-chart-animating .overview-widget-fill,
+  .overview-chart-animating .wealth-inline-progress-fill,
+  .overview-chart-animating .custom-widget-gauge-fill {
+    transform-origin: left center;
+    transform: scaleX(0);
+    animation: btOverviewGrowX 1.35s cubic-bezier(.18,.78,.24,1) forwards;
   }
 
   /* Balance cards: sync badge + subtle dim while cloud data refreshes. */
@@ -6554,9 +6585,17 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    #page-overview.overview-summary-revealing .summary-item,
+    #page-overview.summary-days-progress-animating .summary-days-progress-fill,
+    .overview-details-progress-animating,
     .overview-chart-animating .overview-widget-arc,
+    .overview-chart-animating .wealth-gauge-arc,
     .overview-chart-animating .overview-widget-line,
-    .overview-chart-animating .overview-widget-fill {
+    .overview-chart-animating .wealth-spark-line,
+    .overview-chart-animating .wealth-networth-trend-line-v238,
+    .overview-chart-animating .overview-widget-fill,
+    .overview-chart-animating .wealth-inline-progress-fill,
+    .overview-chart-animating .custom-widget-gauge-fill {
       animation: none !important;
       stroke-dashoffset: 0 !important;
       opacity: 1 !important;
@@ -10539,16 +10578,10 @@ async function syncData(options = {}) {
   const backgroundMode = !!(options && options.backgroundMode);
   const showFullScreenLoader = !!(options && options.showFullScreenLoader);
   let fullScreenLoaderClosed = false;
-  const closeFullScreenLoader = (shouldAnimateOverview = false) => {
+  const closeFullScreenLoader = () => {
     if (!showFullScreenLoader || fullScreenLoaderClosed) return;
     fullScreenLoaderClosed = true;
     finishAppBoot();
-    if (shouldAnimateOverview) {
-      requestAnimationFrame(() => {
-        try { animateVisibleOverviewChartCards(); } catch (_) {}
-        try { setupOverviewScrollChartAnimations(); } catch (_) {}
-      });
-    }
   };
 
   if (showFullScreenLoader) {
@@ -10632,6 +10665,9 @@ async function syncData(options = {}) {
     try { reapplySheetAccountBalancesFromStorage(); } catch (e) { console.warn('Sheet balance reapply in finally failed:', e); }
     try { recomputeAccountBalancesForLoadedMonths(); } catch (e) { console.warn('Account balance recompute after sync failed:', e); }
     if (backgroundMode || !startupMode) {
+      if (activePageId === 'overview') {
+        try { window.__overviewPendingSyncChartAnim = true; } catch (_) {}
+      }
       try { window.__overviewBalanceAnimateNext = true; } catch (_) {}
       renderAll({ deferHeavy: true, visibleOnly: true });
       applyLanguage();
@@ -10639,8 +10675,7 @@ async function syncData(options = {}) {
     }
     try { setOverviewBalanceSyncState(false); } catch (_) {}
     markCloudSyncCompleted();
-    const overviewVisible = activePageId === 'overview' || !!document.getElementById('page-overview')?.classList.contains('active');
-    closeFullScreenLoader(overviewVisible);
+    closeFullScreenLoader();
     btPerfLog('syncData', btPerfNow() - syncPerfStart, [
       startupMode ? 'startup' : 'manual',
       backgroundMode ? 'background' : 'foreground',
@@ -13092,61 +13127,27 @@ function createOverviewBudgetSparkline(used = 0, limit = 0, currency, txSeries =
     return { x, y, value: point.value, timestamp: point.timestamp };
   });
   const currentPoint = spentPoints[spentPoints.length - 1] || { x: startX, y: startY, value: 0, timestamp: monthStart };
+  if (spentPoints.length) {
+    const last = spentPoints[spentPoints.length - 1];
+    last.value = usedNum;
+    last.y = startY - (usedNum / maxValue) * height;
+  }
 
-  // v198: make the small Bank budget chart visually wavy/undulating, not angular.
-  const spentLinePath = createBudgetWavySvgPath(spentPoints, 1.75);
+  const spentLinePath = createSmoothSvgPath(spentPoints);
   const spentAreaPath = spentLinePath
     ? `${spentLinePath} L${currentPoint.x.toFixed(2)} ${startY} L${startX} ${startY} Z`
     : '';
 
-  // v199: blue projection is connected to the last green point.
-  // Pattern: 4 days flat / 0 CZK, then 3 days adding about 2k CZK per day, repeated to month end.
   const valueToY = value => startY - (Math.max(0, Number(value || 0) || 0) / maxValue) * height;
-  const timestampToX = timestamp => startX + ((timestamp - monthStart) / Math.max(1, monthEnd - monthStart)) * width;
-  const remainingPoints = [];
+  let remainingLinePath = '';
+  let remainingAreaPath = '';
   if (currentPoint && monthEnd > currentPoint.timestamp + 60000) {
-    let cursorTime = Math.min(Math.max(currentPoint.timestamp || nowInMonth, monthStart), monthEnd);
-    let cursorValue = Math.max(0, Number(currentPoint.value || 0) || 0);
-    remainingPoints.push({ x: currentPoint.x, y: currentPoint.y, value: cursorValue, timestamp: cursorTime });
-
-    while (cursorTime < monthEnd - 60000) {
-      const flatEnd = Math.min(cursorTime + (4 * dayMs), monthEnd);
-      if (flatEnd > cursorTime + 60000) {
-        remainingPoints.push({ x: timestampToX(flatEnd), y: valueToY(cursorValue), value: cursorValue, timestamp: flatEnd });
-      }
-      cursorTime = flatEnd;
-      if (cursorTime >= monthEnd - 60000) break;
-
-      for (let day = 1; day <= 3 && cursorTime < monthEnd - 60000; day += 1) {
-        const nextTime = Math.min(cursorTime + dayMs, monthEnd);
-        const nextValue = cursorValue + projectedDailyStepValue;
-        if (nextValue <= cursorValue + 0.01) {
-          cursorTime = nextTime;
-          break;
-        }
-
-        // Add a soft mid-point so the SVG curve looks undulating instead of staircase-like.
-        const midTime = Math.min(cursorTime + ((nextTime - cursorTime) * 0.55), monthEnd);
-        const midEase = 0.5 - (Math.cos(Math.PI * 0.55) / 2);
-        const midValue = cursorValue + ((nextValue - cursorValue) * midEase);
-        remainingPoints.push({ x: timestampToX(midTime), y: valueToY(midValue), value: midValue, timestamp: midTime });
-        remainingPoints.push({ x: timestampToX(nextTime), y: valueToY(nextValue), value: nextValue, timestamp: nextTime });
-
-        cursorTime = nextTime;
-        cursorValue = nextValue;
-      }
-    }
-
-    const lastProjectionPoint = remainingPoints[remainingPoints.length - 1];
-    if (lastProjectionPoint && lastProjectionPoint.timestamp < monthEnd) {
-      remainingPoints.push({ x: endX, y: valueToY(lastProjectionPoint.value), value: lastProjectionPoint.value, timestamp: monthEnd });
-    }
+    const projValue = Math.min(projectedFinalValue, maxValue * 0.98);
+    const projY = valueToY(projValue);
+    const midX = (currentPoint.x + endX) / 2;
+    remainingLinePath = `M${currentPoint.x.toFixed(2)} ${currentPoint.y.toFixed(2)} C${midX.toFixed(2)} ${currentPoint.y.toFixed(2)}, ${midX.toFixed(2)} ${projY.toFixed(2)}, ${endX} ${projY.toFixed(2)}`;
+    remainingAreaPath = `${remainingLinePath} L${endX} ${startY} L${currentPoint.x.toFixed(2)} ${startY} Z`;
   }
-
-  const remainingLinePath = createBudgetWavySvgPath(remainingPoints, 2.35);
-  const remainingAreaPath = remainingLinePath
-    ? `${remainingLinePath} L${endX} ${startY} L${currentPoint.x.toFixed(2)} ${startY} Z`
-    : '';
 
   return `
     <div class="wealth-budget-sparkline" aria-label="Bank budget ${escapeAttr(formatOverviewCompactCurrencyPair(usedNum, limitNum, currency))}">
@@ -13166,8 +13167,8 @@ function createOverviewBudgetSparkline(used = 0, limit = 0, currency, txSeries =
         </defs>
         ${spentAreaPath ? `<path d="${spentAreaPath}" fill="url(#budgetUsedAreaV190)"></path>` : ''}
         ${remainingAreaPath ? `<path d="${remainingAreaPath}" fill="url(#budgetRemainAreaV190)"></path>` : ''}
-        ${spentLinePath ? `<path class="wealth-spark-line" pathLength="100" d="${spentLinePath}" fill="none" stroke="#00E5A0" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"></path>` : ''}
-        ${remainingLinePath ? `<path class="wealth-spark-line is-projection" pathLength="100" d="${remainingLinePath}" fill="none" stroke="#388bfd" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"></path>` : ''}
+        ${spentLinePath ? `<path class="wealth-spark-line overview-widget-line" pathLength="100" d="${spentLinePath}" fill="none" stroke="#00E5A0" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"></path>` : ''}
+        ${remainingLinePath ? `<path class="wealth-spark-line overview-widget-line is-projection" pathLength="100" d="${remainingLinePath}" fill="none" stroke="#388bfd" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"></path>` : ''}
         <circle cx="${currentPoint.x.toFixed(2)}" cy="${currentPoint.y.toFixed(2)}" r="1.55" fill="#ffffff" opacity="0.95"></circle>
         <circle cx="${currentPoint.x.toFixed(2)}" cy="${currentPoint.y.toFixed(2)}" r="0.92" fill="#00E5A0"></circle>
       </svg>
@@ -13295,16 +13296,16 @@ function renderOverviewDashboard() {
       );
     }
   }
-  try {
-    setupOverviewScrollChartAnimations();
-    scheduleOverviewChartBootIntroOnce();
-  } catch (_) {}
+  try { setupOverviewScrollChartAnimations(); } catch (_) {}
 }
 
 let __overviewChartBootIntroDone = false;
 let __overviewChartScrollObserver = null;
 let __overviewChartScrollLive = false;
 const __overviewChartWasVisible = new WeakMap();
+const OVERVIEW_LINE_DRAW_MS = 1850;
+const OVERVIEW_PROJECTION_DELAY_MS = 1850;
+const OVERVIEW_PROGRESS_DRAW_MS = 1350;
 
 function getOverviewChartCards(page = document.getElementById('page-overview')) {
   if (!page) return [];
@@ -13320,7 +13321,7 @@ function getOverviewChartCards(page = document.getElementById('page-overview')) 
 }
 
 function overviewChartCardHasGraphics(card) {
-  return !!(card && card.querySelector('.overview-widget-arc, .overview-widget-line, .overview-widget-fill, .wealth-networth-trend-line-v238'));
+  return !!(card && card.querySelector('.overview-widget-arc, .overview-widget-line, .overview-widget-fill, .wealth-gauge-arc, .wealth-spark-line, .wealth-networth-trend-line-v238, .wealth-inline-progress-fill, .custom-widget-gauge-fill'));
 }
 
 function isOverviewChartCardVisible(card) {
@@ -13330,14 +13331,76 @@ function isOverviewChartCardVisible(card) {
   return rect.bottom > 8 && rect.top < (viewportHeight - 8) && rect.width > 0;
 }
 
+function runOverviewGaugeArcAnimations(card) {
+  if (!card || typeof card.querySelectorAll !== 'function') return;
+  const reduceMotion = (() => {
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; }
+  })();
+  card.querySelectorAll('.overview-widget-arc, .wealth-gauge-arc').forEach((arc) => {
+    const dash = arc.getAttribute('stroke-dasharray') || '';
+    const match = String(dash).match(/^([\d.]+)/);
+    const pct = match ? Math.max(0, Math.min(100, parseFloat(match[1]))) : 100;
+    if (!arc.getAttribute('pathLength')) arc.setAttribute('pathLength', '100');
+    try { (arc.__btArcAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
+    arc.style.strokeDashoffset = '0';
+    arc.style.strokeDasharray = `${pct} 100`;
+    if (reduceMotion) return;
+    const anim = arc.animate([
+      { strokeDasharray: '0 100', strokeDashoffset: '0' },
+      { strokeDasharray: `${pct} 100`, strokeDashoffset: '0' }
+    ], { duration: OVERVIEW_LINE_DRAW_MS, easing: 'ease-out', fill: 'forwards' });
+    arc.__btArcAnim = [anim];
+  });
+}
+
+function stopOverviewGaugeArcAnimations(card) {
+  if (!card || typeof card.querySelectorAll !== 'function') return;
+  card.querySelectorAll('.overview-widget-arc, .wealth-gauge-arc').forEach((arc) => {
+    try { (arc.__btArcAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
+    arc.__btArcAnim = null;
+    arc.style.strokeDasharray = '';
+    arc.style.strokeDashoffset = '';
+  });
+}
+
+function getOverviewChartCardAnimDuration(card) {
+  const hasProjection = !!(card && card.querySelector('.overview-widget-line.is-projection, .wealth-spark-line.is-projection'));
+  return hasProjection
+    ? (OVERVIEW_LINE_DRAW_MS + OVERVIEW_PROJECTION_DELAY_MS + 450)
+    : (OVERVIEW_LINE_DRAW_MS + 450);
+}
+
 function animateOverviewChartCard(card) {
   if (!overviewChartCardHasGraphics(card)) return false;
+  stopOverviewGaugeArcAnimations(card);
   card.classList.remove('overview-chart-animating');
   void card.offsetWidth;
   card.classList.add('overview-chart-animating');
-  window.setTimeout(() => card.classList.remove('overview-chart-animating'), 1500);
+  runOverviewGaugeArcAnimations(card);
+  const duration = getOverviewChartCardAnimDuration(card);
+  window.setTimeout(() => {
+    card.classList.remove('overview-chart-animating');
+    stopOverviewGaugeArcAnimations(card);
+  }, duration);
   return true;
 }
+
+function animateOverviewSummaryStripReveal() {
+  const page = document.getElementById('page-overview');
+  if (!page || activePageId !== 'overview') return;
+  requestAnimationFrame(() => {
+    animateOverviewDaysLeftProgress();
+    page.classList.remove('overview-summary-revealing');
+    void page.offsetWidth;
+    page.classList.add('overview-summary-revealing');
+    window.setTimeout(() => page.classList.remove('overview-summary-revealing'), 1200);
+  });
+}
+
+function playOverviewSummaryStripReveal() {
+  animateOverviewSummaryStripReveal();
+}
+try { window.playOverviewSummaryStripReveal = playOverviewSummaryStripReveal; } catch (_) {}
 
 function animateOverviewDaysLeftProgress() {
   const page = document.getElementById('page-overview');
@@ -13346,18 +13409,20 @@ function animateOverviewDaysLeftProgress() {
   page.classList.remove('summary-days-progress-animating');
   void page.offsetWidth;
   page.classList.add('summary-days-progress-animating');
-  window.setTimeout(() => page.classList.remove('summary-days-progress-animating'), 900);
+  window.setTimeout(() => page.classList.remove('summary-days-progress-animating'), 1400);
 }
 
 function animateVisibleOverviewChartCards() {
   const page = document.getElementById('page-overview');
   if (!page || activePageId !== 'overview') return;
-  getOverviewChartCards(page)
-    .filter((card) => overviewChartCardHasGraphics(card) && isOverviewChartCardVisible(card))
-    .forEach((card) => animateOverviewChartCard(card));
-  if (isOverviewChartCardVisible(page.querySelector('.summary-days-progress'))) {
-    animateOverviewDaysLeftProgress();
-  }
+  const cards = getOverviewChartCards(page)
+    .filter((card) => overviewChartCardHasGraphics(card) && isOverviewChartCardVisible(card));
+  requestAnimationFrame(() => {
+    cards.forEach((card) => animateOverviewChartCard(card));
+    if (isOverviewChartCardVisible(page.querySelector('.summary-days-progress'))) {
+      animateOverviewDaysLeftProgress();
+    }
+  });
 }
 
 function scheduleOverviewChartBootIntroOnce() {
@@ -13370,8 +13435,33 @@ function scheduleOverviewChartBootIntroOnce() {
   __overviewChartBootIntroDone = true;
   requestAnimationFrame(() => {
     animateVisibleOverviewChartCards();
+    try { setupOverviewScrollChartAnimations(); } catch (_) {}
   });
 }
+
+function animateOverviewChartsAfterSync() {
+  if (activePageId !== 'overview') return;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      animateVisibleOverviewChartCards();
+      try { setupOverviewScrollChartAnimations(); } catch (_) {}
+    });
+  });
+}
+
+function finishOverviewChartRenderCycle() {
+  try {
+    if (window.__overviewPendingSyncChartAnim) {
+      window.__overviewPendingSyncChartAnim = false;
+      animateOverviewChartsAfterSync();
+    } else if (!__overviewChartBootIntroDone) {
+      scheduleOverviewChartBootIntroOnce();
+    } else {
+      setupOverviewScrollChartAnimations();
+    }
+  } catch (_) {}
+}
+try { window.finishOverviewChartRenderCycle = finishOverviewChartRenderCycle; } catch (_) {}
 
 function animateOverviewChartsAfterMonthShift() {
   if (activePageId !== 'overview') return;
@@ -13434,6 +13524,83 @@ try { window.setupOverviewScrollChartAnimations = setupOverviewScrollChartAnimat
 try { window.animateVisibleOverviewChartCards = animateVisibleOverviewChartCards; } catch (_) {}
 try { window.playOverviewChartIntro = animateVisibleOverviewChartCards; } catch (_) {}
 
+let __overviewDetailsScrollObserver = null;
+let __overviewDetailsScrollLive = false;
+const __overviewDetailsWasVisible = new WeakMap();
+
+function isOverviewDetailsElementVisible(el) {
+  if (!el) return false;
+  const rect = el.getBoundingClientRect();
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+  return rect.bottom > 8 && rect.top < (viewportHeight - 8) && rect.width > 0;
+}
+
+function getOverviewDetailsAnimatedElements(page = document.getElementById('page-overview-details')) {
+  if (!page) return [];
+  const items = [];
+  page.querySelectorAll('.budget-bank-row .budget-progress-fill').forEach(el => items.push(el));
+  page.querySelectorAll('.card-widget .progress-fill').forEach(el => items.push(el));
+  return items;
+}
+
+function animateOverviewDetailsElement(el) {
+  if (!el) return false;
+  el.classList.remove('overview-details-progress-animating');
+  void el.offsetWidth;
+  el.classList.add('overview-details-progress-animating');
+  window.setTimeout(() => el.classList.remove('overview-details-progress-animating'), OVERVIEW_PROGRESS_DRAW_MS + 350);
+  return true;
+}
+
+function animateVisibleOverviewDetailsElements() {
+  const page = document.getElementById('page-overview-details');
+  if (!page || activePageId !== 'overview-details') return;
+  getOverviewDetailsAnimatedElements(page)
+    .filter(isOverviewDetailsElementVisible)
+    .forEach(animateOverviewDetailsElement);
+}
+
+function setupOverviewDetailsScrollAnimations() {
+  const page = document.getElementById('page-overview-details');
+  if (!page) return;
+  try { if (__overviewDetailsScrollObserver) __overviewDetailsScrollObserver.disconnect(); } catch (_) {}
+  __overviewDetailsScrollObserver = null;
+  if (!('IntersectionObserver' in window)) return;
+
+  const watch = getOverviewDetailsAnimatedElements(page);
+  if (!watch.length) return;
+
+  __overviewDetailsScrollLive = false;
+  watch.forEach(el => __overviewDetailsWasVisible.set(el, false));
+
+  __overviewDetailsScrollObserver = new IntersectionObserver((entries) => {
+    if (!__overviewDetailsScrollLive || activePageId !== 'overview-details') return;
+    for (const entry of entries) {
+      const target = entry.target;
+      const nowVisible = !!(entry.isIntersecting && entry.intersectionRatio >= 0.2);
+      const wasVisible = !!__overviewDetailsWasVisible.get(target);
+      __overviewDetailsWasVisible.set(target, nowVisible);
+      if (!nowVisible || wasVisible) continue;
+      animateOverviewDetailsElement(target);
+    }
+  }, {
+    root: null,
+    threshold: [0, 0.2, 0.45]
+  });
+
+  watch.forEach(el => {
+    try { __overviewDetailsScrollObserver.observe(el); } catch (_) {}
+  });
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      watch.forEach(el => __overviewDetailsWasVisible.set(el, isOverviewDetailsElementVisible(el)));
+      __overviewDetailsScrollLive = true;
+    });
+  });
+}
+try { window.setupOverviewDetailsScrollAnimations = setupOverviewDetailsScrollAnimations; } catch (_) {}
+
 function openOverviewDetailsSection(anchorId = '') {
   renderAccountBalanceWidget();
   renderBudgetStatus();
@@ -13475,6 +13642,7 @@ function renderOverviewAfterMonthShift() {
     try { renderAccountBalanceWidget(); } catch (e) { console.error('Account balance render failed:', e); }
     try { renderBankCards(getTransactionsByBank(true, true)); } catch (e) { console.error('Bank cards render failed:', e); }
     try { renderOverviewDashboard(); } catch (e) { console.error('Overview dashboard render failed:', e); }
+    try { playOverviewSummaryStripReveal(); } catch (_) {}
     try { animateOverviewChartsAfterMonthShift(); } catch (_) {}
   });
 
@@ -13554,6 +13722,11 @@ function bootstrapUiFromCache(options = {}) {
   }
   try { renderAll({ visibleOnly: true, deferHeavy }); } catch (_) {}
   try { applyLanguage(); } catch (_) {}
+  if (activePageId === 'overview' || document.getElementById('page-overview')?.classList.contains('active')) {
+    requestAnimationFrame(() => {
+      try { playOverviewSummaryStripReveal(); } catch (_) {}
+    });
+  }
   btPerfLog('bootstrapCache', btPerfNow() - bootstrapPerfStart, deferHeavy ? 'defer-heavy' : 'eager-heavy');
 }
 try { window.bootstrapUiFromCache = bootstrapUiFromCache; } catch (_) {}
@@ -15308,8 +15481,18 @@ function showPage(pageId, options = {}) {
 
   if (pageId === 'overview') {
     requestAnimationFrame(() => {
+      try { playOverviewSummaryStripReveal(); } catch (_) {}
       try { animateVisibleOverviewChartCards(); } catch (_) {}
       try { setupOverviewScrollChartAnimations(); } catch (_) {}
+    });
+  }
+
+  if (pageId === 'overview-details') {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        try { animateVisibleOverviewDetailsElements(); } catch (_) {}
+        try { setupOverviewDetailsScrollAnimations(); } catch (_) {}
+      });
     });
   }
   requestAnimationFrame(() => {
@@ -22634,6 +22817,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       originalRenderOverviewDashboard.apply(this, arguments);
       applyBuiltinOverviewWidgetSettings();
       renderCustomWidgets();
+      try { finishOverviewChartRenderCycle(); } catch (_) {}
     };
   }
 
@@ -29275,8 +29459,23 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       return { source:'auto', spent:txns.length, limit:target || 1, target:target, currency:currency, txns:txns, range:range, gaugeMetric:'count' };
     }
     var customWidgetBudget = Math.max(0, toNum(widget.limit || 0));
-    var usePeriodSpend = hasWidgetMultiFilter(widget.paymentKind)
-      || hasWidgetMultiFilter(widget.account)
+    var hasTypeFilter = hasWidgetMultiFilter(widget.paymentKind);
+    var hasAccountFilter = hasWidgetMultiFilter(widget.account);
+    if (!hasTypeFilter && !hasAccountFilter && customWidgetBudget <= 0 && String(widget.period || 'month') === 'month') {
+      return {
+        source:'auto',
+        spent:0,
+        limit:1,
+        target:0,
+        currency:currency,
+        txns:[],
+        range:range,
+        gaugeMetric:'amount',
+        emptyFilters:true
+      };
+    }
+    var usePeriodSpend = hasTypeFilter
+      || hasAccountFilter
       || customWidgetBudget > 0
       || String(widget.period || 'month') !== 'month';
     if (usePeriodSpend) {
@@ -29672,6 +29871,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     return (dayMs - startMs) / (endMs - startMs);
   }
   function shouldUseSpendTimelineLine(widget, stats){
+    if (stats && stats.emptyFilters) return false;
     if (sourceNorm(widget.source || widget.dataInput || stats.source || '') !== 'auto') return false;
     var metric = widget.gaugeMetric || widget.linearMetric || stats.gaugeMetric || 'amount';
     if (metric === 'count' || metric === 'loan') return false;
@@ -29700,6 +29900,23 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   function timelinePointX(ratio, x1, width){
     return Number((x1 + width * Math.max(0, Math.min(1, ratio))).toFixed(1));
   }
+  function smoothSvgPathFromCoords(coords){
+    if (!coords || !coords.length) return '';
+    if (coords.length === 1) return 'M' + coords[0].x + ' ' + coords[0].y.toFixed(2);
+    var d = 'M' + coords[0].x + ' ' + coords[0].y.toFixed(2);
+    for (var i = 0; i < coords.length - 1; i++) {
+      var p0 = coords[Math.max(0, i - 1)];
+      var p1 = coords[i];
+      var p2 = coords[i + 1];
+      var p3 = coords[Math.min(coords.length - 1, i + 2)];
+      var cp1x = p1.x + (p2.x - p0.x) / 6;
+      var cp1y = p1.y + (p2.y - p0.y) / 6;
+      var cp2x = p2.x - (p3.x - p1.x) / 6;
+      var cp2y = p2.y - (p3.y - p1.y) / 6;
+      d += ' C' + cp1x.toFixed(2) + ' ' + cp1y.toFixed(2) + ', ' + cp2x.toFixed(2) + ' ' + cp2y.toFixed(2) + ', ' + p2.x + ' ' + p2.y.toFixed(2);
+    }
+    return d;
+  }
   function buildUsedStrokePath(points, x1, width, yFn, isDecline){
     if (!points || !points.length) return '';
     var coords = points.map(function(p){
@@ -29716,9 +29933,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       var usedBend = isDecline ? -Math.min(5, usedSpan * .28) : Math.min(7, usedSpan * .35);
       return 'M' + coords[0].x + ' ' + firstY.toFixed(2) + ' C' + usedC1X.toFixed(1) + ' ' + (firstY - 2).toFixed(2) + ', ' + usedC2X.toFixed(1) + ' ' + (currentY + usedBend).toFixed(2) + ', ' + curX + ' ' + currentY.toFixed(2);
     }
-    var path = 'M' + coords[0].x + ' ' + coords[0].y.toFixed(2);
-    for (var i = 1; i < coords.length; i++) path += ' L' + coords[i].x + ' ' + coords[i].y.toFixed(2);
-    return path;
+    return smoothSvgPathFromCoords(coords);
   }
   function makeLine(widget, stats){
     stats = stats || statsForWidget(widget);
