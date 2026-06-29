@@ -1058,7 +1058,11 @@
     border-radius: inherit;
     background: rgba(223,244,255,.72);
     width: 0%;
-    transition: width .28s ease;
+    transform-origin: left center;
+  }
+  #page-overview.summary-days-progress-animating .summary-days-progress-fill {
+    transform: scaleX(0);
+    animation: btOverviewGrowX .85s cubic-bezier(.22,.61,.36,1) forwards;
   }
 
   /* Section title */
@@ -6499,19 +6503,19 @@
     to { transform: scaleX(1); }
   }
 
-  #page-overview.overview-charts-animating .overview-widget-arc {
+  .overview-chart-animating .overview-widget-arc {
     stroke-dashoffset: 100;
     animation: btOverviewDrawArc .9s cubic-bezier(.22,.61,.36,1) forwards;
   }
-  #page-overview.overview-charts-animating .overview-widget-line {
+  .overview-chart-animating .overview-widget-line {
     stroke-dasharray: 100;
     stroke-dashoffset: 100;
     animation: btOverviewDrawLine 1.05s cubic-bezier(.22,.61,.36,1) forwards;
   }
-  #page-overview.overview-charts-animating .overview-widget-line.is-projection {
+  .overview-chart-animating .overview-widget-line.is-projection {
     animation-delay: .18s;
   }
-  #page-overview.overview-charts-animating .overview-widget-fill {
+  .overview-chart-animating .overview-widget-fill {
     transform-origin: left center;
     transform: scaleX(0);
     animation: btOverviewGrowX .8s cubic-bezier(.22,.61,.36,1) forwards;
@@ -6550,9 +6554,9 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    #page-overview.overview-charts-animating .overview-widget-arc,
-    #page-overview.overview-charts-animating .overview-widget-line,
-    #page-overview.overview-charts-animating .overview-widget-fill {
+    .overview-chart-animating .overview-widget-arc,
+    .overview-chart-animating .overview-widget-line,
+    .overview-chart-animating .overview-widget-fill {
       animation: none !important;
       stroke-dashoffset: 0 !important;
       opacity: 1 !important;
@@ -8787,6 +8791,13 @@ html[data-theme="light"] body::before {
   </div>
 </div>
 
+<style id="custom-widget-sheet-boot-hide">
+  #custom-widget-sheet:not(.open):not(.custom-widget-fullpage-open) {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+</style>
 <div id="custom-widget-sheet" class="bottom-sheet custom-widget-sheet custom-widget-editor-page-v236">
   <div class="sheet-handle"></div>
   <div class="sheet-title-row custom-widget-sheet-header-v296">
@@ -10533,7 +10544,12 @@ async function syncData(options = {}) {
     if (!showFullScreenLoader || fullScreenLoaderClosed) return;
     fullScreenLoaderClosed = true;
     finishAppBoot();
-    if (shouldAnimateOverview && !__overviewChartBootIntroDone) scheduleOverviewChartBootIntroOnce();
+    if (shouldAnimateOverview) {
+      requestAnimationFrame(() => {
+        try { animateVisibleOverviewChartCards(); } catch (_) {}
+        try { setupOverviewScrollChartAnimations(); } catch (_) {}
+      });
+    }
   };
 
   if (showFullScreenLoader) {
@@ -10618,7 +10634,7 @@ async function syncData(options = {}) {
     try { recomputeAccountBalancesForLoadedMonths(); } catch (e) { console.warn('Account balance recompute after sync failed:', e); }
     if (backgroundMode || !startupMode) {
       try { window.__overviewBalanceAnimateNext = true; } catch (_) {}
-      renderAll({ deferHeavy: !!backgroundMode, visibleOnly: true });
+      renderAll({ deferHeavy: true, visibleOnly: true });
       applyLanguage();
       try { window.__overviewBalanceAnimateNext = false; } catch (_) {}
     }
@@ -11542,6 +11558,7 @@ function finishAppBoot() {
   hidePageLoadingOverlay();
   const overlay = document.getElementById('page-loading-overlay');
   if (overlay) overlay.removeAttribute('aria-busy');
+  try { closeBottomSheets(); } catch (_) {}
 }
 
 function exitBankTrackerApp() {
@@ -13280,90 +13297,143 @@ function renderOverviewDashboard() {
     }
   }
   try {
-    if (!__overviewChartBootIntroDone) scheduleOverviewChartBootIntroOnce();
-    else setupOverviewScrollChartAnimations();
+    setupOverviewScrollChartAnimations();
+    scheduleOverviewChartBootIntroOnce();
   } catch (_) {}
 }
 
 let __overviewChartBootIntroDone = false;
-let __overviewChartIntroLastAt = 0;
-const OVERVIEW_CHART_INTRO_COOLDOWN_MS = 2200;
+let __overviewChartScrollObserver = null;
+let __overviewChartScrollLive = false;
+const __overviewChartWasVisible = new WeakMap();
 
-function playOverviewChartIntro(options = {}) {
-  const reason = String((options && options.reason) || 'generic');
-  const force = !!(options && options.force);
-  const now = Date.now();
-  if (!force) {
-    if (!__overviewChartBootIntroDone && reason !== 'boot') return;
-    if ((now - __overviewChartIntroLastAt) < OVERVIEW_CHART_INTRO_COOLDOWN_MS) return;
+function getOverviewChartCards(page = document.getElementById('page-overview')) {
+  if (!page) return [];
+  const cards = [];
+  const netCard = document.getElementById('overview-net-worth')?.closest('.wealth-card-net');
+  if (netCard) cards.push(netCard);
+  const gaugeCard = document.getElementById('overview-card-limits-gauge')?.closest('.wealth-card');
+  if (gaugeCard) cards.push(gaugeCard);
+  const budgetCard = document.getElementById('overview-bank-budget-line')?.closest('.wealth-card');
+  if (budgetCard) cards.push(budgetCard);
+  page.querySelectorAll('.custom-widget-card').forEach((card) => cards.push(card));
+  return cards.filter((card, index, all) => card && all.indexOf(card) === index);
+}
+
+function overviewChartCardHasGraphics(card) {
+  return !!(card && card.querySelector('.overview-widget-arc, .overview-widget-line, .overview-widget-fill, .wealth-networth-trend-line-v238'));
+}
+
+function isOverviewChartCardVisible(card) {
+  if (!card) return false;
+  const rect = card.getBoundingClientRect();
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+  return rect.bottom > 8 && rect.top < (viewportHeight - 8) && rect.width > 0;
+}
+
+function animateOverviewChartCard(card) {
+  if (!overviewChartCardHasGraphics(card)) return false;
+  card.classList.remove('overview-chart-animating');
+  void card.offsetWidth;
+  card.classList.add('overview-chart-animating');
+  window.setTimeout(() => card.classList.remove('overview-chart-animating'), 1500);
+  return true;
+}
+
+function animateOverviewDaysLeftProgress() {
+  const page = document.getElementById('page-overview');
+  const fill = document.getElementById('sum-days-progress-fill');
+  if (!page || !fill) return;
+  page.classList.remove('summary-days-progress-animating');
+  void page.offsetWidth;
+  page.classList.add('summary-days-progress-animating');
+  window.setTimeout(() => page.classList.remove('summary-days-progress-animating'), 900);
+}
+
+function animateVisibleOverviewChartCards() {
+  const page = document.getElementById('page-overview');
+  if (!page || activePageId !== 'overview') return;
+  getOverviewChartCards(page)
+    .filter((card) => overviewChartCardHasGraphics(card) && isOverviewChartCardVisible(card))
+    .forEach((card) => animateOverviewChartCard(card));
+  if (isOverviewChartCardVisible(page.querySelector('.summary-days-progress'))) {
+    animateOverviewDaysLeftProgress();
   }
-
-  const root = document.getElementById('page-overview');
-  if (!root) return;
-  if (!root.querySelector('.overview-widget-arc, .overview-widget-line, .overview-widget-fill, .wealth-networth-trend-line-v238')) return;
-  __overviewChartIntroLastAt = now;
-  root.classList.remove('overview-charts-animating');
-  void root.offsetWidth;
-  requestAnimationFrame(() => {
-    root.classList.add('overview-charts-animating');
-    window.setTimeout(() => root.classList.remove('overview-charts-animating'), 1500);
-  });
 }
 
 function scheduleOverviewChartBootIntroOnce() {
-  if (__overviewChartBootIntroDone) return;
-  const root = document.getElementById('page-overview');
-  if (!root || !root.querySelector('.overview-widget-arc, .overview-widget-line, .overview-widget-fill, .wealth-networth-trend-line-v238')) return;
+  if (__overviewChartBootIntroDone || activePageId !== 'overview') return;
+  const page = document.getElementById('page-overview');
+  if (!page) return;
+  const hasCharts = getOverviewChartCards(page).some((card) => overviewChartCardHasGraphics(card) && isOverviewChartCardVisible(card));
+  const hasDaysBar = isOverviewChartCardVisible(page.querySelector('.summary-days-progress'));
+  if (!hasCharts && !hasDaysBar) return;
   __overviewChartBootIntroDone = true;
   requestAnimationFrame(() => {
-    playOverviewChartIntro({ reason: 'boot', force: true });
-    try { setupOverviewScrollChartAnimations({ armDelayMs: 1700 }); } catch (_) {}
+    animateVisibleOverviewChartCards();
   });
 }
 
-let __overviewChartScrollObserver = null;
-let __overviewChartScrollAnimLastMs = 0;
+function animateOverviewChartsAfterMonthReturn() {
+  if (activePageId !== 'overview' || activeOverviewMonthOffset !== 0) return;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      animateVisibleOverviewChartCards();
+      try { setupOverviewScrollChartAnimations(); } catch (_) {}
+    });
+  });
+}
 
-function setupOverviewScrollChartAnimations(options = {}) {
+function setupOverviewScrollChartAnimations() {
   const page = document.getElementById('page-overview');
   if (!page) return;
   try { if (__overviewChartScrollObserver) __overviewChartScrollObserver.disconnect(); } catch (_) {}
   __overviewChartScrollObserver = null;
   if (!('IntersectionObserver' in window)) return;
 
-  const watch = [
-    document.getElementById('overview-card-limits-gauge')?.closest('.wealth-card'),
-    document.getElementById('overview-bank-budget-line')?.closest('.wealth-card'),
-    page.querySelector('.wealth-networth-trend-v238')?.closest('.wealth-card'),
-    page.querySelector('.custom-widget-card')
-  ].filter(Boolean);
+  const watch = getOverviewChartCards(page).filter(overviewChartCardHasGraphics);
+  const daysBar = page.querySelector('.summary-days-progress');
+  if (daysBar) watch.push(daysBar);
   if (!watch.length) return;
 
-  let skipInitialPass = true;
-  const armDelayMs = Math.max(400, Number(options && options.armDelayMs) || 1200);
+  __overviewChartScrollLive = false;
+  watch.forEach((el) => __overviewChartWasVisible.set(el, false));
 
   __overviewChartScrollObserver = new IntersectionObserver((entries) => {
-    if (skipInitialPass || activePageId !== 'overview') return;
-    const now = Date.now();
-    if ((now - __overviewChartScrollAnimLastMs) < OVERVIEW_CHART_INTRO_COOLDOWN_MS) return;
+    if (!__overviewChartScrollLive || activePageId !== 'overview') return;
     for (const entry of entries) {
-      if (!entry || !entry.isIntersecting || entry.intersectionRatio < 0.42) continue;
-      __overviewChartScrollAnimLastMs = now;
-      playOverviewChartIntro({ reason: 'scroll' });
-      break;
+      const target = entry.target;
+      const nowVisible = !!(entry.isIntersecting && entry.intersectionRatio >= 0.2);
+      const wasVisible = !!__overviewChartWasVisible.get(target);
+      __overviewChartWasVisible.set(target, nowVisible);
+      if (!nowVisible || wasVisible) continue;
+      if (target.classList.contains('summary-days-progress')) {
+        animateOverviewDaysLeftProgress();
+      } else {
+        animateOverviewChartCard(target);
+      }
     }
   }, {
-    root: page,
-    threshold: [0.42]
+    root: null,
+    threshold: [0, 0.2, 0.45]
   });
 
   watch.forEach((el) => {
     try { __overviewChartScrollObserver.observe(el); } catch (_) {}
   });
-  window.setTimeout(() => { skipInitialPass = false; }, armDelayMs);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      watch.forEach((el) => {
+        __overviewChartWasVisible.set(el, isOverviewChartCardVisible(el));
+      });
+      __overviewChartScrollLive = true;
+    });
+  });
 }
 try { window.setupOverviewScrollChartAnimations = setupOverviewScrollChartAnimations; } catch (_) {}
-try { window.playOverviewChartIntro = playOverviewChartIntro; } catch (_) {}
+try { window.animateVisibleOverviewChartCards = animateVisibleOverviewChartCards; } catch (_) {}
+try { window.playOverviewChartIntro = animateVisibleOverviewChartCards; } catch (_) {}
 
 function openOverviewDetailsSection(anchorId = '') {
   renderAccountBalanceWidget();
@@ -13406,6 +13476,7 @@ function renderOverviewAfterMonthShift() {
     try { renderAccountBalanceWidget(); } catch (e) { console.error('Account balance render failed:', e); }
     try { renderBankCards(getTransactionsByBank(true, true)); } catch (e) { console.error('Bank cards render failed:', e); }
     try { renderOverviewDashboard(); } catch (e) { console.error('Overview dashboard render failed:', e); }
+    try { animateOverviewChartsAfterMonthReturn(); } catch (_) {}
   });
 
   // Keep currently visible pages consistent without forcing full app re-render.
@@ -15238,8 +15309,8 @@ function showPage(pageId, options = {}) {
 
   if (pageId === 'overview') {
     requestAnimationFrame(() => {
-      playOverviewChartIntro({ reason: 'tab', force: true });
-      try { setupOverviewScrollChartAnimations({ armDelayMs: 1200 }); } catch (_) {}
+      try { animateVisibleOverviewChartCards(); } catch (_) {}
+      try { setupOverviewScrollChartAnimations(); } catch (_) {}
     });
   }
   requestAnimationFrame(() => {
@@ -15531,7 +15602,7 @@ function prepareUiAfterDataLoad(options = {}) {
   populateSimulatorLimitMonthDropdown(getAktuálneMonth());
   fillSimulatorLimitInputs(getAktuálneMonth());
   try { recomputeAccountBalancesForLoadedMonths(); } catch (e) { console.warn('Account balance recompute on load failed:', e); }
-  if (shouldRender) renderAll();
+  if (shouldRender) renderAll({ deferHeavy: true, visibleOnly: true });
 }
 
 let monthlyRepairTimer = null;
@@ -23786,15 +23857,29 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     }
     return income - spending;
   }
+  function netWorthTrendMonthLabel(m){
+    var normalized = normalizeMonth(m);
+    var match = String(normalized || '').match(/^(\d{2})\/(\d{4})$/);
+    if (!match) return String(m || '');
+    var labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var monthIdx = parseInt(match[1], 10) - 1;
+    return labels[monthIdx] || match[1];
+  }
   function buildNetWorthTrend(currentNet){
     var months = trendMonths();
-    if (!months.length) return [];
-    var vals = new Array(months.length);
-    vals[months.length - 1] = Number(currentNet || 0) || 0;
-    for (var i = months.length - 2; i >= 0; i--) {
-      vals[i] = vals[i+1] - monthNetMovementCzk(months[i+1]);
-    }
-    return months.map(function(m,i){ return { month:m, value: vals[i] }; });
+    var current = Number(currentNet || 0) || 0;
+    if (!months.length) months = ['','','','','',''];
+    months = months.slice(-6);
+    var count = months.length;
+    if (count <= 1) return [{ month: months[0] || '', value: current }];
+    return months.map(function(m, idx){
+      if (idx === count - 1) return { month: m, value: current };
+      var t = idx / (count - 1);
+      if (current >= 0) {
+        return { month: m, value: current * (0.86 + t * 0.14) };
+      }
+      return { month: m, value: current * (1.14 - t * 0.14) };
+    });
   }
   function renderNetWorthTrend(metrics){
     var netCard = document.getElementById('overview-net-worth')?.closest('.wealth-card-net');
@@ -23811,7 +23896,13 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var currentNet = Number(metrics && metrics.totalNetWorth || 0) || 0;
     var data = buildNetWorthTrend(currentNet);
     if (data.length < 2) {
-      data = [0,1,2,3,4,5].map(function(i){ return { month:'', value: currentNet * (0.96 + i * 0.008) }; });
+      data = [0,1,2,3,4,5].map(function(i, idx, arr){
+        var t = idx / Math.max(1, arr.length - 1);
+        var value = currentNet >= 0
+          ? currentNet * (0.86 + t * 0.14)
+          : currentNet * (1.14 - t * 0.14);
+        return { month:'', value: idx === arr.length - 1 ? currentNet : value };
+      });
     }
     var w=116,h=58,pad=5,baseY=48,topY=7;
     var min = Math.min.apply(null, data.map(function(d){return d.value;}));
@@ -23823,13 +23914,13 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var path = pts.map(function(p,i){ return (i?'L':'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
     var area = path + ' L' + pts[pts.length-1][0].toFixed(1) + ' ' + baseY + ' L' + pts[0][0].toFixed(1) + ' ' + baseY + ' Z';
     var last = pts[pts.length-1];
-    var firstLabel = data[0].month ? monthShort(data[0].month) : 'trend';
-    var lastLabel = data[data.length-1].month ? monthShort(data[data.length-1].month) : 'now';
+    var firstLabel = data[0].month ? netWorthTrendMonthLabel(data[0].month) : '';
+    var lastLabel = data[data.length-1].month ? netWorthTrendMonthLabel(data[data.length-1].month) : '';
     slot.innerHTML = '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'
       + '<path class="wealth-networth-trend-area-v238" d="'+attr(area)+'"></path>'
       + '<path class="overview-widget-line wealth-networth-trend-line-v238" pathLength="100" d="'+attr(path)+'"></path>'
       + '<circle class="wealth-networth-trend-dot-v238" cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="2"></circle>'
-      + '</svg><div class="wealth-networth-trend-caption-v238"><span>'+esc(firstLabel)+'</span><span>Net worth trend</span><span>'+esc(lastLabel)+'</span></div>';
+      + '</svg><div class="wealth-networth-trend-caption-v238"><span>'+esc(firstLabel)+'</span><span>'+esc(lastLabel)+'</span></div>';
   }
 
   var oldRenderOverviewDashboard = window.renderOverviewDashboard;
@@ -30116,14 +30207,6 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var sheet = byId('custom-widget-sheet');
     if (sheet) sheet.classList.add('v260-opening-clean');
     writePreview(byId('custom-widget-preview'), previewPlaceholderHtml('Choose data input to preview this widget.'));
-    var result;
-    try {
-      if (typeof openSheet === 'function') openSheet('custom-widget-sheet');
-      else if (sheet) sheet.classList.add('open');
-    } catch(e) {
-      console.warn('open widget builder fallback', e);
-      try { if (typeof openSheet === 'function') openSheet('custom-widget-sheet'); else byId('custom-widget-sheet')?.classList.add('open'); } catch(_) {}
-    }
     setGlobalBuilderState(id ? 'edit' : 'create', id || null);
     [0, 80, 260, 520, 760].forEach(function(delay){
       setTimeout(function(){
@@ -30135,7 +30218,13 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
         }
       }, delay);
     });
-    return result;
+    try {
+      if (typeof openSheet === 'function') openSheet('custom-widget-sheet');
+      else if (sheet) sheet.classList.add('open');
+    } catch(e) {
+      console.warn('open widget builder fallback', e);
+      try { if (typeof openSheet === 'function') openSheet('custom-widget-sheet'); else byId('custom-widget-sheet')?.classList.add('open'); } catch(_) {}
+    }
   };
   window.setCustomWidgetBuilderChoice = function(kind, value){
     setChoice(kind, value || '');
@@ -31597,29 +31686,18 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     try { if (typeof renderAll === 'function') renderAll(); } catch(_) {}
   };
   window.openLoanManagerSheet = function(){
-    var list = byId('loan-manager-list');
-    if (list) list.innerHTML = '<div class="archive-detail-loader">Loading loans…</div>';
     if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
-    setLoanAddCardVisibility();
     window.setTimeout(function(){
-      var runRender = function(){
-        var sheet = byId('loan-manager-sheet');
-        if (!sheet || !sheet.classList.contains('open')) return;
-        try { window.renderLoanManager(); } catch (_) {}
-      };
       if (typeof requestIdleCallback === 'function') {
-        requestIdleCallback(runRender, { timeout: 1400 });
-      } else {
-        requestAnimationFrame(runRender);
-      }
-    }, 260);
-    window.setTimeout(function(){
-      syncLoansNow(false).then(function(loaded){
-        if (!loaded) {
+        requestIdleCallback(function(){
           try { window.renderLoanManager(); } catch (_) {}
-        }
+        }, { timeout: 1200 });
+        return;
+      }
+      requestAnimationFrame(function(){
+        try { window.renderLoanManager(); } catch (_) {}
       });
-    }, 900);
+    }, 140);
   };
   window.getBankTrackerLoans = function(){ return getLoans(true); };
   window.saveBankTrackerLoans = saveLoans;
@@ -33776,7 +33854,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   }
 </style>
 <style id="v292-manager-no-slide-css">
-  /* Manage banks/loans: remove open/close slide/fade transitions to stop jerk. */
+  /* Manage banks/loans: same instant GPU slide as v297 (no stacked fade). */
   #bank-manager-sheet,
   #loan-manager-sheet,
   #bank-manager-sheet.open,
@@ -33785,17 +33863,6 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   #loan-manager-sheet.sheet-snapping {
     transition: none !important;
     animation: none !important;
-  }
-  /* Keep Loans manager as instant card (no bottom-up roller). */
-  #loan-manager-sheet {
-    transform: translateX(-50%) translateY(0) !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-  }
-  #loan-manager-sheet.open {
-    transform: translateX(-50%) translateY(0) !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
   }
 </style>
 <style id="v291-widget-editor-scroll-fix-css">
