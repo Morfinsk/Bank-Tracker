@@ -989,35 +989,10 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Global sync pill — visible on every tab while cloud sync runs. */
+  /* Global sync pill disabled — sync feedback stays on the header ↻ button only. */
   .global-sync-indicator {
-    position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 8px);
-    right: 10px;
-    z-index: 12050;
-    display: none;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 11px;
-    border-radius: 999px;
-    background: rgba(13, 22, 38, .94);
-    border: 1px solid rgba(88, 166, 255, .28);
-    box-shadow: 0 8px 22px rgba(0, 0, 0, .28);
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    color: rgba(208, 228, 255, .96);
-    pointer-events: none;
+    display: none !important;
   }
-  .global-sync-indicator.show { display: inline-flex; }
-  .global-sync-indicator-icon {
-    display: inline-block;
-    animation: spin 1s linear infinite;
-    transform-origin: center center;
-  }
-  html.android-pwa-perf .global-sync-indicator-icon,
-  html.mobile-perf-mode .global-sync-indicator-icon,
   html.android-pwa-perf .sync-btn.spinning .sync-btn-icon,
   html.mobile-perf-mode .sync-btn.spinning .sync-btn-icon {
     animation: spin 1s linear infinite !important;
@@ -6622,7 +6597,7 @@
   #page-overview-details .budget-progress-fill.overview-details-bar-animating,
   #page-overview-details .card-widget .progress-fill.overview-details-bar-animating {
     transform-origin: left center;
-    animation: btOverviewGrowX 2.1s cubic-bezier(.18,.78,.24,1) forwards;
+    animation: btOverviewGrowX 3s cubic-bezier(.18,.78,.24,1) forwards;
     transition: none !important;
   }
 
@@ -8441,11 +8416,6 @@ html[data-theme="light"] body::before {
 
 </head>
 <body>
-
-<div id="global-sync-indicator" class="global-sync-indicator" hidden aria-live="polite">
-  <span class="global-sync-indicator-icon" aria-hidden="true">↻</span>
-  <span>Syncing…</span>
-</div>
 
 <div id="page-loading-overlay" class="page-loading-overlay" aria-live="polite">
   <div class="page-loading-spinner" aria-hidden="true"></div>
@@ -13280,11 +13250,11 @@ function createOverviewBudgetSparkline(used = 0, limit = 0, currency, txSeries =
       </svg>
     </div>`;
 }
-function updateGlobalSyncIndicator(active) {
+function updateGlobalSyncIndicator(_active) {
   const el = document.getElementById('global-sync-indicator');
   if (!el) return;
-  el.classList.toggle('show', !!active);
-  el.hidden = !active;
+  el.classList.remove('show');
+  el.hidden = true;
 }
 try { window.updateGlobalSyncIndicator = updateGlobalSyncIndicator; } catch (_) {}
 
@@ -13476,8 +13446,8 @@ const OVERVIEW_LINE_DRAW_MS = 1850;
 const OVERVIEW_PROJECTION_DELAY_MS = 1850;
 const OVERVIEW_PROJECTION_DRAW_MS = 1350;
 const OVERVIEW_PROGRESS_DRAW_MS = 1350;
-const OVERVIEW_DETAILS_BAR_DRAW_MS = 2100;
-const OVERVIEW_DETAILS_BAR_STAGGER_MS = 70;
+const OVERVIEW_DETAILS_BAR_DRAW_MS = 3000;
+const OVERVIEW_DETAILS_BAR_STAGGER_MS = 100;
 
 function getOverviewChartCards(page = document.getElementById('page-overview')) {
   if (!page) return [];
@@ -24537,7 +24507,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   .wealth-networth-trend-dot-v238 {
     fill: #ffffff;
     stroke: var(--accent);
-    stroke-width: 1.2;
+    stroke-width: 0.85;
   }
   .wealth-networth-trend-caption-v238 {
     display: flex;
@@ -24756,7 +24726,7 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     slot.innerHTML = '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'
       + '<path class="wealth-networth-trend-area-v238" d="'+attr(area)+'"></path>'
       + '<path class="overview-widget-line wealth-networth-trend-line-v238" pathLength="100" d="'+attr(path)+'"></path>'
-      + '<circle class="wealth-networth-trend-dot-v238" cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="2"></circle>'
+      + '<circle class="wealth-networth-trend-dot-v238" cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="1.35"></circle>'
       + '</svg><div class="wealth-networth-trend-caption-v238"><span>'+esc(firstLabel)+'</span><span>'+esc(lastLabel)+'</span></div>';
   }
 
