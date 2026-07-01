@@ -3,12 +3,33 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="theme-color" content="#0d1117">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0d1117">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1117">
-<meta name="msapplication-navbutton-color" content="#0d1117">
+<meta name="theme-color" content="#08111f">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#08111f">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08111f">
+<meta name="msapplication-navbutton-color" content="#08111f">
 <meta name="color-scheme" content="dark">
-<meta name="supported-color-schemes" content="dark">
+<meta name="supported-color-schemes" content="dark light">
+
+<script>
+(function applyEarlyThemeShell(){
+  try {
+    var theme = localStorage.getItem('app_theme') === 'light' ? 'light' : 'dark';
+    var bar = theme === 'light' ? '#f8fafc' : '#08111f';
+    var scheme = theme === 'light' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.style.setProperty('--system-bar-color', bar);
+    document.documentElement.style.setProperty('--status-bar-color', bar);
+    document.documentElement.style.colorScheme = scheme;
+    document.querySelectorAll('meta[name="theme-color"]').forEach(function(meta){
+      meta.setAttribute('content', bar);
+    });
+    var navMeta = document.querySelector('meta[name="msapplication-navbutton-color"]');
+    if (navMeta) navMeta.setAttribute('content', bar);
+    var colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
+    if (colorSchemeMeta) colorSchemeMeta.setAttribute('content', scheme);
+  } catch (_) {}
+})();
+</script>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -3892,18 +3913,19 @@
   .bt-pull-refresh-inner {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
     border-radius: 999px;
     background: rgba(8, 17, 31, .94);
     border: 1px solid rgba(148, 186, 255, .28);
     color: rgba(148, 186, 255, .95);
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    white-space: nowrap;
     box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+  }
+
+  .bt-pull-refresh-text {
+    display: none !important;
   }
 
   .bt-pull-refresh-icon {
@@ -3965,7 +3987,7 @@
     left: 0;
     right: 0;
     height: env(safe-area-inset-top);
-    background: #08111f;
+    background: var(--status-bar-color, var(--system-bar-color, #08111f));
     pointer-events: none;
   }
 
@@ -4122,10 +4144,12 @@
   html[data-theme="dark"],
   html:not([data-theme="light"]) {
     --system-bar-color: #08111f;
+    --status-bar-color: #08111f;
   }
 
   html[data-theme="light"] {
     --system-bar-color: #f8fafc;
+    --status-bar-color: #f8fafc;
   }
 
   .android-system-bar-bg {
@@ -4402,7 +4426,7 @@
     right: 0;
     bottom: 0;
     height: max(32px, env(safe-area-inset-bottom));
-    background: #08111f;
+    background: var(--system-bar-color, #08111f);
     pointer-events: none;
     z-index: 0;
   }
@@ -4414,9 +4438,28 @@
     right: 0;
     bottom: 0;
     height: max(32px, env(safe-area-inset-bottom));
-    background: #f8fafc;
+    background: var(--system-bar-color, #f8fafc);
     pointer-events: none;
     z-index: 0;
+  }
+
+  html.pwa-standalone.android-device .android-system-bar-bg {
+    z-index: 90;
+    background: var(--system-bar-color, #08111f) !important;
+  }
+
+  html.pwa-standalone.android-device:not([data-theme="light"]) .bottom-nav {
+    background:
+      radial-gradient(circle at top, rgba(88,166,255,.14), transparent 55%),
+      linear-gradient(180deg, rgba(12,23,42,1), rgba(5,12,24,1)) !important;
+    border-top-color: rgba(88,166,255,.20) !important;
+  }
+
+  html.pwa-standalone.android-device[data-theme="light"] .bottom-nav {
+    background:
+      radial-gradient(circle at top, rgba(37,99,235,.12), transparent 55%),
+      linear-gradient(180deg, rgba(255,255,255,1), rgba(241,245,249,1)) !important;
+    border-top-color: rgba(15,23,42,.12) !important;
   }
 
 
@@ -6579,7 +6622,7 @@
   #page-overview-details .budget-progress-fill.overview-details-bar-animating,
   #page-overview-details .card-widget .progress-fill.overview-details-bar-animating {
     transform-origin: left center;
-    animation: btOverviewGrowX 1.35s cubic-bezier(.18,.78,.24,1) forwards;
+    animation: btOverviewGrowX 2.1s cubic-bezier(.18,.78,.24,1) forwards;
     transition: none !important;
   }
 
@@ -6601,20 +6644,6 @@
     overflow: hidden;
   }
 
-  .overview-chart-animating .overview-widget-line,
-  .overview-chart-animating .wealth-spark-line,
-  .overview-chart-animating .wealth-networth-trend-line-v238 {
-    stroke-dasharray: 100;
-    stroke-dashoffset: 100;
-    animation: btOverviewDrawLine 1.85s ease-out forwards;
-  }
-  .overview-chart-animating .overview-widget-line.is-projection,
-  .overview-chart-animating .wealth-spark-line.is-projection {
-    stroke-dasharray: 100;
-    stroke-dashoffset: 100;
-    animation: btOverviewDrawLine 1.35s ease-out forwards;
-    animation-delay: 1.85s;
-  }
   .overview-chart-animating .overview-widget-fill,
   .overview-chart-animating .wealth-inline-progress-fill,
   .overview-chart-animating .custom-widget-gauge-fill {
@@ -6622,6 +6651,8 @@
     transform: scaleX(0);
     animation: btOverviewGrowX 1.35s cubic-bezier(.18,.78,.24,1) forwards;
   }
+
+  /* Line + projection draw uses WAAPI in animateOverviewChartCard(). */
 
   /* Balance cards: sync badge + subtle dim while cloud data refreshes. */
   .wealth-card-net,
@@ -6666,9 +6697,6 @@
     #page-overview-details .card-widget .progress-fill.overview-details-bar-show,
     .overview-chart-animating .overview-widget-arc,
     .overview-chart-animating .wealth-gauge-arc,
-    .overview-chart-animating .overview-widget-line,
-    .overview-chart-animating .wealth-spark-line,
-    .overview-chart-animating .wealth-networth-trend-line-v238,
     .overview-chart-animating .overview-widget-fill,
     .overview-chart-animating .wealth-inline-progress-fill,
     .overview-chart-animating .custom-widget-gauge-fill {
@@ -12014,6 +12042,7 @@ function renderBudgetStatus() {
     <div class="budget-status-note" style="margin:-4px 0 10px;">${t('budgetAllPaymentsHint')}</div>
     ${rows}
   `;
+  try { scheduleOverviewDetailsBarRefresh(); } catch (_) {}
 }
 
 function getAccountBalanceStorageKey(bankKey, monthStr = '') {
@@ -13439,13 +13468,16 @@ function getOverviewIntroCards(page, options = {}) {
 let __overviewChartBootIntroDone = false;
 let __overviewChartScrollObserver = null;
 let __overviewChartScrollLive = false;
+let __overviewChartReplayTimer = null;
+let __overviewChartReplayToken = 0;
 const __overviewChartWasVisible = new WeakMap();
 const __overviewChartIntroPlayed = new WeakSet();
 const OVERVIEW_LINE_DRAW_MS = 1850;
 const OVERVIEW_PROJECTION_DELAY_MS = 1850;
 const OVERVIEW_PROJECTION_DRAW_MS = 1350;
 const OVERVIEW_PROGRESS_DRAW_MS = 1350;
-const OVERVIEW_DETAILS_BAR_STAGGER_MS = 45;
+const OVERVIEW_DETAILS_BAR_DRAW_MS = 2100;
+const OVERVIEW_DETAILS_BAR_STAGGER_MS = 70;
 
 function getOverviewChartCards(page = document.getElementById('page-overview')) {
   if (!page) return [];
@@ -13503,6 +13535,121 @@ function stopOverviewGaugeArcAnimations(card) {
   });
 }
 
+function stopOverviewLineAnimations(card) {
+  if (!card || typeof card.querySelectorAll !== 'function') return;
+  card.querySelectorAll('.overview-widget-line, .wealth-spark-line, .wealth-networth-trend-line-v238').forEach((line) => {
+    try { (line.__btLineAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
+    line.__btLineAnim = null;
+    line.style.strokeDasharray = '';
+    line.style.strokeDashoffset = '';
+    if (line.classList.contains('is-projection')) {
+      line.style.opacity = '0';
+    } else {
+      line.style.opacity = '';
+    }
+  });
+}
+
+function runOverviewLineAnimations(card) {
+  if (!card || typeof card.querySelectorAll !== 'function') return;
+  const reduceMotion = (() => {
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; }
+  })();
+
+  stopOverviewLineAnimations(card);
+
+  const mainLines = card.querySelectorAll(
+    '.overview-widget-line:not(.is-projection), .wealth-spark-line:not(.is-projection), .wealth-networth-trend-line-v238'
+  );
+  const projLines = card.querySelectorAll('.overview-widget-line.is-projection, .wealth-spark-line.is-projection');
+
+  mainLines.forEach((line) => {
+    if (!line.getAttribute('pathLength')) line.setAttribute('pathLength', '100');
+    if (reduceMotion) {
+      line.style.strokeDasharray = '100';
+      line.style.strokeDashoffset = '0';
+      return;
+    }
+    line.style.strokeDasharray = '100';
+    line.style.strokeDashoffset = '100';
+    const anim = line.animate([
+      { strokeDasharray: '100', strokeDashoffset: '100' },
+      { strokeDasharray: '100', strokeDashoffset: '0' }
+    ], { duration: OVERVIEW_LINE_DRAW_MS, easing: 'ease-out', fill: 'forwards' });
+    line.__btLineAnim = [anim];
+  });
+
+  projLines.forEach((line) => {
+    if (!line.getAttribute('pathLength')) line.setAttribute('pathLength', '100');
+    const targetOpacity = parseFloat(line.getAttribute('opacity') || line.style.opacity || '0.94') || 0.94;
+    if (reduceMotion) {
+      line.style.strokeDasharray = '100';
+      line.style.strokeDashoffset = '0';
+      line.style.opacity = String(targetOpacity);
+      return;
+    }
+    line.style.strokeDasharray = '100';
+    line.style.strokeDashoffset = '100';
+    line.style.opacity = '0';
+    const anim = line.animate([
+      { strokeDasharray: '100', strokeDashoffset: '100', opacity: 0 },
+      { strokeDasharray: '100', strokeDashoffset: '0', opacity: targetOpacity }
+    ], {
+      duration: OVERVIEW_PROJECTION_DRAW_MS,
+      delay: OVERVIEW_PROJECTION_DELAY_MS,
+      easing: 'ease-out',
+      fill: 'forwards'
+    });
+    line.__btLineAnim = [anim];
+  });
+}
+
+const __overviewChartAnimTimers = new WeakMap();
+
+function stopOverviewChartCardAnimations(card) {
+  if (!card) return;
+  const timerId = __overviewChartAnimTimers.get(card);
+  if (timerId) {
+    window.clearTimeout(timerId);
+    __overviewChartAnimTimers.delete(card);
+  }
+  stopOverviewGaugeArcAnimations(card);
+  stopOverviewLineAnimations(card);
+  card.classList.remove('overview-chart-animating');
+}
+
+function pauseOverviewChartAnimations() {
+  const page = document.getElementById('page-overview');
+  if (!page) return;
+  getOverviewChartCards(page).forEach((card) => stopOverviewChartCardAnimations(card));
+  page.classList.remove('overview-summary-revealing', 'summary-days-progress-animating');
+}
+
+function cancelOverviewChartsReplay() {
+  if (__overviewChartReplayTimer) {
+    window.clearTimeout(__overviewChartReplayTimer);
+    __overviewChartReplayTimer = null;
+  }
+  __overviewChartReplayToken += 1;
+}
+
+function scheduleOverviewChartsReplay(fromDetailsReturn = false) {
+  cancelOverviewChartsReplay();
+  const token = __overviewChartReplayToken;
+  const fire = () => {
+    __overviewChartReplayTimer = null;
+    if (token !== __overviewChartReplayToken || activePageId !== 'overview') return;
+    try { animateOverviewChartsIntro({ mode: 'visible' }); } catch (_) {}
+  };
+  if (fromDetailsReturn) {
+    __overviewChartReplayTimer = window.setTimeout(fire, 280);
+    return;
+  }
+  requestAnimationFrame(() => {
+    requestAnimationFrame(fire);
+  });
+}
+
 function getOverviewChartCardAnimDuration(card) {
   const hasProjection = !!(card && card.querySelector('.overview-widget-line.is-projection, .wealth-spark-line.is-projection'));
   return hasProjection
@@ -13512,17 +13659,19 @@ function getOverviewChartCardAnimDuration(card) {
 
 function animateOverviewChartCard(card) {
   if (!overviewChartCardHasGraphics(card)) return false;
-  stopOverviewGaugeArcAnimations(card);
-  card.classList.remove('overview-chart-animating');
+  stopOverviewChartCardAnimations(card);
   void card.offsetWidth;
   card.classList.add('overview-chart-animating');
   __overviewChartIntroPlayed.add(card);
   runOverviewGaugeArcAnimations(card);
+  runOverviewLineAnimations(card);
   const duration = getOverviewChartCardAnimDuration(card);
-  window.setTimeout(() => {
+  const timerId = window.setTimeout(() => {
     card.classList.remove('overview-chart-animating');
     stopOverviewGaugeArcAnimations(card);
+    __overviewChartAnimTimers.delete(card);
   }, duration);
+  __overviewChartAnimTimers.set(card, timerId);
   return true;
 }
 
@@ -13730,6 +13879,8 @@ try { window.playOverviewChartIntro = animateOverviewChartsIntro; } catch (_) {}
 let __overviewDetailsScrollObserver = null;
 let __overviewDetailsScrollLive = false;
 const __overviewDetailsWasVisible = new WeakMap();
+const __overviewDetailsScrollFillByRow = new WeakMap();
+const __overviewDetailsBarFinishTimers = new WeakMap();
 
 function isOverviewDetailsElementVisible(el) {
   if (!el) return false;
@@ -13738,18 +13889,51 @@ function isOverviewDetailsElementVisible(el) {
   return rect.bottom > 8 && rect.top < (viewportHeight - 8) && rect.width > 0;
 }
 
-function getOverviewDetailsAnimatedElements(page = document.getElementById('page-overview-details')) {
+function getOverviewDetailsBarFillFromRow(rowEl) {
+  if (!rowEl) return null;
+  if (rowEl.classList.contains('card-widget')) return rowEl.querySelector('.progress-fill');
+  return rowEl.querySelector('.budget-progress-fill');
+}
+
+function getOverviewDetailsScrollRows(page = document.getElementById('page-overview-details')) {
   if (!page) return [];
-  const items = [];
-  page.querySelectorAll('.budget-bank-row .budget-progress-fill').forEach(el => items.push(el));
-  page.querySelectorAll('.card-widget .progress-fill').forEach(el => items.push(el));
-  return items;
+  const rows = [];
+  page.querySelectorAll('.card-widget').forEach((row) => {
+    if (getOverviewDetailsBarFillFromRow(row)) rows.push(row);
+  });
+  page.querySelectorAll('.budget-bank-row').forEach((row) => {
+    if (getOverviewDetailsBarFillFromRow(row)) rows.push(row);
+  });
+  return rows;
+}
+
+function getOverviewDetailsAnimatedElements(page = document.getElementById('page-overview-details')) {
+  return getOverviewDetailsScrollRows(page)
+    .map((row) => getOverviewDetailsBarFillFromRow(row))
+    .filter(Boolean);
+}
+
+function clearOverviewDetailsBarFinishTimer(el) {
+  const timerId = __overviewDetailsBarFinishTimers.get(el);
+  if (timerId) {
+    window.clearTimeout(timerId);
+    __overviewDetailsBarFinishTimers.delete(el);
+  }
+}
+
+function finishOverviewDetailsBar(el) {
+  if (!el || el.classList.contains('overview-details-bar-show')) return;
+  clearOverviewDetailsBarFinishTimer(el);
+  el.classList.remove('overview-details-bar-animating');
+  el.classList.add('overview-details-bar-show');
+  el.style.animationDelay = '';
 }
 
 function resetOverviewDetailsBarAnimations(page = document.getElementById('page-overview-details')) {
   if (!page) return;
   page.classList.remove('overview-details-entering');
   getOverviewDetailsAnimatedElements(page).forEach((el) => {
+    clearOverviewDetailsBarFinishTimer(el);
     el.classList.remove('overview-details-bar-animating', 'overview-details-bar-show');
     el.style.animationDelay = '';
   });
@@ -13761,20 +13945,38 @@ function prepareOverviewDetailsBars(page = document.getElementById('page-overvie
   page.classList.add('overview-details-entering');
 }
 
-function onOverviewDetailsBarAnimEnd(ev) {
-  const el = ev.target;
-  if (!el || ev.animationName !== 'btOverviewGrowX') return;
-  el.classList.remove('overview-details-bar-animating');
-  el.classList.add('overview-details-bar-show');
+function resetOverviewDetailsBarForScroll(el) {
+  if (!el) return;
+  clearOverviewDetailsBarFinishTimer(el);
+  el.classList.remove('overview-details-bar-animating', 'overview-details-bar-show');
   el.style.animationDelay = '';
 }
 
+function onOverviewDetailsBarAnimEnd(ev) {
+  const el = ev.target;
+  const animName = String(ev.animationName || '');
+  if (!el || (animName && animName !== 'btOverviewGrowX')) return;
+  finishOverviewDetailsBar(el);
+}
+
 function animateOverviewDetailsElement(el, delayMs = 0) {
-  if (!el || el.classList.contains('overview-details-bar-animating') || el.classList.contains('overview-details-bar-show')) return false;
-  el.style.animationDelay = delayMs > 0 ? `${delayMs}ms` : '';
+  if (!el || el.classList.contains('overview-details-bar-animating')) return false;
+  clearOverviewDetailsBarFinishTimer(el);
+  el.classList.remove('overview-details-bar-show');
+  const delay = Math.max(0, Number(delayMs) || 0);
+  el.style.animationDelay = delay > 0 ? `${delay}ms` : '';
   el.addEventListener('animationend', onOverviewDetailsBarAnimEnd, { once: true });
+  void el.offsetWidth;
   el.classList.add('overview-details-bar-animating');
+  __overviewDetailsBarFinishTimers.set(
+    el,
+    window.setTimeout(() => finishOverviewDetailsBar(el), delay + OVERVIEW_DETAILS_BAR_DRAW_MS + 120)
+  );
   return true;
+}
+
+function isOverviewDetailsRowVisible(rowEl) {
+  return isOverviewDetailsElementVisible(rowEl || getOverviewDetailsBarFillFromRow(rowEl));
 }
 
 function startOverviewDetailsBarAnimations() {
@@ -13783,9 +13985,35 @@ function startOverviewDetailsBarAnimations() {
   page.classList.add('overview-details-entering');
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      const bars = getOverviewDetailsAnimatedElements(page);
-      bars.forEach((el, index) => animateOverviewDetailsElement(el, index * OVERVIEW_DETAILS_BAR_STAGGER_MS));
-      try { setupOverviewDetailsScrollAnimations(); } catch (_) {}
+      requestAnimationFrame(() => {
+        const rows = getOverviewDetailsScrollRows(page);
+        let stagger = 0;
+        rows.forEach((row) => {
+          const fill = getOverviewDetailsBarFillFromRow(row);
+          if (!fill) return;
+          if (!isOverviewDetailsRowVisible(row)) {
+            __overviewDetailsWasVisible.set(row, false);
+            return;
+          }
+          animateOverviewDetailsElement(fill, stagger);
+          __overviewDetailsWasVisible.set(row, true);
+          stagger += OVERVIEW_DETAILS_BAR_STAGGER_MS;
+        });
+        try { setupOverviewDetailsScrollAnimations(); } catch (_) {}
+      });
+    });
+  });
+}
+
+function scheduleOverviewDetailsBarRefresh() {
+  if (activePageId !== 'overview-details') return;
+  if (window.__overviewDetailsBarRefreshQueued) return;
+  window.__overviewDetailsBarRefreshQueued = true;
+  requestAnimationFrame(() => {
+    window.__overviewDetailsBarRefreshQueued = false;
+    prepareOverviewDetailsBars();
+    requestAnimationFrame(() => {
+      try { startOverviewDetailsBarAnimations(); } catch (_) {}
     });
   });
 }
@@ -13801,38 +14029,52 @@ function setupOverviewDetailsScrollAnimations() {
   __overviewDetailsScrollObserver = null;
   if (!('IntersectionObserver' in window)) return;
 
-  const watch = getOverviewDetailsAnimatedElements(page);
-  if (!watch.length) return;
+  const watchRows = getOverviewDetailsScrollRows(page);
+  if (!watchRows.length) return;
 
   __overviewDetailsScrollLive = false;
-  watch.forEach(el => __overviewDetailsWasVisible.set(el, false));
+  watchRows.forEach((row) => {
+    __overviewDetailsWasVisible.set(row, false);
+    const fill = getOverviewDetailsBarFillFromRow(row);
+    if (fill) __overviewDetailsScrollFillByRow.set(row, fill);
+  });
 
   __overviewDetailsScrollObserver = new IntersectionObserver((entries) => {
     if (!__overviewDetailsScrollLive || activePageId !== 'overview-details') return;
     for (const entry of entries) {
-      const target = entry.target;
-      const nowVisible = !!(entry.isIntersecting && entry.intersectionRatio >= 0.2);
-      const wasVisible = !!__overviewDetailsWasVisible.get(target);
-      __overviewDetailsWasVisible.set(target, nowVisible);
-      if (!nowVisible || wasVisible) continue;
-      animateOverviewDetailsElement(target);
+      const row = entry.target;
+      const fill = __overviewDetailsScrollFillByRow.get(row) || getOverviewDetailsBarFillFromRow(row);
+      if (!fill) continue;
+      const nowVisible = !!entry.isIntersecting && entry.intersectionRatio >= 0.08;
+      const wasVisible = !!__overviewDetailsWasVisible.get(row);
+      __overviewDetailsWasVisible.set(row, nowVisible);
+      if (nowVisible && !wasVisible) {
+        animateOverviewDetailsElement(fill);
+        continue;
+      }
+      if (!nowVisible && wasVisible) {
+        if (fill.classList.contains('overview-details-bar-animating')) continue;
+        resetOverviewDetailsBarForScroll(fill);
+      }
     }
   }, {
     root: null,
-    threshold: [0, 0.2, 0.45]
+    rootMargin: '0px 0px -4% 0px',
+    threshold: [0, 0.08, 0.2, 0.45]
   });
 
-  watch.forEach(el => {
-    try { __overviewDetailsScrollObserver.observe(el); } catch (_) {}
+  watchRows.forEach((row) => {
+    try { __overviewDetailsScrollObserver.observe(row); } catch (_) {}
   });
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      watch.forEach((el) => {
+      watchRows.forEach((row) => {
+        const fill = getOverviewDetailsBarFillFromRow(row);
         __overviewDetailsWasVisible.set(
-          el,
-          (el.classList.contains('overview-details-bar-show') || el.classList.contains('overview-details-bar-animating'))
-            && isOverviewDetailsElementVisible(el)
+          row,
+          isOverviewDetailsRowVisible(row)
+            && !!(fill && (fill.classList.contains('overview-details-bar-show') || fill.classList.contains('overview-details-bar-animating')))
         );
       });
       __overviewDetailsScrollLive = true;
@@ -14075,6 +14317,7 @@ function renderBankCards(byBank) {
     .filter(k => k !== 'rb_cz' && k !== 'csob_cz_credit')
     .map(k => renderBankCard(k, mergedByBank[k] || []))
     .join('');
+  try { scheduleOverviewDetailsBarRefresh(); } catch (_) {}
 }
 
 
@@ -15716,12 +15959,15 @@ function showPage(pageId, options = {}) {
     refreshConnectionSaveChecks();
   }
 
+  if (previousPageId === 'overview' && pageId !== 'overview') {
+    try { pauseOverviewChartAnimations(); } catch (_) {}
+    try { cancelOverviewChartsReplay(); } catch (_) {}
+  }
+
   scheduleFloatingUtilityUpdate();
 
   if (pageId === 'overview') {
-    requestAnimationFrame(() => {
-      try { animateOverviewChartsIntro({ mode: 'visible' }); } catch (_) {}
-    });
+    scheduleOverviewChartsReplay(previousPageId === 'overview-details');
   }
 
   if (pageId === 'overview-details') {
@@ -16546,7 +16792,7 @@ function ensurePullToRefreshUi() {
   el = document.createElement('div');
   el.id = 'bt-pull-refresh';
   el.setAttribute('aria-hidden', 'true');
-  el.innerHTML = '<div class="bt-pull-refresh-inner"><span class="bt-pull-refresh-icon" aria-hidden="true">↻</span><span class="bt-pull-refresh-text">Potiahnite pre obnovenie</span></div>';
+  el.innerHTML = '<div class="bt-pull-refresh-inner"><span class="bt-pull-refresh-icon" aria-hidden="true">↻</span></div>';
   document.body.appendChild(el);
   return el;
 }
@@ -16582,11 +16828,9 @@ async function runPullToRefresh() {
   if (window.__btPullRefreshRunning) return;
   window.__btPullRefreshRunning = true;
   const el = ensurePullToRefreshUi();
-  const text = el.querySelector('.bt-pull-refresh-text');
   el.classList.add('is-visible', 'is-refreshing');
   el.style.transition = 'transform .22s ease, opacity .22s ease';
   el.style.transform = 'translate3d(-50%, 0, 0)';
-  if (text) text.textContent = 'Obnovujem…';
   setPullToRefreshPageOffset(0, true);
   try {
     if (typeof syncData === 'function') {
@@ -16646,8 +16890,6 @@ function initPullToRefresh() {
       if (animateBack) el.classList.remove('is-visible');
       const icon = el.querySelector('.bt-pull-refresh-icon');
       if (icon) icon.style.transform = '';
-      const text = el.querySelector('.bt-pull-refresh-text');
-      if (text) text.textContent = 'Potiahnite pre obnovenie';
     }
     setPullToRefreshPageOffset(0, animateBack);
   };
@@ -16688,7 +16930,7 @@ function initPullToRefresh() {
     el.style.transform = `translate3d(-50%, ${Math.max(0, pull - 18)}px, 0)`;
     el.classList.add('is-visible');
     const text = el.querySelector('.bt-pull-refresh-text');
-    if (text) text.textContent = pull >= THRESHOLD ? 'Pustite pre obnovenie' : 'Potiahnite pre obnovenie';
+    if (text) text.textContent = '';
     const icon = el.querySelector('.bt-pull-refresh-icon');
     if (icon) icon.style.transform = `rotate(${Math.min(pull / THRESHOLD, 1) * 180}deg)`;
     setPullToRefreshPageOffset(Math.round(pull * 0.34), false);
@@ -21679,6 +21921,13 @@ function updateThemeMeta(theme) {
   document.documentElement.style.backgroundColor = config.backgroundColor;
   document.body.style.backgroundColor = config.backgroundColor;
   document.documentElement.style.setProperty('--system-bar-color', config.backgroundColor);
+  document.documentElement.style.setProperty('--status-bar-color', config.backgroundColor);
+
+  const statusOverlay = document.getElementById('bt-status-bar-overlay');
+  if (statusOverlay) statusOverlay.style.background = config.backgroundColor;
+
+  const androidBarBg = document.querySelector('.android-system-bar-bg');
+  if (androidBarBg) androidBarBg.style.background = config.backgroundColor;
 }
 
 function applyAppTheme(theme = getAppTheme()) {
@@ -34602,4 +34851,3 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
 </style>
 </body>
 </html>
-8
