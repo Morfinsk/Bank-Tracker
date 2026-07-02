@@ -1176,6 +1176,51 @@
     border-radius: 16px;
     padding: 4px 16px;
   }
+
+  .archive-container.is-archive-loading,
+  .archive-trend-card.is-archive-loading {
+    position: relative;
+    min-height: 132px;
+    pointer-events: none;
+  }
+
+  .archive-container.is-archive-loading::before,
+  .archive-trend-card.is-archive-loading::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: rgba(8, 17, 31, .42);
+    z-index: 2;
+  }
+
+  html[data-theme="light"] .archive-container.is-archive-loading::before,
+  html[data-theme="light"] .archive-trend-card.is-archive-loading::before {
+    background: rgba(241, 245, 249, .78);
+  }
+
+  .archive-container.is-archive-loading::after,
+  .archive-trend-card.is-archive-loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;
+    border-radius: 999px;
+    border: 2px solid rgba(143, 220, 255, .24);
+    border-top-color: #8fdcff;
+    animation: spin .8s linear infinite;
+    z-index: 3;
+  }
+
+  html[data-theme="light"] .archive-container.is-archive-loading::after,
+  html[data-theme="light"] .archive-trend-card.is-archive-loading::after {
+    border-color: rgba(37, 99, 235, .18);
+    border-top-color: #2563eb;
+  }
+
   .archive-item {
     display: flex;
     justify-content: space-between;
@@ -2017,8 +2062,26 @@
     font-size: 14px;
     font-weight: 900;
     line-height: 1;
+    transition: transform .12s ease, background .12s ease, box-shadow .12s ease, color .12s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   .account-balance-privacy-btn:active { transform: scale(.94); }
+  .account-balance-privacy-btn.is-touch-pressed,
+  .overview-month-nav.is-touch-pressed,
+  .bt-touch-btn.is-touch-pressed {
+    transform: scale(.94);
+    box-shadow: inset 0 0 0 1px rgba(143, 220, 255, .28), 0 0 0 3px rgba(143, 220, 255, .12);
+  }
+  .account-balance-privacy-btn.is-touch-pressed {
+    background: rgba(143, 220, 255, .18);
+    color: #d9f0ff;
+  }
+  html[data-theme="light"] .account-balance-privacy-btn.is-touch-pressed,
+  html[data-theme="light"] .overview-month-nav.is-touch-pressed {
+    background: rgba(37, 99, 235, .16) !important;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .22), 0 0 0 3px rgba(37, 99, 235, .10);
+  }
   .account-balance-privacy-btn.on {
     background: rgba(148,163,184,.12);
     color: var(--muted);
@@ -3319,10 +3382,257 @@
     justify-content: center;
     color: #8fa6c7 !important;
     transition: color .12s ease, background .12s ease, transform .12s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .nav-item:active {
     transform: scale(.96);
+  }
+
+  .nav-item.is-touch-pressed:not(.active) {
+    background: rgba(143, 220, 255, .18) !important;
+    color: #d9f0ff !important;
+    transform: scale(.955);
+    box-shadow: inset 0 0 0 1px rgba(143, 220, 255, .28), 0 0 0 4px rgba(143, 220, 255, .14);
+    transition: transform .06s ease, background .06s ease, box-shadow .06s ease, color .06s ease;
+  }
+
+  .nav-item.active.is-touch-pressed {
+    background: rgba(88, 166, 255, .22) !important;
+    transform: scale(.965);
+    box-shadow: inset 0 0 0 1px rgba(88, 166, 255, .24), 0 0 0 4px rgba(88, 166, 255, .12);
+    transition: transform .06s ease, background .06s ease, box-shadow .06s ease;
+  }
+
+  html[data-theme="light"] .nav-item.is-touch-pressed:not(.active) {
+    background: rgba(37, 99, 235, .12) !important;
+    color: #2563eb !important;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .18);
+  }
+
+  html[data-theme="light"] .nav-item.active.is-touch-pressed {
+    background: rgba(37, 99, 235, .16) !important;
+  }
+
+  /* Mass tag select mode */
+  #page-txns.mass-tag-select-mode .tx-item.tx-mass-selectable {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #page-txns.mass-tag-select-mode .tx-item.tx-mass-selectable .tx-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  #page-txns.mass-tag-select-mode .tx-item.tx-mass-selectable .tx-right-side {
+    flex: 0 0 auto;
+  }
+
+  .tx-mass-select-box {
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    border: 2px solid rgba(143, 220, 255, .34);
+    background: rgba(255, 255, 255, .03);
+    box-sizing: border-box;
+    position: relative;
+    flex: 0 0 22px;
+  }
+
+  .tx-mass-select-box.is-checked {
+    border-color: rgba(143, 220, 255, .85);
+    background: rgba(88, 166, 255, .24);
+    box-shadow: inset 0 0 0 1px rgba(143, 220, 255, .35);
+  }
+
+  .tx-mass-select-box.is-checked::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 6px;
+    height: 11px;
+    border: solid #d9f0ff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  html[data-theme="light"] .tx-mass-select-box {
+    border-color: rgba(37, 99, 235, .28);
+    background: rgba(255, 255, 255, .72);
+  }
+
+  html[data-theme="light"] .tx-mass-select-box.is-checked {
+    border-color: rgba(37, 99, 235, .72);
+    background: rgba(37, 99, 235, .14);
+  }
+
+  html[data-theme="light"] .tx-mass-select-box.is-checked::after {
+    border-color: #2563eb;
+  }
+
+  @keyframes txMassSelectWiggle {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(0.35px, 0, 0); }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    #page-txns.mass-tag-select-mode .tx-item.tx-mass-selectable:not(.is-mass-selected) {
+      animation: txMassSelectWiggle 2.8s ease-in-out infinite;
+      will-change: transform;
+    }
+  }
+
+  #page-txns.mass-tag-select-mode .tx-item.is-mass-selected {
+    animation: none !important;
+    background: rgba(88, 166, 255, .08);
+    box-shadow: inset 0 0 0 1px rgba(88, 166, 255, .22);
+  }
+
+  html[data-theme="light"] #page-txns.mass-tag-select-mode .tx-item.is-mass-selected {
+    background: rgba(37, 99, 235, .08);
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .18);
+  }
+
+  body.mass-tag-select-active .fab,
+  body.mass-tag-select-active .scroll-top-fab {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  .mass-tag-bar {
+    position: fixed;
+    left: 50%;
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%) translateY(120%);
+    width: min(430px, calc(100vw - 16px));
+    z-index: 340;
+    border-radius: 18px;
+    border: 1px solid rgba(88, 166, 255, .24);
+    background: rgba(10, 16, 28, .94);
+    box-shadow: 0 16px 44px rgba(0, 0, 0, .45);
+    padding: 12px 12px 10px;
+    transition: transform .22s ease, opacity .22s ease;
+    backdrop-filter: blur(10px);
+  }
+
+  .mass-tag-bar.is-visible {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  html[data-theme="light"] .mass-tag-bar {
+    background: rgba(255, 255, 255, .96);
+    border-color: rgba(37, 99, 235, .18);
+    box-shadow: 0 16px 40px rgba(15, 23, 42, .14);
+  }
+
+  .mass-tag-bar-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .mass-tag-bar-cancel {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .mass-tag-bar-title {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .mass-tag-bar-actions {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .mass-tag-act-btn {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, .04);
+    color: var(--text);
+    padding: 11px 12px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    transition: background .12s ease, border-color .12s ease, box-shadow .12s ease;
+  }
+
+  .mass-tag-act-btn.is-active {
+    border-color: rgba(143, 220, 255, .42);
+    background: rgba(88, 166, 255, .14);
+    box-shadow: inset 0 0 0 1px rgba(88, 166, 255, .18);
+  }
+
+  .mass-tag-act-btn:disabled {
+    opacity: .42;
+    cursor: not-allowed;
+  }
+
+  html[data-theme="light"] .mass-tag-act-btn.is-active {
+    border-color: rgba(37, 99, 235, .34);
+    background: rgba(37, 99, 235, .10);
+  }
+
+  .mass-tag-action-panel {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .mass-tag-save-btn {
+    width: 100%;
+    margin-top: 2px;
+  }
+
+  .mass-tag-save-btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+
+  .mass-tag-select-hint {
+    margin: 0 16px 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px dashed rgba(88, 166, 255, .28);
+    background: rgba(88, 166, 255, .06);
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .txn-tag-none-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 1px dashed rgba(143, 220, 255, .45);
+    color: rgba(143, 220, 255, .85);
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    margin-right: 4px;
   }
 
   .nav-item.active {
@@ -6973,10 +7283,18 @@
     align-items: center;
     justify-content: center;
     line-height: 1;
+    transition: transform .12s ease, background .12s ease, box-shadow .12s ease, color .12s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .overview-month-nav:active {
     transform: scale(.94);
+  }
+
+  .overview-month-nav.is-touch-pressed {
+    background: rgba(143, 220, 255, .18);
+    color: #d9f0ff;
   }
 
   html[data-theme="light"] .overview-month-nav {
@@ -8528,8 +8846,8 @@ html[data-theme="light"] body::before {
       <div class="header-title" data-i18n="transactions">Transactions</div>
     </div>
   </div>
-  
 
+  <div id="mass-tag-select-hint" class="mass-tag-select-hint" hidden data-i18n="massTagSelectHint">Tap transactions to select them, then choose an action below.</div>
   
   <div class="txn-filter-topbar">
     <div class="txn-filter-head-row">
@@ -8606,6 +8924,7 @@ html[data-theme="light"] body::before {
     <div id="cat-filters-extra-card" style="display:none;"></div>
     <div class="filter-group-title">Tag</div>
     <div class="cat-grid" id="tag-filters"></div>
+    <button class="config-save" type="button" onclick="enterMassTagSelectMode()" style="margin-top:8px;" data-i18n="massTagUpdate">Mass tag update</button>
     <button class="config-save" type="button" onclick="closeBottomSheets()" data-i18n="done">Done</button>
   </div>
 </div>
@@ -9017,6 +9336,33 @@ html[data-theme="light"] body::before {
 <button id="scroll-top-fab" class="scroll-top-fab" onclick="scrollToLatestVisibleTransaction()" title="Back to latest" aria-label="Back to latest" data-i18n-title="scrollToLatest">⇈</button>
 <button id="global-fab" class="fab" onclick="openQuickAddSheet()">+</button>
 
+<div id="mass-tag-bar" class="mass-tag-bar" hidden aria-hidden="true">
+  <div class="mass-tag-bar-head">
+    <button type="button" class="mass-tag-bar-cancel bt-touch-btn" onclick="exitMassTagSelectMode()" aria-label="Cancel">×</button>
+    <div class="mass-tag-bar-title" id="mass-tag-bar-count">0</div>
+  </div>
+  <div class="mass-tag-bar-actions">
+    <button type="button" class="mass-tag-act-btn" id="mass-tag-act-existing" data-action="existing" onclick="setMassTagPendingAction('existing')" data-i18n="massTagModeExisting">Assign to existing tag</button>
+    <button type="button" class="mass-tag-act-btn" id="mass-tag-act-new" data-action="new" onclick="setMassTagPendingAction('new')" data-i18n="massTagModeNew">Create / edit tag</button>
+    <button type="button" class="mass-tag-act-btn" id="mass-tag-act-clear" data-action="clear" onclick="setMassTagPendingAction('clear')" data-i18n="massTagModeClear">Remove tag</button>
+  </div>
+  <div id="mass-tag-action-panel" class="mass-tag-action-panel" hidden>
+    <div id="mass-tag-panel-existing" hidden>
+      <select class="config-input" id="mass-tag-existing" onchange="updateMassTagActionPanelUi()"></select>
+      <div id="mass-tag-existing-preview" class="budget-status-note" style="display:flex;align-items:center;gap:8px;"></div>
+    </div>
+    <div id="mass-tag-panel-new" hidden>
+      <div class="sheet-grid-2">
+        <div><label>Tag</label><input class="config-input" id="mass-tag-name" placeholder="napr. byt" /></div>
+        <div><label>Tag shape</label><select class="config-input" id="mass-tag-shape"><option value="">Select</option><option value="square">Square</option><option value="triangle">Triangle</option><option value="circle">Circle</option></select></div>
+      </div>
+      <div><label>Tag color</label><input class="config-input" id="mass-tag-color" type="color" value="#58a6ff" data-user-picked="0" onchange="markTagColorPicked('mass-tag-color', true)" /></div>
+    </div>
+    <div id="mass-tag-panel-clear" hidden class="budget-status-note" data-i18n="massTagClearHint">Selected transactions will lose their tag.</div>
+  </div>
+  <button type="button" class="mass-tag-save-btn config-save" id="mass-tag-save-btn" onclick="saveMassTagSelection()" disabled data-i18n="save">Save</button>
+</div>
+
 <div id="quick-add-sheet" class="bottom-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title-row">
@@ -9196,6 +9542,8 @@ html[data-theme="light"] body::before {
     <button class="manager-danger-btn" onclick="deleteEditedTransaction()" data-i18n="deleteTransaction">Delete transaction</button>
   </div>
 </div>
+
+
 <div id="back-exit-toast" class="back-exit-toast" data-i18n="backAgainToExit">Press Back again to exit</div>
 <div id="large-status-toast" class="large-status-toast" aria-live="polite"></div>
 <div class="android-system-bar-bg" aria-hidden="true"></div>
@@ -9235,6 +9583,9 @@ let fxRatesDate = localStorage.getItem('fx_rates_date') || '';
 let allTransactions = [];
 let activeCategory = 'všetky';
 let activeTxnTag = 'all';
+let massTagSelectMode = false;
+const massTagSelectedIds = new Set();
+let massTagPendingAction = '';
 let txnTagKeyToLabel = {};
 let txnCategoryFiltersExpanded = false;
 let activeBank = 'všetky';
@@ -11388,17 +11739,22 @@ function updateTagFiltersUi(tagItems) {
   if (!wrap) return;
   const items = Array.isArray(tagItems) ? tagItems : [];
   txnTagKeyToLabel = {};
-  const options = [{ key: 'all', label: t('all'), meta: null }].concat(items.map(item => ({
+  const options = [
+    { key: 'all', label: t('all'), meta: null },
+    { key: 'none', label: t('txnTagNone') || 'No tag', meta: null, isNone: true }
+  ].concat(items.map(item => ({
     key: item.key,
     label: item.meta.name,
     meta: item.meta
   })));
   options.forEach(opt => { txnTagKeyToLabel[opt.key] = opt.label; });
-  if (activeTxnTag !== 'all' && !options.some(opt => opt.key === activeTxnTag)) {
+  if (activeTxnTag !== 'all' && activeTxnTag !== 'none' && !options.some(opt => opt.key === activeTxnTag)) {
     activeTxnTag = 'all';
   }
   wrap.innerHTML = options.map(opt => {
-    const icon = opt.meta ? renderTransactionTagIcon(opt.meta) : '';
+    const icon = opt.isNone
+      ? '<span class="txn-tag-none-icon" aria-hidden="true">∅</span>'
+      : (opt.meta ? renderTransactionTagIcon(opt.meta) : '');
     const active = activeTxnTag === opt.key ? ' active' : '';
     return `<div class="txn-filter-pill tag-filter-pill${active}" onclick="filterTransactionTag('${escapeAttr(opt.key)}')">${icon}<span>${escapeHtml(opt.label)}</span></div>`;
   }).join('');
@@ -11410,6 +11766,288 @@ function filterTransactionTag(tagKey) {
   resetTxnVisibleLimit();
   updateTxnPage();
 }
+
+function collectKnownTransactionTags() {
+  const map = {};
+  (allTransactions || []).forEach((tx) => {
+    const meta = parseTransactionTagMeta(tx);
+    if (!meta || !meta.name) return;
+    const key = transactionTagKey(meta);
+    if (!key || map[key]) return;
+    map[key] = { key, meta };
+  });
+  return Object.values(map).sort((a, b) => String(a.meta.name).localeCompare(String(b.meta.name), 'sk'));
+}
+
+function getMassTagExistingMeta() {
+  const key = document.getElementById('mass-tag-existing')?.value || '';
+  if (!key) return null;
+  const found = collectKnownTransactionTags().find((item) => item.key === key);
+  return found ? { ...found.meta } : null;
+}
+
+function getMassTagSelectedTransactions() {
+  if (!massTagSelectedIds.size) return [];
+  return (allTransactions || []).filter((tx) => {
+    const id = getTransactionId(tx);
+    return id && massTagSelectedIds.has(id);
+  });
+}
+
+function isMassTagSelectModeActive() {
+  return !!massTagSelectMode;
+}
+try { window.isMassTagSelectModeActive = isMassTagSelectModeActive; } catch (_) {}
+
+function renderMassTagRowSelectUi(txId) {
+  if (!isMassTagSelectModeActive() || !txId) return '';
+  const selected = massTagSelectedIds.has(String(txId).trim());
+  return `<div class="tx-mass-select-box${selected ? ' is-checked' : ''}" aria-hidden="true"></div>`;
+}
+try { window.renderMassTagRowSelectUi = renderMassTagRowSelectUi; } catch (_) {}
+
+function toggleMassTagSelection(txId, rowEl) {
+  const id = String(txId || '').trim();
+  if (!id || !massTagSelectMode) return;
+  if (massTagSelectedIds.has(id)) {
+    massTagSelectedIds.delete(id);
+    rowEl?.classList.remove('is-mass-selected');
+    rowEl?.querySelector('.tx-mass-select-box')?.classList.remove('is-checked');
+  } else {
+    massTagSelectedIds.add(id);
+    rowEl?.classList.add('is-mass-selected');
+    rowEl?.querySelector('.tx-mass-select-box')?.classList.add('is-checked');
+  }
+  updateMassTagBarUi();
+}
+try { window.toggleMassTagSelection = toggleMassTagSelection; } catch (_) {}
+
+function isMassTagRowSelected(txId) {
+  return massTagSelectedIds.has(String(txId || '').trim());
+}
+try { window.isMassTagRowSelected = isMassTagRowSelected; } catch (_) {}
+
+function populateMassTagExistingSelect() {
+  const existing = document.getElementById('mass-tag-existing');
+  const tags = collectKnownTransactionTags();
+  if (existing) {
+    existing.innerHTML = tags.length
+      ? tags.map((item) => `<option value="${escapeAttr(item.key)}">${escapeHtml(item.meta.name)}</option>`).join('')
+      : `<option value="">${escapeHtml(t('massTagNoExisting') || 'No tags yet')}</option>`;
+    if (activeTxnTag !== 'all' && activeTxnTag !== 'none' && tags.some((item) => item.key === activeTxnTag)) {
+      existing.value = activeTxnTag;
+    }
+  }
+  const nameInput = document.getElementById('mass-tag-name');
+  const shapeInput = document.getElementById('mass-tag-shape');
+  const colorInput = document.getElementById('mass-tag-color');
+  if (nameInput) nameInput.value = '';
+  if (shapeInput) shapeInput.value = '';
+  if (colorInput) {
+    colorInput.value = '#58a6ff';
+    colorInput.dataset.userPicked = '0';
+  }
+}
+
+function updateMassTagActionPanelUi() {
+  const panel = document.getElementById('mass-tag-action-panel');
+  const existingPanel = document.getElementById('mass-tag-panel-existing');
+  const newPanel = document.getElementById('mass-tag-panel-new');
+  const clearPanel = document.getElementById('mass-tag-panel-clear');
+  const preview = document.getElementById('mass-tag-existing-preview');
+  const existingBtn = document.getElementById('mass-tag-act-existing');
+  const hasTags = collectKnownTransactionTags().length > 0;
+
+  if (existingBtn) existingBtn.disabled = !hasTags;
+  if (!hasTags && massTagPendingAction === 'existing') massTagPendingAction = 'new';
+
+  const showPanel = !!massTagPendingAction;
+  if (panel) panel.hidden = !showPanel;
+  if (existingPanel) existingPanel.hidden = massTagPendingAction !== 'existing';
+  if (newPanel) newPanel.hidden = massTagPendingAction !== 'new';
+  if (clearPanel) clearPanel.hidden = massTagPendingAction !== 'clear';
+
+  document.querySelectorAll('.mass-tag-act-btn').forEach((btn) => {
+    btn.classList.toggle('is-active', btn.dataset.action === massTagPendingAction);
+  });
+
+  if (massTagPendingAction === 'existing') {
+    const meta = getMassTagExistingMeta();
+    if (preview) {
+      preview.innerHTML = meta
+        ? `${renderTransactionTagIcon(meta)}<span>${escapeHtml(meta.name)} · ${escapeHtml(meta.shape)} · ${escapeHtml(meta.color)}</span>`
+        : `<span>${escapeHtml(t('massTagPickExisting') || 'Choose an existing tag.')}</span>`;
+    }
+  } else if (preview) {
+    preview.innerHTML = '';
+  }
+
+  updateMassTagBarUi();
+}
+
+function setMassTagPendingAction(action) {
+  massTagPendingAction = String(action || '');
+  updateMassTagActionPanelUi();
+}
+try { window.setMassTagPendingAction = setMassTagPendingAction; } catch (_) {}
+try { window.updateMassTagActionPanelUi = updateMassTagActionPanelUi; } catch (_) {}
+
+function updateMassTagBarUi() {
+  const bar = document.getElementById('mass-tag-bar');
+  const countEl = document.getElementById('mass-tag-bar-count');
+  const saveBtn = document.getElementById('mass-tag-save-btn');
+  const hint = document.getElementById('mass-tag-select-hint');
+  const count = massTagSelectedIds.size;
+
+  if (countEl) {
+    const label = t('massTagMatches') || 'Selected';
+    countEl.textContent = `${label}: ${count}`;
+  }
+  if (saveBtn) {
+    saveBtn.disabled = !(count > 0 && massTagPendingAction);
+  }
+  if (bar) {
+    const visible = !!massTagSelectMode;
+    bar.hidden = !visible;
+    bar.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    bar.classList.toggle('is-visible', visible);
+  }
+  if (hint) hint.hidden = !massTagSelectMode;
+  try { scheduleFloatingUtilityUpdate(); } catch (_) {}
+}
+
+function enterMassTagSelectMode() {
+  massTagSelectMode = true;
+  massTagSelectedIds.clear();
+  massTagPendingAction = collectKnownTransactionTags().length ? 'existing' : 'new';
+  closeBottomSheets();
+  populateMassTagExistingSelect();
+  document.getElementById('page-txns')?.classList.add('mass-tag-select-mode');
+  document.body.classList.add('mass-tag-select-active');
+  document.getElementById('txn-list')?.removeAttribute('data-rendered-key');
+  showPage('txns', { preserveFilters: true });
+  updateMassTagActionPanelUi();
+  try { updateTxnPage(true); } catch (_) {}
+  try { initMassTagSelectDelegation(); } catch (_) {}
+  try { initBtTouchFeedback('.mass-tag-bar-cancel, .mass-tag-act-btn, .mass-tag-save-btn'); } catch (_) {}
+}
+try { window.enterMassTagSelectMode = enterMassTagSelectMode; } catch (_) {}
+
+function exitMassTagSelectMode() {
+  if (!massTagSelectMode) return;
+  massTagSelectMode = false;
+  massTagSelectedIds.clear();
+  massTagPendingAction = '';
+  document.getElementById('page-txns')?.classList.remove('mass-tag-select-mode');
+  document.body.classList.remove('mass-tag-select-active');
+  document.getElementById('mass-tag-action-panel')?.setAttribute('hidden', '');
+  document.getElementById('txn-list')?.removeAttribute('data-rendered-key');
+  updateMassTagBarUi();
+  try { updateTxnPage(true); } catch (_) {}
+}
+try { window.exitMassTagSelectMode = exitMassTagSelectMode; } catch (_) {}
+
+function openTagMassUpdateSheet() {
+  enterMassTagSelectMode();
+}
+try { window.openTagMassUpdateSheet = openTagMassUpdateSheet; } catch (_) {}
+
+function initMassTagSelectDelegation() {
+  if (window.__massTagSelectDelegationReady) return;
+  window.__massTagSelectDelegationReady = true;
+  document.getElementById('txn-list')?.addEventListener('click', (event) => {
+    if (!massTagSelectMode) return;
+    const row = event.target.closest('.tx-item[data-tx-id]');
+    if (!row) return;
+    if (event.target.closest('.tx-payment-source')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    toggleMassTagSelection(row.dataset.txId, row);
+  }, true);
+}
+
+async function saveMassTagSelection() {
+  if (window.__massTagUpdateRunning) return;
+  const mode = massTagPendingAction;
+  const targets = getMassTagSelectedTransactions();
+  if (!targets.length) {
+    alert(t('massTagNoSelection') || 'Select at least one transaction.');
+    return;
+  }
+  if (!mode) {
+    alert(t('massTagPickAction') || 'Choose what to do with the tag.');
+    return;
+  }
+
+  let tagMeta = null;
+  if (mode === 'clear') {
+    const confirmText = (t('massTagClearConfirm') || 'Remove tag from {n} transactions?')
+      .replace('{n}', String(targets.length));
+    if (!confirm(confirmText)) return;
+  } else if (mode === 'existing') {
+    tagMeta = getMassTagExistingMeta();
+    if (!tagMeta) {
+      alert(t('massTagPickExisting') || 'Choose an existing tag.');
+      return;
+    }
+  } else {
+    const newName = normalizeTransactionTagLabel(document.getElementById('mass-tag-name')?.value || '');
+    const shapeRaw = document.getElementById('mass-tag-shape')?.value || '';
+    const colorInput = document.getElementById('mass-tag-color');
+    if (!newName) {
+      alert(t('massTagNameRequired') || 'Enter a tag name.');
+      return;
+    }
+    const validation = validateRequiredTagFields(
+      newName,
+      shapeRaw,
+      colorInput?.value || '#58A6FF',
+      colorInput?.dataset?.userPicked || '1',
+      'manual'
+    );
+    if (!validation.ok) {
+      alert(validation.message);
+      return;
+    }
+    tagMeta = { name: newName, color: validation.color, shape: validation.shape };
+  }
+
+  window.__massTagUpdateRunning = true;
+  const btn = document.getElementById('mass-tag-save-btn');
+  const btnLabel = btn ? btn.textContent : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '…';
+  }
+
+  for (const tx of targets) {
+    const oldSnapshot = { ...tx };
+    if (mode === 'clear') {
+      applyTransactionTagMeta(tx, null);
+    } else {
+      applyTransactionTagMeta(tx, tagMeta);
+    }
+    applyLocalArchiveStatsFromTransaction(oldSnapshot, -1);
+    applyLocalArchiveStatsFromTransaction(tx, 1);
+    saveCachedTransactionsSnapshot();
+    try {
+      await postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
+    } catch (_) {}
+  }
+
+  allTransactions = sortTransactionsNewestFirst(allTransactions);
+  saveCachedTransactionsSnapshot();
+  window.__massTagUpdateRunning = false;
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = btnLabel || (t('save') || 'Save');
+  }
+  showSavedToast();
+  exitMassTagSelectMode();
+  renderAll();
+}
+try { window.saveMassTagSelection = saveMassTagSelection; } catch (_) {}
+try { window.applyMassTagUpdate = saveMassTagSelection; } catch (_) {}
 
 function updatePaymentKindFilterUi() {
   document.getElementById('filter-kind-all')?.classList.toggle('active', activePaymentKind === 'all');
@@ -11663,11 +12301,12 @@ function hidePageLoadingOverlay() {
 }
 
 function finishAppBoot() {
-  document.body.classList.remove('app-boot-pending');
-  hidePageLoadingOverlay();
-  const overlay = document.getElementById('page-loading-overlay');
-  if (overlay) overlay.removeAttribute('aria-busy');
-  try { closeBottomSheets(); } catch (_) {}
+  hideAppBootChrome();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      try { finishOverviewChartRenderCycle(); } catch (_) {}
+    });
+  });
 }
 
 function exitBankTrackerApp() {
@@ -13427,6 +14066,9 @@ function overviewChartCardDataChanged(card, beforeSigs) {
 function getOverviewIntroCards(page, options = {}) {
   const mode = options.mode || 'visible';
   const beforeSigs = options.beforeSigs || null;
+  if (mode === 'boot') {
+    return getOverviewChartCards(page).filter((card) => overviewChartCardHasGraphics(card));
+  }
   return getOverviewChartCards(page).filter((card) => {
     if (!overviewChartCardHasGraphics(card)) return false;
     if (!isOverviewChartCardVisible(card)) return false;
@@ -13685,7 +14327,7 @@ function animateOverviewChartsIntro(options = {}) {
     cards.forEach((card) => animateOverviewChartCard(card));
 
     const summaryChanged = !beforeSigs || getOverviewSummarySignature() !== beforeSigs.__summary;
-    if (mode === 'visible' || summaryChanged) {
+    if (mode === 'visible' || mode === 'boot' || summaryChanged) {
       try { playOverviewSummaryStripReveal(); } catch (_) {}
     }
 
@@ -13722,10 +14364,20 @@ function scheduleOverviewChartBootIntroOnce() {
   if (__overviewChartBootIntroDone || activePageId !== 'overview') return;
   const page = document.getElementById('page-overview');
   if (!page) return;
-  const hasCharts = getOverviewChartCards(page).some((card) => overviewChartCardHasGraphics(card));
-  if (!hasCharts && !page.querySelector('.summary-days-progress')) return;
+  const chartCards = getOverviewChartCards(page).filter((card) => overviewChartCardHasGraphics(card));
+  const hasSummary = !!page.querySelector('.summary-days-progress');
+  if (!chartCards.length && !hasSummary) return;
+  if (chartCards.length && !getOverviewIntroCards(page, { mode: 'boot' }).length) {
+    window.clearTimeout(window.__overviewChartBootIntroRetryTimer);
+    window.__overviewChartBootIntroRetryTimer = window.setTimeout(() => {
+      try { scheduleOverviewChartBootIntroOnce(); } catch (_) {}
+    }, 120);
+    return;
+  }
   __overviewChartBootIntroDone = true;
-  animateOverviewChartsIntro({ mode: 'visible' });
+  window.__overviewPendingSyncChartAnim = false;
+  window.__overviewChartSigsBeforeSync = null;
+  animateOverviewChartsIntro({ mode: 'boot' });
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       try { finishOverviewChartRenderCycle(); } catch (_) {}
@@ -13735,10 +14387,13 @@ function scheduleOverviewChartBootIntroOnce() {
 
 function animateOverviewChartsAfterSync() {
   if (activePageId !== 'overview') return;
-  __overviewChartBootIntroDone = true;
   const beforeSigs = window.__overviewChartSigsBeforeSync || null;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
+      if (!__overviewChartBootIntroDone) {
+        scheduleOverviewChartBootIntroOnce();
+        return;
+      }
       if (!beforeSigs) {
         animateOverviewChartsIntro({ mode: 'visible' });
         return;
@@ -13761,9 +14416,25 @@ function finishOverviewChartRenderCycle() {
   try {
     const page = document.getElementById('page-overview');
     const hasCharts = !!(page && getOverviewChartCards(page).some((card) => overviewChartCardHasGraphics(card)));
-    if (!hasCharts) return;
+    const hasSummary = !!(page && page.querySelector('.summary-days-progress'));
+    if (!hasCharts && !hasSummary) {
+      if (activePageId === 'overview' && !__overviewChartBootIntroDone) {
+        window.clearTimeout(window.__overviewChartBootIntroRetryTimer);
+        window.__overviewChartBootIntroRetryTimer = window.setTimeout(() => {
+          try { finishOverviewChartRenderCycle(); } catch (_) {}
+        }, 160);
+      }
+      return;
+    }
 
     if (!__overviewChartBootIntroDone) {
+      if (!hasCharts && hasSummary) {
+        window.clearTimeout(window.__overviewChartBootIntroRetryTimer);
+        window.__overviewChartBootIntroRetryTimer = window.setTimeout(() => {
+          try { finishOverviewChartRenderCycle(); } catch (_) {}
+        }, 160);
+        return;
+      }
       scheduleOverviewChartBootIntroOnce();
       return;
     }
@@ -14154,10 +14825,78 @@ function renderDirtyTabSection(pageId) {
 }
 try { window.renderDirtyTabSection = renderDirtyTabSection; } catch (_) {}
 
+function setArchiveTabLoading(isLoading) {
+  const page = document.getElementById('page-archive');
+  const list = document.getElementById('archive-months-list');
+  const trend = document.querySelector('#page-archive .archive-trend-card');
+  if (page) page.classList.toggle('is-archive-tab-loading', !!isLoading);
+  if (list) list.classList.toggle('is-archive-loading', !!isLoading);
+  if (trend) trend.classList.toggle('is-archive-loading', !!isLoading);
+}
+
+function scheduleArchiveTabRender() {
+  const list = document.getElementById('archive-months-list');
+  const needsRender = !!__btArchiveTabDirty || !(list && list.children && list.children.length);
+  if (!needsRender) {
+    window.setTimeout(() => {
+      try { maybeLoadMoreArchiveMonths(); } catch (_) {}
+    }, 20);
+    return;
+  }
+  setArchiveTabLoading(true);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const run = () => {
+        try { renderDirtyTabSection('archive'); } catch (_) {}
+        setArchiveTabLoading(false);
+        window.setTimeout(() => {
+          try { maybeLoadMoreArchiveMonths(); } catch (_) {}
+        }, 20);
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(run, { timeout: 220 });
+      } else {
+        window.setTimeout(run, 0);
+      }
+    });
+  });
+}
+
+function initBtTouchFeedback(selector) {
+  document.querySelectorAll(selector).forEach((el) => {
+    if (el.dataset.btTouchReady === '1') return;
+    el.dataset.btTouchReady = '1';
+    const press = () => {
+      if (el.disabled) return;
+      el.classList.add('is-touch-pressed');
+    };
+    const release = () => el.classList.remove('is-touch-pressed');
+    el.addEventListener('pointerdown', press, { passive: true });
+    el.addEventListener('pointerup', release, { passive: true });
+    el.addEventListener('pointercancel', release, { passive: true });
+    el.addEventListener('pointerleave', release, { passive: true });
+  });
+}
+
+function initNavTouchFeedback() {
+  initBtTouchFeedback('.bottom-nav .nav-item');
+  initBtTouchFeedback('.overview-month-nav');
+  initBtTouchFeedback('.account-balance-privacy-btn, .overview-privacy-btn');
+}
+try { window.initNavTouchFeedback = initNavTouchFeedback; } catch (_) {}
+
+function hideAppBootChrome() {
+  document.body.classList.remove('app-boot-pending');
+  hidePageLoadingOverlay();
+  const overlay = document.getElementById('page-loading-overlay');
+  if (overlay) overlay.removeAttribute('aria-busy');
+  try { closeBottomSheets(); } catch (_) {}
+}
+
 function bootstrapUiFromCache(options = {}) {
   const bootstrapPerfStart = btPerfNow();
   const deferHeavy = options.deferHeavy !== false;
-  try { finishAppBoot(); } catch (_) {}
+  try { hideAppBootChrome(); } catch (_) {}
   try { loadCachedTransactionsSnapshot(); } catch (_) {}
   try { reapplySheetAccountBalancesFromStorage(); } catch (_) {}
   try {
@@ -14237,6 +14976,11 @@ function renderAll(options = {}) {
       document.documentElement.setAttribute('data-render-overview-error', String(e && e.message ? e.message : e));
       console.error('Overview dashboard render failed:', e);
     }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        try { finishOverviewChartRenderCycle(); } catch (_) {}
+      });
+    });
   };
 
   const shouldDeferHeavy = deferHeavy && renderVisibleOnly && (activePageId === 'overview' || !!document.getElementById('page-overview')?.classList.contains('active'));
@@ -15852,6 +16596,9 @@ function resetTransactionFilters() {
 
 function showPage(pageId, options = {}) {
   const showPagePerfStart = btPerfNow();
+  if (massTagSelectMode && pageId !== 'txns') {
+    exitMassTagSelectMode();
+  }
   const previousPageId = activePageId;
   const fromHistory = !!(options && options.fromHistory);
   const shouldPushHistory = !fromHistory && window.__bankTrackerTabHistoryReady && activePageId !== pageId;
@@ -15889,6 +16636,7 @@ function showPage(pageId, options = {}) {
 
   if (pageId === 'txns') {
     if (!options.preserveFilters) {
+      if (massTagSelectMode) exitMassTagSelectMode();
       resetTransactionFilters();
       collapseTransactionFilterPanel();
       const search = document.getElementById('txn-search');
@@ -15896,15 +16644,20 @@ function showPage(pageId, options = {}) {
       const page = document.getElementById('page-txns');
       if (page) page.scrollTop = 0;
       window.scrollTo({ top: 0, behavior: 'auto' });
+    } else if (massTagSelectMode) {
+      document.getElementById('page-txns')?.classList.add('mass-tag-select-mode');
+      document.body.classList.add('mass-tag-select-active');
     }
     renderTransactionsSection();
+    if (massTagSelectMode) {
+      document.getElementById('txn-list')?.removeAttribute('data-rendered-key');
+      try { updateTxnPage(true); } catch (_) {}
+      updateMassTagBarUi();
+    }
   }
 
   if (pageId === 'archive') {
-    try { renderDirtyTabSection('archive'); } catch (_) {}
-    window.setTimeout(() => {
-      try { maybeLoadMoreArchiveMonths(); } catch(_) {}
-    }, 20);
+    scheduleArchiveTabRender();
   }
 
   if (pageId === 'settings') {
@@ -19425,6 +20178,27 @@ const I18N = {
     referencePlaceholder: 'optional',
     tagShapeRequired: 'Select Tag shape.',
     tagColorRequired: 'Select Tag color.',
+    massTagUpdate: 'Mass tag update',
+    txnTagNone: 'No tag',
+    massTagSelectHint: 'Tap transactions to select them, then choose an action below.',
+    massTagSourceHint: 'First filter transactions in the list, then assign them to a tag here.',
+    massTagOnlyUntagged: 'Only transactions without tag',
+    massTagMode: 'Action',
+    massTagModeExisting: 'Assign to existing tag',
+    massTagModeNew: 'Create / edit tag',
+    massTagModeClear: 'Remove tag',
+    massTagExisting: 'Existing tag',
+    massTagPickExisting: 'Choose an existing tag.',
+    massTagPickAction: 'Choose what to do with the tag.',
+    massTagNoExisting: 'No tags yet',
+    massTagNoSelection: 'Select at least one transaction.',
+    massTagNameRequired: 'Enter a tag name.',
+    massTagClearHint: 'Selected transactions will lose their tag.',
+    massTagMatches: 'Selected',
+    massTagEmptyHint: 'Leave Tag empty to remove it from selected transactions.',
+    massTagApply: 'Apply to all',
+    massTagNoTargets: 'No transactions match this scope.',
+    massTagClearConfirm: 'Remove tag from {n} transactions?',
     amount: 'Amount',
     devSimulator: 'Developer simulator',
     expand: 'Expand ↓',
@@ -19701,6 +20475,27 @@ const I18N = {
     referencePlaceholder: 'voliteľné',
     tagShapeRequired: 'Vyber tvar tagu.',
     tagColorRequired: 'Vyber farbu tagu.',
+    massTagUpdate: 'Hromadná úprava tagov',
+    txnTagNone: 'Bez tagu',
+    massTagSelectHint: 'Klikni na transakcie a vyber ich, potom zvoľ akciu nižšie.',
+    massTagSourceHint: 'Najprv vyfiltruj transakcie v zozname, potom im tu priraď tag.',
+    massTagOnlyUntagged: 'Len transakcie bez tagu',
+    massTagMode: 'Akcia',
+    massTagModeExisting: 'Priradiť existujúci tag',
+    massTagModeNew: 'Vytvoriť / upraviť tag',
+    massTagModeClear: 'Odstrániť tag',
+    massTagExisting: 'Existujúci tag',
+    massTagPickExisting: 'Vyber existujúci tag.',
+    massTagPickAction: 'Vyber, čo urobiť s tagom.',
+    massTagNoExisting: 'Zatiaľ žiadne tagy',
+    massTagNoSelection: 'Vyber aspoň jednu transakciu.',
+    massTagNameRequired: 'Zadaj názov tagu.',
+    massTagClearHint: 'Vybrané transakcie prídu o tag.',
+    massTagMatches: 'Vybrané',
+    massTagEmptyHint: 'Nechaj Tag prázdny pre odstránenie tagu z vybraných transakcií.',
+    massTagApply: 'Použiť na všetky',
+    massTagNoTargets: 'V tomto rozsahu nie sú žiadne transakcie.',
+    massTagClearConfirm: 'Odstrániť tag z {n} transakcií?',
     amount: 'Suma',
     devSimulator: 'Vývojársky simulátor',
     expand: 'Rozbaliť ↓',
@@ -19970,6 +20765,27 @@ const I18N = {
     referencePlaceholder: 'volitelné',
     tagShapeRequired: 'Vyber tvar tagu.',
     tagColorRequired: 'Vyber barvu tagu.',
+    massTagUpdate: 'Hromadná úprava tagů',
+    txnTagNone: 'Bez tagu',
+    massTagSelectHint: 'Klikni na transakce a vyber je, pak zvol akci níže.',
+    massTagSourceHint: 'Nejdřív vyfiltruj transakce v seznamu, pak jim tu přiřaď tag.',
+    massTagOnlyUntagged: 'Jen transakce bez tagu',
+    massTagMode: 'Akce',
+    massTagModeExisting: 'Přiřadit existující tag',
+    massTagModeNew: 'Vytvořit / upravit tag',
+    massTagModeClear: 'Odstranit tag',
+    massTagExisting: 'Existující tag',
+    massTagPickExisting: 'Vyber existující tag.',
+    massTagPickAction: 'Vyber, co udělat s tagem.',
+    massTagNoExisting: 'Zatím žádné tagy',
+    massTagNoSelection: 'Vyber alespoň jednu transakci.',
+    massTagNameRequired: 'Zadej název tagu.',
+    massTagClearHint: 'Vybrané transakce přijdou o tag.',
+    massTagMatches: 'Vybrané',
+    massTagEmptyHint: 'Nech Tag prázdný pro odstranění tagu z vybraných transakcí.',
+    massTagApply: 'Použít na všechny',
+    massTagNoTargets: 'V tomto rozsahu nejsou žádné transakce.',
+    massTagClearConfirm: 'Odstranit tag z {n} transakcí?',
     amount: 'Částka',
     devSimulator: 'Vývojářský simulátor',
     expand: 'Rozbalit ↓',
@@ -21507,7 +22323,7 @@ function updateFloatingUtilityButtons() {
   const fab = document.getElementById('global-fab');
   const activeSheet = document.body?.dataset?.activeSheet || '';
   const hasSheetOpen = document.body.classList.contains('sheet-open') || !!document.querySelector('.bottom-sheet.open');
-  const hideUtilities = hasSheetOpen || activeSheet === 'bank-manager-sheet';
+  const hideUtilities = hasSheetOpen || activeSheet === 'bank-manager-sheet' || !!massTagSelectMode;
   const showScroll = !hideUtilities && shouldShowScrollToLatestButton();
   const dimUtilities = !hideUtilities && isActivePageBottomContentVisible();
 
@@ -21776,6 +22592,7 @@ function bindTransactionDeleteGestures() {
     el.classList.add('long-press-ready');
 
     el.addEventListener('touchstart', (event) => {
+      if (massTagSelectMode) return;
       if (event.target.closest && event.target.closest('button')) return;
       txLongPressTargetId = el.dataset.txId;
       txLongPressTimer = setTimeout(() => {
@@ -21802,6 +22619,7 @@ function bindTransactionDeleteGestures() {
     }, { passive: true });
 
     el.addEventListener('dblclick', (e) => {
+      if (massTagSelectMode) return;
       if (isTouchLikeDevice()) return;
       if (e.target.closest && e.target.closest('button')) return;
       e.preventDefault();
@@ -22115,8 +22933,19 @@ document.addEventListener('DOMContentLoaded', initBottomSheetDragToClose);
 document.addEventListener('DOMContentLoaded', initGlobalPullDownControl);
 document.addEventListener('DOMContentLoaded', initPullToRefresh);
 document.addEventListener('DOMContentLoaded', initTabHistory);
+document.addEventListener('DOMContentLoaded', initNavTouchFeedback);
+document.addEventListener('DOMContentLoaded', initMassTagSelectDelegation);
 document.addEventListener('DOMContentLoaded', updateFloatingUtilityButtons);
 document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers);
+
+window.addEventListener('pageshow', () => {
+  if (activePageId !== 'overview') return;
+  window.setTimeout(() => {
+    if (!__overviewChartBootIntroDone) {
+      try { finishOverviewChartRenderCycle(); } catch (_) {}
+    }
+  }, 140);
+}, { passive: true });
 </script>
 
 
@@ -26519,15 +27348,25 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
   if (typeof oldShowPage === 'function' && !oldShowPage.__v245Wrapped) {
     var newShow = function(pageId, options){
       var isTx = pageId === 'txns' && !(options && options.preserveFilters);
-      if (isTx) resetAllTxnFiltersV245();
       var r = oldShowPage.apply(this, arguments);
-      if (isTx) { resetAllTxnFiltersV245(); try { updateTxnPage(); } catch(_) {} }
+      if (isTx) {
+        try { if (typeof exitMassTagSelectMode === 'function') exitMassTagSelectMode(); } catch(_) {}
+        resetAllTxnFiltersV245();
+        try { updateTxnPage(true); } catch(_) {}
+      }
       return r;
     };
     newShow.__v245Wrapped = true;
     window.showPage = newShow; try { showPage = window.showPage; } catch(_) {}
   }
-  document.addEventListener('click', function(ev){ if (ev.target && ev.target.closest && ev.target.closest('#nav-txns')) { setTimeout(function(){ resetAllTxnFiltersV245(); try { updateTxnPage(); } catch(_) {} }, 0); } }, true);
+  document.addEventListener('click', function(ev){
+    if (!(ev.target && ev.target.closest && ev.target.closest('#nav-txns'))) return;
+    setTimeout(function(){
+      try { if (typeof exitMassTagSelectMode === 'function') exitMassTagSelectMode(); } catch(_) {}
+      resetAllTxnFiltersV245();
+      try { updateTxnPage(true); } catch(_) {}
+    }, 0);
+  }, true);
 
   function nearBottom(){ return window.innerHeight + window.scrollY >= Math.max(document.body.scrollHeight, document.documentElement.scrollHeight) - 420; }
   var busy = false;
@@ -33915,8 +34754,22 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       try { tagMeta = typeof parseTransactionTagMeta === 'function' ? parseTransactionTagMeta(tx) : null; } catch(_) { tagMeta = null; }
       var tagIcon = '';
       try { tagIcon = typeof renderTransactionTagIcon === 'function' ? renderTransactionTagIcon(tagMeta) : ''; } catch(_) {}
+      var selectUi = '';
+      var massClass = '';
+      try {
+        if (typeof window.renderMassTagRowSelectUi === 'function') {
+          selectUi = window.renderMassTagRowSelectUi(txId);
+          if (selectUi) {
+            massClass = ' tx-mass-selectable';
+            if (typeof window.isMassTagRowSelected === 'function' && window.isMassTagRowSelected(txId)) {
+              massClass += ' is-mass-selected';
+            }
+          }
+        }
+      } catch(_) {}
       return dayHeader
-        + '<div class="tx-item' + rowClass + '" data-tx-id="' + escapeAttr(txId) + '">'
+        + '<div class="tx-item' + rowClass + massClass + '" data-tx-id="' + escapeAttr(txId) + '">'
+        + selectUi
         + '<div class="tx-left"><div class="tx-icon">' + icon + '</div><div><div class="tx-merchant"><span class="tx-merchant-line">' + escapeHtml(tx.merchant || '') + detectBadge + tagIcon + '</span></div>'
         + '<div class="tx-meta">' + escapeHtml(timeLabel) + ' · <span class="tx-payment-source" data-label="' + escapeAttr(paymentLabel) + '" data-source="' + escapeAttr(source) + '" onclick="event.stopPropagation(); togglePaymentSourceDetail(this)">' + escapeHtml(paymentLabel) + '</span></div></div></div>'
         + '<div class="tx-right-side"><div class="tx-amount-wrap"><div class="tx-amount ' + amountClassFinal + '">' + sign + amount + '</div>' + accountEquivalent + '</div>' + logo + '</div>'
@@ -33974,7 +34827,9 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
     var last = loaded[loaded.length - 1] || {};
     var chartTypeKey = '';
     try { chartTypeKey = String(txnCashflowChartType || 'bar'); } catch(_) { chartTypeKey = 'bar'; }
-    var renderKey = String(loaded.length) + '|' + String(total) + '|' + String(first.id || first.msgId || '') + '|' + String(last.id || last.msgId || '') + '|chart:' + chartTypeKey;
+    var massKey = '0';
+    try { massKey = (typeof window.isMassTagSelectModeActive === 'function' && window.isMassTagSelectModeActive()) ? '1' : '0'; } catch(_) {}
+    var renderKey = String(loaded.length) + '|' + String(total) + '|' + String(first.id || first.msgId || '') + '|' + String(last.id || last.msgId || '') + '|chart:' + chartTypeKey + '|mass:' + massKey;
     if (listDiv.getAttribute('data-rendered-key') === renderKey) return;
     var rowsHtml = renderRows(loaded);
     var counter = typeof renderTransactionPagingInfo === 'function' ? renderTransactionPagingInfo(loaded.length, total) : '';
@@ -34027,7 +34882,13 @@ document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers)
       tagMap[key] = { key: key, meta: meta };
     });
     try { if (typeof updateTagFiltersUi === 'function') updateTagFiltersUi(Object.keys(tagMap).map(function(k){ return tagMap[k]; })); } catch(_) {}
-    if (activeTxnTag && activeTxnTag !== 'all') {
+    if (activeTxnTag === 'none') {
+      scoped = scoped.filter(function(tx){
+        var meta = null;
+        try { meta = typeof parseTransactionTagMeta === 'function' ? parseTransactionTagMeta(tx) : null; } catch(_) { meta = null; }
+        return !(meta && meta.name);
+      });
+    } else if (activeTxnTag && activeTxnTag !== 'all') {
       scoped = scoped.filter(function(tx){
         var meta = null;
         try { meta = typeof parseTransactionTagMeta === 'function' ? parseTransactionTagMeta(tx) : null; } catch(_) { meta = null; }
