@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Bank Tracker index_v283: robust internal-transfer detection + filtered/no-filter transactions rendering (20 + load more, 5/15 virtual window) -->
+<!-- Bank Tracker index_v285: light-mode liability amounts + credit outstanding tx reconciliation -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -8258,9 +8258,33 @@ html[data-theme="light"] body::before {
 
 <style>
   /* v195 Overview details account-balance colors */
-  #page-overview-details .account-balance-row:not(.account-balance-total-row) .account-balance-value:not(.amount-expense) {
+  #page-overview-details .account-balance-row:not(.account-balance-total-row):not(.account-balance-liability-row):not(.account-balance-sub-row) .account-balance-value:not(.amount-expense) {
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html[data-theme="light"] #page-overview-details .account-balance-row:not(.account-balance-liability-row):not(.account-balance-sub-row) .account-balance-value:not(.amount-expense),
+  html[data-theme="light"] #page-overview-details .account-balance-total-row .account-balance-value:not(.amount-expense),
+  html[data-theme="light"] #page-overview-details .account-balance-row:not(.account-balance-liability-row):not(.account-balance-sub-row) .account-balance-name {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+  }
+
+  html[data-theme="light"] #page-overview-details .account-balance-value.amount-expense,
+  html[data-theme="light"] #page-overview-details .account-balance-total-row .account-balance-value.amount-expense,
+  html[data-theme="light"] #page-overview-details .account-balance-liability-row .account-balance-value,
+  html[data-theme="light"] #page-overview-details .account-balance-liability-row .account-balance-name,
+  html[data-theme="light"] #page-overview-details .account-balance-sub-row .account-balance-value,
+  html[data-theme="light"] #page-overview-details .account-balance-sub-row .account-balance-name {
+    color: #E5005F !important;
+    -webkit-text-fill-color: #E5005F !important;
+  }
+
+  html[data-theme="light"] #page-overview-details .account-balance-equivalent,
+  html[data-theme="light"] #page-overview-details .budget-status-note,
+  html[data-theme="light"] #page-overview-details .credit-balance-hint {
+    color: #64748b !important;
+    -webkit-text-fill-color: #64748b !important;
   }
 
   #page-overview-details .account-balance-total-row .account-balance-value:not(.amount-expense) {
@@ -12713,17 +12737,29 @@ function getTransactionBalanceDeltaForBank(bankKey, tx) {
   if (!tx || !Number.isFinite(amount) || amount === 0) return 0;
 
   if (isCsobCzCreditCardRepaymentTx(tx)) {
-    if (bankKey === 'csob_cz' || bankKey === 'csob_cz_credit') {
+    if (bankKey === 'csob_cz') {
       return canApplyBalanceDeltaForTx(bankKey, tx) ? amount : 0;
+    }
+    if (bankKey === 'csob_cz_credit') {
+      // Repayment reduces outstanding debt tracked on the credit subaccount.
+      return canApplyBalanceDeltaForTx(bankKey, tx) ? -Math.abs(amount) : 0;
     }
     return 0;
   }
 
   if (isCsobCzCreditCardBalanceTx(tx)) {
     if (bankKey === 'csob_cz_credit') {
+      // Card spend increases debt; vendor refunds decrease it (can go below zero = over limit).
       return canApplyBalanceDeltaForTx(bankKey, tx) ? -amount : 0;
     }
     return 0;
+  }
+
+  if (bankKey === 'csob_cz_credit' && amount > 0 && isCardTransaction(tx)) {
+    const key = getBankKey(tx);
+    if (key === 'csob_cz_credit' || key === 'csob_cz') {
+      return canApplyBalanceDeltaForTx(bankKey, tx) ? -amount : 0;
+    }
   }
 
   if (getBankKey(tx) !== bankKey) return 0;
@@ -12741,7 +12777,15 @@ function sumTransactionBalanceDeltasForBank(bankKey, monthStr, txList = allTrans
 
 function ensureAccountBalanceBase(bankKey, monthStr = getAktuálneMonth()) {
   const month = normalizeMonthStr(monthStr || getAktuálneMonth());
-  if (hasSheetAccountBalanceAuthority(bankKey, month)) {
+  const creditLiability = isCreditLiabilityBankKey(bankKey);
+  if (hasSheetAccountBalanceAuthority(bankKey, month) && !creditLiability) {
+    const stored = localStorage.getItem(getSheetAccountBalanceValueKey(bankKey, month));
+    if (stored !== null && Number.isFinite(Number(stored))) {
+      syncAccountBalanceBaseFromAbsoluteValue(bankKey, month, Number(stored));
+      return getAccountBalanceBase(bankKey, month);
+    }
+  }
+  if (creditLiability && hasSheetAccountBalanceAuthority(bankKey, month) && getAccountBalanceBase(bankKey, month) === null) {
     const stored = localStorage.getItem(getSheetAccountBalanceValueKey(bankKey, month));
     if (stored !== null && Number.isFinite(Number(stored))) {
       syncAccountBalanceBaseFromAbsoluteValue(bankKey, month, Number(stored));
@@ -12770,13 +12814,23 @@ function recomputeAccountBalanceForBank(bankKey, monthStr = getAktuálneMonth())
   const id = String(bankKey || '').trim();
   if (!id) return false;
   const month = normalizeMonthStr(monthStr || getAktuálneMonth());
-  if (hasSheetAccountBalanceAuthority(id, month)) {
+  const creditLiability = isCreditLiabilityBankKey(id);
+
+  if (hasSheetAccountBalanceAuthority(id, month) && !creditLiability) {
     const stored = localStorage.getItem(getSheetAccountBalanceValueKey(id, month));
     if (stored !== null && Number.isFinite(Number(stored))) {
       syncAccountBalanceBaseFromAbsoluteValue(id, month, Number(stored));
       return true;
     }
   }
+
+  if (creditLiability && hasSheetAccountBalanceAuthority(id, month) && getAccountBalanceBase(id, month) === null) {
+    const stored = localStorage.getItem(getSheetAccountBalanceValueKey(id, month));
+    if (stored !== null && Number.isFinite(Number(stored))) {
+      syncAccountBalanceBaseFromAbsoluteValue(id, month, Number(stored));
+    }
+  }
+
   const base = ensureAccountBalanceBase(id, month);
   const txSum = sumTransactionBalanceDeltasForBank(id, month);
   const next = Math.round((base + txSum) * 100) / 100;
@@ -12839,6 +12893,7 @@ function reapplySheetAccountBalancesFromStorage() {
     Object.keys(localStorage).forEach(key => {
       const parsed = parseSheetAccountBalanceAuthorityKey(key);
       if (!parsed) return;
+      if (isCreditLiabilityBankKey(parsed.bankKey)) return;
       const stored = localStorage.getItem(getSheetAccountBalanceValueKey(parsed.bankKey, parsed.month));
       if (stored === null) return;
       const absolute = Number(stored);
@@ -12887,6 +12942,13 @@ function canApplyBalanceDeltaForTx(bankKey, tx) {
   const txCurrency = currencyCode(tx?.currency || '');
   const bankCurrency = String(getBankBalanceCurrency(bankKey) || '').toUpperCase();
   return !txCurrency || !bankCurrency || txCurrency === bankCurrency;
+}
+
+function isCreditLiabilityBankKey(bankKey) {
+  const id = String(bankKey || '').trim();
+  if (!id) return false;
+  if (id === 'csob_cz_credit') return true;
+  return !!(CREDIT_BALANCE_SUBACCOUNTS || []).some((item) => item && item.id === id);
 }
 
 function isCsobCzCreditCardRepaymentTx(tx) {
@@ -21422,8 +21484,16 @@ function parseBankSettingsSheetData(raw) {
     if (hasWarning) localStorage.setItem(getBudgetStorageKey(bankId, 'warn', month), String(warning));
     if (hasBalance && Number.isFinite(balance)) {
       localStorage.setItem(getSheetAccountBalanceValueKey(bankId, month), String(balance));
-      syncAccountBalanceBaseFromAbsoluteValue(bankId, month, balance);
       markSheetAccountBalanceAuthority(bankId, month);
+      if (isCreditLiabilityBankKey(bankId)) {
+        if (getAccountBalanceBase(bankId, month) === null) {
+          syncAccountBalanceBaseFromAbsoluteValue(bankId, month, balance);
+        } else {
+          recomputeAccountBalanceForBank(bankId, month);
+        }
+      } else {
+        syncAccountBalanceBaseFromAbsoluteValue(bankId, month, balance);
+      }
     }
     if (hasIncomingAlert || hasOutgoingAlert) {
       const currentAlerts = getTransactionAlertSettingsForBank(bankId, month);
@@ -21544,7 +21614,17 @@ function parseBalanceLogSheetData(raw) {
       skippedByArchive++;
       return;
     }
-    syncAccountBalanceBaseFromAbsoluteValue(item.bankId, item.month, item.newBalance);
+    if (isCreditLiabilityBankKey(item.bankId)) {
+      localStorage.setItem(getSheetAccountBalanceValueKey(item.bankId, item.month), String(item.newBalance));
+      markSheetAccountBalanceAuthority(item.bankId, item.month);
+      if (getAccountBalanceBase(item.bankId, item.month) === null) {
+        syncAccountBalanceBaseFromAbsoluteValue(item.bankId, item.month, item.newBalance);
+      } else {
+        recomputeAccountBalanceForBank(item.bankId, item.month);
+      }
+    } else {
+      syncAccountBalanceBaseFromAbsoluteValue(item.bankId, item.month, item.newBalance);
+    }
     if (item.currency) localStorage.setItem('bank_currency_' + item.bankId, normalizeCurrencyForStorage(item.currency));
     applied++;
   });
