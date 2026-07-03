@@ -3415,6 +3415,82 @@
     background: rgba(37, 99, 235, .16) !important;
   }
 
+  .bt-touch-ripple-host {
+    position: relative;
+    overflow: hidden;
+    -webkit-mask-image: -webkit-radial-gradient(#fff, #000);
+  }
+
+  .bt-touch-ripple-host > :not(.bt-touch-ripple) {
+    position: relative;
+    z-index: 2;
+  }
+
+  .bt-touch-ripple {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    transform: scale(0);
+    opacity: .34;
+    background: rgba(143, 220, 255, .42);
+    animation: btTouchRipple .44s ease-out forwards;
+    z-index: 1;
+  }
+
+  @keyframes btTouchRipple {
+    0% {
+      transform: scale(0);
+      opacity: .34;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0;
+    }
+  }
+
+  .nav-item.bt-touch-ripple-host .bt-touch-ripple {
+    background: rgba(143, 220, 255, .36);
+  }
+
+  .nav-item.active.bt-touch-ripple-host .bt-touch-ripple {
+    background: rgba(88, 166, 255, .34);
+  }
+
+  .overview-month-nav.bt-touch-ripple-host .bt-touch-ripple,
+  .account-balance-privacy-btn.bt-touch-ripple-host .bt-touch-ripple,
+  .manager-sheet-back-btn.bt-touch-ripple-host .bt-touch-ripple {
+    background: rgba(143, 220, 255, .40);
+  }
+
+  html[data-theme="light"] .bt-touch-ripple,
+  html[data-theme="light"] .nav-item.bt-touch-ripple-host .bt-touch-ripple,
+  html[data-theme="light"] .nav-item.active.bt-touch-ripple-host .bt-touch-ripple,
+  html[data-theme="light"] .overview-month-nav.bt-touch-ripple-host .bt-touch-ripple,
+  html[data-theme="light"] .account-balance-privacy-btn.bt-touch-ripple-host .bt-touch-ripple,
+  html[data-theme="light"] .manager-sheet-back-btn.bt-touch-ripple-host .bt-touch-ripple {
+    background: rgba(37, 99, 235, .22);
+  }
+
+  .manager-sheet-back-btn.is-touch-pressed,
+  .sheet-close.manager-sheet-back-btn.is-touch-pressed {
+    transform: scale(.94);
+    background: rgba(143, 220, 255, .16) !important;
+    box-shadow: inset 0 0 0 1px rgba(143, 220, 255, .24), 0 0 0 3px rgba(143, 220, 255, .10);
+  }
+
+  html[data-theme="light"] .manager-sheet-back-btn.is-touch-pressed,
+  html[data-theme="light"] .sheet-close.manager-sheet-back-btn.is-touch-pressed {
+    background: rgba(37, 99, 235, .14) !important;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .20), 0 0 0 3px rgba(37, 99, 235, .08);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bt-touch-ripple {
+      animation: none !important;
+      display: none !important;
+    }
+  }
+
   /* Mass tag select mode */
   #page-txns.mass-tag-select-mode .tx-item.tx-mass-selectable {
     cursor: pointer;
@@ -14925,15 +15001,32 @@ function scheduleArchiveTabRender() {
 }
 
 function initBtTouchFeedback(selector) {
+  const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   document.querySelectorAll(selector).forEach((el) => {
     if (el.dataset.btTouchReady === '1') return;
     el.dataset.btTouchReady = '1';
-    const press = () => {
+    el.classList.add('bt-touch-ripple-host');
+    const spawnRipple = (event) => {
       if (el.disabled) return;
       el.classList.add('is-touch-pressed');
+      if (reducedMotion) return;
+      const rect = el.getBoundingClientRect();
+      const pointX = (event && typeof event.clientX === 'number') ? event.clientX : (rect.left + rect.width / 2);
+      const pointY = (event && typeof event.clientY === 'number') ? event.clientY : (rect.top + rect.height / 2);
+      const size = Math.max(rect.width, rect.height) * 2.2;
+      const ripple = document.createElement('span');
+      ripple.className = 'bt-touch-ripple';
+      ripple.style.width = size + 'px';
+      ripple.style.height = size + 'px';
+      ripple.style.left = (pointX - rect.left - size / 2) + 'px';
+      ripple.style.top = (pointY - rect.top - size / 2) + 'px';
+      el.appendChild(ripple);
+      const cleanup = () => { try { ripple.remove(); } catch (_) {} };
+      ripple.addEventListener('animationend', cleanup, { once: true });
+      window.setTimeout(cleanup, 520);
     };
     const release = () => el.classList.remove('is-touch-pressed');
-    el.addEventListener('pointerdown', press, { passive: true });
+    el.addEventListener('pointerdown', spawnRipple, { passive: true });
     el.addEventListener('pointerup', release, { passive: true });
     el.addEventListener('pointercancel', release, { passive: true });
     el.addEventListener('pointerleave', release, { passive: true });
@@ -14944,6 +15037,7 @@ function initNavTouchFeedback() {
   initBtTouchFeedback('.bottom-nav .nav-item');
   initBtTouchFeedback('.overview-month-nav');
   initBtTouchFeedback('.account-balance-privacy-btn, .overview-privacy-btn');
+  initBtTouchFeedback('.manager-sheet-back-btn');
 }
 try { window.initNavTouchFeedback = initNavTouchFeedback; } catch (_) {}
 
@@ -18947,6 +19041,7 @@ function renderBankManager(){
   };
 
   wrap.innerHTML = allBanks.map(row).join('') || `<div class="empty-state">${t('noBanksAdded')}</div>`;
+  try { initBtTouchFeedback('.manager-sheet-back-btn'); } catch (_) {}
 }
 
 
@@ -35146,6 +35241,12 @@ window.addEventListener('pageshow', () => {
   }
   .nav-item:active {
     transform: none !important;
+  }
+  .nav-item.is-touch-pressed:not(.active) {
+    transform: scale(.955) !important;
+  }
+  .nav-item.active.is-touch-pressed {
+    transform: scale(.965) !important;
   }
 </style>
 <style id="v287-manager-card-mobile-ux-css">
