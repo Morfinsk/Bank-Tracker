@@ -52,7 +52,12 @@
     overflow: hidden;
   }
   body.app-boot-pending > :not(#page-loading-overlay) {
-    visibility: hidden !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+  body.app-boot-reveal > :not(#page-loading-overlay) {
+    opacity: 1;
+    transition: opacity .36s ease;
   }
 
   /* v146 CSOB SK account-currency equivalent + archive readable totals */
@@ -872,7 +877,7 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=285">
+<link rel="manifest" href="./manifest.json?v=286">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -1078,6 +1083,13 @@
     overflow: hidden;
     border: 1px solid var(--border);
   }
+  .card-widget.bank-card-clickable,
+  .card-widget[onclick] {
+    position: relative;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+  }
   .card-header {
     padding: 16px 18px;
     display: flex;
@@ -1180,45 +1192,11 @@
   .archive-container.is-archive-loading,
   .archive-trend-card.is-archive-loading {
     position: relative;
-    min-height: 132px;
     pointer-events: none;
   }
 
-  .archive-container.is-archive-loading::before,
-  .archive-trend-card.is-archive-loading::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: rgba(8, 17, 31, .42);
-    z-index: 2;
-  }
-
-  html[data-theme="light"] .archive-container.is-archive-loading::before,
-  html[data-theme="light"] .archive-trend-card.is-archive-loading::before {
-    background: rgba(241, 245, 249, .78);
-  }
-
-  .archive-container.is-archive-loading::after,
-  .archive-trend-card.is-archive-loading::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 22px;
-    height: 22px;
-    margin: -11px 0 0 -11px;
-    border-radius: 999px;
-    border: 2px solid rgba(143, 220, 255, .24);
-    border-top-color: #8fdcff;
-    animation: spin .8s linear infinite;
-    z-index: 3;
-  }
-
-  html[data-theme="light"] .archive-container.is-archive-loading::after,
-  html[data-theme="light"] .archive-trend-card.is-archive-loading::after {
-    border-color: rgba(37, 99, 235, .18);
-    border-top-color: #2563eb;
+  #page-archive.is-archive-tab-loading {
+    pointer-events: none;
   }
 
   .archive-item {
@@ -2165,7 +2143,7 @@
   }
 
   .bank-card-clickable:active {
-    transform: scale(0.982);
+    transform: none;
   }
 
 
@@ -3525,7 +3503,6 @@
   .dev-toggle-btn.is-touch-pressed,
   .top-upgrade-btn.is-touch-pressed,
   .account-balance-rollup-btn.is-touch-pressed,
-  .bank-card-clickable.is-touch-pressed,
   .mass-tag-act-btn.is-touch-pressed,
   .mass-tag-save-btn.is-touch-pressed,
   .mass-tag-bar-cancel.is-touch-pressed,
@@ -3565,7 +3542,6 @@
   .archive-bank-legend-item.is-touch-pressed,
   .managed-bank-edit-btn.is-touch-pressed,
   .icon-action-btn.is-touch-pressed,
-  .budget-bank-row[onclick].is-touch-pressed,
   .tx-col-title[onclick].is-touch-pressed,
   .toggle-switch.is-touch-pressed,
   .sheets-toggle-switch.is-touch-pressed,
@@ -3574,24 +3550,13 @@
     box-shadow: inset 0 0 0 1px rgba(143, 220, 255, .22), 0 0 0 3px rgba(143, 220, 255, .10);
   }
 
+  .custom-widget-card.is-touch-pressed:not(.is-dragging):not(.is-long-press),
   .card-widget.is-touch-pressed,
   .card-widget.bank-card-clickable.is-touch-pressed,
-  .card-widget[onclick].is-touch-pressed {
+  .card-widget[onclick].is-touch-pressed,
+  .budget-bank-row[onclick].is-touch-pressed {
     transform: scale(.982) !important;
-  }
-
-  .card-widget.bank-card-clickable.is-touch-pressed::after,
-  .card-widget[onclick].is-touch-pressed::after,
-  #page-overview-details .card-widget.is-touch-pressed::after,
-  .overview-details-page .card-widget.is-touch-pressed::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: 6;
-    background: rgba(143, 220, 255, .12);
-    box-shadow: inset 0 0 0 2px rgba(143, 220, 255, .34), inset 0 0 0 5px rgba(143, 220, 255, .12);
+    box-shadow: inset 0 0 0 1px rgba(143, 220, 255, .22), 0 0 0 4px rgba(143, 220, 255, .10);
   }
 
   .card-widget.bt-touch-ripple-host .bt-touch-ripple {
@@ -3605,16 +3570,14 @@
     filter: brightness(1.18) saturate(1.08);
   }
 
-  .custom-widget-card.is-touch-pressed:not(.is-dragging):not(.is-long-press) {
-    transform: scale(.982);
-    box-shadow: inset 0 0 0 1px rgba(143, 220, 255, .22), 0 0 0 4px rgba(143, 220, 255, .10);
-  }
-
   html[data-theme="light"] button.is-touch-pressed:not(:disabled):not(.fab):not(.scroll-top-fab),
   html[data-theme="light"] .cat-chip.is-touch-pressed,
   html[data-theme="light"] .txn-filter-pill.is-touch-pressed,
   html[data-theme="light"] .sync-btn.is-touch-pressed,
   html[data-theme="light"] .custom-widget-card.is-touch-pressed:not(.is-dragging):not(.is-long-press),
+  html[data-theme="light"] .card-widget.is-touch-pressed,
+  html[data-theme="light"] .card-widget.bank-card-clickable.is-touch-pressed,
+  html[data-theme="light"] .card-widget[onclick].is-touch-pressed,
   html[data-theme="light"] .wealth-card.is-touch-pressed,
   html[data-theme="light"] .tx-item.is-touch-pressed,
   html[data-theme="light"] .tx-item-compact.is-touch-pressed,
@@ -3626,21 +3589,7 @@
   html[data-theme="light"] .sheets-toggle-switch.is-touch-pressed,
   html[data-theme="light"] .tx-payment-source.is-touch-pressed {
     background: rgba(37, 99, 235, .10) !important;
-    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .18), 0 0 0 3px rgba(37, 99, 235, .08);
-  }
-
-  html[data-theme="light"] .card-widget.is-touch-pressed,
-  html[data-theme="light"] .card-widget.bank-card-clickable.is-touch-pressed,
-  html[data-theme="light"] .card-widget[onclick].is-touch-pressed {
-    transform: scale(.982) !important;
-  }
-
-  html[data-theme="light"] .card-widget.bank-card-clickable.is-touch-pressed::after,
-  html[data-theme="light"] .card-widget[onclick].is-touch-pressed::after,
-  html[data-theme="light"] #page-overview-details .card-widget.is-touch-pressed::after,
-  html[data-theme="light"] .overview-details-page .card-widget.is-touch-pressed::after {
-    background: rgba(37, 99, 235, .12) !important;
-    box-shadow: inset 0 0 0 2px rgba(37, 99, 235, .28), inset 0 0 0 5px rgba(37, 99, 235, .10) !important;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .18), 0 0 0 4px rgba(37, 99, 235, .08);
   }
 
   /* Mass tag select mode */
@@ -3982,34 +3931,302 @@
     place-items: center;
     pointer-events: none;
     opacity: 0;
-    transition: opacity .16s ease;
+    visibility: hidden;
+    transition: opacity .28s ease, visibility .28s ease;
     background: var(--bg);
     backdrop-filter: none;
   }
 
   .page-loading-overlay.show {
     opacity: 1;
+    visibility: visible;
     pointer-events: all;
   }
 
-  .page-loading-spinner {
+  .page-loading-overlay.is-hiding {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .bt-brand-logo {
+    display: block;
+    object-fit: contain;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .bt-brand-logo--header {
     width: 38px;
     height: 38px;
-    border-radius: 999px;
-    border: 3px solid rgba(255, 255, 255, .24);
-    border-top-color: rgba(119, 224, 243, .96);
-    animation: pageLoaderSpin .8s linear infinite;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
+    border-radius: 10px;
+  }
+
+  .bt-brand-logo-svg--header {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+
+  .header-brand-wrap.is-brand-syncing .bt-brand-logo-svg--header,
+  .header-brand-wrap.is-brand-syncing .bt-brand-logo--header {
+    filter: none;
+  }
+
+  html[data-theme="light"] .header-brand-wrap.is-brand-syncing .bt-brand-logo-svg--header,
+  html[data-theme="light"] .header-brand-wrap.is-brand-syncing .bt-brand-logo--header {
+    filter: none;
+  }
+
+  .header-brand-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    min-height: 38px;
+    flex: 0 0 38px;
+    line-height: 0;
+    contain: layout style paint;
+  }
+
+  #header-brand-logo {
+    display: block;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  #header-brand-logo.bt-brand-logo-svg--idle .bt-logo-path {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+
+  #header-brand-logo.bt-brand-logo-svg--idle .bt-logo-dot {
+    opacity: 1;
+  }
+
+  #header-brand-logo.is-header-drawing .bt-logo-path {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation-fill-mode: forwards;
+  }
+
+  #header-brand-logo.is-header-drawing .bt-logo-stem {
+    animation: btHeaderDrawReveal .58s cubic-bezier(.42, 0, .2, 1) .06s forwards;
+  }
+
+  #header-brand-logo.is-header-drawing .bt-logo-arrow {
+    animation: btHeaderDrawReveal .42s cubic-bezier(.42, 0, .2, 1) .44s forwards;
+  }
+
+  #header-brand-logo.is-header-drawing .bt-logo-loop-top {
+    animation: btHeaderDrawReveal .5s cubic-bezier(.42, 0, .2, 1) .72s forwards;
+  }
+
+  #header-brand-logo.is-header-drawing .bt-logo-loop-bottom {
+    animation: btHeaderDrawReveal .54s cubic-bezier(.42, 0, .2, 1) 1.08s forwards;
+  }
+
+  #header-brand-logo.is-header-drawing .bt-logo-dot {
+    opacity: 0;
+    animation: btHeaderDotFade .34s ease-out .08s forwards;
+  }
+
+  #header-brand-logo.is-header-sync-loop .bt-logo-path {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+  }
+
+  #header-brand-logo.is-header-sync-loop .bt-logo-dot {
+    transform-box: fill-box;
+    transform-origin: center;
+    opacity: 0;
+    animation: btLogoDotDraw 2.6s ease-in-out infinite;
+  }
+
+  #header-brand-logo.is-header-sync-loop .bt-logo-stem {
+    animation: btLogoDrawStem 2.6s ease-in-out infinite;
+  }
+
+  #header-brand-logo.is-header-sync-loop .bt-logo-arrow {
+    animation: btLogoDrawArrow 2.6s ease-in-out infinite;
+  }
+
+  #header-brand-logo.is-header-sync-loop .bt-logo-loop-top {
+    animation: btLogoDrawLoopTop 2.6s ease-in-out infinite;
+  }
+
+  #header-brand-logo.is-header-sync-loop .bt-logo-loop-bottom {
+    animation: btLogoDrawLoopBottom 2.6s ease-in-out infinite;
+  }
+
+  @keyframes btHeaderDrawReveal {
+    from { stroke-dashoffset: 100; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes btHeaderDotFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .page-loading-brand {
+    display: grid;
+    place-items: center;
+  }
+
+  .bt-brand-logo-svg {
+    display: block;
+    flex-shrink: 0;
+    overflow: visible;
+    user-select: none;
+  }
+
+  .bt-brand-logo-svg--loading {
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+  }
+
+  .bt-brand-logo-svg--toast {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .bt-brand-logo-svg--inline {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+  }
+
+  .bt-brand-logo-svg .bt-logo-stroke {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+  }
+
+  .bt-brand-logo-svg--draw-loop .bt-logo-dot {
+    transform-box: fill-box;
+    transform-origin: center;
+    opacity: 0;
+    animation: btLogoDotDraw 2.6s ease-in-out infinite;
+  }
+
+  .bt-brand-logo-svg--draw-loop .bt-logo-stem {
+    animation: btLogoDrawStem 2.6s ease-in-out infinite;
+  }
+
+  .bt-brand-logo-svg--draw-loop .bt-logo-arrow {
+    animation: btLogoDrawArrow 2.6s ease-in-out infinite;
+  }
+
+  .bt-brand-logo-svg--draw-loop .bt-logo-loop-top {
+    animation: btLogoDrawLoopTop 2.6s ease-in-out infinite;
+  }
+
+  .bt-brand-logo-svg--draw-loop .bt-logo-loop-bottom {
+    animation: btLogoDrawLoopBottom 2.6s ease-in-out infinite;
+  }
+
+  .bt-brand-logo-svg--draw-once .bt-logo-dot {
+    transform-box: fill-box;
+    transform-origin: center;
+    opacity: 0;
+    animation: btLogoDotDraw 2.2s ease-in-out forwards;
+  }
+
+  .bt-brand-logo-svg--draw-once .bt-logo-stem {
+    animation: btLogoDrawStem 2.2s ease-in-out forwards;
+  }
+
+  .bt-brand-logo-svg--draw-once .bt-logo-arrow {
+    animation: btLogoDrawArrow 2.2s ease-in-out forwards;
+  }
+
+  .bt-brand-logo-svg--draw-once .bt-logo-loop-top {
+    animation: btLogoDrawLoopTop 2.2s ease-in-out forwards;
+  }
+
+  .bt-brand-logo-svg--draw-once .bt-logo-loop-bottom {
+    animation: btLogoDrawLoopBottom 2.2s ease-in-out forwards;
+  }
+
+  @keyframes btLogoDotDraw {
+    0%, 6% { opacity: 0; transform: scale(0); }
+    10%, 70% { opacity: 1; transform: translate(0, 0) scale(1); }
+    82%, 94% { opacity: 1; transform: translate(140px, -120px) scale(1); }
+    96%, 100% { opacity: 1; transform: translate(140px, -120px) scale(1.08); }
+  }
+
+  @keyframes btLogoDrawStem {
+    0%, 10% { stroke-dashoffset: 100; }
+    30%, 100% { stroke-dashoffset: 0; }
+  }
+
+  @keyframes btLogoDrawArrow {
+    0%, 26% { stroke-dashoffset: 100; }
+    40%, 100% { stroke-dashoffset: 0; }
+  }
+
+  @keyframes btLogoDrawLoopTop {
+    0%, 38% { stroke-dashoffset: 100; }
+    56%, 100% { stroke-dashoffset: 0; }
+  }
+
+  @keyframes btLogoDrawLoopBottom {
+    0%, 54% { stroke-dashoffset: 100; }
+    72%, 100% { stroke-dashoffset: 0; }
+  }
+
+  @keyframes btLogoBreathe {
+    0%, 100% {
+      transform: scale(.9);
+      opacity: .78;
+      filter: drop-shadow(0 0 0 rgba(0, 229, 255, 0));
+    }
+    50% {
+      transform: scale(1);
+      opacity: 1;
+      filter: drop-shadow(0 0 16px rgba(0, 229, 255, .42));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bt-brand-logo-svg--draw-loop .bt-logo-dot,
+    .bt-brand-logo-svg--draw-loop .bt-logo-stroke,
+    .bt-brand-logo-svg--draw-once .bt-logo-dot,
+    .bt-brand-logo-svg--draw-once .bt-logo-stroke,
+    #header-brand-logo.is-header-drawing .bt-logo-path,
+    #header-brand-logo.is-header-drawing .bt-logo-dot,
+    #header-brand-logo.is-header-sync-loop .bt-logo-path,
+    #header-brand-logo.is-header-sync-loop .bt-logo-dot,
+    .archive-container.is-archive-loading,
+    .archive-trend-card.is-archive-loading {
+      animation: none !important;
+      opacity: 1 !important;
+      stroke-dashoffset: 0 !important;
+    }
+    .bt-brand-logo-svg .bt-logo-dot {
+      transform: translate(140px, -120px) !important;
+    }
+    .header-brand-wrap.is-brand-syncing .bt-brand-logo-svg--header,
+    .header-brand-wrap.is-brand-syncing .bt-brand-logo--header {
+      filter: none !important;
+    }
+  }
+
+  @keyframes btLogoBreatheLight {
+    0%, 100% { transform: scale(.9); opacity: .88; }
+    50% { transform: scale(1); opacity: 1; }
   }
 
   html[data-theme="light"] .page-loading-overlay {
     background: #ffffff;
-  }
-
-  html[data-theme="light"] .page-loading-spinner {
-    border-color: rgba(15, 23, 42, .22);
-    border-top-color: #0f172a;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, .18);
   }
 
   @keyframes pageLoaderSpin {
@@ -5113,15 +5330,18 @@
     padding-left: 8px !important;
     padding-right: 8px !important;
     transition: background .12s ease, transform .12s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
   }
 
   .budget-bank-row:hover {
-    background: rgba(88,166,255,.08);
+    background: transparent;
   }
 
   .budget-bank-row:active {
-    transform: scale(.992);
-    background: rgba(88,166,255,.12);
+    transform: none;
+    background: transparent;
   }
 
   .overview-recent-hint {
@@ -6393,14 +6613,16 @@
     font-weight: 800;
     z-index: 9999;
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
-    transition: opacity .16s ease, transform .16s ease;
+    transition: opacity .16s ease, transform .16s ease, visibility .16s ease;
     box-shadow: 0 16px 40px rgba(0,0,0,.28);
     text-align: center;
   }
 
   .back-exit-toast.show {
     opacity: 1;
+    visibility: visible;
     transform: translateX(-50%) translateY(0);
   }
 
@@ -6449,12 +6671,14 @@
     color: #f8fafc;
     text-align: center;
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
-    transition: opacity .18s ease, transform .18s ease;
+    transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
   }
 
   .large-status-toast.show {
     opacity: 1;
+    visibility: visible;
     transform: translate(-50%, -50%) scale(1);
   }
 
@@ -6513,21 +6737,16 @@
   .large-status-toast.loading .large-status-icon {
     font-size: 0;
     color: transparent;
-    border-color: rgba(96, 165, 250, .42);
-    background: rgba(96, 165, 250, .14);
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
   }
 
   .large-status-toast.loading .large-status-icon::before {
-    content: '';
-    width: 30px;
-    height: 30px;
-    border-radius: 999px;
-    border: 4px solid rgba(148, 163, 184, .42);
-    border-top-color: #60a5fa;
-    animation: bankTrackerSpin .78s linear infinite;
+    content: none;
+    display: none;
   }
 
-  /* v159: top delete loader uses one spinner only, no background ring */
   .large-status-toast.loading.top-loading .large-status-icon {
     background: transparent;
     border: 0;
@@ -6535,9 +6754,8 @@
   }
 
   .large-status-toast.loading.top-loading .large-status-icon::before {
-    width: 18px;
-    height: 18px;
-    border-width: 3px;
+    content: none;
+    display: none;
   }
 
   @keyframes bankTrackerSpin {
@@ -7186,25 +7404,33 @@
     top: 10px;
     right: 10px;
     align-items: center;
-    gap: 4px;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: .05em;
-    text-transform: uppercase;
-    color: rgba(148, 186, 255, .92);
+    justify-content: center;
+    width: 24px;
+    height: 24px;
     white-space: nowrap;
     z-index: 2;
     pointer-events: none;
+    opacity: 0;
+    transition: opacity .18s ease;
   }
   .wealth-card.is-balance-syncing .overview-balance-sync-badge {
     display: inline-flex;
+    opacity: 1;
   }
   .wealth-card.is-balance-syncing .wealth-card-value {
     opacity: .72;
   }
-  .overview-balance-sync-badge .sync-mini-icon {
-    display: inline-block;
-    animation: spin 1s linear infinite;
+  .overview-balance-sync-logo {
+    display: block;
+    width: 22px;
+    height: 22px;
+    line-height: 0;
+  }
+  .bt-brand-logo-svg--badge {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    display: block;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -8992,16 +9218,20 @@ html[data-theme="light"] body::before {
 </style>
 
 </head>
-<body>
+<body class="app-boot-pending">
 
-<div id="page-loading-overlay" class="page-loading-overlay" aria-live="polite">
-  <div class="page-loading-spinner" aria-hidden="true"></div>
+<div id="page-loading-overlay" class="page-loading-overlay show" aria-live="polite" aria-busy="true">
+  <div class="page-loading-brand" aria-hidden="true">
+    <svg class="bt-brand-logo-svg bt-brand-logo-svg--loading bt-brand-logo-svg--draw-loop" width="72" height="72" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect width="512" height="512" rx="112" fill="#08111f"/><circle cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(168, 116) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><circle class="bt-logo-dot" cx="60" cy="300" r="18" fill="#00e5ff"/></g></svg>
+  </div>
 </div>
 
 <div id="page-overview" class="page active">
   <div class="header overview-header-v236">
     <div class="overview-header-row overview-header-top-v236">
-      <div class="header-title" data-i18n="appTitle">Bank Tracker</div>
+      <div class="header-title header-brand-wrap" id="header-brand-wrap" aria-label="Bank Tracker">
+        <svg id="header-brand-logo" class="bt-brand-logo-svg bt-brand-logo-svg--header bt-brand-logo-svg--idle" width="38" height="38" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect width="512" height="512" rx="112" fill="#08111f"/><circle cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(168, 116) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-path bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-path bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-path bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-path bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><circle class="bt-logo-dot" cx="200" cy="180" r="18" fill="#00e5ff"/></g></svg>
+      </div>
       <div class="overview-header-actions-v236">
         <button class="sync-btn overview-header-icon-v236" id="sync-btn" type="button" onclick="syncData()" data-i18n-title="syncTitle" title="Sync" aria-label="Refresh"><span class="sync-btn-icon" aria-hidden="true">↻</span></button>
         <button class="sync-btn overview-header-icon-v236 overview-login-btn-v236" id="overview-login-btn" type="button" onclick="openLoginPlaceholderV236()" title="Login" aria-label="Login">👤</button>
@@ -9046,7 +9276,7 @@ html[data-theme="light"] body::before {
 
   <div id="overview-dashboard" class="wealth-dashboard">
     <button class="wealth-card wealth-card-net wealth-card-blue" type="button" onclick="openOverviewDetailsSection('account-balance-anchor')">
-      <span class="overview-balance-sync-badge" aria-live="polite"><span class="sync-mini-icon" aria-hidden="true">↻</span> Updating…</span>
+      <span class="overview-balance-sync-badge" aria-live="polite" aria-hidden="true"><span class="overview-balance-sync-logo"></span></span>
       <div class="wealth-card-head">
         <div class="wealth-card-title">Total net worth</div>
       </div>
@@ -9054,7 +9284,7 @@ html[data-theme="light"] body::before {
     </button>
 
     <button class="wealth-card wealth-card-cash wealth-card-wide" type="button" onclick="openOverviewDetailsSection('account-balance-anchor')">
-      <span class="overview-balance-sync-badge" aria-live="polite"><span class="sync-mini-icon" aria-hidden="true">↻</span> Updating…</span>
+      <span class="overview-balance-sync-badge" aria-live="polite" aria-hidden="true"><span class="overview-balance-sync-logo"></span></span>
       <div class="wealth-card-head">
         <div class="wealth-card-title">Available cash</div>
         <div class="wealth-card-icon" aria-hidden="true">💶</div>
@@ -10109,33 +10339,37 @@ const BANKS = {
 };
 const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','csob_cz_credit','moneta','air_bank_cz','pluxee'];
 
+const BT_LOGO_SRC = './Logos/logo.svg';
+const BT_LOGO_SRC_FALLBACK = './logo.svg';
+const BT_BANK_LOGOS_BASE = 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/';
+
 const BANK_LOGOS = {
   rb_cz: {
-    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/RB.png',
+    src: BT_BANK_LOGOS_BASE + 'RB.png',
     alt: 'RB CZ'
   },
   csob_sk: {
-    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/CSOB-SK.png',
+    src: BT_BANK_LOGOS_BASE + 'CSOB-SK.png',
     alt: 'ČSOB SK'
   },
   csob_cz: {
-    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/CSOB-CZ.jpg',
+    src: BT_BANK_LOGOS_BASE + 'CSOB-CZ.jpg',
     alt: 'ČSOB CZ'
   },
   csob_cz_credit: {
-    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/CSOB-CZ.jpg',
+    src: BT_BANK_LOGOS_BASE + 'CSOB-CZ.jpg',
     alt: 'CSOB CZ credit card'
   },
   moneta: {
-    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Moneta-CZ.png',
+    src: BT_BANK_LOGOS_BASE + 'Moneta-CZ.png',
     alt: 'Moneta'
   },
   air_bank_cz: {
-    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Airbank.jpg',
+    src: BT_BANK_LOGOS_BASE + 'Airbank.jpg',
     alt: 'Air Bank'
   },
   pluxee: {
-    src: 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/Pluxee.jpg',
+    src: BT_BANK_LOGOS_BASE + 'Pluxee.jpg',
     alt: 'Pluxee'
   }
 };
@@ -11269,10 +11503,7 @@ async function syncData(options = {}) {
   };
 
   if (showFullScreenLoader) {
-    document.body.classList.add('app-boot-pending');
-    showPageLoadingOverlayNow();
-    const overlay = ensurePageLoadingOverlay();
-    if (overlay) overlay.setAttribute('aria-busy', 'true');
+    startAppBootOverlay();
   }
 
   ensureDefaultConfig();
@@ -11305,6 +11536,7 @@ async function syncData(options = {}) {
   const btn = document.getElementById('sync-btn');
   if (btn) btn.classList.add('spinning');
   try { lockOverviewBalanceDatasets(); setOverviewBalanceSyncState(true); } catch (_) {}
+  try { scheduleHeaderBrandDrawIsolated('sync'); } catch (_) {}
   try {
     const match = SHEETS_URL.match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (!match) throw new Error('Neplatné URL');
@@ -11346,17 +11578,20 @@ async function syncData(options = {}) {
   } finally {
     if (btn) btn.classList.remove('spinning');
     isSyncing = false;
+    try { releaseHeaderBrandAfterSync(); } catch (_) {}
     try { reapplySheetAccountBalancesFromStorage(); } catch (e) { console.warn('Sheet balance reapply in finally failed:', e); }
     try { recomputeAccountBalancesForLoadedMonths(); } catch (e) { console.warn('Account balance recompute after sync failed:', e); }
     if (backgroundMode || !startupMode) {
       if (activePageId === 'overview') {
-        try { window.__overviewChartSigsBeforeSync = captureOverviewChartSignatures(); } catch (_) {}
-        try { window.__overviewPendingSyncChartAnim = true; } catch (_) {}
+        try { markOverviewChartsAwaitingFreshData(); } catch (_) {}
       }
       try { window.__overviewBalanceAnimateNext = true; } catch (_) {}
       renderAll({ deferHeavy: true, visibleOnly: true });
       applyLanguage();
       try { window.__overviewBalanceAnimateNext = false; } catch (_) {}
+      if (activePageId === 'overview') {
+        try { __overviewChartsDataSettled = true; } catch (_) {}
+      }
     }
     try { setOverviewBalanceSyncState(false); } catch (_) {}
     markCloudSyncCompleted();
@@ -12399,6 +12634,8 @@ function initTabHistory() {
   activePageId = getActivePageId() || 'overview';
   window.__bankTrackerLastBackAt = 0;
   window.__bankTrackerBackToastTimer = null;
+  window.__bankTrackerHistoryReadyAt = Date.now();
+  dismissBackExitToast();
 
   const url = location.pathname + location.search + '#' + activePageId;
 
@@ -12444,7 +12681,20 @@ function initTabHistory() {
   });
 }
 
+function dismissBackExitToast() {
+  const toast = document.getElementById('back-exit-toast');
+  if (!toast) return;
+  toast.classList.remove('show');
+  if (window.__bankTrackerBackToastTimer) {
+    clearTimeout(window.__bankTrackerBackToastTimer);
+    window.__bankTrackerBackToastTimer = null;
+  }
+}
+
 function showBackExitToast() {
+  if (__appBootActive || document.body.classList.contains('app-boot-pending')) return;
+  if (Date.now() - (window.__bankTrackerHistoryReadyAt || 0) < 1200) return;
+
   const toast = document.getElementById('back-exit-toast');
   if (!toast) return;
 
@@ -12456,10 +12706,21 @@ function showBackExitToast() {
   }
 
   window.__bankTrackerBackToastTimer = window.setTimeout(() => {
-    toast.classList.remove('show');
+    dismissBackExitToast();
   }, 1300);
 }
 
+
+function dismissLargeStatusToast() {
+  const toast = document.getElementById('large-status-toast');
+  if (!toast) return;
+  toast.classList.remove('show', 'error', 'loading', 'top-loading');
+  if (window.__bankTrackerLargeToastTimer) {
+    clearTimeout(window.__bankTrackerLargeToastTimer);
+    window.__bankTrackerLargeToastTimer = null;
+  }
+}
+try { window.dismissLargeStatusToast = dismissLargeStatusToast; } catch (_) {}
 
 function showLargeStatusToast(message, type) {
   let toast = document.getElementById('large-status-toast');
@@ -12472,12 +12733,13 @@ function showLargeStatusToast(message, type) {
   }
   const isError = type === 'error';
   const isLoading = type === 'loading' || type === 'top-loading';
+  const isTopLoading = type === 'top-loading';
   toast.classList.remove('show', 'error', 'loading', 'top-loading');
   toast.classList.toggle('error', isError);
   toast.classList.toggle('loading', isLoading);
-  toast.classList.toggle('top-loading', type === 'top-loading');
+  toast.classList.toggle('top-loading', isTopLoading);
   toast.innerHTML = `
-    <div class="large-status-icon">${isError ? '!' : '✓'}</div>
+    <div class="large-status-icon">${isError ? '!' : (isLoading ? getBtBrandLogoHtml(isTopLoading ? 'inline' : 'toast') : '✓')}</div>
     <div class="large-status-text">${escapeHtml(message || '')}</div>
   `;
   // Restart the animation even when the same toast is shown twice in a row.
@@ -12491,7 +12753,7 @@ function showLargeStatusToast(message, type) {
     return;
   }
   window.__bankTrackerLargeToastTimer = window.setTimeout(() => {
-    toast.classList.remove('show');
+    dismissLargeStatusToast();
   }, 1650);
 }
 
@@ -12513,9 +12775,7 @@ function showDeletedToast() {
 }
 
 function showWorkingToast(message) {
-  const lang = (typeof getLanguage === 'function' ? getLanguage() : 'en');
-  const fallback = lang === 'sk' ? 'Ukladám...' : (lang === 'cs' ? 'Ukládám...' : 'Saving...');
-  showLargeStatusToast(message || fallback, 'loading');
+  showTopWorkingToast(message);
 }
 
 function showTopWorkingToast(message) {
@@ -12524,30 +12784,338 @@ function showTopWorkingToast(message) {
   showLargeStatusToast(message || fallback, 'top-loading');
 }
 
+function getBtBrandLogoHeaderSvgMarkup(size = 38) {
+  return `<svg id="header-brand-logo" class="bt-brand-logo-svg bt-brand-logo-svg--header bt-brand-logo-svg--idle" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect width="512" height="512" rx="112" fill="#08111f"/><circle cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(168, 116) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-path bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-path bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-path bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-path bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><circle class="bt-logo-dot" cx="200" cy="180" r="18" fill="#00e5ff"/></g></svg>`;
+}
+
+function getBtBrandLogoSvgMarkup(size, drawMode = 'draw-loop', variant = 'header') {
+  const modeClass = `bt-brand-logo-svg--${drawMode}`;
+  const variantClass = variant ? `bt-brand-logo-svg--${variant}` : '';
+  return `<svg class="bt-brand-logo-svg ${variantClass} ${modeClass}" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect width="512" height="512" rx="112" fill="#08111f"/><circle cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(168, 116) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><circle class="bt-logo-dot" cx="60" cy="300" r="18" fill="#00e5ff"/></g></svg>`;
+}
+
+function getBtBrandLogoHtml(variant = 'header') {
+  const sizes = { header: 38, loading: 72, toast: 34, inline: 28, badge: 22 };
+  const size = sizes[variant] || sizes.header;
+  if (variant === 'header') {
+    return getBtBrandLogoHeaderSvgMarkup(size);
+  }
+  const drawMode = (variant === 'loading' || variant === 'badge') ? 'draw-loop' : 'draw-once';
+  return getBtBrandLogoSvgMarkup(size, drawMode, variant);
+}
+try { window.getBtBrandLogoHtml = getBtBrandLogoHtml; } catch (_) {}
+
+const HEADER_BRAND_DRAW_MS = 1850;
+let __headerBrandAnimTimer = null;
+let __headerBrandAnimRunning = false;
+let __headerBrandAnimQueued = false;
+let __headerBrandSyncPendingAfterBoot = false;
+
+function getHeaderBrandLogoEl() {
+  return document.getElementById('header-brand-logo');
+}
+
+function finishHeaderBrandDrawAnimation() {
+  if (__headerBrandAnimTimer) {
+    clearTimeout(__headerBrandAnimTimer);
+    __headerBrandAnimTimer = null;
+  }
+  const svg = getHeaderBrandLogoEl();
+  const wrap = document.getElementById('header-brand-wrap');
+
+  if (window.__headerBrandReleaseAfterDraw) {
+    window.__headerBrandReleaseAfterDraw = false;
+    if (svg) {
+      svg.classList.remove('is-header-drawing', 'bt-brand-logo-svg--draw-loop', 'is-header-sync-loop');
+      svg.classList.add('bt-brand-logo-svg--idle');
+    }
+    if (wrap) wrap.classList.remove('is-brand-syncing');
+    __headerBrandAnimRunning = false;
+    __headerBrandAnimQueued = false;
+    return;
+  }
+
+  if (typeof isSyncing !== 'undefined' && isSyncing) {
+    if (svg) {
+      svg.classList.remove('is-header-drawing', 'bt-brand-logo-svg--idle');
+      svg.classList.add('bt-brand-logo-svg--draw-loop', 'is-header-sync-loop');
+    }
+    __headerBrandAnimRunning = false;
+    __headerBrandAnimQueued = false;
+    return;
+  }
+
+  if (svg) {
+    svg.classList.remove('is-header-drawing', 'bt-brand-logo-svg--draw-loop', 'is-header-sync-loop');
+    svg.classList.add('bt-brand-logo-svg--idle');
+  }
+  if (wrap) wrap.classList.remove('is-brand-syncing');
+  __headerBrandAnimRunning = false;
+  if (__headerBrandAnimQueued) {
+    __headerBrandAnimQueued = false;
+    window.setTimeout(() => playHeaderBrandDraw({ reason: 'queued' }), 60);
+  }
+}
+
+function releaseHeaderBrandAfterSync() {
+  const svg = getHeaderBrandLogoEl();
+  if (!svg) return;
+  if (__headerBrandAnimRunning || svg.classList.contains('is-header-drawing')) {
+    window.__headerBrandReleaseAfterDraw = true;
+    return;
+  }
+  if (!svg.classList.contains('is-header-sync-loop')) return;
+  svg.classList.remove('bt-brand-logo-svg--draw-loop', 'is-header-sync-loop');
+  svg.classList.add('bt-brand-logo-svg--idle');
+  const wrap = document.getElementById('header-brand-wrap');
+  if (wrap) wrap.classList.remove('is-brand-syncing');
+}
+try { window.releaseHeaderBrandAfterSync = releaseHeaderBrandAfterSync; } catch (_) {}
+
+function playHeaderBrandDraw(options = {}) {
+  const reason = options.reason || 'sync';
+  if (__headerBrandAnimRunning) {
+    if (reason === 'sync') __headerBrandAnimQueued = true;
+    return;
+  }
+  if (reason !== 'boot' && (__appBootActive || document.body.classList.contains('app-boot-pending'))) {
+    if (reason === 'sync') __headerBrandSyncPendingAfterBoot = true;
+    return;
+  }
+
+  const svg = getHeaderBrandLogoEl();
+  if (!svg) return;
+
+  const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  if (reducedMotion) return;
+
+  if (__headerBrandAnimTimer) {
+    clearTimeout(__headerBrandAnimTimer);
+    __headerBrandAnimTimer = null;
+  }
+
+  __headerBrandAnimRunning = true;
+  const wrap = document.getElementById('header-brand-wrap');
+  if (wrap && reason === 'sync') wrap.classList.add('is-brand-syncing');
+
+  svg.classList.remove('bt-brand-logo-svg--idle', 'is-header-drawing', 'bt-brand-logo-svg--draw-loop', 'is-header-sync-loop');
+  void svg.offsetWidth;
+  svg.classList.add('is-header-drawing');
+
+  __headerBrandAnimTimer = window.setTimeout(() => {
+    finishHeaderBrandDrawAnimation();
+  }, HEADER_BRAND_DRAW_MS);
+}
+try { window.playHeaderBrandDraw = playHeaderBrandDraw; } catch (_) {}
+
+function scheduleHeaderBrandDrawIsolated(reason = 'sync') {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      try { playHeaderBrandDraw({ reason }); } catch (_) {}
+    });
+  });
+}
+
+function setHeaderBrandSyncState(active) {
+  if (!active) return;
+  scheduleHeaderBrandDrawIsolated('sync');
+}
+try { window.setHeaderBrandSyncState = setHeaderBrandSyncState; } catch (_) {}
+
+function restartBtLogoDrawAnimation(overlayEl) {
+  const overlay = overlayEl || document.getElementById('page-loading-overlay') || ensurePageLoadingOverlay();
+  let brand = overlay.querySelector('.page-loading-brand');
+  if (brand && brand.querySelector('.bt-brand-logo-svg--draw-loop')) return;
+  if (!brand) {
+    brand = document.createElement('div');
+    brand.className = 'page-loading-brand';
+    brand.setAttribute('aria-hidden', 'true');
+    overlay.appendChild(brand);
+  }
+  brand.innerHTML = getBtBrandLogoHtml('loading');
+}
+
 function ensurePageLoadingOverlay() {
   let overlay = document.getElementById('page-loading-overlay');
   if (overlay) return overlay;
   overlay = document.createElement('div');
   overlay.id = 'page-loading-overlay';
   overlay.className = 'page-loading-overlay';
-  overlay.innerHTML = '<div class="page-loading-spinner" aria-hidden="true"></div>';
+  overlay.innerHTML = `<div class="page-loading-brand" aria-hidden="true">${getBtBrandLogoHtml('loading')}</div>`;
   document.body.appendChild(overlay);
   return overlay;
+}
+
+const APP_BOOT_MIN_MS = 1000;
+const APP_BOOT_LOGO_MIN_MS = 2000;
+const APP_BOOT_OVERLAY_FADE_MS = 300;
+const APP_BOOT_PAGE_REVEAL_MS = 380;
+const APP_BOOT_POST_REVEAL_MS = 220;
+const APP_BOOT_MAX_MS = 15000;
+let __appBootActive = false;
+let __appBootStartedAt = 0;
+let __appBootCompleteTimer = null;
+let __appBootSequenceRunning = false;
+let __bootPresentationPhase = false;
+let __tabLoadingDepth = 0;
+
+function canCompleteAppBoot() {
+  const elapsed = Date.now() - __appBootStartedAt;
+  if (elapsed >= APP_BOOT_MAX_MS) return true;
+  return elapsed >= APP_BOOT_LOGO_MIN_MS;
+}
+
+function hasBootPresentableOverviewUi() {
+  const page = document.getElementById('page-overview');
+  if (!page) return false;
+  if (page.querySelector('.summary-days-progress')) return true;
+  if (page.querySelector('#overview-net-worth')) return true;
+  return getOverviewChartCards(page).some((card) => overviewChartCardHasGraphics(card));
+}
+
+function isOverviewPageDataReady() {
+  const page = document.getElementById('page-overview');
+  if (!page) return false;
+  const chartCards = getOverviewChartCards(page).filter(overviewChartCardHasGraphics);
+  const netCard = document.getElementById('overview-net-worth')?.closest('.wealth-card-net');
+  const netTrendPending = !!(netCard && !netCard.querySelector('.wealth-networth-trend-line-v238'));
+  const hasSummary = !!page.querySelector('.summary-days-progress');
+  if (netTrendPending) return false;
+  return chartCards.length > 0 || hasSummary;
+}
+
+function scheduleAppBootCompletion() {
+  if (!__appBootActive || __appBootSequenceRunning) return;
+  if (__appBootCompleteTimer) window.clearTimeout(__appBootCompleteTimer);
+  const elapsed = Date.now() - __appBootStartedAt;
+  const waitMs = Math.max(60, APP_BOOT_LOGO_MIN_MS - elapsed);
+  __appBootCompleteTimer = window.setTimeout(() => {
+    __appBootCompleteTimer = null;
+    if (!canCompleteAppBoot()) {
+      scheduleAppBootCompletion();
+      return;
+    }
+    completeAppBootSequence();
+  }, waitMs);
+}
+
+function startAppBootOverlay() {
+  if (__appBootActive) {
+    const overlay = ensurePageLoadingOverlay();
+    overlay.classList.add('show');
+    overlay.classList.remove('is-hiding');
+    overlay.setAttribute('aria-busy', 'true');
+    return;
+  }
+  __appBootActive = true;
+  __bootPresentationPhase = true;
+  __appBootStartedAt = Date.now();
+  document.body.classList.add('app-boot-pending');
+  const overlay = ensurePageLoadingOverlay();
+  overlay.classList.add('show');
+  overlay.classList.remove('is-hiding');
+  overlay.setAttribute('aria-busy', 'true');
+  restartBtLogoDrawAnimation(overlay);
+  scheduleAppBootCompletion();
+}
+
+function fadeOutBootOverlay(done) {
+  const overlay = document.getElementById('page-loading-overlay');
+  if (!overlay || !overlay.classList.contains('show')) {
+    if (typeof done === 'function') done();
+    return;
+  }
+  overlay.classList.add('is-hiding');
+  overlay.classList.remove('show');
+  overlay.removeAttribute('aria-busy');
+  window.setTimeout(() => {
+    overlay.classList.remove('is-hiding');
+    if (typeof done === 'function') done();
+  }, APP_BOOT_OVERLAY_FADE_MS);
+}
+
+function revealBootPageContent(done) {
+  __appBootActive = false;
+  document.body.classList.remove('app-boot-pending');
+  document.body.classList.add('app-boot-reveal');
+  try { dismissLargeStatusToast(); } catch (_) {}
+  try { dismissBackExitToast(); } catch (_) {}
+  try { closeBottomSheets(); } catch (_) {}
+  window.setTimeout(() => {
+    if (typeof done === 'function') done();
+  }, APP_BOOT_PAGE_REVEAL_MS);
+}
+
+function schedulePostBootPresentations() {
+  window.setTimeout(() => {
+    if (__headerBrandSyncPendingAfterBoot || (typeof isSyncing !== 'undefined' && isSyncing)) {
+      __headerBrandSyncPendingAfterBoot = false;
+      try { scheduleHeaderBrandDrawIsolated('sync'); } catch (_) {}
+    } else {
+      try { scheduleHeaderBrandDrawIsolated('boot'); } catch (_) {}
+    }
+  }, APP_BOOT_POST_REVEAL_MS);
+
+  window.setTimeout(() => {
+    if (activePageId === 'overview') {
+      try { scheduleOverviewPageBootAnimation({ delayMs: 0 }); } catch (_) {}
+    }
+    try { finishOverviewChartRenderCycle(); } catch (_) {}
+    window.setTimeout(() => {
+      __bootPresentationPhase = false;
+      __appBootSequenceRunning = false;
+    }, 480);
+  }, APP_BOOT_POST_REVEAL_MS + 140);
+}
+
+function completeAppBootSequence() {
+  if (__appBootSequenceRunning || !__appBootActive) return;
+  if (__appBootCompleteTimer) {
+    window.clearTimeout(__appBootCompleteTimer);
+    __appBootCompleteTimer = null;
+  }
+  __appBootSequenceRunning = true;
+  fadeOutBootOverlay(() => {
+    revealBootPageContent(() => {
+      schedulePostBootPresentations();
+    });
+  });
+}
+try { window.completeAppBootSequence = completeAppBootSequence; } catch (_) {}
+
+function showTabPageLoadingOverlay() {
+  __tabLoadingDepth++;
+  const overlay = ensurePageLoadingOverlay();
+  overlay.classList.add('show');
+  overlay.setAttribute('aria-busy', 'true');
+  restartBtLogoDrawAnimation(overlay);
+}
+
+function hideTabPageLoadingOverlay() {
+  __tabLoadingDepth = Math.max(0, __tabLoadingDepth - 1);
+  if (__tabLoadingDepth <= 0 && !__appBootActive && !document.body.classList.contains('app-boot-pending')) {
+    hidePageLoadingOverlay();
+  }
 }
 
 let pageLoadingTimer = null;
 function showPageLoadingOverlayDelayed(delayMs = 100) {
   if (pageLoadingTimer) clearTimeout(pageLoadingTimer);
   pageLoadingTimer = setTimeout(() => {
-    const overlay = ensurePageLoadingOverlay();
-    overlay.classList.add('show');
+    showTabPageLoadingOverlay();
   }, Math.max(0, Number(delayMs || 0)));
 }
 
 function showPageLoadingOverlayNow() {
   if (pageLoadingTimer) { clearTimeout(pageLoadingTimer); pageLoadingTimer = null; }
-  const overlay = ensurePageLoadingOverlay();
-  overlay.classList.add('show');
+  if (__appBootActive || document.body.classList.contains('app-boot-pending')) {
+    const overlay = ensurePageLoadingOverlay();
+    overlay.classList.add('show');
+    overlay.classList.remove('is-hiding');
+    overlay.setAttribute('aria-busy', 'true');
+    return;
+  }
+  showTabPageLoadingOverlay();
 }
 
 function hidePageLoadingOverlay() {
@@ -12555,11 +13123,19 @@ function hidePageLoadingOverlay() {
     clearTimeout(pageLoadingTimer);
     pageLoadingTimer = null;
   }
+  if (__appBootActive || __tabLoadingDepth > 0) return;
   const overlay = document.getElementById('page-loading-overlay');
-  if (overlay) overlay.classList.remove('show');
+  if (overlay) {
+    overlay.classList.remove('show');
+    overlay.removeAttribute('aria-busy');
+  }
 }
 
 function finishAppBoot() {
+  if (__appBootActive) {
+    completeAppBootSequence();
+    return;
+  }
   hideAppBootChrome();
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
@@ -12568,9 +13144,29 @@ function finishAppBoot() {
   });
 }
 
+function hideAppBootChrome() {
+  __appBootActive = false;
+  document.body.classList.remove('app-boot-pending');
+  document.body.classList.add('app-boot-reveal');
+  if (__tabLoadingDepth <= 0) hidePageLoadingOverlay();
+  const overlay = document.getElementById('page-loading-overlay');
+  if (overlay) {
+    overlay.classList.remove('show', 'is-hiding');
+    overlay.removeAttribute('aria-busy');
+  }
+  try { dismissLargeStatusToast(); } catch (_) {}
+  try { dismissBackExitToast(); } catch (_) {}
+  try { closeBottomSheets(); } catch (_) {}
+  __bootPresentationPhase = false;
+}
+
+function tryCompleteAppBootFromOverviewRender() {
+  if (!__appBootActive || __appBootSequenceRunning) return;
+  scheduleAppBootCompletion();
+}
+
 function exitBankTrackerApp() {
-  const toast = document.getElementById('back-exit-toast');
-  if (toast) toast.classList.remove('show');
+  dismissBackExitToast();
 
   try { window.close(); } catch (_) {}
 
@@ -14233,12 +14829,62 @@ function updateGlobalSyncIndicator(_active) {
 try { window.updateGlobalSyncIndicator = updateGlobalSyncIndicator; } catch (_) {}
 
 function setOverviewBalanceSyncState(active) {
-  document.querySelectorAll('.wealth-card-net, .wealth-card-cash').forEach(card => {
-    card.classList.toggle('is-balance-syncing', !!active);
-  });
-  updateGlobalSyncIndicator(active);
+  if (active) beginOverviewBalanceSyncUI();
+  else endOverviewBalanceSyncUI();
 }
 try { window.setOverviewBalanceSyncState = setOverviewBalanceSyncState; } catch (_) {}
+
+const OVERVIEW_BALANCE_SYNC_MIN_MS = HEADER_BRAND_DRAW_MS;
+let __overviewBalanceSyncDepth = 0;
+let __overviewBalanceSyncStartedAt = 0;
+let __overviewBalanceSyncHideTimer = null;
+
+function getOverviewBalanceSyncCards() {
+  return Array.from(document.querySelectorAll('.wealth-card-net, .wealth-card-cash'));
+}
+
+function restartOverviewBalanceBadgeLogoAnim(card) {
+  const host = card?.querySelector('.overview-balance-sync-logo');
+  if (!host) return;
+  host.innerHTML = getBtBrandLogoHtml('badge');
+}
+
+function ensureOverviewBalanceSyncBadgeLogos() {
+  getOverviewBalanceSyncCards().forEach((card) => restartOverviewBalanceBadgeLogoAnim(card));
+}
+
+function beginOverviewBalanceSyncUI() {
+  __overviewBalanceSyncDepth++;
+  if (__overviewBalanceSyncDepth > 1) return;
+  if (__overviewBalanceSyncHideTimer) {
+    clearTimeout(__overviewBalanceSyncHideTimer);
+    __overviewBalanceSyncHideTimer = null;
+  }
+  __overviewBalanceSyncStartedAt = Date.now();
+  getOverviewBalanceSyncCards().forEach((card) => {
+    card.classList.add('is-balance-syncing');
+    const host = card.querySelector('.overview-balance-sync-logo');
+    if (!host || !host.querySelector('.bt-brand-logo-svg--draw-loop')) {
+      restartOverviewBalanceBadgeLogoAnim(card);
+    }
+  });
+  updateGlobalSyncIndicator(true);
+}
+
+function endOverviewBalanceSyncUI() {
+  __overviewBalanceSyncDepth = Math.max(0, __overviewBalanceSyncDepth - 1);
+  if (__overviewBalanceSyncDepth > 0) return;
+  const elapsed = Date.now() - __overviewBalanceSyncStartedAt;
+  const waitMs = Math.max(0, OVERVIEW_BALANCE_SYNC_MIN_MS - elapsed);
+  if (__overviewBalanceSyncHideTimer) clearTimeout(__overviewBalanceSyncHideTimer);
+  __overviewBalanceSyncHideTimer = window.setTimeout(() => {
+    __overviewBalanceSyncHideTimer = null;
+    getOverviewBalanceSyncCards().forEach((card) => {
+      card.classList.remove('is-balance-syncing');
+    });
+    updateGlobalSyncIndicator(false);
+  }, waitMs);
+}
 
 function lockOverviewBalanceDatasets() {
   try {
@@ -14416,7 +15062,7 @@ function getOverviewChartCardsNeedingIntro(page = document.getElementById('page-
 }
 
 function canRunOverviewChartIntro() {
-  return activePageId === 'overview' && !document.body.classList.contains('app-boot-pending');
+  return activePageId === 'overview' && !__appBootActive && !document.body.classList.contains('app-boot-pending');
 }
 
 function getOverviewIntroCards(page, options = {}) {
@@ -14438,6 +15084,11 @@ let __overviewChartScrollObserver = null;
 let __overviewChartScrollLive = false;
 let __overviewChartReplayTimer = null;
 let __overviewChartReplayToken = 0;
+let __overviewBootScheduleTimer = null;
+let __overviewScrollLiveTimer = null;
+let __overviewChartsDataSettled = false;
+const OVERVIEW_BOOT_DEBOUNCE_MS = 140;
+const OVERVIEW_BOOT_STAGGER_MS = 90;
 const __overviewChartWasVisible = new WeakMap();
 const __overviewChartIntroPlayed = new WeakSet();
 const OVERVIEW_LINE_DRAW_MS = 800;
@@ -14829,38 +15480,106 @@ function animateVisibleOverviewChartCards() {
   animateOverviewChartsIntro();
 }
 
-function scheduleOverviewChartBootIntroOnce() {
-  if (__overviewChartBootIntroDone) return;
-  if (!canRunOverviewChartIntro()) {
-    window.clearTimeout(window.__overviewChartBootIntroRetryTimer);
-    window.__overviewChartBootIntroRetryTimer = window.setTimeout(() => {
-      try { scheduleOverviewChartBootIntroOnce(); } catch (_) {}
-    }, 120);
-    return;
+function shouldWaitForOverviewDataSync() {
+  try {
+    return !!(SHEETS_URL && typeof isGoogleSheetsEnabled === 'function' && isGoogleSheetsEnabled());
+  } catch (_) {
+    return false;
   }
+}
+
+function markOverviewChartsAwaitingFreshData() {
+  __overviewChartsDataSettled = false;
+  __overviewChartBootIntroDone = false;
+  __overviewChartScrollLive = false;
+  if (__overviewBootScheduleTimer) {
+    window.clearTimeout(__overviewBootScheduleTimer);
+    __overviewBootScheduleTimer = null;
+  }
+  if (__overviewScrollLiveTimer) {
+    window.clearTimeout(__overviewScrollLiveTimer);
+    __overviewScrollLiveTimer = null;
+  }
+}
+
+function resetOverviewPageBootAnimationState() {
+  markOverviewChartsAwaitingFreshData();
   const page = document.getElementById('page-overview');
   if (!page) return;
-  const chartCards = getOverviewChartCards(page);
-  const visibleCards = chartCards.filter((card) => overviewChartCardHasGraphics(card) && isOverviewChartCardVisible(card));
-  const netCard = document.getElementById('overview-net-worth')?.closest('.wealth-card-net');
-  const netTrendPending = !!(netCard && isOverviewChartCardVisible(netCard) && !netCard.querySelector('.wealth-networth-trend-line-v238'));
-  const hasSummary = !!page.querySelector('.summary-days-progress');
-  if ((!visibleCards.length && !hasSummary) || netTrendPending) {
-    window.clearTimeout(window.__overviewChartBootIntroRetryTimer);
-    window.__overviewChartBootIntroRetryTimer = window.setTimeout(() => {
-      try { scheduleOverviewChartBootIntroOnce(); } catch (_) {}
-    }, netTrendPending ? 80 : 160);
+  getOverviewChartCards(page).forEach((card) => {
+    stopOverviewChartCardAnimations(card);
+    try { delete card.dataset.btChartAnimSig; } catch (_) {}
+  });
+}
+
+function isOverviewPageBootReady() {
+  if (!canRunOverviewChartIntro()) return false;
+  if (__bootPresentationPhase) return hasBootPresentableOverviewUi();
+  if (typeof isSyncing !== 'undefined' && isSyncing) return false;
+  if (shouldWaitForOverviewDataSync() && !__overviewChartsDataSettled) return false;
+  return isOverviewPageDataReady();
+}
+
+function scheduleOverviewPageBootAnimation(options = {}) {
+  if (__overviewChartBootIntroDone && !options.force) return;
+  if (__overviewBootScheduleTimer) {
+    window.clearTimeout(__overviewBootScheduleTimer);
+  }
+  const delayMs = options.delayMs != null ? options.delayMs : OVERVIEW_BOOT_DEBOUNCE_MS;
+  __overviewBootScheduleTimer = window.setTimeout(() => {
+    __overviewBootScheduleTimer = null;
+    try { runOverviewPageBootAnimation(); } catch (_) {}
+  }, Math.max(0, delayMs));
+}
+
+function runOverviewPageBootAnimation() {
+  if (__overviewChartBootIntroDone) return;
+  if (!canRunOverviewChartIntro()) {
+    scheduleOverviewPageBootAnimation({ delayMs: 120 });
     return;
   }
+  if (!isOverviewPageBootReady()) {
+    scheduleOverviewPageBootAnimation({ delayMs: 100 });
+    return;
+  }
+
   __overviewChartBootIntroDone = true;
   window.__overviewPendingSyncChartAnim = false;
   window.__overviewChartSigsBeforeSync = null;
-  if (visibleCards.length) {
-    animateOverviewChartsIntro({ mode: 'boot' });
-  } else if (hasSummary) {
-    try { playOverviewSummaryStripReveal(); } catch (_) {}
-    try { setupOverviewScrollChartAnimations(); } catch (_) {}
-  }
+
+  const page = document.getElementById('page-overview');
+  if (!page) return;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const allCards = getOverviewChartCards(page).filter(overviewChartCardHasGraphics);
+      const visibleCards = allCards.filter(isOverviewChartCardVisible);
+      const hiddenCards = allCards.filter((card) => !isOverviewChartCardVisible(card));
+
+      hiddenCards.forEach((card) => {
+        try { delete card.dataset.btChartAnimSig; } catch (_) {}
+      });
+
+      visibleCards.forEach((card, index) => {
+        window.setTimeout(() => {
+          try { animateOverviewChartCard(card); } catch (_) {}
+        }, index * OVERVIEW_BOOT_STAGGER_MS);
+      });
+
+      if (visibleCards.length || page.querySelector('.summary-days-progress')) {
+        try { playOverviewSummaryStripReveal(); } catch (_) {}
+      }
+
+      const scrollLiveDelay = visibleCards.length
+        ? Math.min(420, visibleCards.length * OVERVIEW_BOOT_STAGGER_MS + 160)
+        : 80;
+      try { setupOverviewScrollChartAnimations({ enableLiveDelayMs: scrollLiveDelay }); } catch (_) {}
+    });
+  });
+}
+
+function scheduleOverviewChartBootIntroOnce() {
+  scheduleOverviewPageBootAnimation();
 }
 
 function animateOverviewChartsAfterSync() {
@@ -14897,23 +15616,31 @@ function finishOverviewChartRenderCycle() {
     const hasSummary = !!(page && page.querySelector('.summary-days-progress'));
     if (!hasCharts && !hasSummary) {
       if (activePageId === 'overview' && !__overviewChartBootIntroDone) {
-        window.clearTimeout(window.__overviewChartBootIntroRetryTimer);
-        window.__overviewChartBootIntroRetryTimer = window.setTimeout(() => {
-          try { finishOverviewChartRenderCycle(); } catch (_) {}
-        }, 160);
+        scheduleOverviewPageBootAnimation({ delayMs: 160 });
       }
       return;
     }
 
+    if (typeof isSyncing !== 'undefined' && isSyncing) {
+      scheduleOverviewPageBootAnimation({ delayMs: 180 });
+      return;
+    }
+
+    if (shouldWaitForOverviewDataSync() && !__overviewChartsDataSettled) {
+      scheduleOverviewPageBootAnimation({ delayMs: 160 });
+      return;
+    }
+
+    if (!shouldWaitForOverviewDataSync() && !__overviewChartsDataSettled) {
+      __overviewChartsDataSettled = true;
+    }
+
     if (!__overviewChartBootIntroDone) {
-      if (!hasCharts && hasSummary) {
-        window.clearTimeout(window.__overviewChartBootIntroRetryTimer);
-        window.__overviewChartBootIntroRetryTimer = window.setTimeout(() => {
-          try { finishOverviewChartRenderCycle(); } catch (_) {}
-        }, 160);
+      if (!isOverviewPageBootReady()) {
+        scheduleOverviewPageBootAnimation({ delayMs: 120 });
         return;
       }
-      scheduleOverviewChartBootIntroOnce();
+      scheduleOverviewPageBootAnimation();
       return;
     }
     if (window.__overviewPendingSyncChartAnim) {
@@ -14921,19 +15648,9 @@ function finishOverviewChartRenderCycle() {
       animateOverviewChartsAfterSync();
       return;
     }
-    const pendingIntro = getOverviewChartCardsNeedingIntro(page);
-    if (pendingIntro.length && canRunOverviewChartIntro()) {
-      pendingIntro.forEach((card) => animateOverviewChartCard(card));
-      try { playOverviewSummaryStripReveal(); } catch (_) {}
-    }
-    const netCard = document.getElementById('overview-net-worth')?.closest('.wealth-card-net');
-    if (netCard && canRunOverviewChartIntro() && isOverviewChartCardVisible(netCard)
-        && netCard.querySelector('.wealth-networth-trend-line-v238') && !overviewChartIntroIsCurrent(netCard)) {
-      delete netCard.dataset.btChartAnimSig;
-      animateOverviewChartCard(netCard);
-    }
     setupOverviewScrollChartAnimations();
   } catch (_) {}
+  try { tryCompleteAppBootFromOverviewRender(); } catch (_) {}
 }
 try { window.finishOverviewChartRenderCycle = finishOverviewChartRenderCycle; } catch (_) {}
 
@@ -14947,24 +15664,19 @@ function animateOverviewChartsAfterMonthShift() {
 }
 
 function scheduleNetWorthTrendAnimation() {
-  const netCard = document.getElementById('overview-net-worth')?.closest('.wealth-card-net');
-  if (!netCard || activePageId !== 'overview' || !canRunOverviewChartIntro()) return;
-  if (!netCard.querySelector('.wealth-networth-trend-line-v238')) return;
-  delete netCard.dataset.btChartAnimSig;
-  if (!isOverviewChartCardVisible(netCard)) return;
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      animateOverviewChartCard(netCard);
-    });
-  });
+  /* Net worth trend animates once with the overview boot pass. */
 }
 try { window.scheduleNetWorthTrendAnimation = scheduleNetWorthTrendAnimation; } catch (_) {}
 
-function setupOverviewScrollChartAnimations() {
+function setupOverviewScrollChartAnimations(options = {}) {
   const page = document.getElementById('page-overview');
   if (!page) return;
   try { if (__overviewChartScrollObserver) __overviewChartScrollObserver.disconnect(); } catch (_) {}
   __overviewChartScrollObserver = null;
+  if (__overviewScrollLiveTimer) {
+    window.clearTimeout(__overviewScrollLiveTimer);
+    __overviewScrollLiveTimer = null;
+  }
   if (!('IntersectionObserver' in window)) return;
 
   const watch = getOverviewChartCards(page).filter(overviewChartCardHasGraphics);
@@ -14973,14 +15685,12 @@ function setupOverviewScrollChartAnimations() {
   if (!watch.length) return;
 
   __overviewChartScrollLive = false;
-  watch.forEach((el) => __overviewChartWasVisible.set(el, false));
 
   __overviewChartScrollObserver = new IntersectionObserver((entries) => {
     if (!__overviewChartScrollLive || activePageId !== 'overview') return;
     for (const entry of entries) {
       const target = entry.target;
-      const nowVisible = !!(entry.isIntersecting && entry.intersectionRatio >= 0.2);
-      const wasVisible = !!__overviewChartWasVisible.get(target);
+      const nowVisible = !!(entry.isIntersecting && entry.intersectionRatio >= 0.12);
       if (!nowVisible) {
         __overviewChartWasVisible.set(target, false);
         if (!target.classList.contains('summary-days-progress')) {
@@ -14988,8 +15698,6 @@ function setupOverviewScrollChartAnimations() {
         }
         continue;
       }
-      __overviewChartWasVisible.set(target, nowVisible);
-      if (wasVisible) continue;
       const syncChangedOnly = window.__overviewSyncChangedChartKeys;
       const cardKey = target.classList.contains('summary-days-progress')
         ? null
@@ -14997,29 +15705,42 @@ function setupOverviewScrollChartAnimations() {
       if (syncChangedOnly && cardKey && !syncChangedOnly.has(cardKey)) continue;
       if (target.classList.contains('summary-days-progress')) {
         animateOverviewDaysLeftProgress();
-      } else {
+      } else if (!overviewChartIntroIsCurrent(target)) {
         animateOverviewChartCard(target);
       }
+      __overviewChartWasVisible.set(target, true);
     }
   }, {
     root: null,
-    threshold: [0, 0.2, 0.45]
+    threshold: [0, 0.12, 0.28, 0.5]
   });
 
   watch.forEach((el) => {
     try { __overviewChartScrollObserver.observe(el); } catch (_) {}
   });
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      watch.forEach((el) => {
-        __overviewChartWasVisible.set(el, isOverviewChartCardVisible(el));
-      });
-      __overviewChartScrollLive = true;
+  const enableLiveDelayMs = Math.max(0, Number(options.enableLiveDelayMs) || 0);
+  const activateScrollObserver = () => {
+    __overviewScrollLiveTimer = null;
+    __overviewChartScrollLive = true;
+    watch.forEach((el) => {
+      const visible = isOverviewChartCardVisible(el);
+      const primed = visible && (
+        el.classList.contains('summary-days-progress') || overviewChartIntroIsCurrent(el)
+      );
+      __overviewChartWasVisible.set(el, primed);
     });
-  });
+  };
+  if (enableLiveDelayMs > 0) {
+    __overviewScrollLiveTimer = window.setTimeout(activateScrollObserver, enableLiveDelayMs);
+  } else {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(activateScrollObserver);
+    });
+  }
 }
 try { window.setupOverviewScrollChartAnimations = setupOverviewScrollChartAnimations; } catch (_) {}
+try { window.scheduleOverviewPageBootAnimation = scheduleOverviewPageBootAnimation; } catch (_) {}
 try { window.animateVisibleOverviewChartCards = animateVisibleOverviewChartCards; } catch (_) {}
 try { window.animateOverviewChartsIntro = animateOverviewChartsIntro; } catch (_) {}
 try { window.playOverviewChartIntro = animateOverviewChartsIntro; } catch (_) {}
@@ -15337,13 +16058,66 @@ function renderDirtyTabSection(pageId) {
 }
 try { window.renderDirtyTabSection = renderDirtyTabSection; } catch (_) {}
 
+function scheduleArchiveChartIntro(delayMs = 0) {
+  window.setTimeout(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        try { playArchiveTrendChartIntro(); } catch (_) {}
+      });
+    });
+  }, Math.max(0, Number(delayMs || 0)));
+}
+
 function setArchiveTabLoading(isLoading) {
   const page = document.getElementById('page-archive');
-  const list = document.getElementById('archive-months-list');
-  const trend = document.querySelector('#page-archive .archive-trend-card');
-  if (page) page.classList.toggle('is-archive-tab-loading', !!isLoading);
-  if (list) list.classList.toggle('is-archive-loading', !!isLoading);
-  if (trend) trend.classList.toggle('is-archive-loading', !!isLoading);
+  if (isLoading) {
+    if (!__appBootActive && !document.body.classList.contains('app-boot-pending')) {
+      showTabPageLoadingOverlay();
+    }
+    if (page) page.classList.add('is-archive-tab-loading');
+  } else {
+    if (page) page.classList.remove('is-archive-tab-loading');
+    if (!__appBootActive && !document.body.classList.contains('app-boot-pending')) {
+      hideTabPageLoadingOverlay();
+    }
+    scheduleArchiveChartIntro(40);
+  }
+}
+
+function playArchiveTrendChartIntro() {
+  const page = document.getElementById('page-archive');
+  const wrap = document.getElementById('archive-trend-chart');
+  if (!page || !wrap || !page.classList.contains('active')) return;
+  const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  if (reducedMotion) return;
+
+  wrap.querySelectorAll('.archive-trend-bar-animate').forEach((el, idx) => {
+    el.style.removeProperty('transform');
+    el.style.removeProperty('opacity');
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = '';
+    el.style.animationDelay = `${idx * 35}ms`;
+  });
+
+  wrap.querySelectorAll('.archive-bank-line').forEach((line, idx) => {
+    try { (line.__btArchiveLineAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
+    line.__btArchiveLineAnim = null;
+    let len = 0;
+    try { len = line.getTotalLength(); } catch (_) {}
+    if (!len || len < 1) len = 420;
+    line.style.strokeDasharray = `${len}`;
+    line.style.strokeDashoffset = `${len}`;
+    try {
+      const anim = line.animate(
+        [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
+        { duration: 720, delay: idx * 110, easing: 'ease-out', fill: 'forwards' }
+      );
+      line.__btArchiveLineAnim = [anim];
+    } catch (_) {
+      line.style.strokeDashoffset = '0';
+    }
+  });
 }
 
 function scheduleArchiveTabRender() {
@@ -15353,13 +16127,14 @@ function scheduleArchiveTabRender() {
     window.setTimeout(() => {
       try { maybeLoadMoreArchiveMonths(); } catch (_) {}
     }, 20);
+    scheduleArchiveChartIntro(60);
     return;
   }
   setArchiveTabLoading(true);
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       const run = () => {
-        try { renderDirtyTabSection('archive'); } catch (_) {}
+        try { renderArchiveSection(); } catch (_) {}
         setArchiveTabLoading(false);
         window.setTimeout(() => {
           try { maybeLoadMoreArchiveMonths(); } catch (_) {}
@@ -15562,18 +16337,12 @@ function initNavTouchFeedback() {
 }
 try { window.initNavTouchFeedback = initNavTouchFeedback; window.initGlobalTouchFeedback = initGlobalTouchFeedback; window.initBtTouchFeedback = initBtTouchFeedback; } catch (_) {}
 
-function hideAppBootChrome() {
-  document.body.classList.remove('app-boot-pending');
-  hidePageLoadingOverlay();
-  const overlay = document.getElementById('page-loading-overlay');
-  if (overlay) overlay.removeAttribute('aria-busy');
-  try { closeBottomSheets(); } catch (_) {}
-}
-
 function bootstrapUiFromCache(options = {}) {
   const bootstrapPerfStart = btPerfNow();
   const deferHeavy = options.deferHeavy !== false;
-  try { hideAppBootChrome(); } catch (_) {}
+  if (!options.skipHideBoot) {
+    try { hideAppBootChrome(); } catch (_) {}
+  }
   try { loadCachedTransactionsSnapshot(); } catch (_) {}
   try { reapplySheetAccountBalancesFromStorage(); } catch (_) {}
   try {
@@ -17261,6 +18030,7 @@ function resetTransactionFilters() {
 
 function showPage(pageId, options = {}) {
   const showPagePerfStart = btPerfNow();
+  try { dismissBackExitToast(); } catch (_) {}
   if (massTagSelectMode && pageId !== 'txns') {
     exitMassTagSelectMode();
   }
@@ -18693,6 +19463,10 @@ function closeBottomSheets(){
 
   if (typeof resetManagerFilters === 'function') resetManagerFilters();
   if (typeof updateTransactionFilterPanelUi === 'function') updateTransactionFilterPanelUi();
+  try {
+    const stuckToast = document.getElementById('large-status-toast');
+    if (stuckToast && stuckToast.classList.contains('loading')) dismissLargeStatusToast();
+  } catch (_) {}
   scheduleFloatingUtilityUpdate();
 }
 
@@ -20008,6 +20782,7 @@ function toggleArchiveTrendChartType() {
   localStorage.setItem('archive_trend_chart_type', archiveTrendChartType);
   archiveTrendChartCache = { signature: '', html: '' };
   renderArchiveTrendChart();
+  scheduleArchiveChartIntro(30);
 }
 
 function getDynamicArchiveBankKeys(monthly) {
@@ -23550,12 +24325,16 @@ function warmStartupCachesDeferred(options = {}) {
 })();
 
 window.addEventListener('DOMContentLoaded', () => {
+  __appBootActive = true;
+  __bootPresentationPhase = true;
+  __appBootStartedAt = Date.now();
+
   const loaderFailSafe = setTimeout(() => {
-    try { finishAppBoot(); } catch (_) {}
+    try { completeAppBootSequence(); } catch (_) {}
     window.setTimeout(() => {
       try { warmHeavyTabCachesSync({ force: false }); } catch (_) {}
     }, 0);
-  }, 15000);
+  }, APP_BOOT_MAX_MS);
 
   try {
     applyAppTheme(getAppTheme());
@@ -23564,7 +24343,8 @@ window.addEventListener('DOMContentLoaded', () => {
     updateGoogleSheetsToggleUi();
     ensureDefaultConfig();
     clearCloudFirstLocalData();
-    bootstrapUiFromCache({ deferHeavy: true });
+    try { markOverviewChartsAwaitingFreshData(); } catch (_) {}
+    bootstrapUiFromCache({ deferHeavy: true, skipHideBoot: true });
 
     if (SHEETS_URL && isGoogleSheetsEnabled()) {
       startAutoSync();
@@ -23574,12 +24354,13 @@ window.addEventListener('DOMContentLoaded', () => {
             console.warn('Startup cloud sync failed:', e);
           })
           .finally(() => {
-            clearTimeout(loaderFailSafe);
+            if (!__appBootActive) clearTimeout(loaderFailSafe);
             window.setTimeout(() => {
               try { warmHeavyTabCachesSync({ force: false }); } catch (_) {}
             }, 0);
           });
       }, 180);
+      scheduleAppBootCompletion();
       return;
     }
 
@@ -23606,6 +24387,8 @@ window.addEventListener('DOMContentLoaded', () => {
       console.error('Local test data seed failed:', e);
     }
     try { renderAll({ visibleOnly: true }); } catch (_) {}
+    try { __overviewChartsDataSettled = true; } catch (_) {}
+    scheduleAppBootCompletion();
     if (!SHEETS_URL) {
       const loadStatus = document.getElementById('limits-sync-status');
       if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
@@ -23616,7 +24399,8 @@ window.addEventListener('DOMContentLoaded', () => {
     try {
       if (!allTransactions.length) loadCachedTransactionsSnapshot();
     } catch (_) {}
-    finishAppBoot();
+    try { __overviewChartsDataSettled = true; } catch (_) {}
+    completeAppBootSequence();
     window.setTimeout(() => {
       try { warmHeavyTabCachesSync({ force: false }); } catch (_) {}
     }, 0);
@@ -23633,13 +24417,21 @@ document.addEventListener('DOMContentLoaded', initMassTagSelectDelegation);
 document.addEventListener('DOMContentLoaded', updateFloatingUtilityButtons);
 document.addEventListener('DOMContentLoaded', bindFloatingUtilityScrollWatchers);
 
-window.addEventListener('pageshow', () => {
+window.addEventListener('pageshow', (event) => {
   if (activePageId !== 'overview') return;
-  window.setTimeout(() => {
-    if (!__overviewChartBootIntroDone) {
-      try { finishOverviewChartRenderCycle(); } catch (_) {}
-    }
-  }, 140);
+  resetOverviewPageBootAnimationState();
+  if (event.persisted) {
+    __appBootStartedAt = Date.now();
+    startAppBootOverlay();
+  }
+  if (!shouldWaitForOverviewDataSync()) {
+    __overviewChartsDataSettled = true;
+  }
+  if (__appBootActive) {
+    scheduleAppBootCompletion();
+    return;
+  }
+  scheduleOverviewPageBootAnimation({ delayMs: 200, force: true });
 }, { passive: true });
 </script>
 
@@ -27390,9 +28182,10 @@ window.addEventListener('pageshow', () => {
 
 <!-- v242 loans UX cleanup + manual loan repayment selector + transactions paging + header alignment -->
 <style id="v242-loans-transactions-header-css">
-  .overview-header-top-v236 .header-title {
-    line-height: 1 !important;
-    transform: translateY(-2px);
+  .overview-header-top-v236 .header-title,
+  .overview-header-top-v236 .header-brand-wrap {
+    line-height: 0 !important;
+    transform: none !important;
   }
   .manual-loan-link-v242 {
     display: grid;
@@ -27409,7 +28202,8 @@ window.addEventListener('pageshow', () => {
     border-color: rgba(37,99,235,.16) !important;
   }
   @media (max-width:430px) {
-    .overview-header-top-v236 .header-title { transform: translateY(-1px); }
+    .overview-header-top-v236 .header-title,
+    .overview-header-top-v236 .header-brand-wrap { transform: none !important; }
   }
 </style>
 <script id="v242-loans-repayment-selector-js">
@@ -27544,9 +28338,10 @@ window.addEventListener('pageshow', () => {
     align-items: flex-start !important;
     min-height: 30px !important;
   }
-  #page-overview .overview-header-top-v236 .header-title {
-    line-height: 1 !important;
-    transform: translateY(-8px) !important;
+  #page-overview .overview-header-top-v236 .header-title,
+  #page-overview .overview-header-top-v236 .header-brand-wrap {
+    line-height: 0 !important;
+    transform: none !important;
     margin-top: 0 !important;
   }
   #page-overview .overview-header-bottom-v236 {
@@ -27594,7 +28389,8 @@ window.addEventListener('pageshow', () => {
 
   @media (max-width: 430px) {
     #page-overview .overview-header-v236 { padding-top: 16px !important; }
-    #page-overview .overview-header-top-v236 .header-title { transform: translateY(-7px) !important; }
+    #page-overview .overview-header-top-v236 .header-title,
+    #page-overview .overview-header-top-v236 .header-brand-wrap { transform: none !important; }
     #txn-list { margin-left: 14px !important; margin-right: 14px !important; }
   }
 </style>
@@ -27755,9 +28551,10 @@ window.addEventListener('pageshow', () => {
     min-height: 38px !important;
     align-items: center !important;
   }
-  #page-overview .overview-header-top-v236 .header-title {
-    transform: translateY(-2px) !important;
-    line-height: 1.05 !important;
+  #page-overview .overview-header-top-v236 .header-title,
+  #page-overview .overview-header-top-v236 .header-brand-wrap {
+    transform: none !important;
+    line-height: 0 !important;
   }
   #page-overview .overview-header-bottom-v236 {
     margin-top: 0 !important;
@@ -27812,7 +28609,8 @@ window.addEventListener('pageshow', () => {
   #loan-manager-sheet .loan-save-status-v245.warn { color: #ffe033 !important; }
   @media (max-width:430px){
     #page-overview .overview-header-v236 { padding-top: 18px !important; row-gap: 10px !important; }
-    #page-overview .overview-header-top-v236 .header-title { transform: translateY(-1px) !important; }
+    #page-overview .overview-header-top-v236 .header-title,
+    #page-overview .overview-header-top-v236 .header-brand-wrap { transform: none !important; }
   }
 </style>
 <script id="v245-loans-txns-widget-fixes-js">
@@ -28683,11 +29481,12 @@ window.addEventListener('pageshow', () => {
     if (el && msg) el.textContent = msg;
   }
   function showTopSaving(msg){
-    try { if (typeof showWorkingToast === 'function') { showWorkingToast(msg || 'Saving to Google Sheets...'); return; } } catch(_) {}
+    try { if (typeof showTopWorkingToast === 'function') { showTopWorkingToast(msg || 'Saving to Google Sheets...'); return; } } catch(_) {}
     setLoanStatus(msg || 'Saving to Google Sheets...');
   }
   function showSaved(msg){
-    try { if (typeof showSuccessToast === 'function') { showSuccessToast(msg || 'Saved'); return; } } catch(_) {}
+    try { if (typeof showSavedToast === 'function') { showSavedToast(); return; } } catch(_) {}
+    try { if (typeof dismissLargeStatusToast === 'function') dismissLargeStatusToast(); } catch(_) {}
     setLoanStatus(msg || 'Saved');
   }
   function endpointRequest(action, payload, timeout){
@@ -34817,9 +35616,6 @@ window.addEventListener('pageshow', () => {
   #loan-manager-sheet .loan-field-status-v272 .config-input {
     width: 100%;
   }
-  body[data-active-sheet="loan-manager-sheet"] #large-status-toast.show {
-    display: none !important;
-  }
   #loan-manager-sheet .loan-autosave-note-v271 {
     margin-top: 8px;
   }
@@ -34888,11 +35684,14 @@ window.addEventListener('pageshow', () => {
     return text.replace(/\D/g, '');
   }
   function clearLoanCenterToast(){
+    try {
+      if (typeof dismissLargeStatusToast === 'function') {
+        dismissLargeStatusToast();
+        return;
+      }
+    } catch(_) {}
     var toast = byId('large-status-toast');
     if (!toast) return;
-    var loanSheetOpen = byId('loan-manager-sheet') && byId('loan-manager-sheet').classList.contains('open');
-    var activeSheet = document.body && document.body.dataset && document.body.dataset.activeSheet;
-    if (!loanSheetOpen && activeSheet && activeSheet !== 'loan-manager-sheet') return;
     toast.classList.remove('show', 'loading', 'top-loading', 'error');
     try {
       if (window.__bankTrackerLargeToastTimer) window.clearTimeout(window.__bankTrackerLargeToastTimer);
@@ -35963,9 +36762,10 @@ window.addEventListener('pageshow', () => {
       align-items: center !important;
       min-height: 36px !important;
     }
-    html.pwa-standalone.ios-device #page-overview .overview-header-top-v236 .header-title {
+    html.pwa-standalone.ios-device #page-overview .overview-header-top-v236 .header-title,
+    html.pwa-standalone.ios-device #page-overview .overview-header-top-v236 .header-brand-wrap {
       transform: none !important;
-      line-height: 1.05 !important;
+      line-height: 0 !important;
     }
     html.pwa-standalone.ios-device .header:not(.overview-header-v236) {
       padding-top: calc(env(safe-area-inset-top) + 12px) !important;
