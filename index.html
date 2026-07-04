@@ -1058,7 +1058,7 @@
   }
   #page-overview.summary-days-progress-animating .summary-days-progress-fill {
     transform: scaleX(0);
-    animation: btOverviewGrowX 1.35s cubic-bezier(.18,.78,.24,1) forwards;
+    animation: btOverviewGrowX 2.8s cubic-bezier(.18,.78,.24,1) forwards;
   }
 
   /* Section title */
@@ -2160,10 +2160,12 @@
 
   .bank-card-clickable {
     cursor: pointer;
+    touch-action: manipulation;
+    position: relative;
   }
 
   .bank-card-clickable:active {
-    transform: scale(0.995);
+    transform: scale(0.982);
   }
 
 
@@ -3415,10 +3417,26 @@
     background: rgba(37, 99, 235, .16) !important;
   }
 
+  #global-fab.fab,
+  #scroll-top-fab.scroll-top-fab {
+    position: fixed !important;
+  }
+
   .bt-touch-ripple-host {
     position: relative;
     overflow: hidden;
     -webkit-mask-image: -webkit-radial-gradient(#fff, #000);
+  }
+
+  .bt-touch-ripple-host-fixed {
+    overflow: hidden;
+  }
+
+  .fab.bt-touch-ripple-host,
+  .fab.bt-touch-ripple-host-fixed,
+  .scroll-top-fab.bt-touch-ripple-host,
+  .scroll-top-fab.bt-touch-ripple-host-fixed {
+    position: fixed !important;
   }
 
   .bt-touch-ripple-host > :not(.bt-touch-ripple) {
@@ -3489,6 +3507,140 @@
       animation: none !important;
       display: none !important;
     }
+  }
+
+  button.is-touch-pressed:not(:disabled):not(.fab):not(.scroll-top-fab),
+  .cat-chip.is-touch-pressed,
+  .txn-filter-pill.is-touch-pressed,
+  .sync-btn.is-touch-pressed,
+  .config-save.is-touch-pressed,
+  .sheet-close.is-touch-pressed,
+  .custom-widget-choice.is-touch-pressed,
+  .custom-widget-type-btn.is-touch-pressed,
+  .custom-widget-icon-btn.is-touch-pressed,
+  .manager-tab.is-touch-pressed,
+  .icon-action-btn.is-touch-pressed,
+  .billing-toggle button.is-touch-pressed,
+  .language-switch button.is-touch-pressed,
+  .dev-toggle-btn.is-touch-pressed,
+  .top-upgrade-btn.is-touch-pressed,
+  .account-balance-rollup-btn.is-touch-pressed,
+  .bank-card-clickable.is-touch-pressed,
+  .mass-tag-act-btn.is-touch-pressed,
+  .mass-tag-save-btn.is-touch-pressed,
+  .mass-tag-bar-cancel.is-touch-pressed,
+  .sim-submit.is-touch-pressed,
+  .archive-delete-btn.is-touch-pressed,
+  .wealth-card.is-touch-pressed,
+  .wealth-card-net.is-touch-pressed,
+  .wealth-card-cash.is-touch-pressed,
+  .summary-item-clickable.is-touch-pressed,
+  .bt-touch-btn.is-touch-pressed {
+    transform: scale(.955);
+    box-shadow: inset 0 0 0 1px rgba(143, 220, 255, .24), 0 0 0 3px rgba(143, 220, 255, .10);
+  }
+
+  .fab.is-touch-pressed {
+    transform: scale(.97) !important;
+    box-shadow: inset 0 0 0 1px rgba(143, 220, 255, .24), 0 0 0 3px rgba(143, 220, 255, .10), 0 14px 30px rgba(0,0,0,.35) !important;
+  }
+
+  .scroll-top-fab.is-touch-pressed {
+    transform: translateX(-50%) scale(.94) !important;
+    box-shadow: inset 0 0 0 1px rgba(143, 220, 255, .20), 0 0 0 3px rgba(143, 220, 255, .08), 0 10px 22px rgba(88,166,255,.12) !important;
+  }
+
+  .tx-item.is-touch-pressed,
+  .tx-item-compact.is-touch-pressed,
+  .archive-bank-spent-cell.is-touch-pressed,
+  .archive-bank-income-cell.is-touch-pressed,
+  .archive-bank-limit-cell.is-touch-pressed,
+  .settings-plan-row.is-touch-pressed,
+  .add-bank-btn.is-touch-pressed,
+  .mini-action-btn.is-touch-pressed,
+  .custom-widget-add-btn.is-touch-pressed,
+  .overview-details-back.is-touch-pressed,
+  .txn-filter-toggle-btn.is-touch-pressed,
+  .txn-chart-toggle-btn.is-touch-pressed,
+  .archive-bank-legend-item.is-touch-pressed,
+  .managed-bank-edit-btn.is-touch-pressed,
+  .icon-action-btn.is-touch-pressed,
+  .budget-bank-row[onclick].is-touch-pressed,
+  .tx-col-title[onclick].is-touch-pressed,
+  .toggle-switch.is-touch-pressed,
+  .sheets-toggle-switch.is-touch-pressed,
+  .tx-payment-source.is-touch-pressed {
+    transform: scale(.982);
+    box-shadow: inset 0 0 0 1px rgba(143, 220, 255, .22), 0 0 0 3px rgba(143, 220, 255, .10);
+  }
+
+  .card-widget.is-touch-pressed,
+  .card-widget.bank-card-clickable.is-touch-pressed,
+  .card-widget[onclick].is-touch-pressed {
+    transform: scale(.982) !important;
+  }
+
+  .card-widget.bank-card-clickable.is-touch-pressed::after,
+  .card-widget[onclick].is-touch-pressed::after,
+  #page-overview-details .card-widget.is-touch-pressed::after,
+  .overview-details-page .card-widget.is-touch-pressed::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 6;
+    background: rgba(143, 220, 255, .12);
+    box-shadow: inset 0 0 0 2px rgba(143, 220, 255, .34), inset 0 0 0 5px rgba(143, 220, 255, .12);
+  }
+
+  .card-widget.bt-touch-ripple-host .bt-touch-ripple {
+    z-index: 5;
+  }
+
+  .archive-trend-bar-segment.is-touch-pressed,
+  .archive-bank-point.is-touch-pressed,
+  .archive-bank-line-hit.is-touch-pressed {
+    opacity: .72;
+    filter: brightness(1.18) saturate(1.08);
+  }
+
+  .custom-widget-card.is-touch-pressed:not(.is-dragging):not(.is-long-press) {
+    transform: scale(.982);
+    box-shadow: inset 0 0 0 1px rgba(143, 220, 255, .22), 0 0 0 4px rgba(143, 220, 255, .10);
+  }
+
+  html[data-theme="light"] button.is-touch-pressed:not(:disabled):not(.fab):not(.scroll-top-fab),
+  html[data-theme="light"] .cat-chip.is-touch-pressed,
+  html[data-theme="light"] .txn-filter-pill.is-touch-pressed,
+  html[data-theme="light"] .sync-btn.is-touch-pressed,
+  html[data-theme="light"] .custom-widget-card.is-touch-pressed:not(.is-dragging):not(.is-long-press),
+  html[data-theme="light"] .wealth-card.is-touch-pressed,
+  html[data-theme="light"] .tx-item.is-touch-pressed,
+  html[data-theme="light"] .tx-item-compact.is-touch-pressed,
+  html[data-theme="light"] .settings-plan-row.is-touch-pressed,
+  html[data-theme="light"] .mini-action-btn.is-touch-pressed,
+  html[data-theme="light"] .budget-bank-row[onclick].is-touch-pressed,
+  html[data-theme="light"] .tx-col-title[onclick].is-touch-pressed,
+  html[data-theme="light"] .toggle-switch.is-touch-pressed,
+  html[data-theme="light"] .sheets-toggle-switch.is-touch-pressed,
+  html[data-theme="light"] .tx-payment-source.is-touch-pressed {
+    background: rgba(37, 99, 235, .10) !important;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .18), 0 0 0 3px rgba(37, 99, 235, .08);
+  }
+
+  html[data-theme="light"] .card-widget.is-touch-pressed,
+  html[data-theme="light"] .card-widget.bank-card-clickable.is-touch-pressed,
+  html[data-theme="light"] .card-widget[onclick].is-touch-pressed {
+    transform: scale(.982) !important;
+  }
+
+  html[data-theme="light"] .card-widget.bank-card-clickable.is-touch-pressed::after,
+  html[data-theme="light"] .card-widget[onclick].is-touch-pressed::after,
+  html[data-theme="light"] #page-overview-details .card-widget.is-touch-pressed::after,
+  html[data-theme="light"] .overview-details-page .card-widget.is-touch-pressed::after {
+    background: rgba(37, 99, 235, .12) !important;
+    box-shadow: inset 0 0 0 2px rgba(37, 99, 235, .28), inset 0 0 0 5px rgba(37, 99, 235, .10) !important;
   }
 
   /* Mass tag select mode */
@@ -6911,7 +7063,7 @@
   .trend-line {
     stroke-dasharray: 900;
     stroke-dashoffset: 900;
-    animation: chartLineReveal 1.85s ease-out forwards;
+    animation: chartLineReveal 4.5s ease-out forwards;
   }
 
   .archive-bank-point,
@@ -6919,8 +7071,8 @@
     opacity: 0;
     transform-box: fill-box;
     transform-origin: center;
-    animation: chartPointPop .55s ease-out forwards;
-    animation-delay: 1.12s;
+    animation: chartPointPop 0.65s ease-out forwards;
+    animation-delay: 2.1s;
   }
 
   .daily-bar-income,
@@ -6929,12 +7081,12 @@
   .txn-cashflow-bar-out {
     transform-box: fill-box;
     transform-origin: center bottom;
-    animation: barGrowSoft 1.35s cubic-bezier(.18,.78,.24,1) both;
+    animation: barGrowSoft 0.72s cubic-bezier(.18,.78,.24,1) both;
   }
 
   .txn-cashflow-bar-out,
   .daily-bar-expense {
-    animation-delay: .22s;
+    animation-delay: .12s;
   }
 
   @keyframes chartLineReveal {
@@ -6967,7 +7119,7 @@
   #page-overview.overview-summary-revealing .summary-item {
     opacity: 0;
     transform: translateX(-16px);
-    animation: btOverviewSummaryIn .65s ease-out forwards;
+    animation: btOverviewSummaryIn 2.8s ease-out forwards;
   }
   #page-overview.overview-summary-revealing .summary-item:nth-of-type(1) { animation-delay: .04s; }
   #page-overview.overview-summary-revealing .summary-item:nth-of-type(3) { animation-delay: .14s; }
@@ -6983,7 +7135,7 @@
   #page-overview-details .budget-progress-fill.overview-details-bar-animating,
   #page-overview-details .card-widget .progress-fill.overview-details-bar-animating {
     transform-origin: left center;
-    animation: btOverviewGrowX 3s cubic-bezier(.18,.78,.24,1) forwards;
+    animation: btOverviewGrowX 3.5s cubic-bezier(.18,.78,.24,1) forwards;
     transition: none !important;
   }
 
@@ -7010,8 +7162,16 @@
   .overview-chart-animating .custom-widget-gauge-fill {
     transform-origin: left center;
     transform: scaleX(0);
-    animation: btOverviewGrowX 1.35s cubic-bezier(.18,.78,.24,1) forwards;
+    animation: btOverviewGrowX 2.8s cubic-bezier(.18,.78,.24,1) forwards;
   }
+
+  .overview-widget-arc.is-empty-arc,
+  .wealth-gauge-arc.is-empty-arc {
+    opacity: 0 !important;
+    stroke-linecap: butt;
+  }
+
+  /* Gauge arc draw uses WAAPI in runOverviewGaugeArcAnimations(). */
 
   /* Line + projection draw uses WAAPI in animateOverviewChartCard(). */
 
@@ -7062,7 +7222,6 @@
     .overview-chart-animating .wealth-inline-progress-fill,
     .overview-chart-animating .custom-widget-gauge-fill {
       animation: none !important;
-      stroke-dashoffset: 0 !important;
       opacity: 1 !important;
       transform: none !important;
     }
@@ -7144,25 +7303,25 @@
   /* v9 slower visible chart reveal */
   .archive-bank-line,
   .trend-line {
-    animation-duration: 1.85s !important;
+    animation-duration: 4.5s !important;
   }
 
   .archive-bank-point,
   .trend-dot {
-    animation-duration: .55s !important;
-    animation-delay: 1.12s !important;
+    animation-duration: .65s !important;
+    animation-delay: 2.1s !important;
   }
 
   .daily-bar-income,
   .daily-bar-expense,
   .txn-cashflow-bar-in,
   .txn-cashflow-bar-out {
-    animation-duration: 1.35s !important;
+    animation-duration: 0.72s !important;
   }
 
   .txn-cashflow-bar-out,
   .daily-bar-expense {
-    animation-delay: .22s !important;
+    animation-delay: .12s !important;
   }
 
 
@@ -7220,13 +7379,13 @@
   /* v13 slower graph loading */
   .archive-bank-line,
   .trend-line {
-    animation-duration: 2.85s !important;
+    animation-duration: 4.5s !important;
   }
 
   .archive-bank-point,
   .trend-dot {
-    animation-duration: .75s !important;
-    animation-delay: 1.95s !important;
+    animation-duration: .65s !important;
+    animation-delay: 2.1s !important;
   }
 
   .daily-bar-income,
@@ -13751,10 +13910,12 @@ function getOverviewDashboardMetrics() {
 }
 function createOverviewHalfGauge(percent, caption, mainText = '') {
   const pct = Math.max(0, Math.min(100, Math.round((Number(percent || 0) || 0) * 100)));
-  const radius = 44;
-  const circumference = Math.PI * radius;
-  const progress = circumference * (pct / 100);
+  const isEmpty = pct < 1;
   const centerText = mainText ? escapeHtml(String(mainText)) : `${pct}%`;
+  const arcStroke = isEmpty
+    ? 'stroke-dasharray="0 100" opacity="0" stroke-linecap="butt"'
+    : `stroke-dasharray="100 100" stroke-dashoffset="${100 - pct}" stroke-linecap="round" data-gauge-pct="${pct}" style="--gauge-pct:${pct}"`;
+  const arcClass = isEmpty ? 'wealth-gauge-arc is-empty-arc' : 'wealth-gauge-arc';
   return `
     <div class="mini-half-gauge">
       <svg viewBox="0 0 120 72" aria-hidden="true" focusable="false">
@@ -13765,7 +13926,7 @@ function createOverviewHalfGauge(percent, caption, mainText = '') {
           </linearGradient>
         </defs>
         <path d="M16 56 A44 44 0 0 1 104 56" fill="none" stroke="rgba(112,145,204,.18)" stroke-width="10" stroke-linecap="round"></path>
-        <path class="wealth-gauge-arc" pathLength="100" d="M16 56 A44 44 0 0 1 104 56" fill="none" stroke="url(#wealthGaugeGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${pct} 100"></path>
+        <path class="${arcClass}" pathLength="100" d="M16 56 A44 44 0 0 1 104 56" fill="none" stroke="url(#wealthGaugeGrad)" stroke-width="10" ${arcStroke}></path>
       </svg>
       <div class="mini-half-gauge-center">
         <span class="pct">${centerText}</span>
@@ -13979,14 +14140,50 @@ function createOverviewBudgetSparkline(used = 0, limit = 0, currency, txSeries =
     const y = startY - (point.value / maxValue) * height;
     return { x, y, value: point.value, timestamp: point.timestamp };
   });
-  const currentPoint = spentPoints[spentPoints.length - 1] || { x: startX, y: startY, value: 0, timestamp: monthStart };
+  const monthHasEnded = !todayInSelectedMonth && today.getTime() > monthEnd;
+  if (monthHasEnded) {
+    const finalY = startY - (usedNum / maxValue) * height;
+    const last = spentPoints[spentPoints.length - 1];
+    if (!last || last.x < endX - 0.5) {
+      spentPoints.push({ x: endX, y: finalY, value: usedNum, timestamp: monthEnd });
+    } else {
+      last.x = endX;
+      last.y = finalY;
+      last.value = usedNum;
+      last.timestamp = monthEnd;
+    }
+  } else {
+    const nowX = startX + ((nowInMonth - monthStart) / Math.max(1, monthEnd - monthStart)) * width;
+    const last = spentPoints[spentPoints.length - 1];
+    if (last && nowX > last.x + 0.5) {
+      const flatY = startY - (usedNum / maxValue) * height;
+      spentPoints.push({ x: nowX, y: flatY, value: usedNum, timestamp: nowInMonth });
+    }
+  }
+  let currentPoint = spentPoints[spentPoints.length - 1] || { x: startX, y: startY, value: 0, timestamp: monthStart };
   if (spentPoints.length) {
     const last = spentPoints[spentPoints.length - 1];
     last.value = usedNum;
     last.y = startY - (usedNum / maxValue) * height;
+    currentPoint = last;
   }
 
-  const spentLinePath = createSmoothSvgPath(spentPoints);
+  let spentLinePath = createSmoothSvgPath(spentPoints);
+  let hasFlatTail = false;
+  if (monthHasEnded && spentPoints.length >= 1) {
+    let mainPts = spentPoints.slice();
+    const tail = mainPts[mainPts.length - 1];
+    if (tail && tail.x >= endX - 0.5) mainPts = mainPts.slice(0, -1);
+    const anchor = mainPts[mainPts.length - 1] || { x: startX, y: startY };
+    spentLinePath = createSmoothSvgPath(mainPts);
+    if (spentLinePath) {
+      spentLinePath += ` L${anchor.x.toFixed(2)} ${anchor.y.toFixed(2)} L${endX.toFixed(2)} ${anchor.y.toFixed(2)}`;
+      hasFlatTail = true;
+    }
+  }
+  if (spentLinePath && currentPoint && !hasFlatTail) {
+    spentLinePath += ` L${currentPoint.x.toFixed(2)} ${currentPoint.y.toFixed(2)}`;
+  }
   const spentAreaPath = spentLinePath
     ? `${spentLinePath} L${currentPoint.x.toFixed(2)} ${startY} L${startX} ${startY} Z`
     : '';
@@ -13994,11 +14191,11 @@ function createOverviewBudgetSparkline(used = 0, limit = 0, currency, txSeries =
   const valueToY = value => startY - (Math.max(0, Number(value || 0) || 0) / maxValue) * height;
   let remainingLinePath = '';
   let remainingAreaPath = '';
-  if (currentPoint && monthEnd > currentPoint.timestamp + 60000) {
+  if (!monthHasEnded && currentPoint && monthEnd > currentPoint.timestamp + 60000) {
     const projValue = Math.min(projectedFinalValue, maxValue * 0.98);
     const projY = valueToY(projValue);
     const midX = (currentPoint.x + endX) / 2;
-    remainingLinePath = `M${currentPoint.x.toFixed(2)} ${currentPoint.y.toFixed(2)} C${midX.toFixed(2)} ${currentPoint.y.toFixed(2)}, ${midX.toFixed(2)} ${projY.toFixed(2)}, ${endX} ${projY.toFixed(2)}`;
+    remainingLinePath = `M${currentPoint.x.toFixed(2)} ${currentPoint.y.toFixed(2)} C${midX.toFixed(2)} ${currentPoint.y.toFixed(2)}, ${midX.toFixed(2)} ${projY.toFixed(2)}, ${endX} ${projY.toFixed(2)} L${endX} ${projY.toFixed(2)}`;
     remainingAreaPath = `${remainingLinePath} L${endX} ${startY} L${currentPoint.x.toFixed(2)} ${startY} Z`;
   }
 
@@ -14020,8 +14217,8 @@ function createOverviewBudgetSparkline(used = 0, limit = 0, currency, txSeries =
         </defs>
         ${spentAreaPath ? `<path d="${spentAreaPath}" fill="url(#budgetUsedAreaV190)"></path>` : ''}
         ${remainingAreaPath ? `<path d="${remainingAreaPath}" fill="url(#budgetRemainAreaV190)"></path>` : ''}
-        ${spentLinePath ? `<path class="wealth-spark-line overview-widget-line" pathLength="100" d="${spentLinePath}" fill="none" stroke="#00E5A0" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"></path>` : ''}
-        ${remainingLinePath ? `<path class="wealth-spark-line overview-widget-line is-projection" pathLength="100" d="${remainingLinePath}" fill="none" stroke="#388bfd" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"></path>` : ''}
+        ${spentLinePath ? `<path class="wealth-spark-line overview-widget-line" d="${spentLinePath}" fill="none" stroke="#00E5A0" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"></path>` : ''}
+        ${remainingLinePath ? `<path class="wealth-spark-line overview-widget-line is-projection" d="${remainingLinePath}" fill="none" stroke="#388bfd" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"></path>` : ''}
         <circle cx="${currentPoint.x.toFixed(2)}" cy="${currentPoint.y.toFixed(2)}" r="1.55" fill="#ffffff" opacity="0.95"></circle>
         <circle cx="${currentPoint.x.toFixed(2)}" cy="${currentPoint.y.toFixed(2)}" r="0.92" fill="#00E5A0"></circle>
       </svg>
@@ -14164,7 +14361,10 @@ function getOverviewChartCardKey(card) {
 function getOverviewChartCardSignature(card) {
   if (!card) return '';
   const parts = [];
-  card.querySelectorAll('.wealth-gauge-arc, .overview-widget-arc').forEach((el) => parts.push(el.getAttribute('stroke-dasharray') || ''));
+  card.querySelectorAll('.wealth-gauge-arc, .overview-widget-arc').forEach((el) => {
+    parts.push(el.getAttribute('stroke-dashoffset') || '');
+    parts.push(el.style.getPropertyValue('--gauge-pct') || el.getAttribute('stroke-dasharray') || '');
+  });
   card.querySelectorAll('.overview-widget-line, .wealth-spark-line, .wealth-networth-trend-line-v238').forEach((el) => parts.push(el.getAttribute('d') || ''));
   card.querySelectorAll('.overview-widget-fill, .wealth-inline-progress-fill, .custom-widget-gauge-fill').forEach((el) => parts.push(el.style.width || ''));
   card.querySelectorAll('.wealth-card-value, .custom-widget-gauge-metric-label-v262, .custom-widget-linear-label-v260, .custom-widget-fit-value').forEach((el) => {
@@ -14201,6 +14401,24 @@ function overviewChartCardDataChanged(card, beforeSigs) {
   return beforeSigs[key] !== getOverviewChartCardSignature(card);
 }
 
+function overviewChartIntroIsCurrent(card) {
+  if (!card) return false;
+  const sig = getOverviewChartCardSignature(card);
+  return !!sig && card.dataset.btChartAnimSig === sig;
+}
+
+function getOverviewChartCardsNeedingIntro(page = document.getElementById('page-overview')) {
+  return getOverviewChartCards(page).filter((card) => {
+    if (!overviewChartCardHasGraphics(card)) return false;
+    if (!isOverviewChartCardVisible(card)) return false;
+    return !overviewChartIntroIsCurrent(card);
+  });
+}
+
+function canRunOverviewChartIntro() {
+  return activePageId === 'overview' && !document.body.classList.contains('app-boot-pending');
+}
+
 function getOverviewIntroCards(page, options = {}) {
   const mode = options.mode || 'visible';
   const beforeSigs = options.beforeSigs || null;
@@ -14222,11 +14440,16 @@ let __overviewChartReplayTimer = null;
 let __overviewChartReplayToken = 0;
 const __overviewChartWasVisible = new WeakMap();
 const __overviewChartIntroPlayed = new WeakSet();
-const OVERVIEW_LINE_DRAW_MS = 1850;
-const OVERVIEW_PROJECTION_DELAY_MS = 1850;
-const OVERVIEW_PROJECTION_DRAW_MS = 1350;
-const OVERVIEW_PROGRESS_DRAW_MS = 1350;
-const OVERVIEW_DETAILS_BAR_DRAW_MS = 3000;
+const OVERVIEW_LINE_DRAW_MS = 800;
+const OVERVIEW_PROJECTION_DELAY_MS = 600;
+const OVERVIEW_PROJECTION_DRAW_MS = 700;
+const OVERVIEW_LINE_SMOOTH_MS = 1500;
+const OVERVIEW_LINE_SEQUENCE_MS = OVERVIEW_LINE_DRAW_MS + OVERVIEW_PROJECTION_DELAY_MS + OVERVIEW_PROJECTION_DRAW_MS;
+const OVERVIEW_CHART_CARD_ANIM_MS = OVERVIEW_PROJECTION_DELAY_MS + OVERVIEW_PROJECTION_DRAW_MS + 450;
+const OVERVIEW_PROGRESS_DRAW_MS = 2800;
+const OVERVIEW_DETAILS_BAR_DRAW_MS = 3500;
+const OVERVIEW_GAUGE_DRAW_MS = OVERVIEW_LINE_DRAW_MS + OVERVIEW_PROJECTION_DRAW_MS;
+const ARCHIVE_LINE_DRAW_MS = 4500;
 const OVERVIEW_DETAILS_BAR_STAGGER_MS = 100;
 
 function getOverviewChartCards(page = document.getElementById('page-overview')) {
@@ -14243,7 +14466,11 @@ function getOverviewChartCards(page = document.getElementById('page-overview')) 
 }
 
 function overviewChartCardHasGraphics(card) {
-  return !!(card && card.querySelector('.overview-widget-arc, .overview-widget-line, .overview-widget-fill, .wealth-gauge-arc, .wealth-spark-line, .wealth-networth-trend-line-v238, .wealth-inline-progress-fill, .custom-widget-gauge-fill'));
+  if (!card) return false;
+  if (card.classList.contains('wealth-card-net')) {
+    return !!card.querySelector('.wealth-networth-trend-line-v238');
+  }
+  return !!(card.querySelector('.overview-widget-arc, .overview-widget-line, .overview-widget-fill, .wealth-gauge-arc, .wealth-spark-line, .wealth-networth-trend-line-v238, .wealth-inline-progress-fill, .custom-widget-gauge-fill'));
 }
 
 function isOverviewChartCardVisible(card) {
@@ -14253,26 +14480,19 @@ function isOverviewChartCardVisible(card) {
   return rect.bottom > 8 && rect.top < (viewportHeight - 8) && rect.width > 0;
 }
 
-function runOverviewGaugeArcAnimations(card) {
-  if (!card || typeof card.querySelectorAll !== 'function') return;
-  const reduceMotion = (() => {
-    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; }
-  })();
-  card.querySelectorAll('.overview-widget-arc, .wealth-gauge-arc').forEach((arc) => {
-    const dash = arc.getAttribute('stroke-dasharray') || '';
-    const match = String(dash).match(/^([\d.]+)/);
-    const pct = match ? Math.max(0, Math.min(100, parseFloat(match[1]))) : 100;
-    if (!arc.getAttribute('pathLength')) arc.setAttribute('pathLength', '100');
-    try { (arc.__btArcAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
-    arc.style.strokeDashoffset = '0';
-    arc.style.strokeDasharray = `${pct} 100`;
-    if (reduceMotion) return;
-    const anim = arc.animate([
-      { strokeDasharray: '0 100', strokeDashoffset: '0' },
-      { strokeDasharray: `${pct} 100`, strokeDashoffset: '0' }
-    ], { duration: OVERVIEW_LINE_DRAW_MS, easing: 'ease-out', fill: 'forwards' });
-    arc.__btArcAnim = [anim];
-  });
+function getGaugeArcTargetPct(arc) {
+  if (!arc) return 0;
+  const dataPct = arc.getAttribute('data-gauge-pct');
+  if (dataPct != null && dataPct !== '') {
+    return Math.max(0, Math.min(100, parseFloat(dataPct) || 0));
+  }
+  const cssPct = arc.style.getPropertyValue('--gauge-pct');
+  if (cssPct) return Math.max(0, Math.min(100, parseFloat(cssPct) || 0));
+  const offset = arc.getAttribute('stroke-dashoffset');
+  if (offset != null && offset !== '') {
+    return Math.max(0, Math.min(100, 100 - (parseFloat(offset) || 0)));
+  }
+  return 0;
 }
 
 function stopOverviewGaugeArcAnimations(card) {
@@ -14282,6 +14502,51 @@ function stopOverviewGaugeArcAnimations(card) {
     arc.__btArcAnim = null;
     arc.style.strokeDasharray = '';
     arc.style.strokeDashoffset = '';
+    arc.style.opacity = '';
+  });
+}
+
+function runOverviewGaugeArcAnimations(card) {
+  if (!card || typeof card.querySelectorAll !== 'function') return;
+  const reduceMotion = reduceMotionCheck();
+  card.querySelectorAll('.overview-widget-arc:not(.is-empty-arc), .wealth-gauge-arc:not(.is-empty-arc)').forEach((arc) => {
+    const pct = getGaugeArcTargetPct(arc);
+    try { (arc.__btArcAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
+    arc.__btArcAnim = null;
+    if (pct < 0.5) return;
+    const endOffset = 100 - pct;
+    arc.style.strokeDasharray = '100 100';
+    arc.style.strokeDashoffset = '100';
+    if (reduceMotion) {
+      arc.style.strokeDashoffset = String(endOffset);
+      return;
+    }
+    const anim = arc.animate([
+      { strokeDasharray: '100 100', strokeDashoffset: 100 },
+      { strokeDasharray: '100 100', strokeDashoffset: endOffset }
+    ], { duration: OVERVIEW_GAUGE_DRAW_MS, easing: 'ease-out', fill: 'forwards' });
+    arc.__btArcAnim = [anim];
+  });
+}
+
+function finalizeOverviewGaugeArcs(card) {
+  stopOverviewGaugeArcAnimations(card);
+}
+
+function finalizeOverviewChartLineStrokes(card) {
+  if (!card || typeof card.querySelectorAll !== 'function') return;
+  card.querySelectorAll('.overview-widget-line, .wealth-spark-line, .wealth-networth-trend-line-v238').forEach((line) => {
+    try { (line.__btLineAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
+    line.__btLineAnim = null;
+    line.style.strokeDasharray = '';
+    line.style.strokeDashoffset = '';
+    line.removeAttribute('pathLength');
+    if (line.classList.contains('is-projection')) {
+      const targetOpacity = parseFloat(line.getAttribute('opacity') || '0.94') || 0.94;
+      line.style.opacity = String(targetOpacity);
+    } else {
+      line.style.opacity = '';
+    }
   });
 }
 
@@ -14300,57 +14565,104 @@ function stopOverviewLineAnimations(card) {
   });
 }
 
+function runOverviewLineDrawAnimation(line, duration, delayMs = 0) {
+  if (!line || typeof line.getTotalLength !== 'function') return null;
+  line.removeAttribute('pathLength');
+  let pathLen = 0;
+  try { pathLen = Math.max(1, line.getTotalLength()); } catch (_) { pathLen = 1; }
+  if (reduceMotionCheck()) {
+    line.style.strokeDasharray = '';
+    line.style.strokeDashoffset = '';
+    return null;
+  }
+  line.style.strokeDasharray = `${pathLen} ${pathLen}`;
+  line.style.strokeDashoffset = String(pathLen);
+  const anim = line.animate([
+    { strokeDashoffset: pathLen },
+    { strokeDashoffset: 0 }
+  ], {
+    duration: Math.max(1, Number(duration) || OVERVIEW_LINE_SMOOTH_MS),
+    delay: Math.max(0, Number(delayMs) || 0),
+    easing: 'linear',
+    fill: 'forwards'
+  });
+  return anim;
+}
+
+function reduceMotionCheck() {
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; }
+}
+
 function runOverviewLineAnimations(card) {
   if (!card || typeof card.querySelectorAll !== 'function') return;
-  const reduceMotion = (() => {
-    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; }
-  })();
+  const reduceMotion = reduceMotionCheck();
 
   stopOverviewLineAnimations(card);
+  void card.offsetWidth;
 
   const mainLines = card.querySelectorAll(
     '.overview-widget-line:not(.is-projection), .wealth-spark-line:not(.is-projection), .wealth-networth-trend-line-v238'
   );
   const projLines = card.querySelectorAll('.overview-widget-line.is-projection, .wealth-spark-line.is-projection');
+  const hasProjection = projLines.length > 0;
 
   mainLines.forEach((line) => {
-    if (!line.getAttribute('pathLength')) line.setAttribute('pathLength', '100');
+    line.removeAttribute('pathLength');
     if (reduceMotion) {
-      line.style.strokeDasharray = '100';
-      line.style.strokeDashoffset = '0';
+      line.style.strokeDasharray = '';
+      line.style.strokeDashoffset = '';
       return;
     }
-    line.style.strokeDasharray = '100';
-    line.style.strokeDashoffset = '100';
-    const anim = line.animate([
-      { strokeDasharray: '100', strokeDashoffset: '100' },
-      { strokeDasharray: '100', strokeDashoffset: '0' }
-    ], { duration: OVERVIEW_LINE_DRAW_MS, easing: 'ease-out', fill: 'forwards' });
-    line.__btLineAnim = [anim];
+    const anim = runOverviewLineDrawAnimation(
+      line,
+      hasProjection ? OVERVIEW_LINE_DRAW_MS : OVERVIEW_LINE_SMOOTH_MS,
+      0
+    );
+    if (anim) {
+      anim.onfinish = () => {
+        line.style.strokeDasharray = '';
+        line.style.strokeDashoffset = '';
+      };
+      anim.oncancel = anim.onfinish;
+      line.__btLineAnim = [anim];
+    }
   });
 
   projLines.forEach((line) => {
-    if (!line.getAttribute('pathLength')) line.setAttribute('pathLength', '100');
+    line.removeAttribute('pathLength');
     const targetOpacity = parseFloat(line.getAttribute('opacity') || line.style.opacity || '0.94') || 0.94;
     if (reduceMotion) {
-      line.style.strokeDasharray = '100';
-      line.style.strokeDashoffset = '0';
+      line.style.strokeDasharray = '';
+      line.style.strokeDashoffset = '';
       line.style.opacity = String(targetOpacity);
       return;
     }
-    line.style.strokeDasharray = '100';
-    line.style.strokeDashoffset = '100';
     line.style.opacity = '0';
-    const anim = line.animate([
-      { strokeDasharray: '100', strokeDashoffset: '100', opacity: 0 },
-      { strokeDasharray: '100', strokeDashoffset: '0', opacity: targetOpacity }
-    ], {
-      duration: OVERVIEW_PROJECTION_DRAW_MS,
-      delay: OVERVIEW_PROJECTION_DELAY_MS,
-      easing: 'ease-out',
-      fill: 'forwards'
-    });
-    line.__btLineAnim = [anim];
+    let pathLen = 1;
+    try { pathLen = Math.max(1, line.getTotalLength()); } catch (_) {}
+    const projDuration = Math.max(
+      OVERVIEW_PROJECTION_DRAW_MS,
+      Math.round(OVERVIEW_PROJECTION_DRAW_MS * (pathLen / 42))
+    );
+    const anim = runOverviewLineDrawAnimation(line, projDuration, OVERVIEW_PROJECTION_DELAY_MS);
+    if (anim) {
+      const opacityAnim = line.animate([
+        { opacity: 0 },
+        { opacity: targetOpacity }
+      ], {
+        duration: projDuration,
+        delay: OVERVIEW_PROJECTION_DELAY_MS,
+        easing: 'ease-out',
+        fill: 'forwards'
+      });
+      anim.onfinish = () => {
+        line.style.strokeDasharray = '';
+        line.style.strokeDashoffset = '';
+        line.style.opacity = String(targetOpacity);
+      };
+      anim.oncancel = anim.onfinish;
+      line.__btLineAnim = [anim, opacityAnim];
+    }
   });
 }
 
@@ -14401,10 +14713,23 @@ function scheduleOverviewChartsReplay(fromDetailsReturn = false) {
 }
 
 function getOverviewChartCardAnimDuration(card) {
+  const hasGauge = !!(card && card.querySelector('.overview-widget-arc:not(.is-empty-arc), .wealth-gauge-arc:not(.is-empty-arc)'));
   const hasProjection = !!(card && card.querySelector('.overview-widget-line.is-projection, .wealth-spark-line.is-projection'));
-  return hasProjection
-    ? (OVERVIEW_PROJECTION_DELAY_MS + OVERVIEW_PROJECTION_DRAW_MS + 450)
-    : (OVERVIEW_LINE_DRAW_MS + 450);
+  let lineDuration = hasProjection
+    ? (OVERVIEW_LINE_DRAW_MS + OVERVIEW_PROJECTION_DELAY_MS + OVERVIEW_PROJECTION_DRAW_MS + 450)
+    : (OVERVIEW_LINE_SMOOTH_MS + 450);
+  if (hasProjection) {
+    let maxProjDuration = OVERVIEW_PROJECTION_DRAW_MS;
+    card.querySelectorAll('.overview-widget-line.is-projection, .wealth-spark-line.is-projection').forEach((line) => {
+      try {
+        const pathLen = Math.max(1, line.getTotalLength());
+        maxProjDuration = Math.max(maxProjDuration, Math.round(OVERVIEW_PROJECTION_DRAW_MS * (pathLen / 42)));
+      } catch (_) {}
+    });
+    lineDuration = OVERVIEW_LINE_DRAW_MS + OVERVIEW_PROJECTION_DELAY_MS + maxProjDuration + 450;
+  }
+  const gaugeDuration = hasGauge ? (OVERVIEW_GAUGE_DRAW_MS + 450) : 0;
+  return Math.max(lineDuration, gaugeDuration);
 }
 
 function animateOverviewChartCard(card) {
@@ -14412,13 +14737,15 @@ function animateOverviewChartCard(card) {
   stopOverviewChartCardAnimations(card);
   void card.offsetWidth;
   card.classList.add('overview-chart-animating');
+  card.dataset.btChartAnimSig = getOverviewChartCardSignature(card);
   __overviewChartIntroPlayed.add(card);
   runOverviewGaugeArcAnimations(card);
   runOverviewLineAnimations(card);
   const duration = getOverviewChartCardAnimDuration(card);
   const timerId = window.setTimeout(() => {
     card.classList.remove('overview-chart-animating');
-    stopOverviewGaugeArcAnimations(card);
+    finalizeOverviewGaugeArcs(card);
+    finalizeOverviewChartLineStrokes(card);
     __overviewChartAnimTimers.delete(card);
   }, duration);
   __overviewChartAnimTimers.set(card, timerId);
@@ -14433,7 +14760,7 @@ function animateOverviewSummaryStripReveal() {
     page.classList.remove('overview-summary-revealing');
     void page.offsetWidth;
     page.classList.add('overview-summary-revealing');
-    window.setTimeout(() => page.classList.remove('overview-summary-revealing'), 1200);
+    window.setTimeout(() => page.classList.remove('overview-summary-revealing'), OVERVIEW_LINE_SMOOTH_MS + 120);
   });
 }
 
@@ -14449,23 +14776,28 @@ function animateOverviewDaysLeftProgress() {
   page.classList.remove('summary-days-progress-animating');
   void page.offsetWidth;
   page.classList.add('summary-days-progress-animating');
-  window.setTimeout(() => page.classList.remove('summary-days-progress-animating'), 1400);
+  window.setTimeout(() => page.classList.remove('summary-days-progress-animating'), OVERVIEW_PROGRESS_DRAW_MS + 120);
 }
 
 function animateOverviewChartsIntro(options = {}) {
   const page = document.getElementById('page-overview');
-  if (!page || activePageId !== 'overview') return;
+  if (!page || !canRunOverviewChartIntro()) return;
   const mode = options.mode || 'visible';
   const beforeSigs = mode === 'changed-visible'
     ? (options.beforeSigs || window.__overviewChartSigsBeforeSync || null)
     : null;
 
   const run = () => {
-    const cards = getOverviewIntroCards(page, { mode, beforeSigs });
+    let cards = getOverviewIntroCards(page, { mode, beforeSigs });
+    if (mode === 'boot') {
+      cards = cards.filter((card) => isOverviewChartCardVisible(card));
+    } else if (mode !== 'changed-visible') {
+      cards = cards.filter((card) => !overviewChartIntroIsCurrent(card));
+    }
     cards.forEach((card) => animateOverviewChartCard(card));
 
     const summaryChanged = !beforeSigs || getOverviewSummarySignature() !== beforeSigs.__summary;
-    if (mode === 'visible' || mode === 'boot' || summaryChanged) {
+    if (cards.length && (mode === 'visible' || mode === 'boot' || summaryChanged)) {
       try { playOverviewSummaryStripReveal(); } catch (_) {}
     }
 
@@ -14484,9 +14816,8 @@ function animateOverviewChartsIntro(options = {}) {
     requestAnimationFrame(() => {
       const animated = run();
       if (mode !== 'changed-visible' && animated === 0) {
-        const hasVisibleCharts = getOverviewChartCards(page)
-          .some((card) => overviewChartCardHasGraphics(card) && isOverviewChartCardVisible(card));
-        if (hasVisibleCharts) {
+        const needsIntro = getOverviewChartCardsNeedingIntro(page).length > 0;
+        if (needsIntro) {
           window.setTimeout(() => { try { run(); } catch (_) {} }, 80);
         }
       }
@@ -14499,28 +14830,37 @@ function animateVisibleOverviewChartCards() {
 }
 
 function scheduleOverviewChartBootIntroOnce() {
-  if (__overviewChartBootIntroDone || activePageId !== 'overview') return;
-  const page = document.getElementById('page-overview');
-  if (!page) return;
-  const chartCards = getOverviewChartCards(page).filter((card) => overviewChartCardHasGraphics(card));
-  const hasSummary = !!page.querySelector('.summary-days-progress');
-  if (!chartCards.length && !hasSummary) return;
-  if (chartCards.length && !getOverviewIntroCards(page, { mode: 'boot' }).length) {
+  if (__overviewChartBootIntroDone) return;
+  if (!canRunOverviewChartIntro()) {
     window.clearTimeout(window.__overviewChartBootIntroRetryTimer);
     window.__overviewChartBootIntroRetryTimer = window.setTimeout(() => {
       try { scheduleOverviewChartBootIntroOnce(); } catch (_) {}
     }, 120);
     return;
   }
+  const page = document.getElementById('page-overview');
+  if (!page) return;
+  const chartCards = getOverviewChartCards(page);
+  const visibleCards = chartCards.filter((card) => overviewChartCardHasGraphics(card) && isOverviewChartCardVisible(card));
+  const netCard = document.getElementById('overview-net-worth')?.closest('.wealth-card-net');
+  const netTrendPending = !!(netCard && isOverviewChartCardVisible(netCard) && !netCard.querySelector('.wealth-networth-trend-line-v238'));
+  const hasSummary = !!page.querySelector('.summary-days-progress');
+  if ((!visibleCards.length && !hasSummary) || netTrendPending) {
+    window.clearTimeout(window.__overviewChartBootIntroRetryTimer);
+    window.__overviewChartBootIntroRetryTimer = window.setTimeout(() => {
+      try { scheduleOverviewChartBootIntroOnce(); } catch (_) {}
+    }, netTrendPending ? 80 : 160);
+    return;
+  }
   __overviewChartBootIntroDone = true;
   window.__overviewPendingSyncChartAnim = false;
   window.__overviewChartSigsBeforeSync = null;
-  animateOverviewChartsIntro({ mode: 'boot' });
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      try { finishOverviewChartRenderCycle(); } catch (_) {}
-    });
-  });
+  if (visibleCards.length) {
+    animateOverviewChartsIntro({ mode: 'boot' });
+  } else if (hasSummary) {
+    try { playOverviewSummaryStripReveal(); } catch (_) {}
+    try { setupOverviewScrollChartAnimations(); } catch (_) {}
+  }
 }
 
 function animateOverviewChartsAfterSync() {
@@ -14581,6 +14921,17 @@ function finishOverviewChartRenderCycle() {
       animateOverviewChartsAfterSync();
       return;
     }
+    const pendingIntro = getOverviewChartCardsNeedingIntro(page);
+    if (pendingIntro.length && canRunOverviewChartIntro()) {
+      pendingIntro.forEach((card) => animateOverviewChartCard(card));
+      try { playOverviewSummaryStripReveal(); } catch (_) {}
+    }
+    const netCard = document.getElementById('overview-net-worth')?.closest('.wealth-card-net');
+    if (netCard && canRunOverviewChartIntro() && isOverviewChartCardVisible(netCard)
+        && netCard.querySelector('.wealth-networth-trend-line-v238') && !overviewChartIntroIsCurrent(netCard)) {
+      delete netCard.dataset.btChartAnimSig;
+      animateOverviewChartCard(netCard);
+    }
     setupOverviewScrollChartAnimations();
   } catch (_) {}
 }
@@ -14594,6 +14945,20 @@ function animateOverviewChartsAfterMonthShift() {
     });
   });
 }
+
+function scheduleNetWorthTrendAnimation() {
+  const netCard = document.getElementById('overview-net-worth')?.closest('.wealth-card-net');
+  if (!netCard || activePageId !== 'overview' || !canRunOverviewChartIntro()) return;
+  if (!netCard.querySelector('.wealth-networth-trend-line-v238')) return;
+  delete netCard.dataset.btChartAnimSig;
+  if (!isOverviewChartCardVisible(netCard)) return;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      animateOverviewChartCard(netCard);
+    });
+  });
+}
+try { window.scheduleNetWorthTrendAnimation = scheduleNetWorthTrendAnimation; } catch (_) {}
 
 function setupOverviewScrollChartAnimations() {
   const page = document.getElementById('page-overview');
@@ -14616,13 +14981,20 @@ function setupOverviewScrollChartAnimations() {
       const target = entry.target;
       const nowVisible = !!(entry.isIntersecting && entry.intersectionRatio >= 0.2);
       const wasVisible = !!__overviewChartWasVisible.get(target);
+      if (!nowVisible) {
+        __overviewChartWasVisible.set(target, false);
+        if (!target.classList.contains('summary-days-progress')) {
+          try { delete target.dataset.btChartAnimSig; } catch (_) {}
+        }
+        continue;
+      }
       __overviewChartWasVisible.set(target, nowVisible);
-      if (!nowVisible || wasVisible) continue;
+      if (wasVisible) continue;
+      const syncChangedOnly = window.__overviewSyncChangedChartKeys;
       const cardKey = target.classList.contains('summary-days-progress')
         ? null
         : getOverviewChartCardKey(target);
-      const syncChangedOnly = window.__overviewSyncChangedChartKeys;
-      if (syncChangedOnly && cardKey && !syncChangedOnly.has(cardKey) && __overviewChartIntroPlayed.has(target)) continue;
+      if (syncChangedOnly && cardKey && !syncChangedOnly.has(cardKey)) continue;
       if (target.classList.contains('summary-days-progress')) {
         animateOverviewDaysLeftProgress();
       } else {
@@ -14641,10 +15013,7 @@ function setupOverviewScrollChartAnimations() {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       watch.forEach((el) => {
-        __overviewChartWasVisible.set(
-          el,
-          __overviewChartIntroPlayed.has(el) && isOverviewChartCardVisible(el)
-        );
+        __overviewChartWasVisible.set(el, isOverviewChartCardVisible(el));
       });
       __overviewChartScrollLive = true;
     });
@@ -14706,6 +15075,7 @@ function finishOverviewDetailsBar(el) {
   el.classList.remove('overview-details-bar-animating');
   el.classList.add('overview-details-bar-show');
   el.style.animationDelay = '';
+  el.style.animationDuration = '';
 }
 
 function resetOverviewDetailsBarAnimations(page = document.getElementById('page-overview-details')) {
@@ -14715,6 +15085,7 @@ function resetOverviewDetailsBarAnimations(page = document.getElementById('page-
     clearOverviewDetailsBarFinishTimer(el);
     el.classList.remove('overview-details-bar-animating', 'overview-details-bar-show');
     el.style.animationDelay = '';
+    el.style.animationDuration = '';
   });
 }
 
@@ -14729,6 +15100,7 @@ function resetOverviewDetailsBarForScroll(el) {
   clearOverviewDetailsBarFinishTimer(el);
   el.classList.remove('overview-details-bar-animating', 'overview-details-bar-show');
   el.style.animationDelay = '';
+  el.style.animationDuration = '';
 }
 
 function onOverviewDetailsBarAnimEnd(ev) {
@@ -14742,8 +15114,10 @@ function animateOverviewDetailsElement(el, delayMs = 0) {
   if (!el || el.classList.contains('overview-details-bar-animating')) return false;
   clearOverviewDetailsBarFinishTimer(el);
   el.classList.remove('overview-details-bar-show');
+  el.style.transition = 'none';
   const delay = Math.max(0, Number(delayMs) || 0);
   el.style.animationDelay = delay > 0 ? `${delay}ms` : '';
+  el.style.animationDuration = `${OVERVIEW_DETAILS_BAR_DRAW_MS}ms`;
   el.addEventListener('animationend', onOverviewDetailsBarAnimEnd, { once: true });
   void el.offsetWidth;
   el.classList.add('overview-details-bar-animating');
@@ -15000,46 +15374,193 @@ function scheduleArchiveTabRender() {
   });
 }
 
+function shouldInsertWidgetAfterTarget(targetEl, clientX, clientY) {
+  if (!targetEl || typeof clientX !== 'number' || typeof clientY !== 'number') return false;
+  const rect = targetEl.getBoundingClientRect();
+  if (!rect.width || !rect.height) return false;
+  const midX = rect.left + rect.width / 2;
+  const midY = rect.top + rect.height / 2;
+  const dx = clientX - midX;
+  const dy = clientY - midY;
+  if (Math.abs(dy) > Math.abs(dx) * 0.6) return dy > 0;
+  return dx > 0;
+}
+
+function reorderListRelative(list, sourceId, targetId, clientX, clientY, getId, getTargetEl) {
+  getId = getId || ((item) => item?.id);
+  const sourceIndex = list.findIndex((item) => getId(item) === sourceId);
+  const targetIndex = list.findIndex((item) => getId(item) === targetId);
+  if (sourceIndex < 0 || targetIndex < 0 || sourceId === targetId) return null;
+  const targetEl = typeof getTargetEl === 'function' ? getTargetEl(targetId) : null;
+  const insertAfter = shouldInsertWidgetAfterTarget(targetEl, clientX, clientY);
+  const next = list.slice();
+  const [item] = next.splice(sourceIndex, 1);
+  const adjustedTarget = next.findIndex((entry) => getId(entry) === targetId);
+  if (adjustedTarget < 0) return null;
+  const insertAt = insertAfter ? adjustedTarget + 1 : adjustedTarget;
+  next.splice(insertAt, 0, item);
+  return next;
+}
+
 function initBtTouchFeedback(selector) {
   const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  document.querySelectorAll(selector).forEach((el) => {
-    if (el.dataset.btTouchReady === '1') return;
-    el.dataset.btTouchReady = '1';
+  document.querySelectorAll(selector).forEach((el) => bindBtTouchElement(el, reducedMotion));
+}
+
+const BT_TOUCH_TARGET_SELECTOR = [
+  'button:not([disabled])',
+  '.bottom-nav .nav-item',
+  '.cat-chip',
+  '.txn-filter-pill',
+  '.sync-btn',
+  '.fab',
+  '.scroll-top-fab',
+  '.config-save',
+  '.sheet-close',
+  '.custom-widget-card',
+  '.wealth-card',
+  '.wealth-card-net',
+  '.wealth-card-cash',
+  '.wealth-card[data-builtin-widget-id]',
+  '.wealth-card-clickable',
+  '.summary-item-clickable',
+  '.custom-widget-choice',
+  '.custom-widget-type-btn',
+  '.custom-widget-icon-btn',
+  '.custom-widget-add-btn',
+  '.manager-tab',
+  '.icon-action-btn',
+  '.billing-toggle button',
+  '.language-switch button',
+  '.dev-toggle-btn',
+  '.top-upgrade-btn',
+  '.account-balance-rollup-btn',
+  '.bank-card-clickable',
+  '.card-widget',
+  '.tx-item[data-tx-id]',
+  '.tx-item-compact[data-tx-id]',
+  '.tx-item-compact[onclick]',
+  '.archive-bank-spent-cell',
+  '.archive-bank-income-cell',
+  '.archive-bank-limit-cell',
+  '.archive-bank-legend-item',
+  '.archive-trend-bar-segment',
+  '.archive-bank-point',
+  '.archive-bank-line-hit',
+  '.card-widget[onclick]',
+  '.budget-bank-row[onclick]',
+  '.tx-col-title[onclick]',
+  '.toggle-switch',
+  '.sheets-toggle-switch',
+  '.tx-payment-source',
+  '.settings-plan-row',
+  '.add-bank-btn',
+  '.mini-action-btn',
+  '.overview-details-back',
+  '.txn-filter-toggle-btn',
+  '.txn-chart-toggle-btn',
+  '.managed-bank-edit-btn',
+  '.mass-tag-act-btn',
+  '.mass-tag-save-btn',
+  '.mass-tag-bar-cancel',
+  '.bt-touch-btn',
+  '.overview-month-nav',
+  '.account-balance-privacy-btn',
+  '.overview-privacy-btn',
+  '.manager-sheet-back-btn',
+  '.sim-submit',
+  '.archive-delete-btn'
+].join(', ');
+
+let __btActiveTouchEl = null;
+
+function resolveBtTouchTarget(node) {
+  if (!node || typeof node.closest !== 'function') return null;
+  if (node.closest('input, textarea, select, label, .bottom-sheet-backdrop')) return null;
+  const menuBtn = node.closest('.custom-widget-menu button, .custom-widget-manual-controls button');
+  if (menuBtn) return menuBtn;
+  const widgetCard = node.closest('.custom-widget-card');
+  if (widgetCard) {
+    if (widgetCard.classList.contains('is-dragging') || widgetCard.classList.contains('is-long-press')) return null;
+    if (!node.closest('button, .custom-widget-menu, a')) return widgetCard;
+  }
+  return node.closest(BT_TOUCH_TARGET_SELECTOR);
+}
+
+function isBtSvgTouchTarget(el) {
+  return !!(el && el.namespaceURI === 'http://www.w3.org/2000/svg');
+}
+
+function markBtTouchRippleHost(el) {
+  if (!el || isBtSvgTouchTarget(el)) return;
+  if (el.classList.contains('fab') || el.classList.contains('scroll-top-fab')) {
+    el.classList.add('bt-touch-ripple-host-fixed');
+  } else {
     el.classList.add('bt-touch-ripple-host');
-    const spawnRipple = (event) => {
-      if (el.disabled) return;
-      el.classList.add('is-touch-pressed');
-      if (reducedMotion) return;
-      const rect = el.getBoundingClientRect();
-      const pointX = (event && typeof event.clientX === 'number') ? event.clientX : (rect.left + rect.width / 2);
-      const pointY = (event && typeof event.clientY === 'number') ? event.clientY : (rect.top + rect.height / 2);
-      const size = Math.max(rect.width, rect.height) * 2.2;
-      const ripple = document.createElement('span');
-      ripple.className = 'bt-touch-ripple';
-      ripple.style.width = size + 'px';
-      ripple.style.height = size + 'px';
-      ripple.style.left = (pointX - rect.left - size / 2) + 'px';
-      ripple.style.top = (pointY - rect.top - size / 2) + 'px';
-      el.appendChild(ripple);
-      const cleanup = () => { try { ripple.remove(); } catch (_) {} };
-      ripple.addEventListener('animationend', cleanup, { once: true });
-      window.setTimeout(cleanup, 520);
-    };
-    const release = () => el.classList.remove('is-touch-pressed');
-    el.addEventListener('pointerdown', spawnRipple, { passive: true });
-    el.addEventListener('pointerup', release, { passive: true });
-    el.addEventListener('pointercancel', release, { passive: true });
-    el.addEventListener('pointerleave', release, { passive: true });
-  });
+  }
+}
+
+function spawnBtTouchRipple(el, event, reducedMotion) {
+  if (!el || el.disabled || reducedMotion || isBtSvgTouchTarget(el)) return;
+  const rect = el.getBoundingClientRect();
+  const pointX = (event && typeof event.clientX === 'number') ? event.clientX : (rect.left + rect.width / 2);
+  const pointY = (event && typeof event.clientY === 'number') ? event.clientY : (rect.top + rect.height / 2);
+  const size = Math.max(rect.width, rect.height) * 2.2;
+  const ripple = document.createElement('span');
+  ripple.className = 'bt-touch-ripple';
+  ripple.style.width = size + 'px';
+  ripple.style.height = size + 'px';
+  ripple.style.left = (pointX - rect.left - size / 2) + 'px';
+  ripple.style.top = (pointY - rect.top - size / 2) + 'px';
+  el.appendChild(ripple);
+  const cleanup = () => { try { ripple.remove(); } catch (_) {} };
+  ripple.addEventListener('animationend', cleanup, { once: true });
+  window.setTimeout(cleanup, 520);
+}
+
+function bindBtTouchElement(el, reducedMotion) {
+  if (!el || el.dataset.btTouchReady === '1') return;
+  el.dataset.btTouchReady = '1';
+  markBtTouchRippleHost(el);
+  const press = (event) => {
+    if (el.disabled) return;
+    el.classList.add('is-touch-pressed');
+    spawnBtTouchRipple(el, event, reducedMotion);
+  };
+  const release = () => el.classList.remove('is-touch-pressed');
+  el.addEventListener('pointerdown', press, { passive: true });
+  el.addEventListener('pointerup', release, { passive: true });
+  el.addEventListener('pointercancel', release, { passive: true });
+  el.addEventListener('pointerleave', release, { passive: true });
+}
+
+function releaseBtActiveTouch() {
+  if (!__btActiveTouchEl) return;
+  __btActiveTouchEl.classList.remove('is-touch-pressed');
+  __btActiveTouchEl = null;
+}
+
+function initGlobalTouchFeedback() {
+  if (window.__btGlobalTouchBound) return;
+  window.__btGlobalTouchBound = true;
+  const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  document.addEventListener('pointerdown', (event) => {
+    const el = resolveBtTouchTarget(event.target);
+    if (!el || el.disabled) return;
+    releaseBtActiveTouch();
+    __btActiveTouchEl = el;
+    markBtTouchRippleHost(el);
+    el.classList.add('is-touch-pressed');
+    spawnBtTouchRipple(el, event, reducedMotion);
+  }, { passive: true });
+  document.addEventListener('pointerup', releaseBtActiveTouch, { passive: true });
+  document.addEventListener('pointercancel', releaseBtActiveTouch, { passive: true });
 }
 
 function initNavTouchFeedback() {
-  initBtTouchFeedback('.bottom-nav .nav-item');
-  initBtTouchFeedback('.overview-month-nav');
-  initBtTouchFeedback('.account-balance-privacy-btn, .overview-privacy-btn');
-  initBtTouchFeedback('.manager-sheet-back-btn');
+  initGlobalTouchFeedback();
 }
-try { window.initNavTouchFeedback = initNavTouchFeedback; } catch (_) {}
+try { window.initNavTouchFeedback = initNavTouchFeedback; window.initGlobalTouchFeedback = initGlobalTouchFeedback; window.initBtTouchFeedback = initBtTouchFeedback; } catch (_) {}
 
 function hideAppBootChrome() {
   document.body.classList.remove('app-boot-pending');
@@ -16416,18 +16937,6 @@ function toggleCategoryFilters() {
   updateTxnPage();
 }
 
-
-function openBankBudgetManager(bankKey) {
-  openBankManagerSheet();
-  window.setTimeout(() => {
-    switchManagementTab('banks');
-    const row = document.getElementById('bank-row-' + bankKey);
-    if (row) {
-      row.classList.add('open');
-      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, 120);
-}
 
 function openBankTransactions(bankKey) {
   activeCategory = 'všetky';
@@ -18754,20 +19263,42 @@ function openAddTransactionSheet(){
     }, document.documentElement.classList.contains('android-pwa-perf') ? 80 : 20);
   });
 }
-function openBankManagerSheet(){
-  switchManagementTab('banks');
+function focusBankManagerRow(bankKey) {
+  if (!bankKey) return;
+  const row = document.getElementById('bank-row-' + bankKey);
+  if (!row) return;
+  document.querySelectorAll('#bank-manager-list .managed-bank-row.open').forEach((el) => {
+    if (el !== row) el.classList.remove('open');
+  });
+  row.classList.add('open');
+  try { row.scrollIntoView({ block: 'nearest', behavior: 'auto' }); } catch (_) {}
+}
+
+function openBankManagerSheet(bankKey) {
+  const sheet = document.getElementById('bank-manager-sheet');
+  const alreadyOpen = !!(sheet && sheet.classList.contains('open'));
+  const bankList = document.getElementById('bank-manager-list');
+  const search = document.getElementById('manager-search');
+  if (bankList) bankList.style.display = 'block';
+  if (search) search.setAttribute('placeholder', t('searchBanks'));
+
+  const finishOpen = () => {
+    try { renderBankManager(); } catch (_) {}
+    try { applyLanguage(); } catch (_) {}
+    if (bankKey) requestAnimationFrame(() => focusBankManagerRow(bankKey));
+  };
+
+  if (alreadyOpen) {
+    finishOpen();
+    return;
+  }
+
   if (typeof openSheet === 'function') openSheet('bank-manager-sheet');
-  window.setTimeout(function(){
-    if (typeof requestIdleCallback === 'function') {
-      requestIdleCallback(function(){
-        try { renderBankManager(); } catch (_) {}
-      }, { timeout: 1200 });
-      return;
-    }
-    requestAnimationFrame(function(){
-      try { renderBankManager(); } catch (_) {}
-    });
-  }, 140);
+  requestAnimationFrame(() => requestAnimationFrame(finishOpen));
+}
+
+function openBankBudgetManager(bankKey) {
+  openBankManagerSheet(bankKey);
 }
 
 async function saveNewBank(){
@@ -18846,17 +19377,6 @@ function updateManagedBankBudgetFields(bankId) {
   if (incomingEl) incomingEl.value = alerts.incoming || 0;
   if (outgoingEl) outgoingEl.value = alerts.outgoing || 0;
   if (monthlyBox) monthlyBox.classList.add('open');
-}
-
-function openBankBudgetManager(bankKey) {
-  openBankManagerSheet();
-  setTimeout(() => {
-    const row = document.getElementById('bank-row-' + bankKey);
-    if (row) {
-      row.classList.add('open');
-      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, 80);
 }
 
 function renderBankManager(){
@@ -24124,12 +24644,9 @@ window.addEventListener('pageshow', () => {
     const sourceId = customWidgetDragId || (() => { try { return event.dataTransfer.getData('text/plain'); } catch (_) { return ''; } })();
     if (!sourceId || sourceId === targetId) return;
     const widgets = loadCustomWidgets();
-    const sourceIdx = widgets.findIndex(w => w.id === sourceId);
-    const targetIdx = widgets.findIndex(w => w.id === targetId);
-    if (sourceIdx < 0 || targetIdx < 0) return;
-    const [item] = widgets.splice(sourceIdx, 1);
-    widgets.splice(targetIdx, 0, item);
-    saveCustomWidgets(widgets);
+    const reordered = reorderListRelative(widgets, sourceId, targetId, event.clientX, event.clientY, (w) => w.id, (id) => document.querySelector('.custom-widget-card[data-id="' + id + '"]'));
+    if (!reordered) return;
+    saveCustomWidgets(reordered);
     renderCustomWidgets();
   }
   function handleCustomWidgetDragEnd(event) {
@@ -24166,15 +24683,12 @@ window.addEventListener('pageshow', () => {
     }, 260);
   }
 
-  function reorderCustomWidgetBefore(sourceId, targetId) {
+  function reorderCustomWidgetBefore(sourceId, targetId, clientX, clientY) {
     if (!sourceId || !targetId || sourceId === targetId) return;
     const widgets = loadCustomWidgets();
-    const sourceIdx = widgets.findIndex(w => w.id === sourceId);
-    const targetIdx = widgets.findIndex(w => w.id === targetId);
-    if (sourceIdx < 0 || targetIdx < 0) return;
-    const [item] = widgets.splice(sourceIdx, 1);
-    widgets.splice(targetIdx, 0, item);
-    saveCustomWidgets(widgets);
+    const reordered = reorderListRelative(widgets, sourceId, targetId, clientX, clientY, (w) => w.id, (id) => document.querySelector('.custom-widget-card[data-id="' + id + '"]'));
+    if (!reordered) return;
+    saveCustomWidgets(reordered);
     renderCustomWidgets();
   }
 
@@ -24199,7 +24713,7 @@ window.addEventListener('pageshow', () => {
     event.preventDefault();
     const el = document.elementFromPoint(event.clientX, event.clientY)?.closest?.('.custom-widget-card[data-id]');
     const targetId = el?.dataset?.id;
-    if (targetId && targetId !== id) reorderCustomWidgetBefore(id, targetId);
+    if (targetId && targetId !== id) reorderCustomWidgetBefore(id, targetId, event.clientX, event.clientY);
   }
 
   function handleCustomWidgetPointerUp(event, id) {
@@ -24220,7 +24734,7 @@ window.addEventListener('pageshow', () => {
     event.preventDefault();
     const el = document.elementFromPoint(event.clientX, event.clientY)?.closest?.('.custom-widget-card[data-id]');
     const targetId = el?.dataset?.id;
-    if (targetId && targetId !== customWidgetDragId) reorderCustomWidgetBefore(customWidgetDragId, targetId);
+    if (targetId && targetId !== customWidgetDragId) reorderCustomWidgetBefore(customWidgetDragId, targetId, event.clientX, event.clientY);
   }
   function handleCustomWidgetGlobalPointerUp(event) {
     if (!customWidgetTouchDragging && !customWidgetLongPressTimer) return;
@@ -24350,15 +24864,12 @@ window.addEventListener('pageshow', () => {
     saveBuiltinWidgetOrder(order);
     applyBuiltinOverviewWidgetSettings();
   }
-  function reorderBuiltinWidgetBefore(sourceId, targetId) {
+  function reorderBuiltinWidgetBefore(sourceId, targetId, clientX, clientY) {
     if (!sourceId || !targetId || sourceId === targetId) return;
     const order = getBuiltinWidgetOrder();
-    const sourceIdx = order.indexOf(sourceId);
-    const targetIdx = order.indexOf(targetId);
-    if (sourceIdx < 0 || targetIdx < 0) return;
-    const [item] = order.splice(sourceIdx, 1);
-    order.splice(targetIdx, 0, item);
-    saveBuiltinWidgetOrder(order);
+    const reordered = reorderListRelative(order, sourceId, targetId, clientX, clientY, (id) => id, (id) => document.querySelector('.wealth-card[data-builtin-widget-id="' + id + '"]'));
+    if (!reordered) return;
+    saveBuiltinWidgetOrder(reordered);
     applyBuiltinOverviewWidgetSettings();
   }
   function handleBuiltinWidgetPointerDown(event, id) {
@@ -24380,7 +24891,7 @@ window.addEventListener('pageshow', () => {
     event.preventDefault();
     const target = document.elementFromPoint(event.clientX, event.clientY)?.closest?.('.wealth-card[data-builtin-widget-id]');
     const targetId = target?.dataset?.builtinWidgetId;
-    if (targetId && targetId !== id) reorderBuiltinWidgetBefore(id, targetId);
+    if (targetId && targetId !== id) reorderBuiltinWidgetBefore(id, targetId, event.clientX, event.clientY);
   }
   function handleBuiltinWidgetPointerUp(event, id) {
     window.clearTimeout(builtinWidgetLongPressTimer);
@@ -24445,7 +24956,6 @@ window.addEventListener('pageshow', () => {
       originalRenderOverviewDashboard.apply(this, arguments);
       applyBuiltinOverviewWidgetSettings();
       renderCustomWidgets();
-      try { finishOverviewChartRenderCycle(); } catch (_) {}
     };
   }
 
@@ -25729,9 +26239,10 @@ window.addEventListener('pageshow', () => {
     var lastLabel = data[data.length-1].month ? netWorthTrendMonthLabel(data[data.length-1].month) : '';
     slot.innerHTML = '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'
       + '<path class="wealth-networth-trend-area-v238" d="'+attr(area)+'"></path>'
-      + '<path class="overview-widget-line wealth-networth-trend-line-v238" pathLength="100" d="'+attr(path)+'"></path>'
+      + '<path class="overview-widget-line wealth-networth-trend-line-v238" d="'+attr(path)+'"></path>'
       + '<circle class="wealth-networth-trend-dot-v238" cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="1.35"></circle>'
       + '</svg><div class="wealth-networth-trend-caption-v238"><span>'+esc(firstLabel)+'</span><span>'+esc(lastLabel)+'</span></div>';
+    try { if (typeof scheduleNetWorthTrendAnimation === 'function') scheduleNetWorthTrendAnimation(); } catch(_) {}
   }
 
   var oldRenderOverviewDashboard = window.renderOverviewDashboard;
@@ -25739,6 +26250,11 @@ window.addEventListener('pageshow', () => {
     window.renderOverviewDashboard = function(){
       var result = oldRenderOverviewDashboard.apply(this, arguments);
       try { renderNetWorthTrend(typeof getOverviewDashboardMetrics === 'function' ? getOverviewDashboardMetrics() : null); } catch(_) {}
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          try { finishOverviewChartRenderCycle(); } catch (_) {}
+        });
+      });
       return result;
     };
     try { renderOverviewDashboard = window.renderOverviewDashboard; } catch(_) {}
@@ -31484,6 +32000,15 @@ window.addEventListener('pageshow', () => {
   function chartAxisRange(widget, stats){
     return (stats && stats.range) || currentPeriodRange(widget);
   }
+  function isChartPeriodEnded(widget, stats){
+    var range = chartAxisRange(widget, stats);
+    var to = range && range.to;
+    if (!to || isNaN(to.getTime())) return false;
+    var today = new Date();
+    var todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    var periodEnd = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999).getTime();
+    return periodEnd < todayStart;
+  }
   function linearAxisLabels(widget, stats){
     widget = widget || {};
     stats = stats || {};
@@ -31555,6 +32080,10 @@ window.addEventListener('pageshow', () => {
     }
     return d;
   }
+  function appendLineEndpoint(path, x, y){
+    if (!path) return 'M' + Number(x).toFixed(1) + ' ' + Number(y).toFixed(2);
+    return path + ' L' + Number(x).toFixed(1) + ' ' + Number(y).toFixed(2);
+  }
   function buildUsedStrokePath(points, x1, width, yFn, isDecline){
     if (!points || !points.length) return '';
     var coords = points.map(function(p){
@@ -31572,6 +32101,24 @@ window.addEventListener('pageshow', () => {
       return 'M' + coords[0].x + ' ' + firstY.toFixed(2) + ' C' + usedC1X.toFixed(1) + ' ' + (firstY - 2).toFixed(2) + ', ' + usedC2X.toFixed(1) + ' ' + (currentY + usedBend).toFixed(2) + ', ' + curX + ' ' + currentY.toFixed(2);
     }
     return smoothSvgPathFromCoords(coords);
+  }
+  function buildTimelineLinePaths(points, x1, width, x2, yFn, isDecline, periodEnded){
+    if (!points || !points.length) return { strokePath: '', endX: x2, endY: yFn(0) };
+    var drawPts = points.slice();
+    if (periodEnded && drawPts.length > 1 && drawPts[drawPts.length - 1].ratio >= 0.999) {
+      drawPts = drawPts.slice(0, -1);
+    }
+    var lastPt = drawPts[drawPts.length - 1] || { ratio: 0, amount: 0 };
+    var anchorX = timelinePointX(lastPt.ratio, x1, width);
+    var anchorY = yFn(lastPt.amount);
+    var endX = periodEnded ? x2 : anchorX;
+    var endY = anchorY;
+    var strokePath = buildUsedStrokePath(drawPts, x1, width, yFn, isDecline);
+    strokePath = appendLineEndpoint(strokePath, anchorX, anchorY);
+    if (periodEnded && endX > anchorX + 0.05) {
+      strokePath = appendLineEndpoint(strokePath, endX, anchorY);
+    }
+    return { strokePath: strokePath, endX: endX, endY: endY };
   }
   function makeLine(widget, stats){
     stats = stats || statsForWidget(widget);
@@ -31594,10 +32141,32 @@ window.addEventListener('pageshow', () => {
     var pct = Math.max(0, Math.min(1, ratio));
     var isDecline = metric.mode === 'loan' || String((widget && (widget.linearDirection || widget.trendType || widget.direction)) || '') === 'decline';
     var x1 = LINE_GRAPH_X1, yBase = 56, x2 = LINE_GRAPH_X2, width = x2 - x1, height = 50;
+    var range = chartAxisRange(widget, stats);
+    var from = range && range.from;
+    var to = range && range.to;
+    var periodEnded = isChartPeriodEnded(widget, stats);
+    if (timeline) {
+      if (periodEnded) {
+        var lastTimelinePoint = timeline.points[timeline.points.length - 1];
+        if (!lastTimelinePoint || lastTimelinePoint.ratio < 0.999) {
+          timeline.points.push({ ratio: 1, amount: timeline.cumulative });
+        } else {
+          lastTimelinePoint.ratio = 1;
+          lastTimelinePoint.amount = timeline.cumulative;
+        }
+        timeline.lastRatio = 1;
+      } else {
+        var todayRatio = dateRatioInRange(new Date(), from, to);
+        if (todayRatio > timeline.lastRatio + 0.0001) {
+          timeline.points.push({ ratio: todayRatio, amount: timeline.cumulative });
+          timeline.lastRatio = todayRatio;
+        }
+      }
+    }
     var curX = x1 + width * pct;
     if (!timeline && pct > 0 && curX < x1 + 10) curX = x1 + 10;
     if (!timeline && pct < 1 && curX > x2 - 10) curX = x2 - 10;
-    if (timeline) curX = timelinePointX(timeline.lastRatio, x1, width);
+    if (timeline) curX = periodEnded ? x2 : timelinePointX(timeline.lastRatio, x1, width);
     curX = Number(curX.toFixed(1));
     var maxValue, startValue, currentValue, targetValue;
     if (isDecline) {
@@ -31627,16 +32196,45 @@ window.addEventListener('pageshow', () => {
     var usedBend = isDecline ? -Math.min(5, usedSpan * .28) : Math.min(7, usedSpan * .35);
     var projectionBend1 = isDecline ? Math.min(5, projectionSpan * .10) : -Math.min(1, projectionSpan * .04);
     var projectionBend2 = isDecline ? -Math.min(2, projectionSpan * .05) : Math.min(4, projectionSpan * .08);
-    var usedPath = timeline
-      ? buildUsedStrokePath(timeline.points, x1, width, y, isDecline)
-      : ('M' + x1 + ' ' + firstY.toFixed(2) + ' C' + usedC1X.toFixed(1) + ' ' + (firstY - 2).toFixed(2) + ', ' + usedC2X.toFixed(1) + ' ' + (currentY + usedBend).toFixed(2) + ', ' + curX + ' ' + currentY.toFixed(2));
-    var projectionPath = 'M' + curX + ' ' + currentY.toFixed(2) + ' C' + projectionC1X.toFixed(1) + ' ' + (currentY + projectionBend1).toFixed(2) + ', ' + projectionC2X.toFixed(1) + ' ' + (targetY + projectionBend2).toFixed(2) + ', ' + x2 + ' ' + targetY.toFixed(2);
+    var linePaths = timeline
+      ? buildTimelineLinePaths(timeline.points, x1, width, x2, y, isDecline, periodEnded)
+      : null;
+    var usedPath = linePaths
+      ? linePaths.strokePath
+      : appendLineEndpoint(
+        ('M' + x1 + ' ' + firstY.toFixed(2) + ' C' + usedC1X.toFixed(1) + ' ' + (firstY - 2).toFixed(2) + ', ' + usedC2X.toFixed(1) + ' ' + (currentY + usedBend).toFixed(2) + ', ' + curX + ' ' + currentY.toFixed(2)),
+        curX,
+        currentY
+      );
+    if (linePaths) {
+      curX = periodEnded ? x2 : Number(linePaths.endX.toFixed(1));
+      currentY = linePaths.endY;
+    }
+    projectionSpan = Math.max(1, x2 - curX);
+    var showProjection = !periodEnded && curX < (x2 - 1.5);
+    projectionC1X = curX + Math.min(18, projectionSpan * .45);
+    projectionC2X = Math.max(curX + 3, x2 - Math.min(22, projectionSpan * .45));
+    var projectionPath = showProjection
+      ? (projectionSpan < 34
+        ? ('M' + curX + ' ' + currentY.toFixed(2) + ' L' + x2 + ' ' + targetY.toFixed(2))
+        : appendLineEndpoint(
+          ('M' + curX + ' ' + currentY.toFixed(2) + ' C' + projectionC1X.toFixed(1) + ' ' + (currentY + projectionBend1).toFixed(2) + ', ' + projectionC2X.toFixed(1) + ' ' + (targetY + projectionBend2).toFixed(2) + ', ' + x2 + ' ' + targetY.toFixed(2)),
+          x2,
+          targetY
+        ))
+      : '';
+    var projectionFill = showProjection
+      ? ('<path d="' + attr(projectionPath) + ' L' + x2 + ' ' + yBase + ' L' + curX + ' ' + yBase + ' Z" fill="rgba(56,139,253,.13)"></path>')
+      : '';
+    var projectionStroke = showProjection
+      ? ('<path class="overview-widget-line is-projection" d="' + attr(projectionPath) + '" fill="none" stroke="' + blue + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round" opacity=".94"></path>')
+      : '';
     return '<div class="custom-widget-linear-v260"><div class="custom-widget-linear-label-v260 custom-widget-fit-value">' + esc(metric.label) + '</div><svg viewBox="0 0 114 64" preserveAspectRatio="none" aria-hidden="true">'
       + '<path class="custom-widget-axis-line-v274" d="M' + x1 + ' ' + yBase + ' H' + x2 + ' M' + x1 + ' ' + yBase + ' V' + (yBase - height) + '"></path>'
       + '<path d="' + attr(usedPath) + ' L' + curX + ' ' + yBase + ' L' + x1 + ' ' + yBase + ' Z" fill="' + attr(hexToRgba(accent,.22)) + '"></path>'
-      + '<path d="' + attr(projectionPath) + ' L' + x2 + ' ' + yBase + ' L' + curX + ' ' + yBase + ' Z" fill="rgba(56,139,253,.13)"></path>'
-      + '<path class="overview-widget-line" pathLength="100" d="' + attr(usedPath) + '" fill="none" stroke="' + attr(accent) + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round"></path>'
-      + '<path class="overview-widget-line is-projection" pathLength="100" d="' + attr(projectionPath) + '" fill="none" stroke="' + blue + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round" opacity=".94"></path>'
+      + projectionFill
+      + '<path class="overview-widget-line" d="' + attr(usedPath) + '" fill="none" stroke="' + attr(accent) + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round"></path>'
+      + projectionStroke
       + '<circle cx="' + curX + '" cy="' + currentY.toFixed(2) + '" r=".95" fill="#fff" opacity=".95"></circle>'
       + '<circle cx="' + curX + '" cy="' + currentY.toFixed(2) + '" r=".48" fill="' + attr(accent) + '"></circle>'
       + '</svg>' + linearAxisLabels(widget, stats) + '</div>';
@@ -31651,7 +32249,12 @@ window.addEventListener('pageshow', () => {
     var showPct = widget.showGaugePercent !== false;
     var showLine = widget.showGaugeAmount !== false;
     var amountLabel = metric.label;
-    return '<div class="custom-widget-gauge-wrap"><div class="mini-half-gauge custom-widget-half-gauge"><svg viewBox="0 0 180 112" aria-hidden="true"><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="rgba(88,166,255,.20)" stroke-width="18" stroke-linecap="round" pathLength="100"></path><path class="overview-widget-arc" d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="' + attr(arcColor) + '" stroke-width="18" stroke-linecap="round" pathLength="100" stroke-dasharray="' + pct.toFixed(1) + ' 100"></path></svg><div class="mini-half-gauge-center"><span class="pct">' + (showPct ? esc(label) : '') + '</span><span class="caption">' + esc(caption) + '</span></div></div>' + (showLine ? '<div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top"><strong class="custom-widget-gauge-metric-label-v262 custom-widget-fit-value">' + esc(amountLabel) + '</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill overview-widget-fill" style="width:' + Math.min(100,pct).toFixed(1) + '%;background:' + attr(lowerColor) + '"></div></div></div>' : '') + '</div>';
+    var isEmptyArc = pct < 1;
+    var arcClass = isEmptyArc ? 'overview-widget-arc is-empty-arc' : 'overview-widget-arc';
+    var arcDash = isEmptyArc
+      ? 'stroke-dasharray="0 100" opacity="0" stroke-linecap="butt"'
+      : 'stroke-dasharray="100 100" stroke-dashoffset="' + (100 - pct).toFixed(1) + '" stroke-linecap="round" data-gauge-pct="' + pct.toFixed(1) + '" style="--gauge-pct:' + pct.toFixed(1) + '"';
+    return '<div class="custom-widget-gauge-wrap"><div class="mini-half-gauge custom-widget-half-gauge"><svg viewBox="0 0 180 112" aria-hidden="true"><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="rgba(88,166,255,.20)" stroke-width="18" stroke-linecap="round" pathLength="100"></path><path class="' + arcClass + '" d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="' + attr(arcColor) + '" stroke-width="18" pathLength="100" ' + arcDash + '></path></svg><div class="mini-half-gauge-center"><span class="pct">' + (showPct ? esc(label) : '') + '</span><span class="caption">' + esc(caption) + '</span></div></div>' + (showLine ? '<div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top"><strong class="custom-widget-gauge-metric-label-v262 custom-widget-fit-value">' + esc(amountLabel) + '</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill overview-widget-fill" style="width:' + Math.min(100,pct).toFixed(1) + '%;background:' + attr(lowerColor) + '"></div></div></div>' : '') + '</div>';
   }
   function paymentKindLabel(kind){
     if (!hasWidgetMultiFilter(kind)) return '';
@@ -31696,10 +32299,13 @@ window.addEventListener('pageshow', () => {
     var main = chart === 'none'
       ? '<div class="custom-widget-main"><div><div class="custom-widget-money">' + esc(metric.usedLabel || metric.label) + '</div><div class="custom-widget-limit">/ ' + esc(metric.limitLabel || '') + '</div></div></div>'
       : '';
+    var manualControls = sourceNorm(widget.source || widget.dataInput) === 'manual'
+      ? '<div class="custom-widget-manual-controls" onclick="event.stopPropagation()"><button type="button" onclick="adjustCustomWidgetManualValue(\'' + attr(widget.id || '') + '\',-1)">−</button><span>Manual</span><button type="button" onclick="adjustCustomWidgetManualValue(\'' + attr(widget.id || '') + '\',1)">+</button></div>'
+      : '';
     var menu = widget.id === 'preview' ? '' : '<div class="custom-widget-menu" onclick="event.stopPropagation()"><button class="custom-widget-icon-btn" type="button" title="Settings" onclick="openCustomWidgetBuilder(\'' + attr(widget.id || '') + '\')">...</button></div>';
     var dragAttrs = widget.id === 'preview' ? '' : ' draggable="true" onclick="handleCustomWidgetCardClick && handleCustomWidgetCardClick(event,\'' + attr(widget.id || '') + '\')" ondragstart="handleCustomWidgetDragStart && handleCustomWidgetDragStart(event,\'' + attr(widget.id || '') + '\')" ondragover="handleCustomWidgetDragOver && handleCustomWidgetDragOver(event)" ondrop="handleCustomWidgetDrop && handleCustomWidgetDrop(event,\'' + attr(widget.id || '') + '\')" ondragend="handleCustomWidgetDragEnd && handleCustomWidgetDragEnd(event)" onpointerdown="handleCustomWidgetPointerDown && handleCustomWidgetPointerDown(event,\'' + attr(widget.id || '') + '\')" onpointermove="handleCustomWidgetPointerMove && handleCustomWidgetPointerMove(event)" onpointerup="handleCustomWidgetPointerUp && handleCustomWidgetPointerUp(event,\'' + attr(widget.id || '') + '\')" onpointercancel="handleCustomWidgetPointerUp && handleCustomWidgetPointerUp(event,\'' + attr(widget.id || '') + '\')"';
     var marker = widget.id === 'preview' ? ' data-v260-preview="true"' : '';
-    return '<article class="custom-widget-card" data-id="' + attr(widget.id || '') + '" data-size="' + attr(size) + '" data-value-format="' + attr(valueFormatFor(widget)) + '"' + marker + ' style="--widget-accent:' + attr(accent) + '"' + dragAttrs + '><div class="custom-widget-content"><div class="custom-widget-head"><div class="custom-widget-title-wrap"><div class="custom-widget-title">' + esc(title) + '</div>' + (rangeLabel ? '<div class="custom-widget-period">' + esc(rangeLabel) + '</div>' : '') + '</div>' + menu + '</div>' + main + countLine + '<div class="custom-widget-chart">' + chartHtml + '</div></div></article>';
+    return '<article class="custom-widget-card" data-id="' + attr(widget.id || '') + '" data-size="' + attr(size) + '" data-value-format="' + attr(valueFormatFor(widget)) + '"' + marker + ' style="--widget-accent:' + attr(accent) + '"' + dragAttrs + '><div class="custom-widget-content"><div class="custom-widget-head"><div class="custom-widget-title-wrap"><div class="custom-widget-title">' + esc(title) + '</div>' + (rangeLabel ? '<div class="custom-widget-period">' + esc(rangeLabel) + '</div>' : '') + '</div>' + menu + '</div>' + main + countLine + manualControls + '<div class="custom-widget-chart">' + chartHtml + '</div></div></article>';
   }
   function collectValues(){
     var source = sourceNorm(getValue('cw-source',''));
@@ -32038,11 +32644,20 @@ window.addEventListener('pageshow', () => {
   function wrapRenderForFinalWidgets(name){
     var fn = window[name] || (typeof globalThis[name] === 'function' ? globalThis[name] : null);
     if (typeof fn !== 'function' || fn.__v260WidgetsWrapped) return;
+    var scheduleChartIntroAfterDashboard = function() {
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          try { finishOverviewChartRenderCycle(); } catch (_) {}
+        });
+      });
+    };
     var wrapped = function(){
       var result = fn.apply(this, arguments);
       try { renderCustomWidgetsFinal(); } catch(_) {}
+      scheduleChartIntroAfterDashboard();
       setTimeout(function(){
         try { renderCustomWidgetsFinal(); } catch(_) {}
+        scheduleChartIntroAfterDashboard();
       }, 0);
       return result;
     };
@@ -33620,7 +34235,7 @@ window.addEventListener('pageshow', () => {
     setTimeout(renderNow, 0);
     setTimeout(renderNow, 80);
   }
-  function reorderWidgets(sourceId, targetId){
+  function reorderWidgets(sourceId, targetId, clientX, clientY){
     sourceId = String(sourceId || '');
     targetId = String(targetId || '');
     if (!sourceId || !targetId || sourceId === targetId) return false;
@@ -33630,10 +34245,13 @@ window.addEventListener('pageshow', () => {
     if (sourceIndex < 0 || targetIndex < 0) return false;
     var sourceWidget = widgets[sourceIndex];
     var sourceSnapshot = JSON.stringify(sourceWidget || {});
+    var targetEl = document.querySelector('.custom-widget-card[data-id="' + cssEscape(targetId) + '"]');
+    var insertAfter = shouldInsertWidgetAfterTarget(targetEl, clientX, clientY);
     widgets.splice(sourceIndex, 1);
     var adjustedTarget = widgets.findIndex(function(widget){ return String(widget && widget.id) === targetId; });
     if (adjustedTarget < 0) adjustedTarget = targetIndex;
-    widgets.splice(adjustedTarget, 0, sourceWidget);
+    var insertAt = insertAfter ? adjustedTarget + 1 : adjustedTarget;
+    widgets.splice(insertAt, 0, sourceWidget);
     var savedWidget = widgets.find(function(widget){ return String(widget && widget.id) === sourceId; });
     if (JSON.stringify(savedWidget || {}) !== sourceSnapshot) {
       console.warn('Widget reorder aborted because widget data changed unexpectedly.');
@@ -33671,7 +34289,7 @@ window.addEventListener('pageshow', () => {
     }
     var sourceId = dragId;
     try { sourceId = sourceId || event.dataTransfer.getData('text/plain'); } catch(_) {}
-    reorderWidgets(sourceId, targetId);
+    reorderWidgets(sourceId, targetId, event && event.clientX, event && event.clientY);
     dragId = '';
     document.querySelectorAll('.custom-widget-card.is-dragging').forEach(function(card){ card.classList.remove('is-dragging'); });
   };
@@ -33701,7 +34319,7 @@ window.addEventListener('pageshow', () => {
     if (event) event.preventDefault();
     var target = cardAt(event);
     var targetId = target && target.dataset && target.dataset.id;
-    if (targetId && targetId !== touchDragId && reorderWidgets(touchDragId, targetId)) {
+    if (targetId && targetId !== touchDragId && reorderWidgets(touchDragId, targetId, event && event.clientX, event && event.clientY)) {
       var active = document.querySelector('.custom-widget-card[data-id="' + cssEscape(touchDragId) + '"]');
       if (active) active.classList.add('is-long-press', 'is-dragging');
     }
