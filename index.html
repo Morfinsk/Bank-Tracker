@@ -1195,8 +1195,15 @@
     pointer-events: none;
   }
 
-  #page-archive.is-archive-tab-loading {
-    pointer-events: none;
+  #page-archive.is-archive-tab-loading,
+  .page.is-tab-presenting {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  body.bt-tab-presenting {
+    overflow: hidden;
   }
 
   .archive-item {
@@ -3404,7 +3411,6 @@
     position: relative;
     overflow: hidden;
     -webkit-mask-image: -webkit-radial-gradient(#fff, #000);
-    mask-image: radial-gradient(#fff, #000);
   }
 
   .bt-touch-ripple-host-fixed {
@@ -4079,6 +4085,12 @@
   .page-loading-brand {
     display: grid;
     place-items: center;
+    contain: layout style paint;
+    isolation: isolate;
+  }
+
+  .page-loading-brand .bt-brand-logo-svg--draw-loop .bt-logo-stroke {
+    will-change: stroke-dashoffset;
   }
 
   .bt-brand-logo-svg {
@@ -4091,7 +4103,6 @@
   .bt-brand-logo-svg--loading {
     width: 72px;
     height: 72px;
-    border-radius: 18px;
   }
 
   .bt-brand-logo-svg--toast {
@@ -4111,27 +4122,31 @@
     stroke-dashoffset: 100;
   }
 
+  .bt-brand-logo-svg--draw-loop {
+    --bt-logo-cycle-ms: 800ms;
+  }
+
   .bt-brand-logo-svg--draw-loop .bt-logo-dot {
     transform-box: fill-box;
     transform-origin: center;
     opacity: 0;
-    animation: btLogoDotDraw 2.6s ease-in-out infinite;
+    animation: btLogoDotDraw var(--bt-logo-cycle-ms, 1000ms) ease-in-out infinite;
   }
 
   .bt-brand-logo-svg--draw-loop .bt-logo-stem {
-    animation: btLogoDrawStem 2.6s ease-in-out infinite;
+    animation: btLogoDrawStem var(--bt-logo-cycle-ms, 1000ms) ease-in-out infinite;
   }
 
   .bt-brand-logo-svg--draw-loop .bt-logo-arrow {
-    animation: btLogoDrawArrow 2.6s ease-in-out infinite;
+    animation: btLogoDrawArrow var(--bt-logo-cycle-ms, 1000ms) ease-in-out infinite;
   }
 
   .bt-brand-logo-svg--draw-loop .bt-logo-loop-top {
-    animation: btLogoDrawLoopTop 2.6s ease-in-out infinite;
+    animation: btLogoDrawLoopTop var(--bt-logo-cycle-ms, 1000ms) ease-in-out infinite;
   }
 
   .bt-brand-logo-svg--draw-loop .bt-logo-loop-bottom {
-    animation: btLogoDrawLoopBottom 2.6s ease-in-out infinite;
+    animation: btLogoDrawLoopBottom var(--bt-logo-cycle-ms, 1000ms) ease-in-out infinite;
   }
 
   .bt-brand-logo-svg--draw-once .bt-logo-dot {
@@ -4159,9 +4174,9 @@
 
   @keyframes btLogoDotDraw {
     0%, 6% { opacity: 0; transform: scale(0); }
-    10%, 70% { opacity: 1; transform: translate(0, 0) scale(1); }
-    82%, 94% { opacity: 1; transform: translate(140px, -120px) scale(1); }
-    96%, 100% { opacity: 1; transform: translate(140px, -120px) scale(1.08); }
+    10%, 78% { opacity: 1; transform: translate(0, 0) scale(1); }
+    88%, 96% { opacity: 1; transform: translate(140px, -120px) scale(1); }
+    100% { opacity: 1; transform: translate(140px, -120px) scale(1.08); }
   }
 
   @keyframes btLogoDrawStem {
@@ -4181,7 +4196,8 @@
 
   @keyframes btLogoDrawLoopBottom {
     0%, 54% { stroke-dashoffset: 100; }
-    72%, 100% { stroke-dashoffset: 0; }
+    68% { stroke-dashoffset: 18; }
+    76%, 100% { stroke-dashoffset: 0; }
   }
 
   @keyframes btLogoBreathe {
@@ -4227,7 +4243,26 @@
   }
 
   html[data-theme="light"] .page-loading-overlay {
-    background: #ffffff;
+    background: #eef3fa;
+  }
+
+  html[data-theme="light"] #header-brand-logo > rect:first-of-type,
+  html[data-theme="light"] .page-loading-overlay .bt-brand-logo-svg > rect:first-of-type,
+  html[data-theme="light"] .wealth-card .bt-brand-logo-svg--badge > rect:first-of-type {
+    fill: #ffffff;
+  }
+
+  html[data-theme="light"] #header-brand-logo .bt-logo-stem,
+  html[data-theme="light"] #header-brand-logo .bt-logo-loop-top,
+  html[data-theme="light"] .page-loading-overlay .bt-brand-logo-svg .bt-logo-stem,
+  html[data-theme="light"] .page-loading-overlay .bt-brand-logo-svg .bt-logo-loop-top,
+  html[data-theme="light"] .wealth-card .bt-brand-logo-svg--badge .bt-logo-stem,
+  html[data-theme="light"] .wealth-card .bt-brand-logo-svg--badge .bt-logo-loop-top {
+    stroke: #173055;
+  }
+
+  .bt-brand-logo-svg--badge.bt-brand-logo-svg--draw-loop {
+    --bt-logo-cycle-ms: 900ms;
   }
 
   @keyframes pageLoaderSpin {
@@ -7278,20 +7313,30 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .archive-bank-line,
   .trend-line {
     stroke-dasharray: 900;
     stroke-dashoffset: 900;
     animation: chartLineReveal 4.5s ease-out forwards;
   }
 
-  .archive-bank-point,
+  .archive-bank-line {
+    animation: none !important;
+  }
+
   .trend-dot {
     opacity: 0;
     transform-box: fill-box;
     transform-origin: center;
     animation: chartPointPop 0.65s ease-out forwards;
     animation-delay: 2.1s;
+  }
+
+  .archive-bank-point {
+    animation: none !important;
+  }
+
+  .wealth-networth-trend-point-v238 {
+    animation: none !important;
   }
 
   .daily-bar-income,
@@ -7301,6 +7346,13 @@
     transform-box: fill-box;
     transform-origin: center bottom;
     animation: barGrowSoft 0.72s cubic-bezier(.18,.78,.24,1) both;
+  }
+
+  #page-txns.txn-cashflow-intro-pending .txn-cashflow-bar-in,
+  #page-txns.txn-cashflow-intro-pending .txn-cashflow-bar-out {
+    animation: none !important;
+    opacity: 0.55;
+    transform: scaleY(0.16);
   }
 
   .txn-cashflow-bar-out,
@@ -7468,9 +7520,7 @@
     #transaction-edit-sheet.open .sheet-grid,
     #transaction-edit-sheet.open .sheet-grid-2,
     #transaction-edit-sheet.open .config-save,
-    .archive-bank-line,
     .trend-line,
-    .archive-bank-point,
     .trend-dot,
     .daily-bar-income,
     .daily-bar-expense,
@@ -7528,12 +7578,10 @@
   }
 
   /* v9 slower visible chart reveal */
-  .archive-bank-line,
   .trend-line {
     animation-duration: 4.5s !important;
   }
 
-  .archive-bank-point,
   .trend-dot {
     animation-duration: .65s !important;
     animation-delay: 2.1s !important;
@@ -7604,12 +7652,10 @@
 
 
   /* v13 slower graph loading */
-  .archive-bank-line,
   .trend-line {
     animation-duration: 4.5s !important;
   }
 
-  .archive-bank-point,
   .trend-dot {
     animation-duration: .65s !important;
     animation-delay: 2.1s !important;
@@ -9223,7 +9269,7 @@ html[data-theme="light"] body::before {
 
 <div id="page-loading-overlay" class="page-loading-overlay show" aria-live="polite" aria-busy="true">
   <div class="page-loading-brand" aria-hidden="true">
-    <svg class="bt-brand-logo-svg bt-brand-logo-svg--loading bt-brand-logo-svg--draw-loop" width="72" height="72" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect width="512" height="512" rx="112" fill="#08111f"/><circle cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(168, 116) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><circle class="bt-logo-dot" cx="60" cy="300" r="18" fill="#00e5ff"/></g></svg>
+    <svg class="bt-brand-logo-svg bt-brand-logo-svg--loading bt-brand-logo-svg--draw-loop" width="72" height="72" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect width="512" height="512" rx="112" fill="#08111f"/><circle cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(168, 88) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><circle class="bt-logo-dot" cx="60" cy="300" r="18" fill="#00e5ff"/></g></svg>
   </div>
 </div>
 
@@ -9231,7 +9277,7 @@ html[data-theme="light"] body::before {
   <div class="header overview-header-v236">
     <div class="overview-header-row overview-header-top-v236">
       <div class="header-title header-brand-wrap" id="header-brand-wrap" aria-label="Bank Tracker">
-        <svg id="header-brand-logo" class="bt-brand-logo-svg bt-brand-logo-svg--header bt-brand-logo-svg--idle" width="38" height="38" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect width="512" height="512" rx="112" fill="#08111f"/><circle cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(168, 116) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-path bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-path bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-path bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-path bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><circle class="bt-logo-dot" cx="200" cy="180" r="18" fill="#00e5ff"/></g></svg>
+        <svg id="header-brand-logo" class="bt-brand-logo-svg bt-brand-logo-svg--header bt-brand-logo-svg--idle" width="38" height="38" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect width="512" height="512" rx="112" fill="#08111f"/><circle cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(168, 88) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-path bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-path bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-path bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-path bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><circle class="bt-logo-dot" cx="200" cy="180" r="18" fill="#00e5ff"/></g></svg>
       </div>
       <div class="overview-header-actions-v236">
         <button class="sync-btn overview-header-icon-v236" id="sync-btn" type="button" onclick="syncData()" data-i18n-title="syncTitle" title="Sync" aria-label="Refresh"><span class="sync-btn-icon" aria-hidden="true">↻</span></button>
@@ -11537,7 +11583,6 @@ async function syncData(options = {}) {
   const btn = document.getElementById('sync-btn');
   if (btn) btn.classList.add('spinning');
   try { lockOverviewBalanceDatasets(); setOverviewBalanceSyncState(true); } catch (_) {}
-  try { scheduleHeaderBrandDrawIsolated('sync'); } catch (_) {}
   try {
     const match = SHEETS_URL.match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (!match) throw new Error('Neplatné URL');
@@ -11579,7 +11624,6 @@ async function syncData(options = {}) {
   } finally {
     if (btn) btn.classList.remove('spinning');
     isSyncing = false;
-    try { releaseHeaderBrandAfterSync(); } catch (_) {}
     try { reapplySheetAccountBalancesFromStorage(); } catch (e) { console.warn('Sheet balance reapply in finally failed:', e); }
     try { recomputeAccountBalancesForLoadedMonths(); } catch (e) { console.warn('Account balance recompute after sync failed:', e); }
     if (backgroundMode || !startupMode) {
@@ -12785,15 +12829,55 @@ function showTopWorkingToast(message) {
   showLargeStatusToast(message || fallback, 'top-loading');
 }
 
-function getBtBrandLogoHeaderSvgMarkup(size = 38) {
-  return `<svg id="header-brand-logo" class="bt-brand-logo-svg bt-brand-logo-svg--header bt-brand-logo-svg--idle" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect width="512" height="512" rx="112" fill="#08111f"/><circle cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(168, 116) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-path bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-path bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-path bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-path bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><circle class="bt-logo-dot" cx="200" cy="180" r="18" fill="#00e5ff"/></g></svg>`;
+const BT_LOGO_G_TRANSFORM = 'translate(168, 88) scale(0.8)';
+
+function isBtLightTheme() {
+  return document.documentElement.getAttribute('data-theme') === 'light';
 }
 
-function getBtBrandLogoSvgMarkup(size, drawMode = 'draw-loop', variant = 'header') {
+function getBtBrandLogoPalette() {
+  if (isBtLightTheme()) {
+    return { bg: '#ffffff', glow: '0.12', primary: '#173055', accent: '#00c8e8' };
+  }
+  return { bg: '#08111f', glow: '0.1', primary: '#ffffff', accent: '#00e5ff' };
+}
+
+function getBtBrandLogoHeaderSvgMarkup(size = 38) {
+  const c = getBtBrandLogoPalette();
+  return `<svg id="header-brand-logo" class="bt-brand-logo-svg bt-brand-logo-svg--header bt-brand-logo-svg--idle" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect width="512" height="512" rx="112" fill="${c.bg}"/><circle cx="256" cy="256" r="140" fill="${c.accent}" opacity="${c.glow}" filter="blur(20px)"/><g transform="${BT_LOGO_G_TRANSFORM}" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-path bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="${c.primary}" stroke-width="36"/><path class="bt-logo-path bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="${c.accent}" stroke-width="36"/><path class="bt-logo-path bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="${c.primary}" stroke-width="36"/><path class="bt-logo-path bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="${c.accent}" stroke-width="36"/><circle class="bt-logo-dot" cx="200" cy="180" r="18" fill="${c.accent}"/></g></svg>`;
+}
+
+function getBtBrandLogoSvgMarkup(size, drawMode = 'draw-loop', variant = 'header', transparentBg = false) {
+  const c = getBtBrandLogoPalette();
   const modeClass = `bt-brand-logo-svg--${drawMode}`;
   const variantClass = variant ? `bt-brand-logo-svg--${variant}` : '';
-  return `<svg class="bt-brand-logo-svg ${variantClass} ${modeClass}" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect width="512" height="512" rx="112" fill="#08111f"/><circle cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(168, 116) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><circle class="bt-logo-dot" cx="60" cy="300" r="18" fill="#00e5ff"/></g></svg>`;
+  const backdrop = transparentBg
+    ? ''
+    : `<rect width="512" height="512" rx="112" fill="${c.bg}"/><circle cx="256" cy="256" r="140" fill="${c.accent}" opacity="${c.glow}" filter="blur(20px)"/>`;
+  return `<svg class="bt-brand-logo-svg ${variantClass} ${modeClass}" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true" focusable="false">${backdrop}<g transform="${BT_LOGO_G_TRANSFORM}" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="${c.primary}" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="${c.accent}" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="${c.primary}" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="${c.accent}" stroke-width="36"/><circle class="bt-logo-dot" cx="60" cy="300" r="18" fill="${c.accent}"/></g></svg>`;
 }
+
+function refreshBtBrandLogosForTheme() {
+  const c = getBtBrandLogoPalette();
+  const header = document.getElementById('header-brand-logo');
+  if (header) {
+    const rect = header.querySelector('rect');
+    if (rect) rect.setAttribute('fill', c.bg);
+    const glow = header.querySelector('circle[r="140"]');
+    if (glow) {
+      glow.setAttribute('fill', c.accent);
+      glow.setAttribute('opacity', c.glow);
+    }
+    header.querySelectorAll('.bt-logo-stem, .bt-logo-loop-top').forEach((path) => path.setAttribute('stroke', c.primary));
+    header.querySelectorAll('.bt-logo-arrow, .bt-logo-loop-bottom').forEach((path) => path.setAttribute('stroke', c.accent));
+    const dot = header.querySelector('.bt-logo-dot');
+    if (dot) dot.setAttribute('fill', c.accent);
+  }
+  getOverviewBalanceSyncCards().forEach((card) => {
+    if (card.classList.contains('is-balance-syncing')) restartOverviewBalanceBadgeLogoAnim(card);
+  });
+}
+try { window.refreshBtBrandLogosForTheme = refreshBtBrandLogosForTheme; } catch (_) {}
 
 function getBtBrandLogoHtml(variant = 'header') {
   const sizes = { header: 38, loading: 72, toast: 34, inline: 28, badge: 22 };
@@ -12802,7 +12886,8 @@ function getBtBrandLogoHtml(variant = 'header') {
     return getBtBrandLogoHeaderSvgMarkup(size);
   }
   const drawMode = (variant === 'loading' || variant === 'badge') ? 'draw-loop' : 'draw-once';
-  return getBtBrandLogoSvgMarkup(size, drawMode, variant);
+  const transparentBg = variant === 'loading' || variant === 'badge';
+  return getBtBrandLogoSvgMarkup(size, drawMode, variant, transparentBg);
 }
 try { window.getBtBrandLogoHtml = getBtBrandLogoHtml; } catch (_) {}
 
@@ -12821,112 +12906,27 @@ function finishHeaderBrandDrawAnimation() {
     clearTimeout(__headerBrandAnimTimer);
     __headerBrandAnimTimer = null;
   }
-  const svg = getHeaderBrandLogoEl();
-  const wrap = document.getElementById('header-brand-wrap');
-
-  if (window.__headerBrandReleaseAfterDraw) {
-    window.__headerBrandReleaseAfterDraw = false;
-    if (svg) {
-      svg.classList.remove('is-header-drawing', 'bt-brand-logo-svg--draw-loop', 'is-header-sync-loop');
-      svg.classList.add('bt-brand-logo-svg--idle');
-    }
-    if (wrap) wrap.classList.remove('is-brand-syncing');
-    __headerBrandAnimRunning = false;
-    __headerBrandAnimQueued = false;
-    return;
-  }
-
-  if (typeof isSyncing !== 'undefined' && isSyncing) {
-    if (svg) {
-      svg.classList.remove('is-header-drawing', 'bt-brand-logo-svg--idle');
-      svg.classList.add('bt-brand-logo-svg--draw-loop', 'is-header-sync-loop');
-    }
-    __headerBrandAnimRunning = false;
-    __headerBrandAnimQueued = false;
-    return;
-  }
-
-  if (svg) {
-    svg.classList.remove('is-header-drawing', 'bt-brand-logo-svg--draw-loop', 'is-header-sync-loop');
-    svg.classList.add('bt-brand-logo-svg--idle');
-  }
-  if (wrap) wrap.classList.remove('is-brand-syncing');
   __headerBrandAnimRunning = false;
-  if (__headerBrandAnimQueued) {
-    __headerBrandAnimQueued = false;
-    window.setTimeout(() => playHeaderBrandDraw({ reason: 'queued' }), 60);
-  }
+  __headerBrandAnimQueued = false;
+  window.__headerBrandReleaseAfterDraw = false;
 }
 
-function releaseHeaderBrandAfterSync() {
-  const svg = getHeaderBrandLogoEl();
-  if (!svg) return;
-  if (__headerBrandAnimRunning || svg.classList.contains('is-header-drawing')) {
-    window.__headerBrandReleaseAfterDraw = true;
-    return;
-  }
-  if (!svg.classList.contains('is-header-sync-loop')) return;
-  svg.classList.remove('bt-brand-logo-svg--draw-loop', 'is-header-sync-loop');
-  svg.classList.add('bt-brand-logo-svg--idle');
-  const wrap = document.getElementById('header-brand-wrap');
-  if (wrap) wrap.classList.remove('is-brand-syncing');
-}
+function releaseHeaderBrandAfterSync() {}
 try { window.releaseHeaderBrandAfterSync = releaseHeaderBrandAfterSync; } catch (_) {}
 
-function playHeaderBrandDraw(options = {}) {
-  const reason = options.reason || 'sync';
-  if (__headerBrandAnimRunning) {
-    if (reason === 'sync') __headerBrandAnimQueued = true;
-    return;
-  }
-  if (reason !== 'boot' && (__appBootActive || document.body.classList.contains('app-boot-pending'))) {
-    if (reason === 'sync') __headerBrandSyncPendingAfterBoot = true;
-    return;
-  }
-
-  const svg = getHeaderBrandLogoEl();
-  if (!svg) return;
-
-  const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  if (reducedMotion) return;
-
-  if (__headerBrandAnimTimer) {
-    clearTimeout(__headerBrandAnimTimer);
-    __headerBrandAnimTimer = null;
-  }
-
-  __headerBrandAnimRunning = true;
-  const wrap = document.getElementById('header-brand-wrap');
-  if (wrap && reason === 'sync') wrap.classList.add('is-brand-syncing');
-
-  svg.classList.remove('bt-brand-logo-svg--idle', 'is-header-drawing', 'bt-brand-logo-svg--draw-loop', 'is-header-sync-loop');
-  void svg.offsetWidth;
-  svg.classList.add('is-header-drawing');
-
-  __headerBrandAnimTimer = window.setTimeout(() => {
-    finishHeaderBrandDrawAnimation();
-  }, HEADER_BRAND_DRAW_MS);
-}
+function playHeaderBrandDraw() {}
 try { window.playHeaderBrandDraw = playHeaderBrandDraw; } catch (_) {}
 
-function scheduleHeaderBrandDrawIsolated(reason = 'sync') {
-  window.requestAnimationFrame(() => {
-    window.requestAnimationFrame(() => {
-      try { playHeaderBrandDraw({ reason }); } catch (_) {}
-    });
-  });
-}
+function scheduleHeaderBrandDrawIsolated() {}
 
-function setHeaderBrandSyncState(active) {
-  if (!active) return;
-  scheduleHeaderBrandDrawIsolated('sync');
-}
+function setHeaderBrandSyncState() {}
 try { window.setHeaderBrandSyncState = setHeaderBrandSyncState; } catch (_) {}
 
-function restartBtLogoDrawAnimation(overlayEl) {
+function restartBtLogoDrawAnimation(overlayEl, options = {}) {
+  const force = !!(options && options.force);
   const overlay = overlayEl || document.getElementById('page-loading-overlay') || ensurePageLoadingOverlay();
   let brand = overlay.querySelector('.page-loading-brand');
-  if (brand && brand.querySelector('.bt-brand-logo-svg--draw-loop')) return;
+  if (!force && brand && brand.querySelector('.bt-brand-logo-svg--draw-loop')) return;
   if (!brand) {
     brand = document.createElement('div');
     brand.className = 'page-loading-brand';
@@ -12934,6 +12934,181 @@ function restartBtLogoDrawAnimation(overlayEl) {
     overlay.appendChild(brand);
   }
   brand.innerHTML = getBtBrandLogoHtml('loading');
+  const cycleMs = (__loadingPresentation && __loadingPresentation.cycleMs) || BT_LOGO_CYCLE_MS;
+  setLogoAnimCycleMs(cycleMs, brand.querySelector('.bt-brand-logo-svg--draw-loop'));
+}
+
+const BT_LOGO_CYCLE_MS = 800;
+const BT_LOGO_CYCLE_BOOT_MS = 1000;
+const BT_LOGO_BADGE_CYCLE_MS = 900;
+let __loadingPresentation = null;
+
+function setLogoAnimCycleMs(ms, svgEl) {
+  const cycle = Math.max(400, Math.round(Number(ms || BT_LOGO_CYCLE_MS)));
+  const svg = svgEl || document.querySelector('#page-loading-overlay .bt-brand-logo-svg--draw-loop');
+  if (svg) svg.style.setProperty('--bt-logo-cycle-ms', cycle + 'ms');
+}
+
+function cancelLoadingPresentation() {
+  const session = __loadingPresentation;
+  if (!session || session.done) return;
+  if (session.revealTimer) window.clearTimeout(session.revealTimer);
+  if (session.loopTimer) window.clearTimeout(session.loopTimer);
+  session.done = true;
+  if (session.kind === 'tab') {
+    __tabLoadingDepth = 0;
+    if (!__appBootActive && !document.body.classList.contains('app-boot-pending')) {
+      hidePageLoadingOverlay();
+    }
+  }
+  if (session.tabId) {
+    const page = document.getElementById('page-' + session.tabId);
+    if (page) page.classList.remove('is-tab-presenting');
+  }
+  document.body.classList.remove('bt-tab-presenting');
+  __loadingPresentation = null;
+}
+
+function beginLoadingPresentation(options = {}) {
+  cancelLoadingPresentation();
+  const kind = options.kind || 'tab';
+  const tabId = options.tabId || null;
+  const cycleMs = kind === 'boot' ? BT_LOGO_CYCLE_BOOT_MS : BT_LOGO_CYCLE_MS;
+  const session = {
+    kind,
+    tabId,
+    cycleMs,
+    startedAt: Date.now(),
+    dataReadyAt: null,
+    revealTimer: null,
+    loopTimer: null,
+    done: false,
+  };
+  __loadingPresentation = session;
+
+  if (tabId) {
+    document.body.classList.add('bt-tab-presenting');
+    const page = document.getElementById('page-' + tabId);
+    if (page) page.classList.add('is-tab-presenting');
+  }
+
+  if (kind === 'boot') {
+    __appBootStartedAt = session.startedAt;
+    const overlay = ensurePageLoadingOverlay();
+    overlay.classList.add('show');
+    overlay.classList.remove('is-hiding');
+    overlay.setAttribute('aria-busy', 'true');
+    setLogoAnimCycleMs(cycleMs);
+    restartBtLogoDrawAnimation(overlay, { force: true });
+    return session;
+  }
+
+  if (!__appBootActive && !document.body.classList.contains('app-boot-pending')) {
+    __tabLoadingDepth = 0;
+    showTabPageLoadingOverlay();
+  } else {
+    setLogoAnimCycleMs(cycleMs);
+    restartBtLogoDrawAnimation(null, { force: true });
+  }
+  return session;
+}
+
+function markLoadingPresentationDataReady() {
+  if (!__loadingPresentation || __loadingPresentation.dataReadyAt != null) return;
+  __loadingPresentation.dataReadyAt = Date.now();
+}
+
+function endLoadingPresentationVisuals(session) {
+  if (session.tabId) {
+    const page = document.getElementById('page-' + session.tabId);
+    if (page) page.classList.remove('is-tab-presenting');
+  }
+  document.body.classList.remove('bt-tab-presenting');
+  if (session.kind === 'tab' && !__appBootActive && !document.body.classList.contains('app-boot-pending')) {
+    hideTabPageLoadingOverlay();
+  }
+}
+
+function finishLoadingPresentation(onReveal) {
+  const session = __loadingPresentation;
+  if (!session || session.done) {
+    if (typeof onReveal === 'function') onReveal();
+    return;
+  }
+  if (!session.dataReadyAt) markLoadingPresentationDataReady();
+
+  if (session.revealTimer) window.clearTimeout(session.revealTimer);
+  if (session.loopTimer) window.clearTimeout(session.loopTimer);
+
+  const cycleMs = session.cycleMs;
+  const dataElapsed = Math.max(0, session.dataReadyAt - session.startedAt);
+  const fullCycles = Math.max(1, Math.ceil(dataElapsed / cycleMs));
+  const revealAt = session.startedAt + (fullCycles * cycleMs);
+
+  const reveal = () => {
+    if (session.done) return;
+    session.done = true;
+    endLoadingPresentationVisuals(session);
+    __loadingPresentation = null;
+    if (typeof onReveal === 'function') onReveal();
+  };
+
+  setLogoAnimCycleMs(cycleMs);
+
+  const scheduleLoop = () => {
+    if (session.done) return;
+    const now = Date.now();
+    if (now >= revealAt) {
+      reveal();
+      return;
+    }
+    const untilReveal = revealAt - now;
+    const elapsed = now - session.startedAt;
+    const posInCycle = elapsed % cycleMs;
+    const untilBoundary = posInCycle === 0 ? cycleMs : (cycleMs - posInCycle);
+    const wait = Math.min(untilBoundary, untilReveal);
+    session.loopTimer = window.setTimeout(() => {
+      if (Date.now() >= revealAt) {
+        reveal();
+        return;
+      }
+      if (fullCycles > 1) restartBtLogoDrawAnimation(null, { force: true });
+      scheduleLoop();
+    }, Math.max(16, wait));
+  };
+
+  const remaining = Math.max(0, revealAt - Date.now());
+  if (remaining <= 0) {
+    reveal();
+    return;
+  }
+  scheduleLoop();
+}
+
+function shouldPresentTabOnSwitch(pageId) {
+  if (__appBootActive || document.body.classList.contains('app-boot-pending')) return false;
+  if (pageId === 'txns') return txnsTabNeedsHeavyPresentation();
+  if (pageId === 'archive') return archiveTabNeedsHeavyPresentation();
+  return false;
+}
+
+function hasCachedTxnUi() {
+  const list = document.getElementById('txn-list');
+  const cashflowSlot = document.getElementById('txn-cashflow-slot');
+  if (!list || !cashflowSlot) return false;
+  const hasListBody = list.children.length > 0;
+  const hasCashflow = !!cashflowSlot.querySelector('.txn-cashflow-card, .txn-cashflow-svg');
+  return hasListBody && hasCashflow;
+}
+
+function txnsTabNeedsHeavyPresentation() {
+  if ((allTransactions || []).length > 0 || hasCachedTxnUi()) return false;
+  return !!isSyncing;
+}
+
+function archiveTabNeedsHeavyPresentation() {
+  const list = document.getElementById('archive-months-list');
+  return !!__btArchiveTabDirty || !(list && list.children && list.children.length);
 }
 
 function ensurePageLoadingOverlay() {
@@ -12947,8 +13122,6 @@ function ensurePageLoadingOverlay() {
   return overlay;
 }
 
-const APP_BOOT_MIN_MS = 1000;
-const APP_BOOT_LOGO_MIN_MS = 2000;
 const APP_BOOT_OVERLAY_FADE_MS = 300;
 const APP_BOOT_PAGE_REVEAL_MS = 380;
 const APP_BOOT_POST_REVEAL_MS = 220;
@@ -12960,10 +13133,20 @@ let __appBootSequenceRunning = false;
 let __bootPresentationPhase = false;
 let __tabLoadingDepth = 0;
 
-function canCompleteAppBoot() {
-  const elapsed = Date.now() - __appBootStartedAt;
-  if (elapsed >= APP_BOOT_MAX_MS) return true;
-  return elapsed >= APP_BOOT_LOGO_MIN_MS;
+function finalizeAppBootPresentation() {
+  if (!__appBootActive || __appBootSequenceRunning) return;
+  if (__appBootCompleteTimer) {
+    window.clearTimeout(__appBootCompleteTimer);
+    __appBootCompleteTimer = null;
+  }
+  markLoadingPresentationDataReady();
+  finishLoadingPresentation(() => {
+    try { completeAppBootSequence(); } catch (_) {}
+  });
+}
+
+function scheduleAppBootCompletion() {
+  finalizeAppBootPresentation();
 }
 
 function hasBootPresentableOverviewUi() {
@@ -12985,21 +13168,6 @@ function isOverviewPageDataReady() {
   return chartCards.length > 0 || hasSummary;
 }
 
-function scheduleAppBootCompletion() {
-  if (!__appBootActive || __appBootSequenceRunning) return;
-  if (__appBootCompleteTimer) window.clearTimeout(__appBootCompleteTimer);
-  const elapsed = Date.now() - __appBootStartedAt;
-  const waitMs = Math.max(60, APP_BOOT_LOGO_MIN_MS - elapsed);
-  __appBootCompleteTimer = window.setTimeout(() => {
-    __appBootCompleteTimer = null;
-    if (!canCompleteAppBoot()) {
-      scheduleAppBootCompletion();
-      return;
-    }
-    completeAppBootSequence();
-  }, waitMs);
-}
-
 function startAppBootOverlay() {
   if (__appBootActive) {
     const overlay = ensurePageLoadingOverlay();
@@ -13010,14 +13178,8 @@ function startAppBootOverlay() {
   }
   __appBootActive = true;
   __bootPresentationPhase = true;
-  __appBootStartedAt = Date.now();
   document.body.classList.add('app-boot-pending');
-  const overlay = ensurePageLoadingOverlay();
-  overlay.classList.add('show');
-  overlay.classList.remove('is-hiding');
-  overlay.setAttribute('aria-busy', 'true');
-  restartBtLogoDrawAnimation(overlay);
-  scheduleAppBootCompletion();
+  beginLoadingPresentation({ kind: 'boot' });
 }
 
 function fadeOutBootOverlay(done) {
@@ -13049,15 +13211,6 @@ function revealBootPageContent(done) {
 
 function schedulePostBootPresentations() {
   window.setTimeout(() => {
-    if (__headerBrandSyncPendingAfterBoot || (typeof isSyncing !== 'undefined' && isSyncing)) {
-      __headerBrandSyncPendingAfterBoot = false;
-      try { scheduleHeaderBrandDrawIsolated('sync'); } catch (_) {}
-    } else {
-      try { scheduleHeaderBrandDrawIsolated('boot'); } catch (_) {}
-    }
-  }, APP_BOOT_POST_REVEAL_MS);
-
-  window.setTimeout(() => {
     if (activePageId === 'overview') {
       try { scheduleOverviewPageBootAnimation({ delayMs: 0 }); } catch (_) {}
     }
@@ -13088,8 +13241,9 @@ function showTabPageLoadingOverlay() {
   __tabLoadingDepth++;
   const overlay = ensurePageLoadingOverlay();
   overlay.classList.add('show');
+  overlay.classList.remove('is-hiding');
   overlay.setAttribute('aria-busy', 'true');
-  restartBtLogoDrawAnimation(overlay);
+  restartBtLogoDrawAnimation(overlay, { force: true });
 }
 
 function hideTabPageLoadingOverlay() {
@@ -13126,10 +13280,13 @@ function hidePageLoadingOverlay() {
   }
   if (__appBootActive || __tabLoadingDepth > 0) return;
   const overlay = document.getElementById('page-loading-overlay');
-  if (overlay) {
-    overlay.classList.remove('show');
-    overlay.removeAttribute('aria-busy');
-  }
+  if (!overlay || !overlay.classList.contains('show')) return;
+  overlay.classList.add('is-hiding');
+  overlay.classList.remove('show');
+  overlay.removeAttribute('aria-busy');
+  window.setTimeout(() => {
+    overlay.classList.remove('is-hiding');
+  }, APP_BOOT_OVERLAY_FADE_MS);
 }
 
 function finishAppBoot() {
@@ -13163,7 +13320,8 @@ function hideAppBootChrome() {
 
 function tryCompleteAppBootFromOverviewRender() {
   if (!__appBootActive || __appBootSequenceRunning) return;
-  scheduleAppBootCompletion();
+  if (SHEETS_URL && isGoogleSheetsEnabled()) return;
+  finalizeAppBootPresentation();
 }
 
 function exitBankTrackerApp() {
@@ -14835,7 +14993,7 @@ function setOverviewBalanceSyncState(active) {
 }
 try { window.setOverviewBalanceSyncState = setOverviewBalanceSyncState; } catch (_) {}
 
-const OVERVIEW_BALANCE_SYNC_MIN_MS = HEADER_BRAND_DRAW_MS;
+const OVERVIEW_BALANCE_SYNC_MIN_MS = BT_LOGO_BADGE_CYCLE_MS;
 let __overviewBalanceSyncDepth = 0;
 let __overviewBalanceSyncStartedAt = 0;
 let __overviewBalanceSyncHideTimer = null;
@@ -14848,6 +15006,11 @@ function restartOverviewBalanceBadgeLogoAnim(card) {
   const host = card?.querySelector('.overview-balance-sync-logo');
   if (!host) return;
   host.innerHTML = getBtBrandLogoHtml('badge');
+  const svg = host.querySelector('.bt-brand-logo-svg--draw-loop');
+  if (svg) {
+    svg.style.setProperty('--bt-logo-cycle-ms', BT_LOGO_BADGE_CYCLE_MS + 'ms');
+    void svg.offsetWidth;
+  }
 }
 
 function ensureOverviewBalanceSyncBadgeLogos() {
@@ -14864,10 +15027,7 @@ function beginOverviewBalanceSyncUI() {
   __overviewBalanceSyncStartedAt = Date.now();
   getOverviewBalanceSyncCards().forEach((card) => {
     card.classList.add('is-balance-syncing');
-    const host = card.querySelector('.overview-balance-sync-logo');
-    if (!host || !host.querySelector('.bt-brand-logo-svg--draw-loop')) {
-      restartOverviewBalanceBadgeLogoAnim(card);
-    }
+    restartOverviewBalanceBadgeLogoAnim(card);
   });
   updateGlobalSyncIndicator(true);
 }
@@ -15101,6 +15261,10 @@ const OVERVIEW_CHART_CARD_ANIM_MS = OVERVIEW_PROJECTION_DELAY_MS + OVERVIEW_PROJ
 const OVERVIEW_PROGRESS_DRAW_MS = 2800;
 const OVERVIEW_DETAILS_BAR_DRAW_MS = 3500;
 const OVERVIEW_GAUGE_DRAW_MS = OVERVIEW_LINE_DRAW_MS + OVERVIEW_PROJECTION_DRAW_MS;
+const NET_WORTH_TREND_LINE_DRAW_MS = 720;
+const NET_WORTH_TREND_POINT_POP_MS = 420;
+const NET_WORTH_TREND_POINT_BASE_DELAY_MS = 260;
+const NET_WORTH_TREND_POINT_STAGGER_MS = 45;
 const ARCHIVE_LINE_DRAW_MS = 4500;
 const OVERVIEW_DETAILS_BAR_STAGGER_MS = 100;
 
@@ -15245,6 +15409,119 @@ function reduceMotionCheck() {
   try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; }
 }
 
+function getNetWorthTrendAnimRoot(card) {
+  if (!card) return null;
+  return card.querySelector('#overview-net-worth-trend-v238') || card.querySelector('.wealth-networth-trend-v238');
+}
+
+function stopNetWorthTrendAnimations(card) {
+  const root = getNetWorthTrendAnimRoot(card);
+  if (!root) return;
+  root.querySelectorAll('.wealth-networth-trend-line-v238').forEach((line) => {
+    try { (line.__btNetWorthLineAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
+    line.__btNetWorthLineAnim = null;
+    line.style.strokeDasharray = '';
+    line.style.strokeDashoffset = '';
+    line.style.animation = '';
+  });
+  root.querySelectorAll('.wealth-networth-trend-point-v238').forEach((pt) => {
+    try { (pt.__btPointAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
+    pt.__btPointAnim = null;
+    pt.style.opacity = '';
+    pt.style.transform = '';
+    pt.style.animation = '';
+  });
+}
+
+function primeNetWorthTrendForIntro(root) {
+  if (!root) return;
+  root.querySelectorAll('.wealth-networth-trend-line-v238').forEach((line) => {
+    try { (line.__btNetWorthLineAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
+    line.__btNetWorthLineAnim = null;
+    line.style.animation = 'none';
+    let len = 0;
+    try { len = line.getTotalLength(); } catch (_) {}
+    if (!len || len < 1) len = 420;
+    line.style.strokeDasharray = `${len}`;
+    line.style.strokeDashoffset = `${len}`;
+  });
+  root.querySelectorAll('.wealth-networth-trend-point-v238').forEach((pt) => {
+    try { (pt.__btPointAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
+    pt.__btPointAnim = null;
+    pt.style.opacity = '0';
+    pt.style.animation = 'none';
+    pt.style.transform = 'scale(0.74)';
+    pt.style.transformBox = 'fill-box';
+    pt.style.transformOrigin = 'center';
+  });
+}
+
+function playNetWorthTrendChartIntro(card) {
+  const root = getNetWorthTrendAnimRoot(card);
+  if (!root || !root.querySelector('.wealth-networth-trend-line-v238')) return;
+  if (activePageId !== 'overview') return;
+  const reducedMotion = reduceMotionCheck();
+  if (reducedMotion) {
+    root.querySelectorAll('.wealth-networth-trend-line-v238').forEach((line) => {
+      line.style.strokeDashoffset = '0';
+      line.style.animation = 'none';
+    });
+    root.querySelectorAll('.wealth-networth-trend-point-v238').forEach((pt) => {
+      pt.style.opacity = '1';
+      pt.style.transform = '';
+      pt.style.animation = 'none';
+    });
+    return;
+  }
+
+  primeNetWorthTrendForIntro(root);
+  void root.offsetWidth;
+
+  const lines = Array.from(root.querySelectorAll('.wealth-networth-trend-line-v238'));
+  let maxLineEndMs = 0;
+  lines.forEach((line, idx) => {
+    let len = 0;
+    try { len = line.getTotalLength(); } catch (_) {}
+    if (!len || len < 1) len = 420;
+    const duration = NET_WORTH_TREND_LINE_DRAW_MS;
+    const delay = idx * 110;
+    maxLineEndMs = Math.max(maxLineEndMs, delay + duration);
+    try {
+      const anim = line.animate(
+        [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
+        { duration, delay, easing: 'ease-out', fill: 'forwards' }
+      );
+      line.__btNetWorthLineAnim = [anim];
+      anim.onfinish = () => {
+        line.style.strokeDashoffset = '0';
+      };
+    } catch (_) {
+      line.style.strokeDashoffset = '0';
+    }
+  });
+
+  root.querySelectorAll('.wealth-networth-trend-point-v238').forEach((pt, idx) => {
+    pt.style.opacity = '0';
+    pt.style.animation = 'none';
+    const delay = Math.min(maxLineEndMs, NET_WORTH_TREND_POINT_BASE_DELAY_MS + idx * NET_WORTH_TREND_POINT_STAGGER_MS);
+    try {
+      const anim = pt.animate(
+        [{ opacity: 0, transform: 'scale(0.74)' }, { opacity: 1, transform: 'scale(1)' }],
+        { duration: NET_WORTH_TREND_POINT_POP_MS, delay, easing: 'ease-out', fill: 'forwards' }
+      );
+      pt.__btPointAnim = [anim];
+      anim.onfinish = () => {
+        pt.style.opacity = '1';
+        pt.style.transform = '';
+      };
+    } catch (_) {
+      pt.style.opacity = '1';
+    }
+  });
+}
+
+try { window.primeNetWorthTrendForIntro = primeNetWorthTrendForIntro; } catch (_) {}
+
 function runOverviewLineAnimations(card) {
   if (!card || typeof card.querySelectorAll !== 'function') return;
   const reduceMotion = reduceMotionCheck();
@@ -15253,7 +15530,7 @@ function runOverviewLineAnimations(card) {
   void card.offsetWidth;
 
   const mainLines = card.querySelectorAll(
-    '.overview-widget-line:not(.is-projection), .wealth-spark-line:not(.is-projection), .wealth-networth-trend-line-v238'
+    '.overview-widget-line:not(.is-projection):not(.wealth-networth-trend-line-v238), .wealth-spark-line:not(.is-projection)'
   );
   const projLines = card.querySelectorAll('.overview-widget-line.is-projection, .wealth-spark-line.is-projection');
   const hasProjection = projLines.length > 0;
@@ -15329,6 +15606,7 @@ function stopOverviewChartCardAnimations(card) {
   }
   stopOverviewGaugeArcAnimations(card);
   stopOverviewLineAnimations(card);
+  stopNetWorthTrendAnimations(card);
   card.classList.remove('overview-chart-animating');
 }
 
@@ -15353,7 +15631,16 @@ function scheduleOverviewChartsReplay(fromDetailsReturn = false) {
   const fire = () => {
     __overviewChartReplayTimer = null;
     if (token !== __overviewChartReplayToken || activePageId !== 'overview') return;
-    try { animateOverviewChartsIntro({ mode: 'visible' }); } catch (_) {}
+    const page = document.getElementById('page-overview');
+    if (page) {
+      getOverviewChartCards(page).forEach((card) => {
+        if (!isOverviewChartCardVisible(card)) return;
+        stopOverviewChartCardAnimations(card);
+        try { delete card.dataset.btChartAnimSig; } catch (_) {}
+      });
+      page.classList.remove('overview-summary-revealing', 'summary-days-progress-animating');
+    }
+    try { animateOverviewChartsIntro({ mode: 'visible', force: true }); } catch (_) {}
   };
   if (fromDetailsReturn) {
     __overviewChartReplayTimer = window.setTimeout(fire, 280);
@@ -15365,6 +15652,15 @@ function scheduleOverviewChartsReplay(fromDetailsReturn = false) {
 }
 
 function getOverviewChartCardAnimDuration(card) {
+  const netWorthPoints = card ? card.querySelectorAll('.wealth-networth-trend-point-v238').length : 0;
+  if (netWorthPoints > 0) {
+    const maxLineEndMs = NET_WORTH_TREND_LINE_DRAW_MS;
+    const lastPointDelay = Math.min(
+      maxLineEndMs,
+      NET_WORTH_TREND_POINT_BASE_DELAY_MS + Math.max(0, netWorthPoints - 1) * NET_WORTH_TREND_POINT_STAGGER_MS
+    );
+    return Math.max(maxLineEndMs, lastPointDelay + NET_WORTH_TREND_POINT_POP_MS) + 120;
+  }
   const hasGauge = !!(card && card.querySelector('.overview-widget-arc:not(.is-empty-arc), .wealth-gauge-arc:not(.is-empty-arc)'));
   const hasProjection = !!(card && card.querySelector('.overview-widget-line.is-projection, .wealth-spark-line.is-projection'));
   let lineDuration = hasProjection
@@ -15392,12 +15688,17 @@ function animateOverviewChartCard(card) {
   card.dataset.btChartAnimSig = getOverviewChartCardSignature(card);
   __overviewChartIntroPlayed.add(card);
   runOverviewGaugeArcAnimations(card);
-  runOverviewLineAnimations(card);
+  if (card.querySelector('.wealth-networth-trend-line-v238')) {
+    playNetWorthTrendChartIntro(card);
+  } else {
+    runOverviewLineAnimations(card);
+  }
   const duration = getOverviewChartCardAnimDuration(card);
   const timerId = window.setTimeout(() => {
     card.classList.remove('overview-chart-animating');
     finalizeOverviewGaugeArcs(card);
     finalizeOverviewChartLineStrokes(card);
+    stopNetWorthTrendAnimations(card);
     __overviewChartAnimTimers.delete(card);
   }, duration);
   __overviewChartAnimTimers.set(card, timerId);
@@ -15435,6 +15736,7 @@ function animateOverviewChartsIntro(options = {}) {
   const page = document.getElementById('page-overview');
   if (!page || !canRunOverviewChartIntro()) return;
   const mode = options.mode || 'visible';
+  const force = !!(options && options.force);
   const beforeSigs = mode === 'changed-visible'
     ? (options.beforeSigs || window.__overviewChartSigsBeforeSync || null)
     : null;
@@ -15443,7 +15745,7 @@ function animateOverviewChartsIntro(options = {}) {
     let cards = getOverviewIntroCards(page, { mode, beforeSigs });
     if (mode === 'boot') {
       cards = cards.filter((card) => isOverviewChartCardVisible(card));
-    } else if (mode !== 'changed-visible') {
+    } else if (mode !== 'changed-visible' && !force) {
       cards = cards.filter((card) => !overviewChartIntroIsCurrent(card));
     }
     cards.forEach((card) => animateOverviewChartCard(card));
@@ -16059,30 +16361,38 @@ function renderDirtyTabSection(pageId) {
 }
 try { window.renderDirtyTabSection = renderDirtyTabSection; } catch (_) {}
 
+let __archiveChartIntroToken = 0;
+
+function primeArchiveTrendLinesForIntro(wrap) {
+  if (!wrap) return;
+  wrap.querySelectorAll('.archive-bank-line').forEach((line) => {
+    try { (line.__btArchiveLineAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
+    line.__btArchiveLineAnim = null;
+    line.style.animation = 'none';
+    let len = 0;
+    try { len = line.getTotalLength(); } catch (_) {}
+    if (!len || len < 1) len = 420;
+    line.style.strokeDasharray = `${len}`;
+    line.style.strokeDashoffset = `${len}`;
+  });
+  wrap.querySelectorAll('.archive-bank-point').forEach((pt) => {
+    pt.style.opacity = '0';
+    pt.style.animation = 'none';
+  });
+}
+
 function scheduleArchiveChartIntro(delayMs = 0) {
+  const token = ++__archiveChartIntroToken;
   window.setTimeout(() => {
+    if (token !== __archiveChartIntroToken) return;
     requestAnimationFrame(() => {
+      if (token !== __archiveChartIntroToken) return;
       requestAnimationFrame(() => {
+        if (token !== __archiveChartIntroToken) return;
         try { playArchiveTrendChartIntro(); } catch (_) {}
       });
     });
   }, Math.max(0, Number(delayMs || 0)));
-}
-
-function setArchiveTabLoading(isLoading) {
-  const page = document.getElementById('page-archive');
-  if (isLoading) {
-    if (!__appBootActive && !document.body.classList.contains('app-boot-pending')) {
-      showTabPageLoadingOverlay();
-    }
-    if (page) page.classList.add('is-archive-tab-loading');
-  } else {
-    if (page) page.classList.remove('is-archive-tab-loading');
-    if (!__appBootActive && !document.body.classList.contains('app-boot-pending')) {
-      hideTabPageLoadingOverlay();
-    }
-    scheduleArchiveChartIntro(40);
-  }
 }
 
 function playArchiveTrendChartIntro() {
@@ -16090,56 +16400,104 @@ function playArchiveTrendChartIntro() {
   const wrap = document.getElementById('archive-trend-chart');
   if (!page || !wrap || !page.classList.contains('active')) return;
   const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  if (reducedMotion) return;
+  if (reducedMotion) {
+    wrap.querySelectorAll('.archive-bank-line').forEach((line) => {
+      line.style.strokeDashoffset = '0';
+      line.style.animation = 'none';
+    });
+    wrap.querySelectorAll('.archive-bank-point').forEach((pt) => {
+      pt.style.opacity = '1';
+      pt.style.animation = 'none';
+    });
+    return;
+  }
 
-  wrap.querySelectorAll('.archive-trend-bar-animate').forEach((el, idx) => {
+  wrap.querySelectorAll('.archive-trend-bar-animate').forEach((el) => {
     el.style.removeProperty('transform');
     el.style.removeProperty('opacity');
-    el.style.animation = 'none';
-    void el.offsetWidth;
-    el.style.animation = '';
+    el.style.removeProperty('animation');
+    el.style.removeProperty('animation-delay');
+  });
+  void wrap.offsetWidth;
+
+  wrap.querySelectorAll('.archive-trend-bar-animate').forEach((el, idx) => {
+    el.style.animation = 'archiveBarGrow .62s cubic-bezier(.22,.72,.22,1) both';
     el.style.animationDelay = `${idx * 35}ms`;
   });
 
-  wrap.querySelectorAll('.archive-bank-line').forEach((line, idx) => {
-    try { (line.__btArchiveLineAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
-    line.__btArchiveLineAnim = null;
+  primeArchiveTrendLinesForIntro(wrap);
+  void wrap.offsetWidth;
+
+  const lines = Array.from(wrap.querySelectorAll('.archive-bank-line'));
+  let maxLineEndMs = 0;
+  lines.forEach((line, idx) => {
     let len = 0;
     try { len = line.getTotalLength(); } catch (_) {}
     if (!len || len < 1) len = 420;
-    line.style.strokeDasharray = `${len}`;
-    line.style.strokeDashoffset = `${len}`;
+    const duration = 720;
+    const delay = idx * 110;
+    maxLineEndMs = Math.max(maxLineEndMs, delay + duration);
     try {
       const anim = line.animate(
         [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
-        { duration: 720, delay: idx * 110, easing: 'ease-out', fill: 'forwards' }
+        { duration, delay, easing: 'ease-out', fill: 'forwards' }
       );
       line.__btArchiveLineAnim = [anim];
+      anim.onfinish = () => {
+        line.style.strokeDashoffset = '0';
+      };
     } catch (_) {
       line.style.strokeDashoffset = '0';
     }
+  });
+
+  wrap.querySelectorAll('.archive-bank-point').forEach((pt, idx) => {
+    pt.style.opacity = '0';
+    pt.style.animation = 'none';
+    const delay = Math.min(maxLineEndMs, 260 + idx * 45);
+    try {
+      const anim = pt.animate(
+        [{ opacity: 0, transform: 'scale(0.74)' }, { opacity: 1, transform: 'scale(1)' }],
+        { duration: 420, delay, easing: 'ease-out', fill: 'forwards' }
+      );
+      pt.__btPointAnim = [anim];
+      anim.onfinish = () => {
+        pt.style.opacity = '1';
+        pt.style.transform = '';
+      };
+    } catch (_) {
+      pt.style.opacity = '1';
+    }
+  });
+}
+
+function finishArchiveTabPresentation() {
+  markLoadingPresentationDataReady();
+  finishLoadingPresentation(() => {
+    scheduleArchiveChartIntro(60);
+    window.setTimeout(() => {
+      try { maybeLoadMoreArchiveMonths(); } catch (_) {}
+    }, 20);
   });
 }
 
 function scheduleArchiveTabRender() {
   const list = document.getElementById('archive-months-list');
   const needsRender = !!__btArchiveTabDirty || !(list && list.children && list.children.length);
+
   if (!needsRender) {
+    scheduleArchiveChartIntro(60);
     window.setTimeout(() => {
       try { maybeLoadMoreArchiveMonths(); } catch (_) {}
     }, 20);
-    scheduleArchiveChartIntro(60);
     return;
   }
-  setArchiveTabLoading(true);
+
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       const run = () => {
         try { renderArchiveSection(); } catch (_) {}
-        setArchiveTabLoading(false);
-        window.setTimeout(() => {
-          try { maybeLoadMoreArchiveMonths(); } catch (_) {}
-        }, 20);
+        finishArchiveTabPresentation();
       };
       if (typeof requestIdleCallback === 'function') {
         requestIdleCallback(run, { timeout: 220 });
@@ -16147,6 +16505,63 @@ function scheduleArchiveTabRender() {
         window.setTimeout(run, 0);
       }
     });
+  });
+}
+
+function playTxnCashflowIntro() {
+  const page = document.getElementById('page-txns');
+  if (!page || !page.classList.contains('active')) return;
+  const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  page.classList.remove('txn-cashflow-intro-pending');
+  if (reducedMotion) return;
+  const slot = document.getElementById('txn-cashflow-slot');
+  if (!slot) return;
+  const bars = slot.querySelectorAll('.txn-cashflow-bar-in, .txn-cashflow-bar-out');
+  if (!bars.length) return;
+  bars.forEach((el) => {
+    el.style.animation = 'none';
+    el.style.removeProperty('animation-delay');
+    el.style.transform = 'scaleY(0.16)';
+    el.style.opacity = '0.55';
+  });
+  void slot.offsetWidth;
+  bars.forEach((el) => {
+    el.style.removeProperty('transform');
+    el.style.removeProperty('opacity');
+    el.style.animation = 'barGrowSoft 0.72s cubic-bezier(.18,.78,.24,1) both';
+    el.style.animationDelay = el.classList.contains('txn-cashflow-bar-out') ? '0.12s' : '0ms';
+  });
+}
+
+function scheduleTxnCashflowIntro(delayMs = 0) {
+  window.setTimeout(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        try { playTxnCashflowIntro(); } catch (_) {}
+      });
+    });
+  }, Math.max(0, Number(delayMs || 0)));
+}
+
+function presentTxnsTab(options = {}) {
+  const run = () => {
+    document.getElementById('page-txns')?.classList.add('txn-cashflow-intro-pending');
+    try {
+      renderTransactionsSection();
+      if (massTagSelectMode) {
+        document.getElementById('txn-list')?.removeAttribute('data-rendered-key');
+        try { updateTxnPage(true); } catch (_) {}
+        updateMassTagBarUi();
+      }
+    } catch (_) {}
+    markLoadingPresentationDataReady();
+    finishLoadingPresentation(() => {
+      scheduleTxnCashflowIntro(0);
+    });
+  };
+  requestAnimationFrame(() => {
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 200 });
+    else window.setTimeout(run, 0);
   });
 }
 
@@ -18038,9 +18453,14 @@ function showPage(pageId, options = {}) {
   const previousPageId = activePageId;
   const fromHistory = !!(options && options.fromHistory);
   const shouldPushHistory = !fromHistory && window.__bankTrackerTabHistoryReady && activePageId !== pageId;
+  const useTabPresentation = shouldPresentTabOnSwitch(pageId);
+
+  if (useTabPresentation) {
+    beginLoadingPresentation({ kind: 'tab', tabId: pageId });
+  }
 
   document.querySelectorAll('.page').forEach(p => {
-    p.classList.remove('active', 'page-slide-in-right', 'page-slide-in-left', 'swipe-peeking', 'page-tab-fade', 'page-light-switch');
+    p.classList.remove('active', 'page-slide-in-right', 'page-slide-in-left', 'swipe-peeking', 'page-tab-fade', 'page-light-switch', 'is-tab-presenting');
     p.style.transform = '';
     p.style.webkitTransform = '';
   });
@@ -18051,6 +18471,7 @@ function showPage(pageId, options = {}) {
 
   if (targetPage) {
     targetPage.classList.add('active');
+    if (useTabPresentation) targetPage.classList.add('is-tab-presenting');
 
     requestAnimationFrame(() => {
       targetPage.classList.add('page-light-switch');
@@ -18084,11 +18505,16 @@ function showPage(pageId, options = {}) {
       document.getElementById('page-txns')?.classList.add('mass-tag-select-mode');
       document.body.classList.add('mass-tag-select-active');
     }
-    renderTransactionsSection();
-    if (massTagSelectMode) {
-      document.getElementById('txn-list')?.removeAttribute('data-rendered-key');
-      try { updateTxnPage(true); } catch (_) {}
-      updateMassTagBarUi();
+    if (useTabPresentation) presentTxnsTab(options);
+    else {
+      document.getElementById('page-txns')?.classList.add('txn-cashflow-intro-pending');
+      renderTransactionsSection();
+      if (massTagSelectMode) {
+        document.getElementById('txn-list')?.removeAttribute('data-rendered-key');
+        try { updateTxnPage(true); } catch (_) {}
+        updateMassTagBarUi();
+      }
+      scheduleTxnCashflowIntro(0);
     }
   }
 
@@ -21411,6 +21837,7 @@ function renderArchiveTrendChart() {
       }).join('')}
     </svg>
   `;
+  primeArchiveTrendLinesForIntro(wrap);
   archiveTrendChartCache = { signature: cacheSignature, html: wrap.innerHTML };
 }
 
@@ -24199,6 +24626,7 @@ function applyAppTheme(theme = getAppTheme()) {
   const lightBtn = document.getElementById('theme-light-btn');
   if (darkBtn) darkBtn.classList.toggle('active', normalized === 'dark');
   if (lightBtn) lightBtn.classList.toggle('active', normalized === 'light');
+  try { refreshBtBrandLogosForTheme(); } catch (_) {}
 }
 
 function setAppTheme(theme) {
@@ -24328,7 +24756,7 @@ function warmStartupCachesDeferred(options = {}) {
 window.addEventListener('DOMContentLoaded', () => {
   __appBootActive = true;
   __bootPresentationPhase = true;
-  __appBootStartedAt = Date.now();
+  beginLoadingPresentation({ kind: 'boot' });
 
   const loaderFailSafe = setTimeout(() => {
     try { completeAppBootSequence(); } catch (_) {}
@@ -24356,12 +24784,12 @@ window.addEventListener('DOMContentLoaded', () => {
           })
           .finally(() => {
             if (!__appBootActive) clearTimeout(loaderFailSafe);
+            else finalizeAppBootPresentation();
             window.setTimeout(() => {
               try { warmHeavyTabCachesSync({ force: false }); } catch (_) {}
             }, 0);
           });
       }, 180);
-      scheduleAppBootCompletion();
       return;
     }
 
@@ -24389,7 +24817,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     try { renderAll({ visibleOnly: true }); } catch (_) {}
     try { __overviewChartsDataSettled = true; } catch (_) {}
-    scheduleAppBootCompletion();
+    finalizeAppBootPresentation();
     if (!SHEETS_URL) {
       const loadStatus = document.getElementById('limits-sync-status');
       if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
@@ -24429,7 +24857,7 @@ window.addEventListener('pageshow', (event) => {
     __overviewChartsDataSettled = true;
   }
   if (__appBootActive) {
-    scheduleAppBootCompletion();
+    finalizeAppBootPresentation();
     return;
   }
   scheduleOverviewPageBootAnimation({ delayMs: 200, force: true });
@@ -27033,8 +27461,9 @@ window.addEventListener('pageshow', (event) => {
     slot.innerHTML = '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'
       + '<path class="wealth-networth-trend-area-v238" d="'+attr(area)+'"></path>'
       + '<path class="overview-widget-line wealth-networth-trend-line-v238" d="'+attr(path)+'"></path>'
-      + '<circle class="wealth-networth-trend-dot-v238" cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="1.35"></circle>'
+      + '<circle class="wealth-networth-trend-dot-v238 wealth-networth-trend-point-v238" cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="1.35" fill="#ffffff" stroke="var(--accent)" stroke-width="0.85"></circle>'
       + '</svg><div class="wealth-networth-trend-caption-v238"><span>'+esc(firstLabel)+'</span><span>'+esc(lastLabel)+'</span></div>';
+    try { if (typeof primeNetWorthTrendForIntro === 'function') primeNetWorthTrendForIntro(slot); } catch(_) {}
     try { if (typeof scheduleNetWorthTrendAnimation === 'function') scheduleNetWorthTrendAnimation(); } catch(_) {}
   }
 
