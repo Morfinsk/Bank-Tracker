@@ -3,7 +3,7 @@
   "short_name": "BankTracker",
   "description": "Track bank card usage, budgets and transactions",
   "id": "/Bank-Tracker/",
-  "start_url": "./index.html#overview/?v=288",
+  "start_url": "./index.html#overview/?v=289",
   "scope": "/./",
   "display": "standalone",
   "background_color": "#0a0a0a",
@@ -11,16 +11,10 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "Logos/logo.svg",
+      "src": "Logos/bank-tracker-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
-    },
-    {
-      "src": "logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
     }
   ]
 }
