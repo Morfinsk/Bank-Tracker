@@ -876,7 +876,7 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=288">
+<link rel="manifest" href="./manifest.json?v=289">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -4092,19 +4092,19 @@
   }
 
   .bt-brand-logo-svg--idle .bt-logo-dot-wrap {
-    opacity: 1;
+    opacity: 0;
     animation: none !important;
     will-change: auto;
   }
 
   .bt-brand-logo-svg--idle .bt-logo-dot-mover {
     transform: translate(140px, -120px);
-    opacity: 1;
+    opacity: 0;
     animation: none !important;
   }
 
   .bt-brand-logo-svg--idle .bt-logo-dot {
-    opacity: 1;
+    opacity: 0;
   }
 
   .bt-brand-logo-svg .bt-logo-dot-wrap {
@@ -4117,7 +4117,7 @@
 
   .bt-brand-logo-svg--idle .bt-logo-dot-wrap > .bt-logo-dot {
     transform: translate(140px, -120px);
-    opacity: 1;
+    opacity: 0;
   }
 
   .bt-brand-logo-svg .bt-logo-dot {
@@ -4188,19 +4188,19 @@
   }
 
   #header-brand-logo:not(.bt-brand-logo-svg--draw-loop):not(.bt-brand-logo-svg--draw-once) .bt-logo-dot-wrap {
-    opacity: 1;
+    opacity: 0;
     animation: none !important;
     will-change: auto;
   }
 
   #header-brand-logo:not(.bt-brand-logo-svg--draw-loop):not(.bt-brand-logo-svg--draw-once) .bt-logo-dot-mover {
     transform: translate(140px, -120px);
-    opacity: 1;
+    opacity: 0;
     animation: none !important;
   }
 
   #header-brand-logo:not(.bt-brand-logo-svg--draw-loop):not(.bt-brand-logo-svg--draw-once) .bt-logo-dot {
-    opacity: 1;
+    opacity: 0;
     stroke: none;
   }
 
@@ -4307,23 +4307,23 @@
   }
 
   @keyframes btLogoDrawStem {
-    0%, 6% { stroke-dashoffset: 100; }
-    14%, 100% { stroke-dashoffset: 0; }
+    0%, 3% { stroke-dashoffset: 100; }
+    20%, 100% { stroke-dashoffset: 0; }
   }
 
   @keyframes btLogoDrawArrow {
-    0%, 14% { stroke-dashoffset: 100; }
-    24%, 100% { stroke-dashoffset: 0; }
+    0%, 20% { stroke-dashoffset: 100; }
+    38%, 100% { stroke-dashoffset: 0; }
   }
 
   @keyframes btLogoDrawLoopTopByDot {
-    0%, 32% { stroke-dashoffset: 100; }
-    54%, 100% { stroke-dashoffset: 0; }
+    0%, 52% { stroke-dashoffset: 100; }
+    72%, 100% { stroke-dashoffset: 0; }
   }
 
   @keyframes btLogoDrawLoopBottom {
-    0%, 54% { stroke-dashoffset: 100; }
-    68%, 100% { stroke-dashoffset: 0; }
+    0%, 72% { stroke-dashoffset: 100; }
+    92%, 100% { stroke-dashoffset: 0; }
   }
 
   @keyframes btLogoBreathe {
@@ -4365,7 +4365,11 @@
       opacity: 1 !important;
     }
     .bt-brand-logo-svg .bt-logo-dot {
-      opacity: 1 !important;
+      opacity: 0 !important;
+    }
+    .bt-brand-logo-svg .bt-logo-dot-wrap,
+    .bt-brand-logo-svg .bt-logo-dot-motion-wrap {
+      opacity: 0 !important;
     }
     .header-brand-wrap.is-brand-syncing .bt-brand-logo-svg--header,
     .header-brand-wrap.is-brand-syncing .bt-brand-logo--header {
@@ -9420,7 +9424,7 @@ html[data-theme="light"] body::before {
 
 <div id="page-loading-overlay" class="page-loading-overlay show" aria-live="polite" aria-busy="true">
   <div class="page-loading-brand" aria-hidden="true">
-    <svg class="bt-brand-logo-svg bt-brand-logo-svg--loading bt-brand-logo-svg--draw-loop" width="72" height="72" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><g transform="translate(168, 88) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><g class="bt-logo-dot-wrap"><g class="bt-logo-dot-mover"><circle class="bt-logo-dot" cx="60" cy="300" r="18" fill="#00e5ff"/></g></g></g></svg>
+    <svg class="bt-brand-logo-svg bt-brand-logo-svg--loading bt-brand-logo-svg--draw-loop" width="72" height="72" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><g transform="translate(157, 76) scale(0.78)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><g class="bt-logo-dot-wrap"><g class="bt-logo-dot-motion-wrap" opacity="0"><animate class="bt-logo-dot-opacity" attributeName="opacity" dur="900ms" repeatCount="indefinite" keyTimes="0;0.03;0.92;1" values="0;1;1;1"/><animateMotion class="bt-logo-dot-motion" dur="900ms" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.03;0.20;0.38;0.52;0.72;0.92;1" keyPoints="0;0;0.1914;0.3213;0.4183;0.6786;1;1" path="M 60 300 L 60 50 L 20 90 L 60 50 L 100 90 L 60 50 L 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80 L 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90"/><circle class="bt-logo-dot" r="18" fill="#00e5ff" stroke="none"/></g></g></g></svg>
   </div>
 </div>
 
@@ -9428,7 +9432,7 @@ html[data-theme="light"] body::before {
   <div class="header overview-header-v236">
     <div class="overview-header-row overview-header-top-v236">
       <div class="header-title header-brand-wrap" id="header-brand-wrap" aria-label="Bank Tracker">
-        <svg id="header-brand-logo" class="bt-brand-logo-svg bt-brand-logo-svg--header bt-brand-logo-svg--idle" width="38" height="38" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect class="bt-logo-bg-rect" width="512" height="512" rx="112" fill="#08111f"/><circle class="bt-logo-bg-glow" cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(168, 88) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><g class="bt-logo-dot-wrap"><g class="bt-logo-dot-mover"><circle class="bt-logo-dot" cx="60" cy="300" r="18" fill="#00e5ff"/></g></g></g></svg>
+        <svg id="header-brand-logo" class="bt-brand-logo-svg bt-brand-logo-svg--header bt-brand-logo-svg--idle" width="38" height="38" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect class="bt-logo-bg-rect" width="512" height="512" rx="112" fill="#08111f"/><circle class="bt-logo-bg-glow" cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(157, 76) scale(0.78)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><g class="bt-logo-dot-wrap"><g class="bt-logo-dot-motion-wrap" opacity="0"><animate class="bt-logo-dot-opacity" attributeName="opacity" dur="900ms" repeatCount="indefinite" keyTimes="0;0.03;0.92;1" values="0;1;1;1"/><animateMotion class="bt-logo-dot-motion" dur="900ms" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.03;0.20;0.38;0.52;0.72;0.92;1" keyPoints="0;0;0.1914;0.3213;0.4183;0.6786;1;1" path="M 60 300 L 60 50 L 20 90 L 60 50 L 100 90 L 60 50 L 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80 L 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90"/><circle class="bt-logo-dot" r="18" fill="#00e5ff" stroke="none"/></g></g></g></svg>
         <span class="header-brand-title" id="header-brand-title">ank Tracker</span>
       </div>
       <div class="overview-header-actions-v236">
@@ -10539,8 +10543,8 @@ const BANKS = {
 };
 const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','csob_cz_credit','moneta','air_bank_cz','pluxee'];
 
-const BT_LOGO_SRC = './Logos/logo.svg';
-const BT_LOGO_SRC_FALLBACK = './logo.svg';
+const BT_LOGO_SRC = './Logos/bank-tracker-logo.svg';
+const BT_LOGO_SRC_FALLBACK = './Logos/bank-tracker-logo.svg';
 const BT_BANK_LOGOS_BASE = 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/';
 
 const BANK_LOGOS = {
@@ -13002,16 +13006,20 @@ function showTopWorkingToast(message) {
   showLargeStatusToast(message || fallback, 'top-loading');
 }
 
-const BT_LOGO_G_TRANSFORM = 'translate(168, 88) scale(0.8)';
+const BT_LOGO_G_TRANSFORM = 'translate(157, 76) scale(0.78)';
 const BT_LOGO_STROKE_WIDTH = 36;
 const BT_LOGO_STEM_PATH = 'M 60 300 L 60 50';
 const BT_LOGO_ARROW_PATH = 'M 20 90 L 60 50 L 100 90';
 const BT_LOGO_LOOP_TOP_PATH = 'M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80';
 const BT_LOGO_LOOP_BOTTOM_PATH = 'M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90';
-const BT_LOGO_DOT_TRAVEL = '140px, -120px';
+const BT_LOGO_DOT_OPACITY_KEY_TIMES = '0;0.03;0.92;1';
+const BT_LOGO_DOT_OPACITY_VALUES = '0;1;1;1';
+const BT_LOGO_DOT_MOTION_KEY_TIMES = '0;0.03;0.20;0.38;0.52;0.72;0.92;1';
+const BT_LOGO_DOT_MOTION_KEY_POINTS = '0;0;0.1914;0.3213;0.4183;0.6786;1;1';
+const BT_LOGO_DOT_MOTION_PATH = 'M 60 300 L 60 50 L 20 90 L 60 50 L 100 90 L 60 50 L 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80 L 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90';
 
 function getBtLogoDotSvgMarkup(accent = '#00e5ff') {
-  return `<g class="bt-logo-dot-wrap"><g class="bt-logo-dot-mover"><circle class="bt-logo-dot" cx="60" cy="300" r="18" fill="${accent}"/></g></g>`;
+  return `<g class="bt-logo-dot-wrap"><g class="bt-logo-dot-motion-wrap" opacity="0"><animate class="bt-logo-dot-opacity" attributeName="opacity" dur="${BT_LOGO_CYCLE_MS}ms" repeatCount="indefinite" keyTimes="${BT_LOGO_DOT_OPACITY_KEY_TIMES}" values="${BT_LOGO_DOT_OPACITY_VALUES}"/><animateMotion class="bt-logo-dot-motion" dur="${BT_LOGO_CYCLE_MS}ms" repeatCount="indefinite" calcMode="linear" keyTimes="${BT_LOGO_DOT_MOTION_KEY_TIMES}" keyPoints="${BT_LOGO_DOT_MOTION_KEY_POINTS}" path="${BT_LOGO_DOT_MOTION_PATH}"/><circle class="bt-logo-dot" r="18" fill="${accent}" stroke="none"/></g></g>`;
 }
 
 function isBtLightTheme() {
@@ -13088,7 +13096,7 @@ function ensureHeaderBrandLogoMarkup() {
   const host = document.getElementById('header-brand-wrap');
   const existing = getHeaderBrandLogoEl();
   if (!host) return existing;
-  if (existing && existing.querySelector('.bt-logo-dot-mover')) {
+  if (existing && existing.querySelector('.bt-logo-stem')) {
     existing.classList.add('bt-brand-logo-svg', 'bt-brand-logo-svg--header');
     if (!existing.classList.contains('bt-brand-logo-svg--draw-loop') && !existing.classList.contains('bt-brand-logo-svg--draw-once')) {
       existing.classList.add('bt-brand-logo-svg--idle');
@@ -13230,7 +13238,12 @@ function computeLoadingRevealPlan(session) {
 function setLogoAnimCycleMs(ms, svgEl) {
   const cycle = Math.max(400, Math.round(Number(ms || BT_LOGO_CYCLE_MS)));
   const svg = svgEl || document.querySelector('#page-loading-overlay .bt-brand-logo-svg--draw-once, #page-loading-overlay .bt-brand-logo-svg--draw-loop');
-  if (svg) svg.style.setProperty('--bt-logo-cycle-ms', cycle + 'ms');
+  if (svg) {
+    svg.style.setProperty('--bt-logo-cycle-ms', cycle + 'ms');
+    svg.querySelectorAll('.bt-logo-dot-motion, .bt-logo-dot-opacity').forEach((el) => {
+      el.setAttribute('dur', cycle + 'ms');
+    });
+  }
 }
 
 function cancelLoadingPresentation() {
