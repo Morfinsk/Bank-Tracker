@@ -3,10 +3,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="theme-color" content="#08111f">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#08111f">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08111f">
-<meta name="msapplication-navbutton-color" content="#08111f">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0a0a0a">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
+<meta name="msapplication-navbutton-color" content="#0a0a0a">
 <meta name="color-scheme" content="dark">
 <meta name="supported-color-schemes" content="dark light">
 
@@ -14,7 +14,7 @@
 (function applyEarlyThemeShell(){
   try {
     var theme = localStorage.getItem('app_theme') === 'light' ? 'light' : 'dark';
-    var bar = theme === 'light' ? '#f8fafc' : '#08111f';
+    var bar = '#0a0a0a';
     var scheme = theme === 'light' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.style.setProperty('--system-bar-color', bar);
@@ -43,7 +43,7 @@
     color-scheme: dark;
   }
   body {
-    background-color: #0d1117 !important;
+    background-color: #0a0a0a !important;
     color: #ffffff;
     margin: 0;
     min-height: 100vh;
@@ -876,7 +876,7 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=287">
+<link rel="manifest" href="./manifest.json?v=288">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -4862,15 +4862,15 @@
   }
 
   html {
-    background: #08111f !important;
+    background: #0a0a0a !important;
     min-height: 100%;
   }
 
   body {
     background:
       radial-gradient(circle at top left, rgba(88,166,255,.18), transparent 42%),
-      linear-gradient(180deg, #08111f 0%, #07101f 45%, #050b16 100%) !important;
-    background-color: #08111f !important;
+      linear-gradient(180deg, #0a0a0a 0%, #08111f 12%, #07101f 50%, #050b16 88%, #0a0a0a 100%) !important;
+    background-color: #0a0a0a !important;
     min-height: 100vh;
     min-height: 100dvh;
     padding-top: env(safe-area-inset-top);
@@ -4884,7 +4884,7 @@
     left: 0;
     right: 0;
     height: env(safe-area-inset-top);
-    background: var(--status-bar-color, var(--system-bar-color, #08111f));
+    background: var(--status-bar-color, var(--system-bar-color, #0a0a0a));
     pointer-events: none;
   }
 
@@ -4895,7 +4895,7 @@
   @supports (-webkit-touch-callout: none) {
     html,
     body {
-      background-color: #08111f !important;
+      background-color: #0a0a0a !important;
     }
   }
 
@@ -5000,12 +5000,12 @@
   }
 
   html {
-    background: #08111f !important;
-    background-color: #08111f !important;
+    background: #0a0a0a !important;
+    background-color: #0a0a0a !important;
   }
 
   body {
-    background-color: #08111f !important;
+    background-color: #0a0a0a !important;
     min-height: 100vh;
     min-height: 100dvh;
   }
@@ -5024,7 +5024,7 @@
   /* v95 Android Chrome system bar repaint support */
   :root {
     color-scheme: dark;
-    --system-bar-color: #08111f;
+    --system-bar-color: #0a0a0a;
   }
 
   html {
@@ -5040,13 +5040,13 @@
 
   html[data-theme="dark"],
   html:not([data-theme="light"]) {
-    --system-bar-color: #08111f;
-    --status-bar-color: #08111f;
+    --system-bar-color: #0a0a0a;
+    --status-bar-color: #0a0a0a;
   }
 
   html[data-theme="light"] {
-    --system-bar-color: #f8fafc;
-    --status-bar-color: #f8fafc;
+    --system-bar-color: #0a0a0a;
+    --status-bar-color: #0a0a0a;
   }
 
   .android-system-bar-bg {
@@ -5055,7 +5055,7 @@
     right: 0;
     bottom: 0;
     height: max(72px, calc(56px + env(safe-area-inset-bottom)));
-    background: var(--system-bar-color, #08111f) !important;
+    background: var(--system-bar-color, #0a0a0a) !important;
     pointer-events: none;
     z-index: 80;
     transform: translateZ(0);
@@ -5154,12 +5154,12 @@
 
   html[data-theme="dark"] {
     color-scheme: dark;
-    background: #08111f !important;
-    background-color: #08111f !important;
+    background: #0a0a0a !important;
+    background-color: #0a0a0a !important;
   }
 
   html[data-theme="dark"] body {
-    background-color: #08111f !important;
+    background-color: #0a0a0a !important;
   }
 
   html[data-theme="light"] {
@@ -5185,6 +5185,19 @@
       radial-gradient(circle at top right, rgba(14,165,233,.11), transparent 32%),
       linear-gradient(180deg, #f8fafc 0%, #eef4fb 48%, #f8fafc 100%) !important;
     background-color: #f8fafc !important;
+  }
+
+  html.pwa-standalone.android-device[data-theme="light"] {
+    background: #0a0a0a !important;
+    background-color: #0a0a0a !important;
+  }
+
+  html.pwa-standalone.android-device[data-theme="light"] body {
+    background:
+      radial-gradient(circle at top left, rgba(37,99,235,.12), transparent 34%),
+      radial-gradient(circle at top right, rgba(14,165,233,.11), transparent 32%),
+      linear-gradient(180deg, #0a0a0a 0%, #f8fafc 9%, #eef4fb 50%, #f8fafc 91%, #0a0a0a 100%) !important;
+    background-color: #0a0a0a !important;
   }
 
   html[data-theme="light"] .summary,
@@ -5301,12 +5314,12 @@
   /* v98 dark default system shell; light only after explicit app choice */
   html:not([data-theme="light"]) {
     color-scheme: dark;
-    background: #08111f !important;
-    background-color: #08111f !important;
+    background: #0a0a0a !important;
+    background-color: #0a0a0a !important;
   }
 
   html:not([data-theme="light"]) body {
-    background-color: #08111f !important;
+    background-color: #0a0a0a !important;
   }
 
   html:not([data-theme="light"]) .bottom-nav {
@@ -5323,7 +5336,7 @@
     right: 0;
     bottom: 0;
     height: max(32px, env(safe-area-inset-bottom));
-    background: var(--system-bar-color, #08111f);
+    background: var(--system-bar-color, #0a0a0a);
     pointer-events: none;
     z-index: 0;
   }
@@ -5335,14 +5348,14 @@
     right: 0;
     bottom: 0;
     height: max(32px, env(safe-area-inset-bottom));
-    background: var(--system-bar-color, #f8fafc);
+    background: var(--system-bar-color, #0a0a0a);
     pointer-events: none;
     z-index: 0;
   }
 
   html.pwa-standalone.android-device .android-system-bar-bg {
     z-index: 90;
-    background: var(--system-bar-color, #08111f) !important;
+    background: var(--system-bar-color, #0a0a0a) !important;
   }
 
   html.pwa-standalone.android-device:not([data-theme="light"]) .bottom-nav {
@@ -24955,13 +24968,13 @@ function initPageSwipeNavigation() {
 // ── APP LIGHT / DARK THEME SWITCH ──────────────────────────
 const APP_THEMES = {
   dark: {
-    themeColor: '#08111f',
-    backgroundColor: '#08111f',
+    themeColor: '#0a0a0a',
+    backgroundColor: '#0a0a0a',
     colorScheme: 'dark'
   },
   light: {
-    themeColor: '#f8fafc',
-    backgroundColor: '#f8fafc',
+    themeColor: '#0a0a0a',
+    backgroundColor: '#0a0a0a',
     colorScheme: 'light'
   }
 };
