@@ -876,7 +876,7 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=286">
+<link rel="manifest" href="./manifest.json?v=287">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -3410,6 +3410,7 @@
     position: relative;
     overflow: hidden;
     -webkit-mask-image: -webkit-radial-gradient(#fff, #000);
+    mask-image: radial-gradient(#fff, #000);
   }
 
   .bt-touch-ripple-host-fixed {
@@ -9406,7 +9407,7 @@ html[data-theme="light"] body::before {
 
 <div id="page-loading-overlay" class="page-loading-overlay show" aria-live="polite" aria-busy="true">
   <div class="page-loading-brand" aria-hidden="true">
-    <svg class="bt-brand-logo-svg bt-brand-logo-svg--loading bt-brand-logo-svg--draw-loop" width="72" height="72" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect width="512" height="512" rx="112" fill="#08111f"/><circle cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(168, 88) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><g class="bt-logo-dot-wrap"><g class="bt-logo-dot-mover"><circle class="bt-logo-dot" cx="60" cy="300" r="18" fill="#00e5ff"/></g></g></g></svg>
+    <svg class="bt-brand-logo-svg bt-brand-logo-svg--loading bt-brand-logo-svg--draw-loop" width="72" height="72" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><g transform="translate(168, 88) scale(0.8)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><g class="bt-logo-dot-wrap"><g class="bt-logo-dot-mover"><circle class="bt-logo-dot" cx="60" cy="300" r="18" fill="#00e5ff"/></g></g></g></svg>
   </div>
 </div>
 
@@ -13054,7 +13055,7 @@ function getBtBrandLogoHtml(variant = 'header') {
   if (variant === 'header') {
     return getBtBrandLogoHeaderSvgMarkup(size);
   }
-  const drawMode = (variant === 'loading') ? 'draw-once' : 'draw-loop';
+  const drawMode = 'draw-loop';
   const transparentBg = variant === 'loading' || variant === 'badge' || variant === 'toast' || variant === 'inline';
   return getBtBrandLogoSvgMarkup(size, drawMode, variant, transparentBg);
 }
@@ -13267,7 +13268,7 @@ function beginLoadingPresentation(options = {}) {
     overlay.classList.remove('is-hiding');
     overlay.setAttribute('aria-busy', 'true');
     setLogoAnimCycleMs(cycleMs);
-    restartBtLogoDrawAnimation(overlay, { force: true });
+    restartBtLogoDrawAnimation(overlay);
     return session;
   }
 
@@ -33488,6 +33489,17 @@ window.addEventListener('pageshow', (event) => {
     }
     return labels;
   }
+  function monthAnchorDayLabels(lastDay, labelCount){
+    var safeLast = Math.max(1, Math.round(Number(lastDay || 1)));
+    var maxLabels = Math.max(2, Math.round(Number(labelCount || 6)));
+    var anchors = maxLabels <= 3 ? [1, Math.ceil(safeLast / 2)] : [1, 5, 10, 15, 20, 25];
+    var labels = [];
+    anchors.forEach(function(day){
+      if (day >= 1 && day < safeLast && labels.indexOf(String(day)) === -1) labels.push(String(day));
+    });
+    if (labels[labels.length - 1] !== String(safeLast)) labels.push(String(safeLast));
+    return labels;
+  }
   function everyNthDayTicks(lastDay, step){
     var safeLast = Math.max(1, Math.round(Number(lastDay || 1)));
     var safeStep = Math.max(1, Math.round(Number(step || 3)));
@@ -33613,7 +33625,7 @@ window.addEventListener('pageshow', (event) => {
   }
   function monthDayAxisTicks(from, labelCount){
     var lastDay = daysInMonth(from);
-    return renderEvenAxisLabels(dayLabelsEvery(lastDay, 3));
+    return renderEvenAxisLabels(monthAnchorDayLabels(lastDay, labelCount));
   }
   function spanDateAxisTicks(from, to, labelCount, formatter){
     formatter = formatter || shortDateLabel;
