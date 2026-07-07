@@ -9447,7 +9447,7 @@ html[data-theme="light"] body::before {
 <script>
   (function () {
     const frame = document.querySelector('#page-loading-overlay .bt-logo-export-frame');
-    if (frame) frame.src = getBtLogoExportThemeSrc(3600);
+    if (frame) frame.src = getBtLogoExportThemeSrc(2000);
   })();
 </script>
 
@@ -13033,9 +13033,10 @@ function isBtLightTheme() {
 }
 
 const BT_LOGO_CYCLE_MS = 3600;
-const BT_LOGO_CYCLE_BOOT_MS = 3600;
+const BT_LOGO_CYCLE_BOOT_MS = 2000;
 const TAB_LOADING_MIN_MS = 600;
 const BT_LOGO_HEADER_SYNC_CYCLE_MS = 2000;
+const BT_ARCHIVE_TAB_LOADING_CYCLE_MS = 1500;
 
 function getBtLogoCycleMs(ms) {
   const fallback = (typeof BT_LOGO_CYCLE_MS === 'number') ? BT_LOGO_CYCLE_MS : 3600;
@@ -13331,6 +13332,18 @@ function setHeaderBrandSyncState(active) {
 }
 try { window.setHeaderBrandSyncState = setHeaderBrandSyncState; } catch (_) {}
 
+function getLoadingPresentationCycleMs(kind, tabId) {
+  if (kind === 'boot') return BT_LOGO_CYCLE_BOOT_MS;
+  if (tabId === 'archive') return BT_ARCHIVE_TAB_LOADING_CYCLE_MS;
+  return BT_LOGO_CYCLE_MS;
+}
+
+function getLoadingPresentationMinMs(kind, tabId) {
+  if (kind === 'boot') return BT_LOGO_CYCLE_BOOT_MS;
+  if (tabId === 'archive') return BT_ARCHIVE_TAB_LOADING_CYCLE_MS;
+  return TAB_LOADING_MIN_MS;
+}
+
 function restartBtLogoDrawAnimation(overlayEl, options = {}) {
   const force = !!(options && options.force);
   const overlay = overlayEl || document.getElementById('page-loading-overlay') || ensurePageLoadingOverlay();
@@ -13342,8 +13355,8 @@ function restartBtLogoDrawAnimation(overlayEl, options = {}) {
     brand.setAttribute('aria-hidden', 'true');
     overlay.appendChild(brand);
   }
-  brand.innerHTML = getBtBrandLogoHtml('loading');
   const cycleMs = (__loadingPresentation && __loadingPresentation.cycleMs) || BT_LOGO_CYCLE_MS;
+  brand.innerHTML = getBtLoadingExportLogoHtml({ cycleMs });
   setLogoAnimCycleMs(cycleMs, brand.querySelector('.bt-brand-logo-svg--draw-once, .bt-brand-logo-svg--draw-loop'));
 }
 
@@ -13351,9 +13364,8 @@ let __loadingPresentation = null;
 
 function computeLoadingRevealPlan(session) {
   const dataElapsed = Math.max(0, (session.dataReadyAt || Date.now()) - session.startedAt);
-  const isBoot = session.kind === 'boot';
-  const minMs = isBoot ? BT_LOGO_CYCLE_BOOT_MS : TAB_LOADING_MIN_MS;
-  const cycleMs = isBoot ? BT_LOGO_CYCLE_BOOT_MS : BT_LOGO_CYCLE_MS;
+  const minMs = getLoadingPresentationMinMs(session.kind, session.tabId);
+  const cycleMs = getLoadingPresentationCycleMs(session.kind, session.tabId);
   const totalNeeded = Math.max(minMs, dataElapsed);
   const fullCycles = Math.max(1, Math.ceil(totalNeeded / cycleMs));
   return {
@@ -13462,7 +13474,7 @@ function beginLoadingPresentation(options = {}) {
   cancelLoadingPresentation();
   const kind = options.kind || 'tab';
   const tabId = options.tabId || null;
-  const cycleMs = kind === 'boot' ? BT_LOGO_CYCLE_BOOT_MS : BT_LOGO_CYCLE_MS;
+  const cycleMs = getLoadingPresentationCycleMs(kind, tabId);
   const session = {
     kind,
     tabId,
