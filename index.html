@@ -3,10 +3,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="theme-color" content="#0a0a0a">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0a0a0a">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
-<meta name="msapplication-navbutton-color" content="#0a0a0a">
+<meta name="theme-color" content="#08111f">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#08111f">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08111f">
+<meta name="msapplication-navbutton-color" content="#08111f">
 <meta name="color-scheme" content="dark">
 <meta name="supported-color-schemes" content="dark light">
 
@@ -14,7 +14,7 @@
 (function applyEarlyThemeShell(){
   try {
     var theme = localStorage.getItem('app_theme') === 'light' ? 'light' : 'dark';
-    var bar = '#0a0a0a';
+    var bar = theme === 'light' ? '#f8fafc' : '#08111f';
     var scheme = theme === 'light' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.style.setProperty('--system-bar-color', bar);
@@ -43,7 +43,7 @@
     color-scheme: dark;
   }
   body {
-    background-color: #0a0a0a !important;
+    background-color: #0d1117 !important;
     color: #ffffff;
     margin: 0;
     min-height: 100vh;
@@ -854,6 +854,23 @@
   html[data-theme="light"] .custom-widget-icon-btn { background:rgba(37,99,235,.08); color:#173055; border-color:rgba(37,99,235,.16); }
   html[data-theme="light"] .custom-widget-manual-controls button { background:rgba(37,99,235,.08); color:#173055; border-color:rgba(37,99,235,.16); }
   html[data-theme="light"] .custom-widget-manual-controls span { color:#31547d; }
+  html[data-theme="light"] .custom-widget-choice.active,
+  html[data-theme="light"] .custom-widget-type-btn.active,
+  html[data-theme="light"] .custom-widget-card.is-dragging,
+  html[data-theme="light"] .custom-widget-card.is-long-press,
+  html[data-theme="light"] .wealth-card[data-builtin-widget-id].is-builtin-dragging {
+    outline: 2px solid #2563eb !important;
+    outline-offset: 2px;
+    border-color: rgba(37,99,235,.62) !important;
+    box-shadow:
+      0 0 0 4px rgba(37,99,235,.16),
+      0 12px 24px rgba(37,99,235,.14) !important;
+  }
+  html[data-theme="light"] .custom-widget-card.is-dragging,
+  html[data-theme="light"] .custom-widget-card.is-long-press,
+  html[data-theme="light"] .wealth-card[data-builtin-widget-id].is-builtin-dragging {
+    background: linear-gradient(180deg, #ffffff, #e7f0ff) !important;
+  }
   @media (max-width: 430px) {
     .custom-widget-dashboard { gap:12px; }
     .custom-widget-card { padding:13px; min-height:136px; }
@@ -876,7 +893,7 @@
 
 </style>
 
-<link rel="manifest" href="./manifest.json?v=289">
+<link rel="manifest" href="./manifest.json?v=287">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -987,8 +1004,9 @@
   }
   .sync-btn:active { transform: scale(0.92); color: var(--accent); }
   .sync-btn.spinning .sync-btn-icon {
-    display: inline-block;
-    animation: spin 1s linear infinite;
+    display: grid;
+    place-items: center;
+    animation: spin .8s linear infinite;
     transform-origin: center center;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -999,7 +1017,7 @@
   }
   html.android-pwa-perf .sync-btn.spinning .sync-btn-icon,
   html.mobile-perf-mode .sync-btn.spinning .sync-btn-icon {
-    animation: spin 1s linear infinite !important;
+    animation: spin .8s linear infinite !important;
   }
 
   /* Summary strip */
@@ -3993,6 +4011,9 @@
   }
 
   .header-brand-wrap {
+    --brand-wordmark-size: 20px;
+    --brand-logo-width: calc(var(--brand-wordmark-size) * .82);
+    --brand-logo-height: calc(var(--brand-wordmark-size) * 1.08);
     position: relative;
     display: flex;
     align-items: center;
@@ -4012,7 +4033,7 @@
   }
 
   .header-brand-title {
-    font-size: 20px;
+    font-size: var(--brand-wordmark-size);
     font-weight: 700;
     letter-spacing: -0.02em;
     color: var(--text);
@@ -4054,7 +4075,10 @@
   }
 
   #page-overview #header-brand-logo {
-    margin-right: -10px;
+    width: var(--brand-logo-width) !important;
+    height: var(--brand-logo-height) !important;
+    flex-basis: var(--brand-logo-width) !important;
+    margin-right: -1px;
     transform: translateY(-2px) translateZ(0);
   }
 
@@ -4068,14 +4092,15 @@
     z-index: 0;
     overflow: visible;
     line-height: 1 !important;
-    padding-top: 1px;
+    padding-top: 0;
     margin-left: 0;
     letter-spacing: -0.02em;
   }
 
   #page-overview .sync-btn.spinning .sync-btn-icon {
-    display: inline-block;
-    animation: spin 1s linear infinite;
+    display: grid;
+    place-items: center;
+    animation: spin .8s linear infinite;
     transform-origin: center center;
   }
 
@@ -4092,19 +4117,19 @@
   }
 
   .bt-brand-logo-svg--idle .bt-logo-dot-wrap {
-    opacity: 0;
+    opacity: 1;
     animation: none !important;
     will-change: auto;
   }
 
   .bt-brand-logo-svg--idle .bt-logo-dot-mover {
     transform: translate(140px, -120px);
-    opacity: 0;
+    opacity: 1;
     animation: none !important;
   }
 
   .bt-brand-logo-svg--idle .bt-logo-dot {
-    opacity: 0;
+    opacity: 1;
   }
 
   .bt-brand-logo-svg .bt-logo-dot-wrap {
@@ -4117,7 +4142,7 @@
 
   .bt-brand-logo-svg--idle .bt-logo-dot-wrap > .bt-logo-dot {
     transform: translate(140px, -120px);
-    opacity: 0;
+    opacity: 1;
   }
 
   .bt-brand-logo-svg .bt-logo-dot {
@@ -4156,9 +4181,78 @@
     user-select: none;
   }
 
+  .bt-logo-animation-host {
+    --bt-logo-size: 72px;
+    position: relative;
+    display: block;
+    width: var(--bt-logo-size);
+    height: var(--bt-logo-size);
+    flex: 0 0 var(--bt-logo-size);
+    border: 0;
+    overflow: visible;
+    contain: none;
+    background: transparent;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .bt-logo-inline-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .bt-logo-inline-host {
+    display: block;
+    background: transparent;
+    overflow: visible;
+  }
+
   .bt-brand-logo-svg--loading {
     width: 72px;
     height: 72px;
+  }
+
+  .bt-logo-export-shell {
+    position: relative;
+    display: block;
+    width: 72px;
+    height: 72px;
+    overflow: hidden;
+    background: transparent;
+    opacity: 0;
+    transition: opacity .12s ease;
+  }
+
+  .bt-logo-export-shell--header {
+    border-radius: 10px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  #page-overview #header-brand-logo.bt-logo-export-shell,
+  #header-brand-logo.bt-logo-export-shell--header {
+    overflow: hidden !important;
+  }
+
+  .bt-logo-export-shell.is-logo-ready {
+    opacity: 1;
+  }
+
+  .bt-logo-export-frame {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: block;
+    width: 512px;
+    height: 512px;
+    border: 0;
+    overflow: hidden;
+    background: transparent;
+    pointer-events: none;
+    transform: scale(0.140625);
+    transform-origin: 0 0;
   }
 
   .bt-brand-logo-svg--toast {
@@ -4188,41 +4282,28 @@
   }
 
   #header-brand-logo:not(.bt-brand-logo-svg--draw-loop):not(.bt-brand-logo-svg--draw-once) .bt-logo-dot-wrap {
-    opacity: 0;
+    opacity: 1;
     animation: none !important;
     will-change: auto;
   }
 
   #header-brand-logo:not(.bt-brand-logo-svg--draw-loop):not(.bt-brand-logo-svg--draw-once) .bt-logo-dot-mover {
     transform: translate(140px, -120px);
-    opacity: 0;
+    opacity: 1;
     animation: none !important;
   }
 
   #header-brand-logo:not(.bt-brand-logo-svg--draw-loop):not(.bt-brand-logo-svg--draw-once) .bt-logo-dot {
-    opacity: 0;
+    opacity: 1;
     stroke: none;
   }
 
   .bt-brand-logo-svg--draw-loop {
-    --bt-logo-cycle-ms: 900ms;
+    --bt-logo-cycle-ms: 3600ms;
   }
 
   .bt-brand-logo-svg--draw-loop .bt-logo-dot-wrap {
     opacity: 1;
-  }
-
-  .bt-brand-logo-svg--draw-loop .bt-logo-dot-mover {
-    transform: translate(0, 0);
-    opacity: 0;
-    animation: btLogoDotDraw var(--bt-logo-cycle-ms, 900ms) ease-in-out infinite backwards;
-  }
-
-  .bt-brand-logo-svg--draw-loop .bt-logo-dot-wrap > .bt-logo-dot {
-    transform: translate(0, 0);
-    opacity: 0;
-    animation: btLogoDotDraw var(--bt-logo-cycle-ms, 900ms) ease-in-out infinite backwards;
-    will-change: transform, opacity;
   }
 
   .bt-brand-logo-svg--draw-loop .bt-logo-dot {
@@ -4230,36 +4311,23 @@
   }
 
   .bt-brand-logo-svg--draw-loop .bt-logo-stem {
-    animation: btLogoDrawStem var(--bt-logo-cycle-ms, 1000ms) ease-in-out infinite;
+    animation: btLogoDrawStem var(--bt-logo-cycle-ms, 3600ms) ease-in-out infinite;
   }
 
   .bt-brand-logo-svg--draw-loop .bt-logo-arrow {
-    animation: btLogoDrawArrow var(--bt-logo-cycle-ms, 1000ms) ease-in-out infinite;
+    animation: btLogoDrawArrow var(--bt-logo-cycle-ms, 3600ms) ease-in-out infinite;
   }
 
   .bt-brand-logo-svg--draw-loop .bt-logo-loop-top {
-    animation: btLogoDrawLoopTopByDot var(--bt-logo-cycle-ms, 1000ms) ease-in-out infinite;
+    animation: btLogoDrawLoopTopByDot var(--bt-logo-cycle-ms, 3600ms) ease-in-out infinite;
   }
 
   .bt-brand-logo-svg--draw-loop .bt-logo-loop-bottom {
-    animation: btLogoDrawLoopBottom var(--bt-logo-cycle-ms, 1000ms) ease-in-out infinite;
+    animation: btLogoDrawLoopBottom var(--bt-logo-cycle-ms, 3600ms) ease-in-out infinite;
   }
 
   .bt-brand-logo-svg--draw-once .bt-logo-dot-wrap {
     opacity: 1;
-  }
-
-  .bt-brand-logo-svg--draw-once .bt-logo-dot-mover {
-    transform: translate(0, 0);
-    opacity: 0;
-    animation: btLogoDotDrawOnce var(--bt-logo-cycle-ms, 900ms) ease-in-out backwards forwards;
-  }
-
-  .bt-brand-logo-svg--draw-once .bt-logo-dot-wrap > .bt-logo-dot {
-    transform: translate(0, 0);
-    opacity: 0;
-    animation: btLogoDotDrawOnce var(--bt-logo-cycle-ms, 900ms) ease-in-out backwards forwards;
-    will-change: transform, opacity;
   }
 
   .bt-brand-logo-svg--draw-once .bt-logo-dot {
@@ -4267,43 +4335,19 @@
   }
 
   .bt-brand-logo-svg--draw-once .bt-logo-stem {
-    animation: btLogoDrawStem var(--bt-logo-cycle-ms, 900ms) ease-in-out forwards;
+    animation: btLogoDrawStem var(--bt-logo-cycle-ms, 3600ms) ease-in-out forwards;
   }
 
   .bt-brand-logo-svg--draw-once .bt-logo-arrow {
-    animation: btLogoDrawArrow var(--bt-logo-cycle-ms, 900ms) ease-in-out forwards;
+    animation: btLogoDrawArrow var(--bt-logo-cycle-ms, 3600ms) ease-in-out forwards;
   }
 
   .bt-brand-logo-svg--draw-once .bt-logo-loop-top {
-    animation: btLogoDrawLoopTopByDot var(--bt-logo-cycle-ms, 900ms) ease-in-out forwards;
+    animation: btLogoDrawLoopTopByDot var(--bt-logo-cycle-ms, 3600ms) ease-in-out forwards;
   }
 
   .bt-brand-logo-svg--draw-once .bt-logo-loop-bottom {
-    animation: btLogoDrawLoopBottom var(--bt-logo-cycle-ms, 900ms) ease-in-out forwards;
-  }
-
-  @keyframes btLogoDotDraw {
-    0%, 3% { opacity: 0; transform: translate(0px, 0px); }
-    4%, 6% { opacity: 1; transform: translate(0px, 0px); }
-    6%, 14% { opacity: 1; transform: translate(0px, -250px); }
-    14%, 24% { opacity: 1; transform: translate(0px, -250px); }
-    24%, 32% { opacity: 1; transform: translate(0px, -180px); }
-    32%, 38% { opacity: 1; transform: translate(80px, -180px); }
-    38%, 46% { opacity: 1; transform: translate(125px, -157px); }
-    46%, 54% { opacity: 1; transform: translate(140px, -120px); }
-    54%, 100% { opacity: 1; transform: translate(140px, -120px); }
-  }
-
-  @keyframes btLogoDotDrawOnce {
-    0%, 3% { opacity: 0; transform: translate(0px, 0px); }
-    4%, 6% { opacity: 1; transform: translate(0px, 0px); }
-    6%, 14% { opacity: 1; transform: translate(0px, -250px); }
-    14%, 24% { opacity: 1; transform: translate(0px, -250px); }
-    24%, 32% { opacity: 1; transform: translate(0px, -180px); }
-    32%, 38% { opacity: 1; transform: translate(80px, -180px); }
-    38%, 46% { opacity: 1; transform: translate(125px, -157px); }
-    46%, 54% { opacity: 1; transform: translate(140px, -120px); }
-    54%, 100% { opacity: 1; transform: translate(140px, -120px); }
+    animation: btLogoDrawLoopBottom var(--bt-logo-cycle-ms, 3600ms) ease-in-out forwards;
   }
 
   @keyframes btLogoDrawStem {
@@ -4340,36 +4384,11 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .bt-brand-logo-svg--draw-loop .bt-logo-dot-wrap,
-    .bt-brand-logo-svg--draw-loop .bt-logo-dot-mover,
-    .bt-brand-logo-svg--draw-loop .bt-logo-stroke,
-    .bt-brand-logo-svg--draw-once .bt-logo-dot-wrap,
-    .bt-brand-logo-svg--draw-once .bt-logo-dot-mover,
-    .bt-brand-logo-svg--draw-once .bt-logo-dot-wrap > .bt-logo-dot,
-    .bt-brand-logo-svg--draw-once .bt-logo-stroke,
-    .bt-brand-logo-svg--draw-loop .bt-logo-dot-wrap > .bt-logo-dot,
-    #header-brand-logo.bt-brand-logo-svg--draw-loop .bt-logo-stroke,
-    #header-brand-logo.bt-brand-logo-svg--draw-loop .bt-logo-dot-mover,
     .archive-container.is-archive-loading,
     .archive-trend-card.is-archive-loading {
       animation: none !important;
       opacity: 1 !important;
       stroke-dashoffset: 0 !important;
-    }
-    .bt-brand-logo-svg .bt-logo-dot-mover {
-      transform: translate(140px, -120px) !important;
-      opacity: 1 !important;
-    }
-    .bt-brand-logo-svg .bt-logo-dot-wrap > .bt-logo-dot {
-      transform: translate(140px, -120px) !important;
-      opacity: 1 !important;
-    }
-    .bt-brand-logo-svg .bt-logo-dot {
-      opacity: 0 !important;
-    }
-    .bt-brand-logo-svg .bt-logo-dot-wrap,
-    .bt-brand-logo-svg .bt-logo-dot-motion-wrap {
-      opacity: 0 !important;
     }
     .header-brand-wrap.is-brand-syncing .bt-brand-logo-svg--header,
     .header-brand-wrap.is-brand-syncing .bt-brand-logo--header {
@@ -4388,22 +4407,24 @@
 
   html[data-theme="light"] #header-brand-logo > .bt-logo-bg-rect,
   html[data-theme="light"] #header-brand-logo > rect:first-of-type,
-  html[data-theme="light"] .page-loading-overlay .bt-brand-logo-svg > rect:first-of-type,
-  html[data-theme="light"] .wealth-card .bt-brand-logo-svg--badge > rect:first-of-type {
-    fill: #ffffff;
+  html[data-theme="light"] .page-loading-overlay .bt-brand-logo-svg > rect:first-of-type {
+    fill: transparent;
+    opacity: 0;
+  }
+
+  #header-brand-logo .bt-logo-bg-rect,
+  #header-brand-logo .bt-logo-bg-glow,
+  .page-loading-overlay .bt-brand-logo-svg > rect:first-of-type,
+  .page-loading-overlay .bt-brand-logo-svg > circle:first-of-type {
+    fill: transparent !important;
+    opacity: 0 !important;
   }
 
   html[data-theme="light"] #header-brand-logo .bt-logo-stem,
   html[data-theme="light"] #header-brand-logo .bt-logo-loop-top,
   html[data-theme="light"] .page-loading-overlay .bt-brand-logo-svg .bt-logo-stem,
-  html[data-theme="light"] .page-loading-overlay .bt-brand-logo-svg .bt-logo-loop-top,
-  html[data-theme="light"] .wealth-card .bt-brand-logo-svg--badge .bt-logo-stem,
-  html[data-theme="light"] .wealth-card .bt-brand-logo-svg--badge .bt-logo-loop-top {
+  html[data-theme="light"] .page-loading-overlay .bt-brand-logo-svg .bt-logo-loop-top {
     stroke: #173055;
-  }
-
-  .bt-brand-logo-svg--badge.bt-brand-logo-svg--draw-loop {
-    --bt-logo-cycle-ms: 900ms;
   }
 
   @keyframes pageLoaderSpin {
@@ -4808,7 +4829,7 @@
   }
 
   #bt-pull-refresh.is-refreshing .bt-pull-refresh-icon {
-    animation: spin 1s linear infinite;
+    animation: none;
   }
 
   .bt-pull-refresh-inner {
@@ -4866,15 +4887,15 @@
   }
 
   html {
-    background: #0a0a0a !important;
+    background: #08111f !important;
     min-height: 100%;
   }
 
   body {
     background:
       radial-gradient(circle at top left, rgba(88,166,255,.18), transparent 42%),
-      linear-gradient(180deg, #0a0a0a 0%, #08111f 12%, #07101f 50%, #050b16 88%, #0a0a0a 100%) !important;
-    background-color: #0a0a0a !important;
+      linear-gradient(180deg, #08111f 0%, #07101f 45%, #050b16 100%) !important;
+    background-color: #08111f !important;
     min-height: 100vh;
     min-height: 100dvh;
     padding-top: env(safe-area-inset-top);
@@ -4888,7 +4909,7 @@
     left: 0;
     right: 0;
     height: env(safe-area-inset-top);
-    background: var(--status-bar-color, var(--system-bar-color, #0a0a0a));
+    background: var(--status-bar-color, var(--system-bar-color, #08111f));
     pointer-events: none;
   }
 
@@ -4899,7 +4920,7 @@
   @supports (-webkit-touch-callout: none) {
     html,
     body {
-      background-color: #0a0a0a !important;
+      background-color: #08111f !important;
     }
   }
 
@@ -5004,12 +5025,12 @@
   }
 
   html {
-    background: #0a0a0a !important;
-    background-color: #0a0a0a !important;
+    background: #08111f !important;
+    background-color: #08111f !important;
   }
 
   body {
-    background-color: #0a0a0a !important;
+    background-color: #08111f !important;
     min-height: 100vh;
     min-height: 100dvh;
   }
@@ -5028,7 +5049,7 @@
   /* v95 Android Chrome system bar repaint support */
   :root {
     color-scheme: dark;
-    --system-bar-color: #0a0a0a;
+    --system-bar-color: #08111f;
   }
 
   html {
@@ -5044,13 +5065,13 @@
 
   html[data-theme="dark"],
   html:not([data-theme="light"]) {
-    --system-bar-color: #0a0a0a;
-    --status-bar-color: #0a0a0a;
+    --system-bar-color: #08111f;
+    --status-bar-color: #08111f;
   }
 
   html[data-theme="light"] {
-    --system-bar-color: #0a0a0a;
-    --status-bar-color: #0a0a0a;
+    --system-bar-color: #f8fafc;
+    --status-bar-color: #f8fafc;
   }
 
   .android-system-bar-bg {
@@ -5059,7 +5080,7 @@
     right: 0;
     bottom: 0;
     height: max(72px, calc(56px + env(safe-area-inset-bottom)));
-    background: var(--system-bar-color, #0a0a0a) !important;
+    background: var(--system-bar-color, #08111f) !important;
     pointer-events: none;
     z-index: 80;
     transform: translateZ(0);
@@ -5158,12 +5179,12 @@
 
   html[data-theme="dark"] {
     color-scheme: dark;
-    background: #0a0a0a !important;
-    background-color: #0a0a0a !important;
+    background: #08111f !important;
+    background-color: #08111f !important;
   }
 
   html[data-theme="dark"] body {
-    background-color: #0a0a0a !important;
+    background-color: #08111f !important;
   }
 
   html[data-theme="light"] {
@@ -5189,19 +5210,6 @@
       radial-gradient(circle at top right, rgba(14,165,233,.11), transparent 32%),
       linear-gradient(180deg, #f8fafc 0%, #eef4fb 48%, #f8fafc 100%) !important;
     background-color: #f8fafc !important;
-  }
-
-  html.pwa-standalone.android-device[data-theme="light"] {
-    background: #0a0a0a !important;
-    background-color: #0a0a0a !important;
-  }
-
-  html.pwa-standalone.android-device[data-theme="light"] body {
-    background:
-      radial-gradient(circle at top left, rgba(37,99,235,.12), transparent 34%),
-      radial-gradient(circle at top right, rgba(14,165,233,.11), transparent 32%),
-      linear-gradient(180deg, #0a0a0a 0%, #f8fafc 9%, #eef4fb 50%, #f8fafc 91%, #0a0a0a 100%) !important;
-    background-color: #0a0a0a !important;
   }
 
   html[data-theme="light"] .summary,
@@ -5318,12 +5326,12 @@
   /* v98 dark default system shell; light only after explicit app choice */
   html:not([data-theme="light"]) {
     color-scheme: dark;
-    background: #0a0a0a !important;
-    background-color: #0a0a0a !important;
+    background: #08111f !important;
+    background-color: #08111f !important;
   }
 
   html:not([data-theme="light"]) body {
-    background-color: #0a0a0a !important;
+    background-color: #08111f !important;
   }
 
   html:not([data-theme="light"]) .bottom-nav {
@@ -5340,7 +5348,7 @@
     right: 0;
     bottom: 0;
     height: max(32px, env(safe-area-inset-bottom));
-    background: var(--system-bar-color, #0a0a0a);
+    background: var(--system-bar-color, #08111f);
     pointer-events: none;
     z-index: 0;
   }
@@ -5352,14 +5360,14 @@
     right: 0;
     bottom: 0;
     height: max(32px, env(safe-area-inset-bottom));
-    background: var(--system-bar-color, #0a0a0a);
+    background: var(--system-bar-color, #f8fafc);
     pointer-events: none;
     z-index: 0;
   }
 
   html.pwa-standalone.android-device .android-system-bar-bg {
     z-index: 90;
-    background: var(--system-bar-color, #0a0a0a) !important;
+    background: var(--system-bar-color, #08111f) !important;
   }
 
   html.pwa-standalone.android-device:not([data-theme="light"]) .bottom-nav {
@@ -7271,6 +7279,19 @@
     text-align: center;
   }
 
+  .bt-inline-loader {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 28px;
+    vertical-align: middle;
+  }
+
+  .bt-inline-loader .bt-brand-logo-svg--inline {
+    flex: 0 0 28px;
+  }
+
   .archive-detail-load-more-wrap {
     display: flex;
     justify-content: center;
@@ -7483,10 +7504,6 @@
     animation: none !important;
   }
 
-  .wealth-networth-trend-point-v238 {
-    animation: none !important;
-  }
-
   .daily-bar-income,
   .daily-bar-expense,
   .txn-cashflow-bar-in,
@@ -7599,40 +7616,8 @@
   .wealth-card-cash {
     position: relative;
   }
-  .overview-balance-sync-badge {
-    display: none;
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    white-space: nowrap;
-    z-index: 2;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity .18s ease;
-  }
-  .wealth-card.is-balance-syncing .overview-balance-sync-badge {
-    display: inline-flex;
-    opacity: 1;
-  }
   .wealth-card.is-balance-syncing .wealth-card-value {
     opacity: .72;
-  }
-  .overview-balance-sync-logo {
-    display: block;
-    width: 22px;
-    height: 22px;
-    line-height: 0;
-    overflow: visible;
-  }
-  .bt-brand-logo-svg--badge {
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
-    display: block;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -9418,21 +9403,59 @@ html[data-theme="light"] body::before {
     border-bottom-color: rgba(37,99,235,.14) !important;
   }
 </style>
+<style id="v298-light-widget-selection-outline-css">
+  html[data-theme="light"] .custom-widget-choice.active,
+  html[data-theme="light"] .custom-widget-type-btn.active,
+  html[data-theme="light"] .custom-widget-card.is-dragging,
+  html[data-theme="light"] .custom-widget-card.is-long-press,
+  html[data-theme="light"] .wealth-card[data-builtin-widget-id].is-builtin-dragging {
+    outline: 2px solid #2563eb !important;
+    outline-offset: 2px !important;
+    border-color: rgba(37,99,235,.62) !important;
+    box-shadow:
+      0 0 0 4px rgba(37,99,235,.16),
+      0 12px 24px rgba(37,99,235,.14) !important;
+  }
+</style>
 
 </head>
 <body class="app-boot-pending">
+<script>
+  function getBtLogoExportThemeSrc(cycle) {
+    const ms = Math.max(400, Math.round(Number(cycle || 3600)));
+    const theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'white' : 'dark';
+    return 'Logos/logo-animation-export-' + theme + '-theme.html?cycle=' + ms;
+  }
+
+  function cleanBtLogoExportFrame(frame) {
+    try {
+      const shell = frame.closest('.bt-logo-export-shell') || frame;
+      shell.classList.add('is-logo-ready');
+    } catch (_) {
+      const shell = frame && frame.closest ? frame.closest('.bt-logo-export-shell') : null;
+      if (shell) shell.classList.add('is-logo-ready');
+      else if (frame && frame.classList) frame.classList.add('is-logo-ready');
+    }
+  }
+</script>
 
 <div id="page-loading-overlay" class="page-loading-overlay show" aria-live="polite" aria-busy="true">
   <div class="page-loading-brand" aria-hidden="true">
-    <svg class="bt-brand-logo-svg bt-brand-logo-svg--loading bt-brand-logo-svg--draw-loop" width="72" height="72" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><g transform="translate(157, 76) scale(0.78)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><g class="bt-logo-dot-wrap"><g class="bt-logo-dot-motion-wrap" opacity="0"><animate class="bt-logo-dot-opacity" attributeName="opacity" dur="900ms" repeatCount="indefinite" keyTimes="0;0.03;0.92;1" values="0;1;1;1"/><animateMotion class="bt-logo-dot-motion" dur="900ms" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.03;0.20;0.38;0.52;0.72;0.92;1" keyPoints="0;0;0.1914;0.3213;0.4183;0.6786;1;1" path="M 60 300 L 60 50 L 20 90 L 60 50 L 100 90 L 60 50 L 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80 L 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90"/><circle class="bt-logo-dot" r="18" fill="#00e5ff" stroke="none"/></g></g></g></svg>
+    <span class="bt-logo-export-shell"><iframe class="bt-logo-export-frame" title="Bank Tracker loading logo" aria-hidden="true" tabindex="-1" allowtransparency="true" onload="cleanBtLogoExportFrame(this)"></iframe></span>
   </div>
 </div>
+<script>
+  (function () {
+    const frame = document.querySelector('#page-loading-overlay .bt-logo-export-frame');
+    if (frame) frame.src = getBtLogoExportThemeSrc(3600);
+  })();
+</script>
 
 <div id="page-overview" class="page active">
   <div class="header overview-header-v236">
     <div class="overview-header-row overview-header-top-v236">
       <div class="header-title header-brand-wrap" id="header-brand-wrap" aria-label="Bank Tracker">
-        <svg id="header-brand-logo" class="bt-brand-logo-svg bt-brand-logo-svg--header bt-brand-logo-svg--idle" width="38" height="38" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect class="bt-logo-bg-rect" width="512" height="512" rx="112" fill="#08111f"/><circle class="bt-logo-bg-glow" cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/><g transform="translate(157, 76) scale(0.78)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/><g class="bt-logo-dot-wrap"><g class="bt-logo-dot-motion-wrap" opacity="0"><animate class="bt-logo-dot-opacity" attributeName="opacity" dur="900ms" repeatCount="indefinite" keyTimes="0;0.03;0.92;1" values="0;1;1;1"/><animateMotion class="bt-logo-dot-motion" dur="900ms" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.03;0.20;0.38;0.52;0.72;0.92;1" keyPoints="0;0;0.1914;0.3213;0.4183;0.6786;1;1" path="M 60 300 L 60 50 L 20 90 L 60 50 L 100 90 L 60 50 L 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80 L 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90"/><circle class="bt-logo-dot" r="18" fill="#00e5ff" stroke="none"/></g></g></g></svg>
+        <span id="header-brand-logo" class="bt-brand-logo bt-logo-inline-host bt-brand-logo--header bt-brand-logo--static bt-brand-logo-svg--header bt-brand-logo-svg--idle" style="width:38px;height:38px;" aria-hidden="true"><svg class="bt-logo-inline-svg" viewBox="154 100 204 274" aria-hidden="true" focusable="false"><g transform="translate(157, 76) scale(0.78)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"></path><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"></path><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"></path><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"></path></g></svg></span>
         <span class="header-brand-title" id="header-brand-title">ank Tracker</span>
       </div>
       <div class="overview-header-actions-v236">
@@ -9479,7 +9502,6 @@ html[data-theme="light"] body::before {
 
   <div id="overview-dashboard" class="wealth-dashboard">
     <button class="wealth-card wealth-card-net wealth-card-blue" type="button" onclick="openOverviewDetailsSection('account-balance-anchor')">
-      <span class="overview-balance-sync-badge" aria-live="polite" aria-hidden="true"><span class="overview-balance-sync-logo"></span></span>
       <div class="wealth-card-head">
         <div class="wealth-card-title">Total net worth</div>
       </div>
@@ -9487,7 +9509,6 @@ html[data-theme="light"] body::before {
     </button>
 
     <button class="wealth-card wealth-card-cash wealth-card-wide" type="button" onclick="openOverviewDetailsSection('account-balance-anchor')">
-      <span class="overview-balance-sync-badge" aria-live="polite" aria-hidden="true"><span class="overview-balance-sync-logo"></span></span>
       <div class="wealth-card-head">
         <div class="wealth-card-title">Available cash</div>
         <div class="wealth-card-icon" aria-hidden="true">💶</div>
@@ -10545,6 +10566,7 @@ const BANK_ORDER = ['rb_cz','csob_sk','csob_cz','csob_cz_credit','moneta','air_b
 
 const BT_LOGO_SRC = './Logos/bank-tracker-logo.svg';
 const BT_LOGO_SRC_FALLBACK = './Logos/bank-tracker-logo.svg';
+const BT_LOGO_ANIMATION_SRC = './Logos/logo-animation-export.html';
 const BT_BANK_LOGOS_BASE = 'https://raw.githubusercontent.com/Morfinsk/Bank-Tracker/main/bank-logos/';
 
 const BANK_LOGOS = {
@@ -11879,7 +11901,7 @@ function openArchiveBankDetail(bankKey, monthStr) {
 
   const chartWrap = document.getElementById('archive-bank-detail-chart');
   const listWrap = document.getElementById('archive-bank-detail-list');
-  if (chartWrap) chartWrap.innerHTML = `<div class="archive-detail-loader">${t('loading')}...</div>`;
+  if (chartWrap) chartWrap.innerHTML = `<div class="archive-detail-loader">${getBtInlineLoadingHtml(t('loading') + '...')}</div>`;
   if (listWrap) listWrap.innerHTML = '';
 
   openSheet('archive-bank-detail-sheet');
@@ -13006,81 +13028,157 @@ function showTopWorkingToast(message) {
   showLargeStatusToast(message || fallback, 'top-loading');
 }
 
-const BT_LOGO_G_TRANSFORM = 'translate(157, 76) scale(0.78)';
-const BT_LOGO_STROKE_WIDTH = 36;
-const BT_LOGO_STEM_PATH = 'M 60 300 L 60 50';
-const BT_LOGO_ARROW_PATH = 'M 20 90 L 60 50 L 100 90';
-const BT_LOGO_LOOP_TOP_PATH = 'M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80';
-const BT_LOGO_LOOP_BOTTOM_PATH = 'M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90';
-const BT_LOGO_DOT_OPACITY_KEY_TIMES = '0;0.03;0.92;1';
-const BT_LOGO_DOT_OPACITY_VALUES = '0;1;1;1';
-const BT_LOGO_DOT_MOTION_KEY_TIMES = '0;0.03;0.20;0.38;0.52;0.72;0.92;1';
-const BT_LOGO_DOT_MOTION_KEY_POINTS = '0;0;0.1914;0.3213;0.4183;0.6786;1;1';
-const BT_LOGO_DOT_MOTION_PATH = 'M 60 300 L 60 50 L 20 90 L 60 50 L 100 90 L 60 50 L 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80 L 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90';
-
-function getBtLogoDotSvgMarkup(accent = '#00e5ff') {
-  return `<g class="bt-logo-dot-wrap"><g class="bt-logo-dot-motion-wrap" opacity="0"><animate class="bt-logo-dot-opacity" attributeName="opacity" dur="${BT_LOGO_CYCLE_MS}ms" repeatCount="indefinite" keyTimes="${BT_LOGO_DOT_OPACITY_KEY_TIMES}" values="${BT_LOGO_DOT_OPACITY_VALUES}"/><animateMotion class="bt-logo-dot-motion" dur="${BT_LOGO_CYCLE_MS}ms" repeatCount="indefinite" calcMode="linear" keyTimes="${BT_LOGO_DOT_MOTION_KEY_TIMES}" keyPoints="${BT_LOGO_DOT_MOTION_KEY_POINTS}" path="${BT_LOGO_DOT_MOTION_PATH}"/><circle class="bt-logo-dot" r="18" fill="${accent}" stroke="none"/></g></g>`;
-}
-
 function isBtLightTheme() {
   return document.documentElement.getAttribute('data-theme') === 'light';
 }
 
-function getBtBrandLogoPalette() {
-  if (isBtLightTheme()) {
-    return { bg: '#ffffff', glow: '0.12', primary: '#173055', accent: '#00c8e8' };
+const BT_LOGO_CYCLE_MS = 3600;
+const BT_LOGO_CYCLE_BOOT_MS = 3600;
+const TAB_LOADING_MIN_MS = 600;
+const BT_LOGO_HEADER_SYNC_CYCLE_MS = 2000;
+
+function getBtLogoCycleMs(ms) {
+  const fallback = (typeof BT_LOGO_CYCLE_MS === 'number') ? BT_LOGO_CYCLE_MS : 3600;
+  return Math.max(400, Math.round(Number(ms || fallback)));
+}
+
+const BT_LOGO_EXPORT_DOT_PATH = 'M 60 300 L 60 50 L 20 90 L 60 50 L 100 90 L 60 50 L 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80 L 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90';
+const BT_LOGO_EXPORT_DOT_KEY_TIMES = '0;0.03;0.20;0.38;0.52;0.72;0.92;1';
+const BT_LOGO_EXPORT_DOT_KEY_POINTS = '0;0;0.1914;0.3213;0.4183;0.6786;1;1';
+const BT_LOGO_EXPORT_DOT_OPACITY_KEY_TIMES = '0;0.03;0.92;1';
+const BT_LOGO_EXPORT_DOT_OPACITY_VALUES = '0;1;1;1';
+
+function getBtLogoInlineSvgHtml(options = {}) {
+  const animated = !!options.animated;
+  const cycle = getBtLogoCycleMs(options.cycleMs);
+  const viewBox = options.viewBox || '154 100 204 274';
+  const dotHtml = animated ? `
+        <g class="bt-logo-dot-wrap">
+          <circle class="bt-logo-dot" r="18" fill="#00e5ff" stroke="none">
+            <animate class="bt-logo-dot-opacity" attributeName="opacity" dur="${cycle}ms" repeatCount="indefinite"
+              keyTimes="${BT_LOGO_EXPORT_DOT_OPACITY_KEY_TIMES}" values="${BT_LOGO_EXPORT_DOT_OPACITY_VALUES}"></animate>
+            <animateMotion class="bt-logo-dot-motion" dur="${cycle}ms" repeatCount="indefinite" calcMode="linear"
+              keyTimes="${BT_LOGO_EXPORT_DOT_KEY_TIMES}"
+              keyPoints="${BT_LOGO_EXPORT_DOT_KEY_POINTS}"
+              path="${BT_LOGO_EXPORT_DOT_PATH}"></animateMotion>
+          </circle>
+        </g>` : '';
+  return `<svg class="bt-logo-inline-svg" viewBox="${viewBox}" aria-hidden="true" focusable="false">
+      <g transform="translate(157, 76) scale(0.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"></path>
+        <path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"></path>
+        <path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"></path>
+        <path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"></path>${dotHtml}
+      </g>
+    </svg>`;
+}
+
+function getBtLogoAnimationHtml(variant = 'loading', options = {}) {
+  const sizes = { header: 38, loading: 72, toast: 34, inline: 28, badge: 22 };
+  const size = Number(options.size || sizes[variant] || sizes.loading);
+  const cycle = getBtLogoCycleMs(options.cycleMs);
+  const idAttr = options.id ? ` id="${options.id}"` : '';
+  const extraClass = options.extraClass ? ` ${options.extraClass}` : '';
+  const viewBox = options.viewBox || (variant === 'loading' ? '0 0 512 512' : '154 100 204 274');
+  return `<svg${idAttr} class="bt-logo-animation-host bt-brand-logo-svg bt-brand-logo-svg--${variant} bt-brand-logo-svg--draw-loop${extraClass}" style="--bt-logo-size:${size}px;width:${size}px;height:${size}px;--bt-logo-cycle-ms:${cycle}ms;" data-cycle-ms="${cycle}" viewBox="${viewBox}" aria-hidden="true" focusable="false"><g transform="translate(157, 76) scale(0.78)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"></path><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"></path><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"></path><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"></path><g class="bt-logo-dot-wrap"><circle class="bt-logo-dot" r="18" fill="#00e5ff" stroke="none"><animate class="bt-logo-dot-opacity" attributeName="opacity" dur="${cycle}ms" begin="0s" repeatCount="indefinite" keyTimes="${BT_LOGO_EXPORT_DOT_OPACITY_KEY_TIMES}" values="${BT_LOGO_EXPORT_DOT_OPACITY_VALUES}"></animate><animateMotion class="bt-logo-dot-motion" dur="${cycle}ms" begin="0s" repeatCount="indefinite" calcMode="linear" keyTimes="${BT_LOGO_EXPORT_DOT_KEY_TIMES}" keyPoints="${BT_LOGO_EXPORT_DOT_KEY_POINTS}" path="${BT_LOGO_EXPORT_DOT_PATH}"></animateMotion></circle></g></g></svg>`;
+}
+
+function fitBtLogoExportFrame(target) {
+  const frame = target && target.classList && target.classList.contains('bt-logo-export-frame')
+    ? target
+    : (target && target.querySelector ? target.querySelector('.bt-logo-export-frame') : null);
+  if (!frame) return;
+  const shell = frame.closest('.bt-logo-export-shell');
+  if (!shell) return;
+  const crop = shell.dataset.crop === 'b';
+  const rect = shell.getBoundingClientRect ? shell.getBoundingClientRect() : null;
+  const shellWidth = Math.max(1, rect && rect.width ? rect.width : Number(shell.dataset.logoSize || 72));
+  const shellHeight = Math.max(1, rect && rect.height ? rect.height : Number(shell.dataset.logoSize || 72));
+  if (crop) {
+    const cropWidth = 204;
+    const cropHeight = 274;
+    const scale = Math.max(shellWidth / cropWidth, shellHeight / cropHeight);
+    frame.style.transform = `translate(${-154 * scale}px, ${-100 * scale}px) scale(${scale})`;
+  } else {
+    const scale = Math.min(shellWidth, shellHeight) / 512;
+    frame.style.transform = `scale(${scale})`;
   }
-  return { bg: '#08111f', glow: '0.1', primary: '#ffffff', accent: '#00e5ff' };
+}
+try { window.fitBtLogoExportFrame = fitBtLogoExportFrame; } catch (_) {}
+
+function getBtLogoExportHtml(options = {}) {
+  const cycle = getBtLogoCycleMs(options.cycleMs);
+  const size = Number(options.size || 72);
+  const idAttr = options.id ? ` id="${options.id}"` : '';
+  const extraClass = options.extraClass ? ` ${options.extraClass}` : '';
+  const cropAttr = options.crop === 'b' ? ' data-crop="b"' : '';
+  const src = (typeof getBtLogoExportThemeSrc === 'function')
+    ? getBtLogoExportThemeSrc(cycle)
+    : `Logos/logo-animation-export-dark-theme.html?cycle=${cycle}`;
+  return `<span${idAttr} class="bt-logo-export-shell${extraClass}" style="width:${size}px;height:${size}px;" data-logo-size="${size}" data-cycle-ms="${cycle}"${cropAttr}><iframe class="bt-logo-export-frame" src="${src}" title="Bank Tracker logo animation" aria-hidden="true" tabindex="-1" allowtransparency="true" onload="cleanBtLogoExportFrame(this);fitBtLogoExportFrame(this)"></iframe></span>`;
 }
 
-function getBtBrandLogoHeaderSvgMarkup(size = 38) {
-  const c = getBtBrandLogoPalette();
-  return `<svg id="header-brand-logo" class="bt-brand-logo-svg bt-brand-logo-svg--header bt-brand-logo-svg--idle" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><rect class="bt-logo-bg-rect" width="512" height="512" rx="112" fill="${c.bg}"/><circle class="bt-logo-bg-glow" cx="256" cy="256" r="140" fill="${c.accent}" opacity="${c.glow}" filter="blur(20px)"/><g transform="${BT_LOGO_G_TRANSFORM}" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="${BT_LOGO_STEM_PATH}" stroke="${c.primary}" stroke-width="${BT_LOGO_STROKE_WIDTH}"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="${BT_LOGO_ARROW_PATH}" stroke="${c.accent}" stroke-width="${BT_LOGO_STROKE_WIDTH}"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="${BT_LOGO_LOOP_TOP_PATH}" stroke="${c.primary}" stroke-width="${BT_LOGO_STROKE_WIDTH}"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="${BT_LOGO_LOOP_BOTTOM_PATH}" stroke="${c.accent}" stroke-width="${BT_LOGO_STROKE_WIDTH}"/>${getBtLogoDotSvgMarkup(c.accent)}</g></svg>`;
+function getBtLoadingExportLogoHtml(options = {}) {
+  return getBtLogoExportHtml({
+    cycleMs: options.cycleMs,
+    size: Number(options.size || 72),
+    extraClass: options.extraClass || ''
+  }).replace('title="Bank Tracker logo animation"', 'title="Bank Tracker loading logo"');
 }
 
-function getBtBrandLogoSvgMarkup(size, drawMode = 'draw-loop', variant = 'header', transparentBg = false) {
-  const c = getBtBrandLogoPalette();
-  const modeClass = `bt-brand-logo-svg--${drawMode}`;
-  const variantClass = variant ? `bt-brand-logo-svg--${variant}` : '';
-  const backdrop = transparentBg
-    ? ''
-    : `<rect width="512" height="512" rx="112" fill="${c.bg}"/><circle cx="256" cy="256" r="140" fill="${c.accent}" opacity="${c.glow}" filter="blur(20px)"/>`;
-  return `<svg class="bt-brand-logo-svg ${variantClass} ${modeClass}" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true" focusable="false">${backdrop}<g transform="${BT_LOGO_G_TRANSFORM}" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="${BT_LOGO_STEM_PATH}" stroke="${c.primary}" stroke-width="${BT_LOGO_STROKE_WIDTH}"/><path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="${BT_LOGO_ARROW_PATH}" stroke="${c.accent}" stroke-width="${BT_LOGO_STROKE_WIDTH}"/><path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="${BT_LOGO_LOOP_TOP_PATH}" stroke="${c.primary}" stroke-width="${BT_LOGO_STROKE_WIDTH}"/><path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="${BT_LOGO_LOOP_BOTTOM_PATH}" stroke="${c.accent}" stroke-width="${BT_LOGO_STROKE_WIDTH}"/>${getBtLogoDotSvgMarkup(c.accent)}</g></svg>`;
+function getBtBrandLogoHeaderStaticHtml(size = 38) {
+  return `<span id="header-brand-logo" class="bt-brand-logo bt-logo-inline-host bt-brand-logo--header bt-brand-logo--static bt-brand-logo-svg--header bt-brand-logo-svg--idle" style="width:${size}px;height:${size}px;" aria-hidden="true">${getBtLogoInlineSvgHtml()}</span>`;
+}
+
+function getBtBrandLogoHeaderAnimatedHtml(size = 38) {
+  return getBtLogoExportHtml({
+    id: 'header-brand-logo',
+    size,
+    cycleMs: BT_LOGO_HEADER_SYNC_CYCLE_MS,
+    crop: 'b',
+    extraClass: ' bt-brand-logo bt-brand-logo--header bt-brand-logo-svg--header bt-logo-export-shell--header is-header-sync-loop'
+  });
 }
 
 function refreshBtBrandLogosForTheme() {
-  const c = getBtBrandLogoPalette();
-  const header = document.getElementById('header-brand-logo');
-  if (header) {
-    const rect = header.querySelector('rect');
-    if (rect) rect.setAttribute('fill', c.bg);
-    const glow = header.querySelector('.bt-logo-bg-glow, circle[r="140"]');
-    if (glow) {
-      glow.setAttribute('fill', c.accent);
-      glow.setAttribute('opacity', c.glow);
+  document.querySelectorAll('.bt-logo-animation-host').forEach((logo) => {
+    setLogoAnimCycleMs(logo.dataset.cycleMs || BT_LOGO_CYCLE_MS, logo);
+  });
+  document.querySelectorAll('.bt-logo-export-frame').forEach((frame) => {
+    const cycle = frame.src.match(/[?&]cycle=(\d+)/)?.[1] || BT_LOGO_CYCLE_BOOT_MS;
+    const nextSrc = getBtLogoExportThemeSrc(cycle);
+    if (!frame.src.endsWith(nextSrc)) {
+      const shell = frame.closest('.bt-logo-export-shell');
+      if (shell) shell.classList.remove('is-logo-ready');
+      frame.src = nextSrc;
+    } else {
+      cleanBtLogoExportFrame(frame);
+      fitBtLogoExportFrame(frame);
     }
-    header.querySelectorAll('.bt-logo-stem, .bt-logo-loop-top').forEach((path) => path.setAttribute('stroke', c.primary));
-    header.querySelectorAll('.bt-logo-arrow, .bt-logo-loop-bottom').forEach((path) => path.setAttribute('stroke', c.accent));
-    const dot = header.querySelector('.bt-logo-dot');
-    if (dot) dot.setAttribute('fill', c.accent);
-  }
-  getOverviewBalanceSyncCards().forEach((card) => {
-    if (card.classList.contains('is-balance-syncing')) restartOverviewBalanceBadgeLogoAnim(card);
   });
 }
 try { window.refreshBtBrandLogosForTheme = refreshBtBrandLogosForTheme; } catch (_) {}
 
 function getBtBrandLogoHtml(variant = 'header') {
-  const sizes = { header: 38, loading: 72, toast: 34, inline: 28, badge: 22 };
-  const size = sizes[variant] || sizes.header;
   if (variant === 'header') {
-    return getBtBrandLogoHeaderSvgMarkup(size);
+    return getBtBrandLogoHeaderStaticHtml(38);
   }
-  const drawMode = 'draw-loop';
-  const transparentBg = variant === 'loading' || variant === 'badge' || variant === 'toast' || variant === 'inline';
-  return getBtBrandLogoSvgMarkup(size, drawMode, variant, transparentBg);
+  if (variant === 'loading') {
+    return getBtLoadingExportLogoHtml({
+      cycleMs: BT_LOGO_CYCLE_BOOT_MS
+    });
+  }
+  return getBtLogoAnimationHtml(variant, {
+    cycleMs: BT_LOGO_CYCLE_MS
+  });
 }
 try { window.getBtBrandLogoHtml = getBtBrandLogoHtml; } catch (_) {}
+
+function getBtInlineLoadingHtml(message = '') {
+  const text = (typeof escapeHtml === 'function') ? escapeHtml(message || '') : String(message || '');
+  return `<span class="bt-inline-loader">${getBtBrandLogoHtml('inline')}<span>${text}</span></span>`;
+}
+try { window.getBtInlineLoadingHtml = getBtInlineLoadingHtml; } catch (_) {}
 
 const HEADER_BRAND_DRAW_MS = 1850;
 let __headerBrandAnimTimer = null;
@@ -13092,20 +13190,29 @@ function getHeaderBrandLogoEl() {
   return document.getElementById('header-brand-logo');
 }
 
-function ensureHeaderBrandLogoMarkup() {
+function ensureHeaderBrandLogoMarkup(options = {}) {
   const host = document.getElementById('header-brand-wrap');
   const existing = getHeaderBrandLogoEl();
+  const wantAnimated = options.animated === true;
   if (!host) return existing;
-  if (existing && existing.querySelector('.bt-logo-stem')) {
-    existing.classList.add('bt-brand-logo-svg', 'bt-brand-logo-svg--header');
-    if (!existing.classList.contains('bt-brand-logo-svg--draw-loop') && !existing.classList.contains('bt-brand-logo-svg--draw-once')) {
-      existing.classList.add('bt-brand-logo-svg--idle');
+  if (existing && wantAnimated && (existing.classList.contains('bt-logo-animation-host') || existing.classList.contains('bt-logo-export-shell'))) {
+    if (existing.classList.contains('bt-logo-export-shell')) {
+      const frame = existing.querySelector('.bt-logo-export-frame');
+      if (frame) {
+        const src = getBtLogoExportThemeSrc(BT_LOGO_HEADER_SYNC_CYCLE_MS);
+        if (!frame.src.endsWith(src)) frame.src = src;
+        window.requestAnimationFrame(() => fitBtLogoExportFrame(frame));
+      }
+    } else {
+      setLogoAnimCycleMs(BT_LOGO_HEADER_SYNC_CYCLE_MS, existing);
     }
     return existing;
   }
-  const wasSyncing = existing?.classList.contains('bt-brand-logo-svg--draw-loop');
+  if (existing && !wantAnimated && existing.classList.contains('bt-brand-logo--static')) {
+    return existing;
+  }
   const titleHtml = '<span class="header-brand-title" id="header-brand-title">ank Tracker</span>';
-  const logoHtml = getBtBrandLogoHeaderSvgMarkup(38);
+  const logoHtml = wantAnimated ? getBtBrandLogoHeaderAnimatedHtml(38) : getBtBrandLogoHeaderStaticHtml(38);
   if (existing) {
     existing.outerHTML = logoHtml;
   } else {
@@ -13115,10 +13222,12 @@ function ensureHeaderBrandLogoMarkup() {
     host.insertAdjacentHTML('beforeend', titleHtml);
   }
   const logo = getHeaderBrandLogoEl();
-  if (logo && wasSyncing) {
-    logo.classList.remove('bt-brand-logo-svg--idle');
-    logo.classList.add('bt-brand-logo-svg--draw-loop');
-    setLogoAnimCycleMs(BT_LOGO_CYCLE_MS, logo);
+  if (logo && wantAnimated) {
+    if (logo.classList.contains('bt-logo-export-shell')) {
+      window.requestAnimationFrame(() => fitBtLogoExportFrame(logo));
+    } else {
+      setLogoAnimCycleMs(BT_LOGO_HEADER_SYNC_CYCLE_MS, logo);
+    }
   }
   return logo;
 }
@@ -13134,6 +13243,7 @@ function finishHeaderBrandDrawAnimation() {
     logo.classList.remove('is-header-drawing', 'bt-brand-logo-svg--draw-loop', 'bt-brand-logo-svg--draw-once', 'is-header-sync-loop');
     logo.classList.add('bt-brand-logo-svg--idle');
   }
+  ensureHeaderBrandLogoMarkup({ animated: false });
   __headerBrandAnimRunning = false;
   __headerBrandAnimQueued = false;
   window.__headerBrandReleaseAfterDraw = false;
@@ -13149,23 +13259,46 @@ try { window.playHeaderBrandDraw = playHeaderBrandDraw; } catch (_) {}
 
 function scheduleHeaderBrandDrawIsolated() {}
 
-const HEADER_BRAND_SYNC_MIN_MS = 900;
+const HEADER_BRAND_SYNC_MIN_MS = BT_LOGO_HEADER_SYNC_CYCLE_MS;
 let __headerBrandSyncStartedAt = 0;
 let __headerBrandSyncHideTimer = null;
+let __syncBtnSpinStartedAt = 0;
+let __syncBtnSpinHideTimer = null;
 
 function setSyncBtnSpinning(active) {
   const btn = document.getElementById('sync-btn');
   if (!btn) return;
-  btn.classList.toggle('spinning', !!active);
+  const on = !!active;
+  if (!btn.dataset.defaultHtml) btn.dataset.defaultHtml = btn.innerHTML;
+  if (on) {
+    if (__syncBtnSpinHideTimer) {
+      clearTimeout(__syncBtnSpinHideTimer);
+      __syncBtnSpinHideTimer = null;
+    }
+    __syncBtnSpinStartedAt = Date.now();
+    btn.classList.add('spinning');
+    const icon = btn.querySelector('.sync-btn-icon');
+    if (!icon || icon.querySelector('.bt-logo-animation-host')) {
+      btn.innerHTML = '<span class="sync-btn-icon" aria-hidden="true">↻</span>';
+    }
+    return;
+  }
+  const elapsed = Date.now() - (__syncBtnSpinStartedAt || 0);
+  const waitMs = Math.max(0, getBtLogoCycleMs(BT_LOGO_CYCLE_MS) - elapsed);
+  if (__syncBtnSpinHideTimer) clearTimeout(__syncBtnSpinHideTimer);
+  __syncBtnSpinHideTimer = window.setTimeout(() => {
+    __syncBtnSpinHideTimer = null;
+    btn.classList.remove('spinning');
+    if (btn.dataset.defaultHtml) btn.innerHTML = btn.dataset.defaultHtml;
+  }, waitMs);
 }
 try { window.setSyncBtnSpinning = setSyncBtnSpinning; } catch (_) {}
 
 function setHeaderBrandSyncState(active) {
-  ensureHeaderBrandLogoMarkup();
-  const logo = getHeaderBrandLogoEl();
-  const wrap = document.getElementById('header-brand-wrap');
-  if (!logo) return;
   const on = !!active;
+  const logo = on ? ensureHeaderBrandLogoMarkup({ animated: true }) : getHeaderBrandLogoEl();
+  const wrap = document.getElementById('header-brand-wrap');
+  if (on && !logo) return;
   if (on) {
     if (__headerBrandSyncHideTimer) {
       clearTimeout(__headerBrandSyncHideTimer);
@@ -13178,10 +13311,7 @@ function setHeaderBrandSyncState(active) {
       __headerBrandAnimTimer = null;
     }
     __headerBrandAnimRunning = false;
-    logo.classList.remove('is-header-drawing', 'bt-brand-logo-svg--idle', 'is-header-sync-loop', 'bt-brand-logo-svg--draw-once');
-    void logo.offsetWidth;
-    logo.classList.add('bt-brand-logo-svg--draw-loop');
-    setLogoAnimCycleMs(BT_LOGO_CYCLE_MS, logo);
+    setLogoAnimCycleMs(BT_LOGO_HEADER_SYNC_CYCLE_MS, logo);
     return;
   }
   const elapsed = Date.now() - (__headerBrandSyncStartedAt || 0);
@@ -13192,10 +13322,11 @@ function setHeaderBrandSyncState(active) {
     const currentLogo = getHeaderBrandLogoEl();
     const currentWrap = document.getElementById('header-brand-wrap');
     if (currentWrap) currentWrap.classList.remove('is-brand-syncing');
-    if (currentLogo) {
+    if (currentLogo && !currentLogo.classList.contains('bt-logo-animation-host')) {
       currentLogo.classList.remove('bt-brand-logo-svg--draw-loop', 'bt-brand-logo-svg--draw-once', 'is-header-sync-loop');
       currentLogo.classList.add('bt-brand-logo-svg--idle');
     }
+    ensureHeaderBrandLogoMarkup({ animated: false });
   }, waitMs);
 }
 try { window.setHeaderBrandSyncState = setHeaderBrandSyncState; } catch (_) {}
@@ -13216,10 +13347,6 @@ function restartBtLogoDrawAnimation(overlayEl, options = {}) {
   setLogoAnimCycleMs(cycleMs, brand.querySelector('.bt-brand-logo-svg--draw-once, .bt-brand-logo-svg--draw-loop'));
 }
 
-const BT_LOGO_CYCLE_MS = 900;
-const BT_LOGO_CYCLE_BOOT_MS = 1000;
-const TAB_LOADING_MIN_MS = 600;
-const BT_LOGO_BADGE_CYCLE_MS = 900;
 let __loadingPresentation = null;
 
 function computeLoadingRevealPlan(session) {
@@ -13236,14 +13363,80 @@ function computeLoadingRevealPlan(session) {
 }
 
 function setLogoAnimCycleMs(ms, svgEl) {
-  const cycle = Math.max(400, Math.round(Number(ms || BT_LOGO_CYCLE_MS)));
-  const svg = svgEl || document.querySelector('#page-loading-overlay .bt-brand-logo-svg--draw-once, #page-loading-overlay .bt-brand-logo-svg--draw-loop');
-  if (svg) {
-    svg.style.setProperty('--bt-logo-cycle-ms', cycle + 'ms');
-    svg.querySelectorAll('.bt-logo-dot-motion, .bt-logo-dot-opacity').forEach((el) => {
-      el.setAttribute('dur', cycle + 'ms');
-    });
+  const cycle = getBtLogoCycleMs(ms);
+  const logo = svgEl || document.querySelector('#page-loading-overlay .bt-logo-animation-host, #page-loading-overlay .bt-brand-logo-svg--draw-once, #page-loading-overlay .bt-brand-logo-svg--draw-loop');
+  if (!logo) return;
+  logo.style.setProperty('--bt-logo-cycle-ms', cycle + 'ms');
+  if (logo.classList && logo.classList.contains('bt-logo-export-shell')) {
+    logo.dataset.cycleMs = String(cycle);
+    const frame = logo.querySelector('.bt-logo-export-frame');
+    if (frame) {
+      const nextSrc = getBtLogoExportThemeSrc(cycle);
+      if (!frame.src.endsWith(nextSrc)) frame.src = nextSrc;
+      window.requestAnimationFrame(() => fitBtLogoExportFrame(frame));
+    }
+    return;
   }
+  if (logo.classList && logo.classList.contains('bt-logo-animation-host')) {
+    logo.dataset.cycleMs = String(cycle);
+    logo.querySelectorAll('.bt-logo-dot-motion, .bt-logo-dot-opacity, animate, animateMotion').forEach((node) => {
+      try { node.setAttribute('dur', cycle + 'ms'); } catch (_) {}
+    });
+    restartBtLogoSmilDraw(logo);
+  }
+}
+
+function restartBtLogoSmilDraw(logoEl) {
+  const logo = logoEl || document.querySelector('.bt-logo-animation-host');
+  if (!logo) return;
+  const restart = () => {
+    try {
+      if (logo.classList && logo.classList.contains('bt-brand-logo-svg--draw-loop')) {
+        logo.classList.remove('bt-brand-logo-svg--draw-loop');
+        void logo.offsetWidth;
+        logo.classList.add('bt-brand-logo-svg--draw-loop');
+      }
+    } catch (_) {}
+    logo.querySelectorAll('.bt-logo-dot-opacity, .bt-logo-dot-motion').forEach((node) => {
+      try {
+        if (typeof node.beginElement === 'function') node.beginElement();
+      } catch (_) {}
+    });
+  };
+  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+    window.requestAnimationFrame(restart);
+  } else {
+    restart();
+  }
+}
+try { window.restartBtLogoSmilDraw = restartBtLogoSmilDraw; } catch (_) {}
+
+function startBtLogoAnimationObserver() {
+  if (window.__btLogoAnimationObserverStarted) return;
+  window.__btLogoAnimationObserverStarted = true;
+  const startLogo = (logo) => {
+    if (!logo || !logo.classList || !logo.classList.contains('bt-logo-animation-host')) return;
+    setLogoAnimCycleMs(logo.dataset.cycleMs || BT_LOGO_CYCLE_MS, logo);
+  };
+  document.querySelectorAll('.bt-logo-animation-host').forEach(startLogo);
+  if (typeof MutationObserver !== 'function') return;
+  const observer = new MutationObserver((records) => {
+    records.forEach((record) => {
+      record.addedNodes && record.addedNodes.forEach((node) => {
+        if (!node || node.nodeType !== 1) return;
+        if (node.matches && node.matches('.bt-logo-animation-host')) startLogo(node);
+        if (node.querySelectorAll) node.querySelectorAll('.bt-logo-animation-host').forEach(startLogo);
+      });
+    });
+  });
+  observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+  window.__btLogoAnimationObserver = observer;
+}
+try { window.startBtLogoAnimationObserver = startBtLogoAnimationObserver; } catch (_) {}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startBtLogoAnimationObserver, { once: true });
+} else {
+  startBtLogoAnimationObserver();
 }
 
 function cancelLoadingPresentation() {
@@ -13294,7 +13487,7 @@ function beginLoadingPresentation(options = {}) {
     overlay.classList.remove('is-hiding');
     overlay.setAttribute('aria-busy', 'true');
     setLogoAnimCycleMs(cycleMs);
-    restartBtLogoDrawAnimation(overlay);
+    restartBtLogoDrawAnimation(overlay, { force: true });
     return session;
   }
 
@@ -13443,6 +13636,8 @@ function startAppBootOverlay() {
     overlay.classList.add('show');
     overlay.classList.remove('is-hiding');
     overlay.setAttribute('aria-busy', 'true');
+    setLogoAnimCycleMs(BT_LOGO_CYCLE_BOOT_MS, overlay.querySelector('.bt-logo-animation-host'));
+    restartBtLogoDrawAnimation(overlay, { force: true });
     return;
   }
   __appBootActive = true;
@@ -15318,40 +15513,16 @@ function setOverviewBalanceSyncState(active) {
 }
 try { window.setOverviewBalanceSyncState = setOverviewBalanceSyncState; } catch (_) {}
 
-const OVERVIEW_BALANCE_SYNC_MIN_MS = BT_LOGO_BADGE_CYCLE_MS;
 let __overviewBalanceSyncDepth = 0;
-let __overviewBalanceSyncStartedAt = 0;
-let __overviewBalanceSyncHideTimer = null;
 
 function getOverviewBalanceSyncCards() {
   return Array.from(document.querySelectorAll('.wealth-card-net, .wealth-card-cash'));
 }
 
-function restartOverviewBalanceBadgeLogoAnim(card) {
-  const host = card?.querySelector('.overview-balance-sync-logo');
-  if (!host) return;
-  host.innerHTML = getBtBrandLogoHtml('badge');
-  const svg = host.querySelector('.bt-brand-logo-svg--draw-loop');
-  if (svg) {
-    svg.style.setProperty('--bt-logo-cycle-ms', BT_LOGO_BADGE_CYCLE_MS + 'ms');
-    void svg.offsetWidth;
-  }
-}
-
-function ensureOverviewBalanceSyncBadgeLogos() {
-  getOverviewBalanceSyncCards().forEach((card) => restartOverviewBalanceBadgeLogoAnim(card));
-}
-
 function beginOverviewBalanceSyncUI() {
   __overviewBalanceSyncDepth++;
   if (__overviewBalanceSyncDepth > 1) return;
-  if (__overviewBalanceSyncHideTimer) {
-    clearTimeout(__overviewBalanceSyncHideTimer);
-    __overviewBalanceSyncHideTimer = null;
-  }
-  __overviewBalanceSyncStartedAt = Date.now();
   getOverviewBalanceSyncCards().forEach((card) => {
-    restartOverviewBalanceBadgeLogoAnim(card);
     card.classList.add('is-balance-syncing');
   });
 }
@@ -15359,15 +15530,9 @@ function beginOverviewBalanceSyncUI() {
 function endOverviewBalanceSyncUI() {
   __overviewBalanceSyncDepth = Math.max(0, __overviewBalanceSyncDepth - 1);
   if (__overviewBalanceSyncDepth > 0) return;
-  const elapsed = Date.now() - __overviewBalanceSyncStartedAt;
-  const waitMs = Math.max(0, OVERVIEW_BALANCE_SYNC_MIN_MS - elapsed);
-  if (__overviewBalanceSyncHideTimer) clearTimeout(__overviewBalanceSyncHideTimer);
-  __overviewBalanceSyncHideTimer = window.setTimeout(() => {
-    __overviewBalanceSyncHideTimer = null;
-    getOverviewBalanceSyncCards().forEach((card) => {
-      card.classList.remove('is-balance-syncing');
-    });
-  }, waitMs);
+  getOverviewBalanceSyncCards().forEach((card) => {
+    card.classList.remove('is-balance-syncing');
+  });
 }
 
 function lockOverviewBalanceDatasets() {
@@ -15747,13 +15912,6 @@ function stopNetWorthTrendAnimations(card) {
     line.style.strokeDashoffset = '';
     line.style.animation = '';
   });
-  root.querySelectorAll('.wealth-networth-trend-point-v238').forEach((pt) => {
-    try { (pt.__btPointAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
-    pt.__btPointAnim = null;
-    pt.style.opacity = '';
-    pt.style.transform = '';
-    pt.style.animation = '';
-  });
 }
 
 function primeNetWorthTrendForIntro(root) {
@@ -15768,15 +15926,6 @@ function primeNetWorthTrendForIntro(root) {
     line.style.strokeDasharray = `${len}`;
     line.style.strokeDashoffset = `${len}`;
   });
-  root.querySelectorAll('.wealth-networth-trend-point-v238').forEach((pt) => {
-    try { (pt.__btPointAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
-    pt.__btPointAnim = null;
-    pt.style.opacity = '0';
-    pt.style.animation = 'none';
-    pt.style.transform = 'scale(0.74)';
-    pt.style.transformBox = 'fill-box';
-    pt.style.transformOrigin = 'center';
-  });
 }
 
 function playNetWorthTrendChartIntro(card) {
@@ -15788,11 +15937,6 @@ function playNetWorthTrendChartIntro(card) {
     root.querySelectorAll('.wealth-networth-trend-line-v238').forEach((line) => {
       line.style.strokeDashoffset = '0';
       line.style.animation = 'none';
-    });
-    root.querySelectorAll('.wealth-networth-trend-point-v238').forEach((pt) => {
-      pt.style.opacity = '1';
-      pt.style.transform = '';
-      pt.style.animation = 'none';
     });
     return;
   }
@@ -15820,25 +15964,6 @@ function playNetWorthTrendChartIntro(card) {
       };
     } catch (_) {
       line.style.strokeDashoffset = '0';
-    }
-  });
-
-  root.querySelectorAll('.wealth-networth-trend-point-v238').forEach((pt, idx) => {
-    pt.style.opacity = '0';
-    pt.style.animation = 'none';
-    const delay = Math.min(maxLineEndMs, NET_WORTH_TREND_POINT_BASE_DELAY_MS + idx * NET_WORTH_TREND_POINT_STAGGER_MS);
-    try {
-      const anim = pt.animate(
-        [{ opacity: 0, transform: 'scale(0.74)' }, { opacity: 1, transform: 'scale(1)' }],
-        { duration: NET_WORTH_TREND_POINT_POP_MS, delay, easing: 'ease-out', fill: 'forwards' }
-      );
-      pt.__btPointAnim = [anim];
-      anim.onfinish = () => {
-        pt.style.opacity = '1';
-        pt.style.transform = '';
-      };
-    } catch (_) {
-      pt.style.opacity = '1';
     }
   });
 }
@@ -15975,15 +16100,6 @@ function scheduleOverviewChartsReplay(fromDetailsReturn = false) {
 }
 
 function getOverviewChartCardAnimDuration(card) {
-  const netWorthPoints = card ? card.querySelectorAll('.wealth-networth-trend-point-v238').length : 0;
-  if (netWorthPoints > 0) {
-    const maxLineEndMs = NET_WORTH_TREND_LINE_DRAW_MS;
-    const lastPointDelay = Math.min(
-      maxLineEndMs,
-      NET_WORTH_TREND_POINT_BASE_DELAY_MS + Math.max(0, netWorthPoints - 1) * NET_WORTH_TREND_POINT_STAGGER_MS
-    );
-    return Math.max(maxLineEndMs, lastPointDelay + NET_WORTH_TREND_POINT_POP_MS) + 120;
-  }
   const hasGauge = !!(card && card.querySelector('.overview-widget-arc:not(.is-empty-arc), .wealth-gauge-arc:not(.is-empty-arc)'));
   const hasProjection = !!(card && card.querySelector('.overview-widget-line.is-projection, .wealth-spark-line.is-projection'));
   let lineDuration = hasProjection
@@ -19699,7 +19815,8 @@ function ensurePullToRefreshUi() {
   el = document.createElement('div');
   el.id = 'bt-pull-refresh';
   el.setAttribute('aria-hidden', 'true');
-  el.innerHTML = '<div class="bt-pull-refresh-inner"><span class="bt-pull-refresh-icon" aria-hidden="true">↻</span></div>';
+  el.innerHTML = `<div class="bt-pull-refresh-inner"><span class="bt-pull-refresh-icon" aria-hidden="true">${getBtBrandLogoHtml('inline')}</span></div>`;
+  setLogoAnimCycleMs(BT_LOGO_CYCLE_MS, el.querySelector('.bt-logo-animation-host'));
   document.body.appendChild(el);
   return el;
 }
@@ -24981,13 +25098,13 @@ function initPageSwipeNavigation() {
 // ── APP LIGHT / DARK THEME SWITCH ──────────────────────────
 const APP_THEMES = {
   dark: {
-    themeColor: '#0a0a0a',
-    backgroundColor: '#0a0a0a',
+    themeColor: '#08111f',
+    backgroundColor: '#08111f',
     colorScheme: 'dark'
   },
   light: {
-    themeColor: '#0a0a0a',
-    backgroundColor: '#0a0a0a',
+    themeColor: '#f8fafc',
+    backgroundColor: '#f8fafc',
     colorScheme: 'light'
   }
 };
@@ -27665,11 +27782,6 @@ window.addEventListener('pageshow', (event) => {
     fill: var(--accent);
     opacity: .14;
   }
-  .wealth-networth-trend-dot-v238 {
-    fill: #ffffff;
-    stroke: var(--accent);
-    stroke-width: 0.85;
-  }
   .wealth-networth-trend-caption-v238 {
     display: flex;
     justify-content: space-between;
@@ -27881,13 +27993,11 @@ window.addEventListener('pageshow', (event) => {
     var pts = data.map(function(d,i){ return [x(i), y(d.value)]; });
     var path = pts.map(function(p,i){ return (i?'L':'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
     var area = path + ' L' + pts[pts.length-1][0].toFixed(1) + ' ' + baseY + ' L' + pts[0][0].toFixed(1) + ' ' + baseY + ' Z';
-    var last = pts[pts.length-1];
     var firstLabel = data[0].month ? netWorthTrendMonthLabel(data[0].month) : '';
     var lastLabel = data[data.length-1].month ? netWorthTrendMonthLabel(data[data.length-1].month) : '';
     slot.innerHTML = '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'
       + '<path class="wealth-networth-trend-area-v238" d="'+attr(area)+'"></path>'
       + '<path class="overview-widget-line wealth-networth-trend-line-v238" d="'+attr(path)+'"></path>'
-      + '<circle class="wealth-networth-trend-dot-v238 wealth-networth-trend-point-v238" cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="1.35" fill="#ffffff" stroke="var(--accent)" stroke-width="0.85"></circle>'
       + '</svg><div class="wealth-networth-trend-caption-v238"><span>'+esc(firstLabel)+'</span><span>'+esc(lastLabel)+'</span></div>';
     try { if (typeof primeNetWorthTrendForIntro === 'function') primeNetWorthTrendForIntro(slot); } catch(_) {}
     try { if (typeof scheduleNetWorthTrendAnimation === 'function') scheduleNetWorthTrendAnimation(); } catch(_) {}
@@ -28881,7 +28991,7 @@ window.addEventListener('pageshow', (event) => {
   }
   window.openLoanManagerSheet = function(){
     var list = document.getElementById('loan-manager-list');
-    if (list) list.innerHTML = '<div class="archive-detail-loader">Loading loans…</div>';
+    if (list) list.innerHTML = '<div class="archive-detail-loader">' + getBtInlineLoadingHtml('Loading loans...') + '</div>';
     if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
     window.setTimeout(function(){
       var runRender = function(){
@@ -30551,7 +30661,7 @@ window.addEventListener('pageshow', (event) => {
   };
   window.openLoanManagerSheet = function(){
     var list = document.getElementById('loan-manager-list');
-    if (list) list.innerHTML = '<div class="archive-detail-loader">Loading loans…</div>';
+    if (list) list.innerHTML = '<div class="archive-detail-loader">' + getBtInlineLoadingHtml('Loading loans...') + '</div>';
     if (typeof openSheet === 'function') openSheet('loan-manager-sheet');
     window.setTimeout(function(){
       var runRender = function(){
