@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=512, height=512">
+  <title>Bank Tracker logo animation export</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 512px;
+      height: 512px;
+      overflow: hidden;
+      background: #08111f;
+    }
+    body {
+      display: grid;
+      place-items: center;
+    }
+    .stage {
+      width: 512px;
+      height: 512px;
+      display: grid;
+      place-items: center;
+    }
+    .bt-brand-logo-svg {
+      display: block;
+      overflow: visible;
+      user-select: none;
+    }
+    .bt-brand-logo-svg--loading {
+      width: 512px;
+      height: 512px;
+    }
+    .bt-brand-logo-svg .bt-logo-stroke {
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+    }
+    .bt-brand-logo-svg--draw-loop {
+      --bt-logo-cycle-ms: 3600ms;
+    }
+    .bt-brand-logo-svg--draw-loop .bt-logo-dot-wrap {
+      opacity: 1;
+    }
+    .bt-brand-logo-svg--draw-loop .bt-logo-dot {
+      opacity: 1;
+    }
+
+    /* STEM: draws while dot travels bottom -> top (3% - 20%) */
+    .bt-brand-logo-svg--draw-loop .bt-logo-stem {
+      animation: btLogoDrawStem var(--bt-logo-cycle-ms, 3600ms) ease-in-out infinite;
+    }
+    /* ARROW: draws while dot traces the chevron (20% - 38%) */
+    .bt-brand-logo-svg--draw-loop .bt-logo-arrow {
+      animation: btLogoDrawArrow var(--bt-logo-cycle-ms, 3600ms) ease-in-out infinite;
+    }
+    /* TOP ARC (white): draws after the "return" phase (52% - 72%) */
+    .bt-brand-logo-svg--draw-loop .bt-logo-loop-top {
+      animation: btLogoDrawLoopTopByDot var(--bt-logo-cycle-ms, 3600ms) ease-in-out infinite;
+    }
+    /* BOTTOM ARC (blue): final segment, ends the cycle (72% - 92%) */
+    .bt-brand-logo-svg--draw-loop .bt-logo-loop-bottom {
+      animation: btLogoDrawLoopBottom var(--bt-logo-cycle-ms, 3600ms) ease-in-out infinite;
+    }
+
+    @keyframes btLogoDrawStem {
+      0%, 3%   { stroke-dashoffset: 100; }
+      20%, 100% { stroke-dashoffset: 0; }
+    }
+    @keyframes btLogoDrawArrow {
+      0%, 20%  { stroke-dashoffset: 100; }
+      38%, 100% { stroke-dashoffset: 0; }
+    }
+    @keyframes btLogoDrawLoopTopByDot {
+      0%, 52%  { stroke-dashoffset: 100; }
+      72%, 100% { stroke-dashoffset: 0; }
+    }
+    @keyframes btLogoDrawLoopBottom {
+      0%, 72%  { stroke-dashoffset: 100; }
+      92%, 100% { stroke-dashoffset: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <svg id="logo" class="bt-brand-logo-svg bt-brand-logo-svg--loading bt-brand-logo-svg--draw-loop" width="512" height="512" viewBox="0 0 512 512" aria-hidden="true">
+      <rect width="512" height="512" rx="112" fill="#08111f"/>
+      <circle cx="256" cy="256" r="140" fill="#00e5ff" opacity="0.1" filter="blur(20px)"/>
+      <g transform="translate(157, 76) scale(0.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="#ffffff" stroke-width="36"/>
+        <path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36"/>
+        <path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#ffffff" stroke-width="36"/>
+        <path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36"/>
+
+        <!--
+          Dot travel path (single continuous line), in order:
+          1) M 60 300 -> L 60 50      : up the stem
+          2) L 20 90 -> L 60 50 -> L 100 90 : trace the arrow chevron
+          3) L 60 50 -> L 60 120      : "return" back down to the loops' start
+          4) h80, c..., c..., h-80    : trace the white top arc
+          5) L 60 220                 : small step down to the bottom arc's start
+          6) h90, c..., c..., h-90    : trace the blue bottom arc
+        -->
+        <g class="bt-logo-dot-wrap">
+          <circle class="bt-logo-dot" r="18" fill="#00e5ff" stroke="none">
+            <animate class="bt-logo-dot-opacity" attributeName="opacity" dur="3600ms" repeatCount="indefinite"
+              keyTimes="0;0.03;0.92;1" values="0;1;1;1"/>
+            <animateMotion class="bt-logo-dot-motion" dur="3600ms" repeatCount="indefinite" calcMode="linear"
+              keyTimes="0;0.03;0.20;0.38;0.52;0.72;0.92;1"
+              keyPoints="0;0;0.1914;0.3213;0.4183;0.6786;1;1"
+              path="M 60 300 L 60 50 L 20 90 L 60 50 L 100 90 L 60 50 L 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80 L 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90"/>
+          </circle>
+        </g>
+      </g>
+    </svg>
+  </div>
+  <script>
+    (function () {
+      const params = new URLSearchParams(location.search);
+      const cycle = Math.max(400, Number(params.get('cycle') || 2000));
+      document.documentElement.style.setProperty('--bt-logo-cycle-ms', cycle + 'ms');
+      document.getElementById('logo').style.setProperty('--bt-logo-cycle-ms', cycle + 'ms');
+      document.querySelectorAll('.bt-logo-dot-motion, .bt-logo-dot-opacity').forEach((el) => {
+        el.setAttribute('dur', cycle + 'ms');
+      });
+      document.body.dataset.cycleMs = String(cycle);
+    })();
+  </script>
+</body>
+</html>
