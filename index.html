@@ -21188,11 +21188,11 @@ async function saveLoanFromQuickSheet() {
     try { if (typeof renderAll === 'function') renderAll(); } catch(_) {}
     showSavedToast();
     const queuedLoan = Object.assign({}, result.loan);
-    window.setTimeout(function(){
-      Promise.resolve(window.saveLoanCanonical(queuedLoan)).catch(function(error){
+    Promise.resolve().then(function(){
+      return window.saveLoanCanonical(queuedLoan);
+    }).catch(function(error){
         console.warn('Background Google Sheets new-loan sync pending:', error);
-      });
-    }, 800);
+    });
   } catch (e) {
     console.warn('saveLoanFromQuickSheet failed:', e);
     alert('Loan could not be saved locally. Please check the entered values.');
@@ -36376,6 +36376,7 @@ window.addEventListener('pageshow', (event) => {
     periodValue: ['period','period value','loan period','repayment period','doba','obdobie','obdobi'],
     periodUnit: ['period unit','unit','period type','jednotka'],
     periodMonths: ['period months','months','pocet mesiacov','pocet mesicu'],
+    loanStart: ['loan start','loan start date','start date','zaciatok uveru','zaciatok hypoteky'],
     fixationUntil: ['fixation until','fixation','fixed until','fixace do','fixacia do','koniec fixacie','konec fixace'],
     alert: ['alert','alert days','fixation alert days','fixation alert','days before fixation','upozornenie','upozornenie dni','alert dni'],
     variableSymbol: ['vs','variable symbol','variabilny symbol','variabilni symbol'],
@@ -36534,21 +36535,22 @@ window.addEventListener('pageshow', (event) => {
     var periods = [];
     for (var i = 1; i <= 10; i++) {
       var months = directLoanValue(row, ['Period ' + i + ' months', 'period' + i + 'Months']);
+      var until = directLoanValue(row, ['Period ' + i + ' until', 'period' + i + 'Until']);
       var rate = directLoanValue(row, ['Period ' + i + ' rate %', 'Period ' + i + ' rate', 'period' + i + 'Rate']);
       var color = directLoanValue(row, ['Period ' + i + ' color', 'period' + i + 'Color']);
       var legacySpan = directLoanValue(row, ['Period ' + i + ' from']);
       var periodSpan = normalizePeriod(months || legacySpan, 'months', '');
-      if (!(clean(months) || clean(rate) || clean(color) || clean(legacySpan))) continue;
+      if (!(clean(months) || clean(until) || clean(rate) || clean(color) || clean(legacySpan))) continue;
       if (i === 1) {
         periods.push({
           role:'loan_term', rate:rate,
-          fixationUntil:dateText(directLoanValue(row, ['Fixation until', 'Period 1 fixation until', 'Period 1 to', 'fixationUntil']) || loan.fixationUntil || ''),
+          fixationUntil:dateText(until || directLoanValue(row, ['Fixation until', 'Period 1 fixation until', 'Period 1 to', 'fixationUntil']) || loan.fixationUntil || ''),
           fixationMonths:periodSpan.months || '', color:color || '#388BFD',
           periodValue:totalMonths || '', periodUnit:'months'
         });
       } else {
         periods.push({
-          role:'period', rate:rate, fixationUntil:'', color:color || '#66C61C',
+          role:'period', rate:rate, fixationUntil:dateText(until), color:color || '#66C61C',
           periodValue:periodSpan.months || '', periodUnit:'months'
         });
       }
@@ -36566,6 +36568,23 @@ window.addEventListener('pageshow', (event) => {
     var residualColor = directLoanValue(row, ['Residual color', 'residualColor']) || loan.residualColor || '#94A3B8';
     if (clean(residualRate) || clean(residualColor)) periods.push({ role:'residual', rate:residualRate, color:residualColor });
     return periods;
+  }
+  function currentLoanTimelinePeriod(periods, fallback){
+    periods = Array.isArray(periods) ? periods : [];
+    var today = new Date(); today.setHours(0,0,0,0);
+    var dated = periods.filter(function(period){
+      if (!period || period.role === 'residual') return false;
+      var iso = dateText(period.fixationUntil);
+      var m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!m) return false;
+      period.__timelineUntil = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      return !isNaN(period.__timelineUntil.getTime());
+    });
+    var current = dated.find(function(period){ return period.__timelineUntil.getTime() >= today.getTime(); });
+    dated.forEach(function(period){ try { delete period.__timelineUntil; } catch(_) {} });
+    if (current) return current;
+    if (dated.length) return periods.find(function(period){ return period && period.role === 'residual'; }) || fallback || dated[dated.length - 1];
+    return fallback || periods[0] || {};
   }
   function normalizeLoan(row, index){
     row = row || {};
@@ -36596,6 +36615,7 @@ window.addEventListener('pageshow', (event) => {
     var splitPeriods = splitFixationEntries(normalizedPeriods);
     var termPeriod = splitPeriods.loanTerm || {};
     var residualPeriod = splitPeriods.residual || {};
+    var currentPeriod = currentLoanTimelinePeriod(normalizedPeriods, termPeriod);
     var existingSim = row.simSettings && typeof row.simSettings === 'object' ? row.simSettings : {};
     var paidYears = Math.max(0, Math.round(num(pick(row, 'paidYears') || row.paidYears || existingSim.paidYears)) || 0);
     var historicalRate = num(pick(row, 'historicalRate') || row.historicalRate || existingSim.histRate);
@@ -36611,7 +36631,7 @@ window.addEventListener('pageshow', (event) => {
       currentBalance:outstanding ? -outstanding : 0,
       outstandingBalance:outstanding ? -outstanding : 0,
       balance:outstanding ? -outstanding : 0,
-      interestRate:clean(termPeriod.rate || pick(row, 'interestRate') || row.interestRate || row.rate || ''),
+      interestRate:clean(currentPeriod.rate || termPeriod.rate || pick(row, 'interestRate') || row.interestRate || row.rate || ''),
       residualRate:clean(residualPeriod.rate || pick(row, 'residualRate') || row.residualRate || row.estimateRate || ''),
       residualColor:clean(residualPeriod.color || pick(row, 'residualColor') || row.residualColor || '#94A3B8'),
       historicalRate:historicalRate,
@@ -36619,7 +36639,8 @@ window.addEventListener('pageshow', (event) => {
       periodValue:totalPeriodMonths ? String(totalPeriodMonths) : '',
       periodUnit:'months',
       periodMonths:totalPeriodMonths ? String(totalPeriodMonths) : '',
-      fixationUntil:dateText(termPeriod.fixationUntil || pick(row, 'fixationUntil') || row.fixationUntil || row.fixation || row.fixationDate || ''),
+      loanStart:dateText(pick(row, 'loanStart') || row.loanStart || ''),
+      fixationUntil:dateText(currentPeriod.fixationUntil || (currentPeriod.role === 'residual' ? '' : (termPeriod.fixationUntil || pick(row, 'fixationUntil') || row.fixationUntil || row.fixation || row.fixationDate || ''))),
       variableSymbol:variableSymbol,
       vs:variableSymbol,
       account:account,
@@ -36993,11 +37014,10 @@ window.addEventListener('pageshow', (event) => {
             ? (Number(period.periodValue) || 0) * 12
             : (Number(period.periodValue) || 0);
           var hasVal = period.periodValue != null && period.periodValue !== '';
-          var showYears = hasVal ? (rawMonths > 0 && rawMonths % 12 === 0) : true;
-          var dispVal = hasVal ? (showYears ? rawMonths / 12 : rawMonths) : '';
+          var dispVal = hasVal ? rawMonths / 12 : '';
           return '<div class="sheet-grid-2 loan-fix-period-row-v1501 loan-fix-period-unit-row-v1900">'
-            + '<div><label>Period length</label><input class="config-input" data-fix-field="periodValue" data-period-id="' + pid + '" type="number" min="0" step="1" value="' + attr(dispVal) + '"></div>'
-            + '<div class="loan-fix-unit-cell-v2001"><select aria-label="Period unit" class="config-input loan-fix-period-unit-select-v1900" data-fix-field="periodUnit" data-period-id="' + pid + '"><option value="years"' + (showYears ? ' selected' : '') + '>Years</option><option value="months"' + (showYears ? '' : ' selected') + '>Months</option></select></div>'
+            + '<div><label>Period length</label><input class="config-input" data-fix-field="periodValue" data-period-id="' + pid + '" type="number" min="0" step="any" value="' + attr(dispVal) + '"></div>'
+            + '<div class="loan-fix-unit-cell-v2001"><select aria-label="Period unit" class="config-input loan-fix-period-unit-select-v1900" data-fix-field="periodUnit" data-period-id="' + pid + '"><option value="years" selected>Years</option></select></div>'
             + '</div>';
         })();
     var rateAndFixation = '<div class="sheet-grid-2 loan-fix-rate-fixation-row-v1501"><div><label>Rate %</label><input class="config-input" data-fix-field="rate" data-period-id="' + pid + '" value="' + attr(period.rate || '') + '"></div>'
@@ -37215,7 +37235,7 @@ window.addEventListener('pageshow', (event) => {
       var result = await jsonpEndpointRequest('readLoans', {}, 18000);
       var data = result && (result.data || result) || {};
       var rows = data.loans || data.items || data.rows || [];
-      if (!Array.isArray(rows) || !rows.length) return false;
+      if (!Array.isArray(rows)) return false;
       saveLoans(rows.map(function(row, index){ return normalizeLoan(row, index); }));
       return true;
     } catch(e) {
@@ -37233,8 +37253,15 @@ window.addEventListener('pageshow', (event) => {
     syncing = true;
     try {
       var id = spreadsheetIdFromSettings();
-      var loaded = id ? await syncLoansFromSheets(id) : false;
-      if (!loaded) loaded = await readLoansEndpoint();
+      // Apps Script reads the live database. GViz can serve a several-minute-old
+      // cached snapshot, so it is fallback-only.
+      var endpointUrl = '';
+      try { endpointUrl = typeof getCurrentWebAppUrl === 'function' ? getCurrentWebAppUrl() : ''; } catch(_) {}
+      var hasLiveEndpoint = !!endpointUrl && (typeof isValidAppsScriptExecUrl !== 'function' || isValidAppsScriptExecUrl(endpointUrl));
+      var loaded = hasLiveEndpoint ? await readLoansEndpoint() : false;
+      // When a live endpoint is configured but temporarily fails, keep the
+      // visible local cache instead of replacing it with an older GViz result.
+      if (!loaded && !hasLiveEndpoint && id) loaded = await syncLoansFromSheets(id);
       if (loaded) {
         lastSyncAt = Date.now();
         try { renderLoanManager(); } catch(_) {}
@@ -37562,7 +37589,11 @@ window.addEventListener('pageshow', (event) => {
   function boot(){
     saveLoans(getLoans(true));
     ensureLoanManagerDom();
-    setTimeout(function(){ syncLoansNow(false); }, 350);
+    // Paint the local cache first, then immediately reconcile it against the
+    // live Apps Script/Sheets database in the background.
+    try { if (typeof renderCustomWidgets === 'function') renderCustomWidgets(); } catch(_) {}
+    try { if (typeof renderOverviewDashboard === 'function') renderOverviewDashboard(); } catch(_) {}
+    setTimeout(function(){ syncLoansNow(false); }, 0);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once:true });
   else setTimeout(boot, 0);
@@ -43472,7 +43503,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     }
     lineDatasets.push({ label: 'Balance (projection)', data: projLine, type: 'line', borderColor: PROJECTION_BLUE, backgroundColor: 'rgba(56,139,253,0.06)', fill: true, tension: 0.3, pointRadius: 0, yAxisID: 'y', order: 1 });
     var histBars = showHist ? [
-      { label: 'Principal hist.', data: sim.histPrincipal.concat(futureFill), backgroundColor: sim.histPrincipal.map(function(_, i){ return colorWithAlpha(paidColors[i] || paidColor, '55'); }), borderWidth: 0, borderRadius: 2, yAxisID: 'y2', order: 2 },
+      { label: 'Principal hist.', data: sim.histPrincipal.concat(futureFill), backgroundColor: colors.principal, borderWidth: 0, borderRadius: 2, yAxisID: 'y2', order: 2 },
       { label: 'Interest hist. ' + sim.histRatePct + '%', data: sim.histInterest.concat(futureFill), backgroundColor: sim.histInterest.map(function(_, i){ return colorWithAlpha(paidColors[i] || paidColor, '99'); }), borderColor: sim.histInterest.map(function(_, i){ return paidColors[i] || paidColor; }), borderWidth: 1, borderRadius: 2, yAxisID: 'y2', order: 2 }
     ] : [];
     return {
@@ -43613,11 +43644,21 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     loanTerm.periodValue = totalMonths;
     loanTerm.periodUnit = 'months';
     loanTerm.fixationMonths = firstPeriodMonths;
+    var today = new Date(); today.setHours(0,0,0,0);
+    var currentPeriod = periods.filter(function(period){
+      if (!period || clean(period.role) === 'residual') return false;
+      var until = v2kParseDate(period.fixationUntil);
+      return until && until.getTime() >= today.getTime();
+    })[0];
+    if (!currentPeriod) {
+      var hasDatedPeriod = periods.some(function(period){ return period && clean(period.role) !== 'residual' && !!v2kParseDate(period.fixationUntil); });
+      currentPeriod = hasDatedPeriod ? (periods.find(function(period){ return clean(period && period.role) === 'residual'; }) || loanTerm) : loanTerm;
+    }
     loan.periodValue = totalMonths;
     loan.periodUnit = 'months';
     loan.periodMonths = totalMonths;
-    loan.interestRate = loanTerm.rate != null && loanTerm.rate !== '' ? loanTerm.rate : loan.interestRate;
-    loan.fixationUntil = clean(loanTerm.fixationUntil || loan.fixationUntil);
+    loan.interestRate = currentPeriod.rate != null && currentPeriod.rate !== '' ? currentPeriod.rate : (loanTerm.rate != null && loanTerm.rate !== '' ? loanTerm.rate : loan.interestRate);
+    loan.fixationUntil = clean(currentPeriod.fixationUntil || (clean(currentPeriod.role) === 'residual' ? '' : loan.fixationUntil));
     loan.fixationPeriods = periods;
     loan.fixationPeriodsJson = '';
     var sim = parseSimSettings(loan);
@@ -44225,10 +44266,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="v1700-loan-autosync-js">
 (function(){
   'use strict';
-  /* v1700: every edit inside an open Manage loans card is pushed to Google
-     Sheets through saveLoanCanonical - the same validated pipeline as the
-     Save & close button - so the Loans tab always mirrors the form. Local
-     draft saving (v271) stays untouched; this layer only adds the sheet push. */
+  /* Loan fields remain an immediate local draft while the form is open.
+     Google Sheets is written only by the explicit Save & close action. */
   var timers = {};
   var pending = {};
   var busy = {};
@@ -44294,8 +44333,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     if (!id) return;
     schedule(id, e.type === 'change' ? DEBOUNCE_CHANGE : DEBOUNCE_INPUT);
   }
-  document.addEventListener('input', handler, true);
-  document.addEventListener('change', handler, true);
+  // Intentionally no input/change autosync: an old mobile cache must never
+  // overwrite the database merely because a field was focused or edited.
 
   /* Save & close already writes to Sheets - cancel our pending push so the
      same loan is not written twice back to back. */
@@ -44402,16 +44441,14 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       var form = card.querySelector('.managed-bank-form');
       if (!anchor && !form) return;
       var months = totalMonthsOf(card, safe);
-      var useYears = months > 0 && months % 12 === 0;
-      var value = months ? (useYears ? months / 12 : months) : '';
+      var value = months ? months / 12 : '';
       var holder = document.createElement('div');
       holder.className = 'loan-full-row-v1500 loan-total-period-v1800';
       holder.innerHTML = '<label>Loan period</label>'
         + '<div class="loan-total-period-grid-v1800">'
-        + '<input class="config-input" id="loan-total-period-v1800-' + attr(safe) + '" type="number" min="1" step="1" value="' + attr(value) + '">'
+        + '<input class="config-input" id="loan-total-period-v1800-' + attr(safe) + '" type="number" min="0.1" step="any" value="' + attr(value) + '">'
         + '<select class="config-input" id="loan-total-period-unit-v1800-' + attr(safe) + '">'
-        + '<option value="years"' + (useYears || !months ? ' selected' : '') + '>Years</option>'
-        + '<option value="months"' + (!useYears && months ? ' selected' : '') + '>Months</option>'
+        + '<option value="years" selected>Years</option>'
         + '</select></div>'
         + '<div class="budget-status-note loan-field-hint-v293">Total loan/mortgage length. Stored in Google Sheets as months.</div>';
       if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(holder, anchor.nextSibling);
@@ -44569,11 +44606,11 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       /* Google Sheets is intentionally queued after the instant local save so
          network latency never blocks closing the card or updating the graph. */
       var queuedLoan = Object.assign({}, result.loan);
-      window.setTimeout(function(){
-        Promise.resolve(window.saveLoanCanonical(queuedLoan)).catch(function(err){
+      Promise.resolve().then(function(){
+        return window.saveLoanCanonical(queuedLoan);
+      }).catch(function(err){
           console.warn('Background Google Sheets loan sync pending:', enrichMessage(err));
-        });
-      }, 800);
+      });
     } catch(err) {
       var msg = enrichMessage(err);
       console.warn('v1800 Save & close failed:', msg);
@@ -44675,6 +44712,61 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   #loan-manager-sheet .loan-fixdate-v1600 { display:none !important; }
   #loan-manager-sheet .loan-p1-unit-v2000 { display:grid; grid-template-columns:1fr 100px; gap:8px; }
   #loan-manager-sheet .loan-p1-unit-v2000 input, #loan-manager-sheet .loan-p1-unit-v2000 select { min-height:42px; }
+  /* Use the platform's full touch colour palette (wheel/selection cursor on
+     iPhone and the equivalent native picker on Android). */
+  #loan-manager-sheet input[type="color"].loan-fix-color-input-v313,
+  #loan-manager-sheet input[data-fix-field="color"] {
+    -webkit-appearance:auto !important;
+    appearance:auto !important;
+    color-scheme:light dark;
+    width:100% !important;
+    min-width:0 !important;
+    min-height:48px !important;
+    padding:3px !important;
+    touch-action:manipulation;
+  }
+  @media (max-width:600px){
+    #loan-manager-sheet,
+    #loan-manager-sheet .bottom-sheet-content,
+    #loan-manager-sheet .loan-manager-card,
+    #loan-manager-sheet .managed-bank-form,
+    #loan-manager-sheet .loan-fixation-edit-row-v313,
+    #loan-manager-sheet .loan-fixation-fields-v1501 {
+      box-sizing:border-box !important;
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      overflow-x:hidden;
+    }
+    #loan-manager-sheet .loan-fix-rate-fixation-row-v1501,
+    #loan-manager-sheet .loan-fix-period-row-v1501,
+    #loan-manager-sheet .loan-fix-period-unit-row-v1900,
+    #loan-manager-sheet .loan-total-period-grid-v1800,
+    #loan-manager-sheet .loan-p1-unit-v2000,
+    #loan-manager-sheet .loan-fixation-grid-v313 {
+      grid-template-columns:minmax(0,1fr) !important;
+      width:100% !important;
+      max-width:100% !important;
+    }
+    #loan-manager-sheet input,
+    #loan-manager-sheet select,
+    #loan-manager-sheet textarea {
+      box-sizing:border-box !important;
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      font-size:16px;
+    }
+    #loan-manager-sheet input[type="date"] {
+      display:block;
+      inline-size:100% !important;
+      min-inline-size:0 !important;
+    }
+    #loan-manager-sheet .loan-fix-unit-cell-v2001 {
+      padding-top:0;
+      width:100%;
+    }
+  }
 </style>
 <script id="v2000-loan-dates-js">
 (function(){
@@ -44888,7 +44980,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     var loan = findLoan(id) || {};
     var sim = Object.assign({}, loan.simSettings || {}, { showHistory: !!on });
     mergeLoan(id, { simSettings: sim });
-    try { if (typeof window.saveLoanCanonical === 'function') window.saveLoanCanonical(id); } catch(_) {}
     try { if (typeof window.renderCustomWidgets === 'function') window.renderCustomWidgets(); } catch(_) {}
   }
   function ensureHistoryToggle(card){
@@ -44923,8 +45014,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       var lenS = wrap.querySelector('.loan-p1-len-v2000'), unitS = wrap.querySelector('.loan-p1-unit-sel-v2000');
       if (lenS && unitS && document.activeElement !== lenS && document.activeElement !== unitS) {
         var m0 = Math.max(0, Math.round(num(real.value)));
-        if (unitS.value === 'years' && m0 % 12 === 0) lenS.value = m0 / 12;
-        else { unitS.value = 'months'; lenS.value = m0; }
+        unitS.value = 'years';
+        lenS.value = m0 ? m0 / 12 : '';
       }
       return;
     }
@@ -44933,11 +45024,10 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     if (lbl) lbl.textContent = 'Period length';
     real.style.display = 'none';
     var months = Math.max(0, Math.round(num(real.value)));
-    var showYears = months > 0 && months % 12 === 0;
     wrap = document.createElement('div');
     wrap.className = 'loan-p1-unit-v2000';
-    wrap.innerHTML = '<input class="config-input loan-p1-len-v2000" type="number" min="0" step="1" value="' + attr(showYears ? months / 12 : months) + '">'
-      + '<select class="config-input loan-p1-unit-sel-v2000"><option value="years"' + (showYears ? ' selected' : '') + '>Years</option><option value="months"' + (showYears ? '' : ' selected') + '>Months</option></select>';
+    wrap.innerHTML = '<input class="config-input loan-p1-len-v2000" type="number" min="0" step="any" value="' + attr(months ? months / 12 : '') + '">'
+      + '<select class="config-input loan-p1-unit-sel-v2000"><option value="years" selected>Years</option></select>';
     cell.appendChild(wrap);
     var lenIn = wrap.querySelector('.loan-p1-len-v2000');
     var unitSel = wrap.querySelector('.loan-p1-unit-sel-v2000');
