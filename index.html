@@ -444,8 +444,20 @@
     min-height: 186px;
   }
   .wealth-card-gauge .mini-half-gauge {
-    width: 158px;
-    height: 100px;
+    width: min(100%, 316px);
+    height: 120px;
+  }
+  .wealth-card-gauge .mini-half-gauge-center {
+    top: 62%;
+  }
+  .custom-widget-card[data-size="medium"] .custom-widget-half-gauge,
+  .custom-widget-card[data-size="large"] .custom-widget-half-gauge {
+    width: min(100%, 340px) !important;
+    height: 130px !important;
+  }
+  .custom-widget-card[data-size="medium"] .custom-widget-half-gauge .mini-half-gauge-center,
+  .custom-widget-card[data-size="large"] .custom-widget-half-gauge .mini-half-gauge-center {
+    top: 62% !important;
   }
   .wealth-card-gauge .mini-half-gauge-center .pct {
     font-size: 27px;
@@ -3547,6 +3559,15 @@
 
   #page-overview .wealth-card .bt-touch-ripple,
   #page-overview .custom-widget-card .bt-touch-ripple {
+    display: none !important;
+  }
+
+  /* Overview details: no press/ripple feedback on any interactive row. */
+  #page-overview-details .is-touch-pressed {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  #page-overview-details .bt-touch-ripple {
     display: none !important;
   }
 
@@ -11457,6 +11478,12 @@ function parseSheetData(raw) {
     const tagName = normalizeTransactionTagLabel(parsedTag?.name || parsedTag?.label || '');
     const tagColor = tagName ? normalizeTransactionTagColor(parsedTag?.color || '#58A6FF') : '';
     const tagShape = tagName ? normalizeTransactionTagShape(parsedTag?.shape || 'square') : '';
+    let merchant = String(row.c[3]?.v || row.c[3]?.f || 'Neznámy').trim() || 'Neznámy';
+    let category = row.c[4]?.v || 'Ostatné';
+    if (merchant === 'B') {
+      merchant = 'Action';
+      category = 'Obchod';
+    }
     txns.push({
       id: sheetEmailId || fallbackId,
       msgId: sheetEmailId || fallbackId,
@@ -11464,8 +11491,8 @@ function parseSheetData(raw) {
       date: dateStr,
       amount: isNaN(amount) ? 0 : amount,
       currency: normalizeCurrencyForStorage(row.c[2]?.v || 'CZK'),
-      merchant: row.c[3]?.v || 'Neznámy',
-      category: row.c[4]?.v || 'Ostatné',
+      merchant: merchant,
+      category: category,
       card: row.c[5]?.v || '????',
       type: row.c[6]?.v || '',
       month: monthStr,
@@ -14933,7 +14960,7 @@ function getSheetCreditBankRows() {
 function getCreditBalanceSubaccountData(config) {
   const sheetRow = getSheetCreditBankRows().find(b => b.id === config.id) || {};
   const cardLast4 = cleanBankCardsValue(sheetRow.cards || sheetRow.cardLast4 || config.cardLast4 || '') || config.cardLast4 || '';
-  const baseName = t('csobCzCreditOutstandingShort') || config.short || 'credit card';
+  const baseName = t('csobCzCreditOutstandingShort') || config.short || 'Credit card';
   return {
     ...config,
     // In Overview this is a child row under ČSOB CZ, so do not repeat the parent bank name.
@@ -15080,13 +15107,11 @@ function renderAccountBalanceWidget() {
     const hasCreditChildren = children.length > 0;
     const creditExpanded = hasCreditChildren ? isCreditSubaccountExpanded(bank.id) : false;
     const creditToggle = hasCreditChildren ? `<button class="account-balance-rollup-btn ${creditExpanded ? 'is-expanded' : ''}" type="button" onclick="event.stopPropagation(); toggleCreditSubaccount('${escapeAttr(bank.id)}')" title="${creditExpanded ? 'Hide credit card' : 'Show credit card'}" aria-label="${creditExpanded ? 'Hide credit card' : 'Show credit card'}">${creditExpanded ? '⌄' : '›'}</button>` : '';
-    const childHint = hasCreditChildren ? `<div class="budget-status-note credit-balance-hint">${creditExpanded ? escapeHtml(t('csobCzCreditOutstandingShort')) : escapeHtml(t('csobCzCreditOutstandingShort')) + ' · hidden from total'}</div>` : '';
     const mainRow = `
       <div class="budget-bank-row account-balance-row" data-bank-id="${escapeAttr(bank.id)}" onclick="openAccountBalanceBankSheet('${escapeAttr(bank.id)}')" style="padding:10px 0;border-bottom:1px solid var(--border);">
         <div class="budget-status-main">
           <div class="account-balance-name-wrap">
             <div class="budget-status-value account-balance-name" style="font-size:15px;display:flex;align-items:center;gap:7px;">${bank.logo}${bank.id === 'moneta' ? '<span class="moneta-gradient">Moneta</span>' : `<span style="color:${bank.color || 'var(--text)'};">${escapeHtml(bank.name)}</span>`}${creditToggle}</div>
-            ${childHint}
           </div>
           <div class="account-balance-value-wrap">
             <div class="budget-status-value account-balance-value ${valueClass}">${escapeHtml(maskAccountBalanceValue(value))}</div>
@@ -15472,6 +15497,9 @@ function getOverviewDashboardMetrics() {
 
   return { appCurrency, totalNetWorth, availableCash, investmentsValue, propertiesValue, cardUsed, cardLimit, cardPct, budgetSpent, budgetLimit, budgetPct, budgetTransactionSeries, budgetDailySeries: budgetTransactionSeries, cashSpent, creditOutstanding, creditUsed, creditLimit, creditAvailable, creditPct, hasCreditWidget };
 }
+const HALF_GAUGE_VIEWBOX = '0 0 200 100';
+const HALF_GAUGE_ARC_PATH = 'M10 88 A90 90 0 0 1 190 88';
+
 function createOverviewHalfGauge(percent, caption, mainText = '') {
   const pct = Math.max(0, Math.min(100, Math.round((Number(percent || 0) || 0) * 100)));
   const isEmpty = pct < 1;
@@ -15482,15 +15510,15 @@ function createOverviewHalfGauge(percent, caption, mainText = '') {
   const arcClass = isEmpty ? 'wealth-gauge-arc is-empty-arc' : 'wealth-gauge-arc';
   return `
     <div class="mini-half-gauge">
-      <svg viewBox="0 0 120 72" aria-hidden="true" focusable="false">
+      <svg viewBox="${HALF_GAUGE_VIEWBOX}" aria-hidden="true" focusable="false">
         <defs>
           <linearGradient id="wealthGaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stop-color="#00E5A0"></stop>
             <stop offset="100%" stop-color="#58cfff"></stop>
           </linearGradient>
         </defs>
-        <path d="M16 56 A44 44 0 0 1 104 56" fill="none" stroke="rgba(112,145,204,.18)" stroke-width="10" stroke-linecap="round"></path>
-        <path class="${arcClass}" pathLength="100" d="M16 56 A44 44 0 0 1 104 56" fill="none" stroke="url(#wealthGaugeGrad)" stroke-width="10" ${arcStroke}></path>
+        <path d="${HALF_GAUGE_ARC_PATH}" fill="none" stroke="rgba(112,145,204,.18)" stroke-width="12" stroke-linecap="round"></path>
+        <path class="${arcClass}" pathLength="100" d="${HALF_GAUGE_ARC_PATH}" fill="none" stroke="url(#wealthGaugeGrad)" stroke-width="12" ${arcStroke}></path>
       </svg>
       <div class="mini-half-gauge-center">
         <span class="pct">${centerText}</span>
@@ -15815,12 +15843,12 @@ function createOverviewBudgetSparkline(used = 0, limit = 0, currency, txSeries =
             <stop offset="100%" stop-color="rgba(56,139,253,0)"></stop>
           </linearGradient>
         </defs>
-        ${spentAreaPath ? `<path d="${spentAreaPath}" fill="url(#budgetUsedAreaV190)"></path>` : ''}
-        ${remainingAreaPath ? `<path d="${remainingAreaPath}" fill="url(#budgetRemainAreaV190)"></path>` : ''}
+        ${spentAreaPath ? `<path class="overview-line-area" d="${spentAreaPath}" fill="url(#budgetUsedAreaV190)"></path>` : ''}
+        ${remainingAreaPath ? `<path class="overview-line-area is-projection" d="${remainingAreaPath}" fill="url(#budgetRemainAreaV190)"></path>` : ''}
         ${spentLinePath ? `<path class="wealth-spark-line overview-widget-line" d="${spentLinePath}" fill="none" stroke="#00E5A0" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"></path>` : ''}
         ${remainingLinePath ? `<path class="wealth-spark-line overview-widget-line is-projection" d="${remainingLinePath}" fill="none" stroke="#388bfd" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"></path>` : ''}
-        <circle cx="${currentPoint.x.toFixed(2)}" cy="${currentPoint.y.toFixed(2)}" r="1.55" fill="#ffffff" opacity="0.95"></circle>
-        <circle cx="${currentPoint.x.toFixed(2)}" cy="${currentPoint.y.toFixed(2)}" r="0.92" fill="#00E5A0"></circle>
+        <circle class="overview-line-dot" cx="${currentPoint.x.toFixed(2)}" cy="${currentPoint.y.toFixed(2)}" r="1.55" fill="#ffffff" opacity="0.95"></circle>
+        <circle class="overview-line-dot" cx="${currentPoint.x.toFixed(2)}" cy="${currentPoint.y.toFixed(2)}" r="0.92" fill="#00E5A0"></circle>
       </svg>
     </div>`;
 }
@@ -16162,6 +16190,170 @@ function finalizeOverviewGaugeArcs(card) {
   stopOverviewGaugeArcAnimations(card);
 }
 
+function isOverviewLineAreaPath(path) {
+  if (!path || path.tagName !== 'PATH' && path.tagName !== 'path') return false;
+  if (path.classList.contains('overview-widget-line') || path.classList.contains('wealth-spark-line') || path.classList.contains('wealth-networth-trend-line-v238')) return false;
+  if (path.classList.contains('custom-widget-axis-line-v274') || path.classList.contains('wealth-gauge-arc') || path.classList.contains('overview-widget-arc')) return false;
+  if (path.classList.contains('overview-line-area') || path.classList.contains('wealth-networth-trend-area-v238')) return true;
+  const fill = String(path.getAttribute('fill') || '').trim().toLowerCase();
+  if (!fill || fill === 'none') return false;
+  const stroke = String(path.getAttribute('stroke') || '').trim().toLowerCase();
+  if (stroke && stroke !== 'none') return false;
+  const d = String(path.getAttribute('d') || '').trim();
+  return /z\s*$/i.test(d);
+}
+
+function collectOverviewLineAreaGroups(card) {
+  if (!card || typeof card.querySelectorAll !== 'function') return [];
+  const groups = [];
+  card.querySelectorAll('svg').forEach((svg) => {
+    const areas = Array.from(svg.querySelectorAll('path')).filter(isOverviewLineAreaPath);
+    if (!areas.length) return;
+    areas.forEach((area) => {
+      if (!area.classList.contains('overview-line-area') && !area.classList.contains('wealth-networth-trend-area-v238')) {
+        area.classList.add('overview-line-area');
+      }
+    });
+    const mainLines = Array.from(svg.querySelectorAll(
+      '.overview-widget-line:not(.is-projection), .wealth-spark-line:not(.is-projection), .wealth-networth-trend-line-v238'
+    ));
+    const projLines = Array.from(svg.querySelectorAll('.overview-widget-line.is-projection, .wealth-spark-line.is-projection'));
+    const taggedProj = areas.filter((area) => area.classList.contains('is-projection'));
+    const taggedMain = areas.filter((area) => !area.classList.contains('is-projection'));
+    let mainAreas = [];
+    let projAreas = [];
+    if (taggedProj.length) {
+      // Prefer explicit class pairing so projection fill never gets treated as spent.
+      mainAreas = taggedMain;
+      projAreas = taggedProj;
+    } else if (areas.length === 1 || !projLines.length) {
+      mainAreas = areas.slice();
+      projAreas = [];
+    } else {
+      const projCount = Math.min(areas.length, projLines.length);
+      mainAreas = areas.slice(0, Math.max(0, areas.length - projCount));
+      projAreas = areas.slice(areas.length - projCount);
+      projAreas.forEach((area) => area.classList.add('is-projection'));
+    }
+    const dots = Array.from(svg.querySelectorAll('circle.overview-line-dot'));
+    groups.push({ svg, mainAreas, projAreas, mainLines, projLines, dots });
+  });
+  return groups;
+}
+
+function hideOverviewLineAreas(areas) {
+  (areas || []).forEach((area) => {
+    if (!area) return;
+    try { (area.__btAreaAnim || []).forEach((anim) => { try { anim.onfinish = null; anim.oncancel = null; anim.cancel(); } catch (_) {} }); } catch (_) {}
+    area.__btAreaAnim = null;
+    area.classList.add('is-waiting-reveal');
+    area.style.opacity = '0';
+  });
+}
+
+function revealOverviewLineAreas(areas, options = {}) {
+  const animate = !!(options && options.animate) && !reduceMotionCheck();
+  (areas || []).forEach((area) => {
+    if (!area) return;
+    try { (area.__btAreaAnim || []).forEach((anim) => { try { anim.onfinish = null; anim.oncancel = null; anim.cancel(); } catch (_) {} }); } catch (_) {}
+    area.__btAreaAnim = null;
+    area.classList.remove('is-waiting-reveal');
+    if (!animate) {
+      area.style.opacity = '';
+      return;
+    }
+    // Fill color already carries alpha (rgba / gradient). Animate element opacity to 1,
+    // otherwise rgba(.13) * opacity(.13) makes the projection shadow nearly invisible.
+    let target = 1;
+    try {
+      if (area.classList.contains('wealth-networth-trend-area-v238')) target = 0.14;
+      else {
+        const attrOpacity = parseFloat(area.getAttribute('opacity') || '');
+        if (Number.isFinite(attrOpacity)) target = attrOpacity;
+      }
+    } catch (_) { target = 1; }
+    area.style.opacity = '0';
+    try {
+      const anim = area.animate(
+        [{ opacity: 0 }, { opacity: target }],
+        { duration: 320, easing: 'ease-out', fill: 'forwards' }
+      );
+      area.__btAreaAnim = [anim];
+      const finish = () => {
+        try { anim.onfinish = null; anim.oncancel = null; anim.cancel(); } catch (_) {}
+        area.style.opacity = '';
+        area.__btAreaAnim = null;
+      };
+      anim.onfinish = finish;
+      anim.oncancel = finish;
+    } catch (_) {
+      area.style.opacity = '';
+    }
+  });
+}
+
+function hideOverviewLineDots(dots) {
+  (dots || []).forEach((dot) => {
+    if (!dot) return;
+    try { (dot.__btDotAnim || []).forEach((anim) => { try { anim.onfinish = null; anim.oncancel = null; anim.cancel(); } catch (_) {} }); } catch (_) {}
+    dot.__btDotAnim = null;
+    dot.classList.add('is-waiting-reveal');
+    dot.style.opacity = '0';
+    dot.style.transform = 'scale(0)';
+    dot.style.transformBox = 'fill-box';
+    dot.style.transformOrigin = 'center';
+  });
+}
+
+function revealOverviewLineDots(dots, options = {}) {
+  const animate = !!(options && options.animate) && !reduceMotionCheck();
+  (dots || []).forEach((dot) => {
+    if (!dot) return;
+    try { (dot.__btDotAnim || []).forEach((anim) => { try { anim.onfinish = null; anim.oncancel = null; anim.cancel(); } catch (_) {} }); } catch (_) {}
+    dot.__btDotAnim = null;
+    dot.classList.remove('is-waiting-reveal');
+    if (!animate) {
+      dot.style.opacity = '';
+      dot.style.transform = '';
+      return;
+    }
+    const targetOpacity = parseFloat(dot.getAttribute('opacity') || '0.95') || 0.95;
+    dot.style.opacity = '0';
+    dot.style.transform = 'scale(0)';
+    dot.style.transformBox = 'fill-box';
+    dot.style.transformOrigin = 'center';
+    try {
+      const anim = dot.animate(
+        [
+          { opacity: 0, transform: 'scale(0)' },
+          { opacity: targetOpacity, transform: 'scale(1)' }
+        ],
+        { duration: 300, easing: 'cubic-bezier(.2,1.35,.3,1)', fill: 'forwards' }
+      );
+      dot.__btDotAnim = [anim];
+      const finish = () => {
+        try { anim.onfinish = null; anim.oncancel = null; anim.cancel(); } catch (_) {}
+        dot.style.opacity = '';
+        dot.style.transform = '';
+        dot.__btDotAnim = null;
+      };
+      anim.onfinish = finish;
+      anim.oncancel = finish;
+    } catch (_) {
+      dot.style.opacity = '';
+      dot.style.transform = '';
+    }
+  });
+}
+
+function finalizeOverviewLineAreas(card) {
+  if (!card) return;
+  collectOverviewLineAreaGroups(card).forEach((group) => {
+    revealOverviewLineAreas(group.mainAreas.concat(group.projAreas), { animate: false });
+    revealOverviewLineDots(group.dots, { animate: false });
+  });
+}
+
 function finalizeOverviewChartLineStrokes(card) {
   if (!card || typeof card.querySelectorAll !== 'function') return;
   card.querySelectorAll('.overview-widget-line, .wealth-spark-line, .wealth-networth-trend-line-v238').forEach((line) => {
@@ -16177,6 +16369,7 @@ function finalizeOverviewChartLineStrokes(card) {
       line.style.opacity = '';
     }
   });
+  finalizeOverviewLineAreas(card);
 }
 
 function stopOverviewLineAnimations(card) {
@@ -16192,6 +16385,8 @@ function stopOverviewLineAnimations(card) {
       line.style.opacity = '';
     }
   });
+  // Keep fills visible when animations are cancelled mid-flight (tab leave / pause).
+  finalizeOverviewLineAreas(card);
 }
 
 function runOverviewLineDrawAnimation(line, duration, delayMs = 0) {
@@ -16237,6 +16432,7 @@ function stopNetWorthTrendAnimations(card) {
     line.style.strokeDashoffset = '';
     line.style.animation = '';
   });
+  revealOverviewLineAreas(root.querySelectorAll('.wealth-networth-trend-area-v238, .overview-line-area'), { animate: false });
 }
 
 function primeNetWorthTrendForIntro(root) {
@@ -16258,19 +16454,28 @@ function playNetWorthTrendChartIntro(card) {
   if (!root || !root.querySelector('.wealth-networth-trend-line-v238')) return;
   if (activePageId !== 'overview') return;
   const reducedMotion = reduceMotionCheck();
+  const areaNodes = root.querySelectorAll('.wealth-networth-trend-area-v238, .overview-line-area');
   if (reducedMotion) {
     root.querySelectorAll('.wealth-networth-trend-line-v238').forEach((line) => {
       line.style.strokeDashoffset = '0';
       line.style.animation = 'none';
     });
+    revealOverviewLineAreas(areaNodes, { animate: false });
     return;
   }
 
   primeNetWorthTrendForIntro(root);
+  hideOverviewLineAreas(areaNodes);
   void root.offsetWidth;
 
   const lines = Array.from(root.querySelectorAll('.wealth-networth-trend-line-v238'));
   let maxLineEndMs = 0;
+  let finished = 0;
+  const maybeRevealArea = () => {
+    finished += 1;
+    if (finished < lines.length) return;
+    revealOverviewLineAreas(areaNodes, { animate: true });
+  };
   lines.forEach((line, idx) => {
     let len = 0;
     try { len = line.getTotalLength(); } catch (_) {}
@@ -16286,11 +16491,18 @@ function playNetWorthTrendChartIntro(card) {
       line.__btNetWorthLineAnim = [anim];
       anim.onfinish = () => {
         line.style.strokeDashoffset = '0';
+        maybeRevealArea();
+      };
+      anim.oncancel = () => {
+        line.style.strokeDashoffset = '0';
+        maybeRevealArea();
       };
     } catch (_) {
       line.style.strokeDashoffset = '0';
+      maybeRevealArea();
     }
   });
+  if (!lines.length) revealOverviewLineAreas(areaNodes, { animate: false });
 }
 
 try { window.primeNetWorthTrendForIntro = primeNetWorthTrendForIntro; } catch (_) {}
@@ -16298,8 +16510,22 @@ try { window.primeNetWorthTrendForIntro = primeNetWorthTrendForIntro; } catch (_
 function runOverviewLineAnimations(card) {
   if (!card || typeof card.querySelectorAll !== 'function') return;
   const reduceMotion = reduceMotionCheck();
+  const areaGroups = collectOverviewLineAreaGroups(card);
 
-  stopOverviewLineAnimations(card);
+  // Cancel previous line anims without forcing fills visible first — we hide them below.
+  card.querySelectorAll('.overview-widget-line, .wealth-spark-line, .wealth-networth-trend-line-v238').forEach((line) => {
+    try {
+      (line.__btLineAnim || []).forEach((anim) => {
+        try { anim.onfinish = null; anim.oncancel = null; } catch (_) {}
+        try { anim.cancel(); } catch (_) {}
+      });
+    } catch (_) {}
+    line.__btLineAnim = null;
+  });
+  areaGroups.forEach((group) => {
+    hideOverviewLineAreas(group.mainAreas.concat(group.projAreas));
+    hideOverviewLineDots(group.dots);
+  });
   void card.offsetWidth;
 
   const mainLines = card.querySelectorAll(
@@ -16307,14 +16533,37 @@ function runOverviewLineAnimations(card) {
   );
   const projLines = card.querySelectorAll('.overview-widget-line.is-projection, .wealth-spark-line.is-projection');
   const hasProjection = projLines.length > 0;
+  const allMainAreas = areaGroups.flatMap((group) => group.mainAreas);
+  const allProjAreas = areaGroups.flatMap((group) => group.projAreas);
+  const allDots = areaGroups.flatMap((group) => group.dots || []);
+
+  if (reduceMotion) {
+    mainLines.forEach((line) => {
+      line.style.strokeDasharray = '';
+      line.style.strokeDashoffset = '';
+    });
+    projLines.forEach((line) => {
+      const targetOpacity = parseFloat(line.getAttribute('opacity') || line.style.opacity || '0.94') || 0.94;
+      line.style.strokeDasharray = '';
+      line.style.strokeDashoffset = '';
+      line.style.opacity = String(targetOpacity);
+    });
+    revealOverviewLineAreas(allMainAreas.concat(allProjAreas), { animate: false });
+    revealOverviewLineDots(allDots, { animate: false });
+    return;
+  }
+
+  let mainFinished = 0;
+  const revealMainAreas = () => {
+    mainFinished += 1;
+    if (mainFinished < mainLines.length) return;
+    revealOverviewLineAreas(allMainAreas, { animate: true });
+    // Dot pops only after spent line finishes; projection stays without a ball.
+    revealOverviewLineDots(allDots, { animate: true });
+  };
 
   mainLines.forEach((line) => {
     line.removeAttribute('pathLength');
-    if (reduceMotion) {
-      line.style.strokeDasharray = '';
-      line.style.strokeDashoffset = '';
-      return;
-    }
     const anim = runOverviewLineDrawAnimation(
       line,
       hasProjection ? OVERVIEW_LINE_DRAW_MS : OVERVIEW_LINE_SMOOTH_MS,
@@ -16324,21 +16573,29 @@ function runOverviewLineAnimations(card) {
       anim.onfinish = () => {
         line.style.strokeDasharray = '';
         line.style.strokeDashoffset = '';
+        revealMainAreas();
       };
       anim.oncancel = anim.onfinish;
       line.__btLineAnim = [anim];
+    } else {
+      revealMainAreas();
     }
   });
+  if (!mainLines.length) {
+    revealOverviewLineAreas(allMainAreas, { animate: false });
+    revealOverviewLineDots(allDots, { animate: false });
+  }
+
+  let projFinished = 0;
+  const revealProjAreas = () => {
+    projFinished += 1;
+    if (projFinished < projLines.length) return;
+    revealOverviewLineAreas(allProjAreas, { animate: true });
+  };
 
   projLines.forEach((line) => {
     line.removeAttribute('pathLength');
     const targetOpacity = parseFloat(line.getAttribute('opacity') || line.style.opacity || '0.94') || 0.94;
-    if (reduceMotion) {
-      line.style.strokeDasharray = '';
-      line.style.strokeDashoffset = '';
-      line.style.opacity = String(targetOpacity);
-      return;
-    }
     line.style.opacity = '0';
     let pathLen = 1;
     try { pathLen = Math.max(1, line.getTotalLength()); } catch (_) {}
@@ -16361,11 +16618,16 @@ function runOverviewLineAnimations(card) {
         line.style.strokeDasharray = '';
         line.style.strokeDashoffset = '';
         line.style.opacity = String(targetOpacity);
+        revealProjAreas();
       };
       anim.oncancel = anim.onfinish;
       line.__btLineAnim = [anim, opacityAnim];
+    } else {
+      line.style.opacity = String(targetOpacity);
+      revealProjAreas();
     }
   });
+  if (!projLines.length) revealOverviewLineAreas(allProjAreas, { animate: false });
 }
 
 const __overviewChartAnimTimers = new WeakMap();
@@ -16757,7 +17019,9 @@ function setupOverviewScrollChartAnimations(options = {}) {
     if (!__overviewChartScrollLive || activePageId !== 'overview') return;
     for (const entry of entries) {
       const target = entry.target;
-      const nowVisible = !!(entry.isIntersecting && entry.intersectionRatio >= 0.12);
+      // Treat near-zero intersection as leave so leave→enter always re-arms animation.
+      const nowVisible = !!(entry.isIntersecting && entry.intersectionRatio >= 0.08);
+      const wasVisible = __overviewChartWasVisible.get(target) === true;
       if (!nowVisible) {
         __overviewChartWasVisible.set(target, false);
         if (!target.classList.contains('summary-days-progress')) {
@@ -16765,21 +17029,31 @@ function setupOverviewScrollChartAnimations(options = {}) {
         }
         continue;
       }
+      // Still in view — do not restart mid-scroll jitter.
+      if (wasVisible) continue;
+
       const syncChangedOnly = window.__overviewSyncChangedChartKeys;
       const cardKey = target.classList.contains('summary-days-progress')
         ? null
         : getOverviewChartCardKey(target);
-      if (syncChangedOnly && cardKey && !syncChangedOnly.has(cardKey)) continue;
+      // After a Sheets sync, only freshly-changed cards may auto-play once.
+      // Never keep that filter forever or scroll replays stay broken.
+      if (syncChangedOnly && cardKey && !syncChangedOnly.has(cardKey)) {
+        __overviewChartWasVisible.set(target, true);
+        continue;
+      }
       if (target.classList.contains('summary-days-progress')) {
         animateOverviewDaysLeftProgress();
-      } else if (!overviewChartIntroIsCurrent(target)) {
+      } else {
+        try { delete target.dataset.btChartAnimSig; } catch (_) {}
         animateOverviewChartCard(target);
       }
       __overviewChartWasVisible.set(target, true);
     }
   }, {
     root: null,
-    threshold: [0, 0.12, 0.28, 0.5]
+    rootMargin: '0px 0px -12% 0px',
+    threshold: [0, 0.08, 0.2, 0.35, 0.5]
   });
 
   watch.forEach((el) => {
@@ -16790,6 +17064,8 @@ function setupOverviewScrollChartAnimations(options = {}) {
   const activateScrollObserver = () => {
     __overviewScrollLiveTimer = null;
     __overviewChartScrollLive = true;
+    // Sync filter is only for the boot/sync intro window; clear so later scroll works.
+    window.__overviewSyncChangedChartKeys = null;
     watch.forEach((el) => {
       const visible = isOverviewChartCardVisible(el);
       const primed = visible && (
@@ -17024,16 +17300,43 @@ function setupOverviewDetailsScrollAnimations() {
 }
 try { window.setupOverviewDetailsScrollAnimations = setupOverviewDetailsScrollAnimations; } catch (_) {}
 
+function scrollOverviewDetailsToTop() {
+  try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) { try { window.scrollTo(0, 0); } catch (__) {} }
+  try { document.documentElement.scrollTop = 0; } catch (_) {}
+  try { document.body.scrollTop = 0; } catch (_) {}
+  const page = document.getElementById('page-overview-details');
+  if (page) page.scrollTop = 0;
+}
+
 function openOverviewDetailsSection(anchorId = '') {
   prepareOverviewDetailsBars();
   renderAccountBalanceWidget();
   renderBudgetStatus();
   renderBankCards(getTransactionsByBank(true, true));
   showPage('overview-details');
+  scrollOverviewDetailsToTop();
+
+  const normalized = String(anchorId || '').trim();
+  // Net worth / available cash / generic top: stay on the header. Do not
+  // scrollIntoView(account-balance) — that pushes the header off-screen.
+  if (!normalized || normalized === 'overview-details-top' || normalized === 'account-balance-anchor') {
+    requestAnimationFrame(() => scrollOverviewDetailsToTop());
+    return;
+  }
+
   requestAnimationFrame(() => {
-    if (!anchorId) return;
-    const anchor = document.getElementById(anchorId);
-    if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    requestAnimationFrame(() => {
+      const anchor = document.getElementById(normalized);
+      if (!anchor) {
+        scrollOverviewDetailsToTop();
+        return;
+      }
+      try {
+        anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (_) {
+        try { anchor.scrollIntoView(true); } catch (__) {}
+      }
+    });
   });
 }
 
@@ -17432,6 +17735,7 @@ let __btActiveTouchEl = null;
 function resolveBtTouchTarget(node) {
   if (!node || typeof node.closest !== 'function') return null;
   if (node.closest('#page-overview .custom-widget-add-btn')) return null;
+  if (node.closest('#page-overview-details')) return null;
   if (node.closest('input, textarea, select, label, .bottom-sheet-backdrop')) return null;
   if (node.closest('.wealth-card, .custom-widget-card')) {
     const menuBtn = node.closest('.custom-widget-menu button, .custom-widget-manual-controls button');
@@ -19347,6 +19651,9 @@ function showPage(pageId, options = {}) {
 
   if (pageId === 'overview-details') {
     prepareOverviewDetailsBars();
+    try { scrollOverviewDetailsToTop(); } catch (_) {
+      try { window.scrollTo(0, 0); } catch (__) {}
+    }
     requestAnimationFrame(() => {
       try { startOverviewDetailsBarAnimations(); } catch (_) {}
     });
@@ -22992,7 +23299,7 @@ const I18N = {
     accountBalanceTotal: 'Total',
     accountBalanceTotalHint: 'Converted using app FX rates',
     csobCzCreditOutstandingName: 'CSOB CZ credit card',
-    csobCzCreditOutstandingShort: 'available credit',
+    csobCzCreditOutstandingShort: 'Credit card',
     csobCzCreditOutstandingHint: '',
     csobCzCreditOutstandingManageHint: 'Shown as a subaccount under ČSOB CZ. Enter remaining credit limit (e.g. 50 000). Card spend subtracts; repayment adds back. Not included in Total cash.',
     switchToPieChart: 'Switch to pie chart',
@@ -23303,7 +23610,7 @@ const I18N = {
     accountBalanceTotal: 'Spolu',
     accountBalanceTotalHint: 'Prepočítané cez FX kurzy v appke',
     csobCzCreditOutstandingName: 'CSOB CZ credit card',
-    csobCzCreditOutstandingShort: 'voľný limit',
+    csobCzCreditOutstandingShort: 'Credit card',
     csobCzCreditOutstandingHint: '',
     csobCzCreditOutstandingManageHint: 'Zobrazí sa ako podúčet pod ČSOB CZ. Zadaj zostatok limitu (napr. 50 000). Nákup kartou odpočíta, splátka pripočíta. Nie je v Total hotovosti.',
     switchToPieChart: 'Prepnúť na koláčový graf',
@@ -23613,7 +23920,7 @@ const I18N = {
     accountBalanceTotal: 'Celkem',
     accountBalanceTotalHint: 'Přepočteno přes FX kurzy v appce',
     csobCzCreditOutstandingName: 'CSOB CZ credit card',
-    csobCzCreditOutstandingShort: 'volný limit',
+    csobCzCreditOutstandingShort: 'Credit card',
     csobCzCreditOutstandingHint: '',
     csobCzCreditOutstandingManageHint: 'Zobrazí se jako podúčet pod ČSOB CZ. Zadej zůstatek limitu (např. 50 000). Nákup kartou odečte, splátka přičte. Není v Total hotovosti.',
     switchToPieChart: 'Přepnout na koláčový graf',
@@ -26901,6 +27208,13 @@ window.addEventListener('pageshow', (event) => {
       const widget = visible[idx];
       if (!widget) return;
       target.outerHTML = renderCustomWidgetCard(widget, getCustomWidgetStats(widget));
+      // Mortgage/loan Chart.js widgets are decorated after renderCustomWidgets().
+      // Lazy shells hydrate later, so re-run decoration or the chart never mounts.
+      try {
+        if (typeof window.scheduleLoanWidgetChartDecorate === 'function') {
+          window.scheduleLoanWidgetChartDecorate();
+        }
+      } catch (_) {}
     };
 
     try {
@@ -28335,9 +28649,29 @@ window.addEventListener('pageshow', (event) => {
     return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
   }
 
-  // Single tap on any dashboard widget goes to Overview details.
-  window.openCustomWidgetDetail = function(){
-    if (typeof openOverviewDetailsSection === 'function') openOverviewDetailsSection('overview-details-top');
+  function findCustomWidgetById(id){
+    try {
+      if (typeof loadCustomWidgets === 'function') {
+        return (loadCustomWidgets() || []).find(function(w){ return String(w && w.id) === String(id); }) || null;
+      }
+    } catch(_) {}
+    try {
+      var rows = JSON.parse(localStorage.getItem('bank_tracker_custom_widgets_v1') || '[]');
+      if (!Array.isArray(rows)) return null;
+      return rows.find(function(w){ return String(w && w.id) === String(id); }) || null;
+    } catch(_) { return null; }
+  }
+  function customWidgetDetailAnchor(widget){
+    var metric = String((widget && (widget.gaugeMetric || widget.linearMetric || widget.dataSourceMetric || widget.metric)) || 'amount').toLowerCase();
+    var isCount = metric.indexOf('count') !== -1 || metric.indexOf('trans') !== -1 || metric === 'tx' || metric === 'number';
+    return isCount ? 'card-limits-anchor' : 'bank-budget-anchor';
+  }
+
+  // Single tap: Amount → Bank budget; Number of transactions → Bank card limits.
+  window.openCustomWidgetDetail = function(id){
+    var widget = findCustomWidgetById(id);
+    var anchor = customWidgetDetailAnchor(widget);
+    if (typeof openOverviewDetailsSection === 'function') openOverviewDetailsSection(anchor);
     else if (typeof showPage === 'function') showPage('overview-details');
   };
   try { openCustomWidgetDetail = window.openCustomWidgetDetail; } catch(_) {}
@@ -28494,6 +28828,15 @@ window.addEventListener('pageshow', (event) => {
   .wealth-networth-trend-area-v238 {
     fill: var(--accent);
     opacity: .14;
+  }
+  .overview-line-area.is-waiting-reveal,
+  .wealth-networth-trend-area-v238.is-waiting-reveal,
+  .overview-line-dot.is-waiting-reveal {
+    opacity: 0 !important;
+  }
+  .overview-line-dot {
+    transform-box: fill-box;
+    transform-origin: center;
   }
   .wealth-networth-trend-caption-v238 {
     display: flex;
@@ -28709,7 +29052,7 @@ window.addEventListener('pageshow', (event) => {
     var firstLabel = data[0].month ? netWorthTrendMonthLabel(data[0].month) : '';
     var lastLabel = data[data.length-1].month ? netWorthTrendMonthLabel(data[data.length-1].month) : '';
     slot.innerHTML = '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'
-      + '<path class="wealth-networth-trend-area-v238" d="'+attr(area)+'"></path>'
+      + '<path class="wealth-networth-trend-area-v238 overview-line-area" d="'+attr(area)+'"></path>'
       + '<path class="overview-widget-line wealth-networth-trend-line-v238" d="'+attr(path)+'"></path>'
       + '</svg><div class="wealth-networth-trend-caption-v238"><span>'+esc(firstLabel)+'</span><span>'+esc(lastLabel)+'</span></div>';
     try { if (typeof primeNetWorthTrendForIntro === 'function') primeNetWorthTrendForIntro(slot); } catch(_) {}
@@ -32869,6 +33212,10 @@ window.addEventListener('pageshow', (event) => {
     var color = stableGaugeColor(m.mode, pct, widget.accent), dash = Math.max(0, Math.min(100, pct));
     var pctText = Math.round(pct) + '%';
     var isLarge = String(widget.size || '').toLowerCase() === 'large';
+    var isSmall = String(widget.size || 'medium').toLowerCase() === 'small';
+    var gaugeViewBox = isSmall ? '0 0 180 112' : '0 0 200 100';
+    var gaugeArc = isSmall ? 'M25 90 A65 65 0 0 1 155 90' : 'M10 88 A90 90 0 0 1 190 88';
+    var gaugeStroke = isSmall ? '18' : '20';
     var amountLabel = m.label;
     if (isLarge && (m.mode === 'amount' || m.mode === 'loan')) {
       try {
@@ -32876,7 +33223,7 @@ window.addEventListener('pageshow', (event) => {
         else amountLabel = formatCurrencyAmount(m.used || 0, stats.currency) + ' / ' + formatCurrencyAmount(m.limit || 0, stats.currency);
       } catch(_) {}
     }
-    return '<div class="custom-widget-gauge-wrap"><div class="mini-half-gauge custom-widget-half-gauge"><svg viewBox="0 0 180 112" aria-hidden="true"><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="rgba(88,166,255,.20)" stroke-width="18" stroke-linecap="round" pathLength="100"/><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="' + attr(color) + '" stroke-width="18" stroke-linecap="round" pathLength="100" stroke-dasharray="' + dash.toFixed(1) + ' 100"/></svg><div class="mini-half-gauge-center"><span class="pct">' + html(pctText) + '</span><span class="caption">used</span></div></div><div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top"><strong class="custom-widget-gauge-metric-label-v262">' + html(amountLabel) + '</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill" style="width:' + Math.min(100,pct).toFixed(1) + '%;background:' + attr(color) + '"></div></div></div></div>';
+    return '<div class="custom-widget-gauge-wrap"><div class="mini-half-gauge custom-widget-half-gauge"><svg viewBox="' + gaugeViewBox + '" aria-hidden="true"><path d="' + gaugeArc + '" fill="none" stroke="rgba(88,166,255,.20)" stroke-width="' + gaugeStroke + '" stroke-linecap="round" pathLength="100"/><path d="' + gaugeArc + '" fill="none" stroke="' + attr(color) + '" stroke-width="' + gaugeStroke + '" stroke-linecap="round" pathLength="100" stroke-dasharray="' + dash.toFixed(1) + ' 100"/></svg><div class="mini-half-gauge-center"><span class="pct">' + html(pctText) + '</span><span class="caption">used</span></div></div><div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top"><strong class="custom-widget-gauge-metric-label-v262">' + html(amountLabel) + '</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill" style="width:' + Math.min(100,pct).toFixed(1) + '%;background:' + attr(color) + '"></div></div></div></div>';
   }
   function renderCard(widget, stats){
     widget = widget || {}; stats = stats || statsForWidget(widget);
@@ -34889,7 +35236,7 @@ window.addEventListener('pageshow', (event) => {
       ? ('M' + curX + ' ' + currentY.toFixed(2) + ' L' + x2 + ' ' + targetY.toFixed(2))
       : '';
     var projectionFill = showProjection
-      ? ('<path d="' + attr(projectionPath) + ' L' + x2 + ' ' + yBase + ' L' + curX + ' ' + yBase + ' Z" fill="rgba(56,139,253,.13)"></path>')
+      ? ('<path class="overview-line-area is-projection" d="' + attr(projectionPath) + ' L' + x2 + ' ' + yBase + ' L' + curX + ' ' + yBase + ' Z" fill="rgba(56,139,253,.13)"></path>')
       : '';
     var projectionStroke = showProjection
       ? ('<path class="overview-widget-line is-projection" d="' + attr(projectionPath) + '" fill="none" stroke="' + blue + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round" opacity=".94"></path>')
@@ -34897,12 +35244,12 @@ window.addEventListener('pageshow', (event) => {
     return '<div class="custom-widget-linear-v260"><div class="custom-widget-linear-label-v260 custom-widget-fit-value">' + esc(metric.label) + '</div><svg viewBox="0 0 114 64" preserveAspectRatio="none" aria-hidden="true">'
       + '<path class="custom-widget-axis-line-v274" d="M' + x1 + ' ' + yBase + ' H' + x2 + '"></path>'
       + (metric.mode === 'loan' ? loanFixationOverlaySvg(widget, stats, x1, x2, yBase) : '')
-      + '<path d="' + attr(usedPath) + ' L' + curX + ' ' + yBase + ' L' + x1 + ' ' + yBase + ' Z" fill="' + attr(hexToRgba(accent,.22)) + '"></path>'
+      + '<path class="overview-line-area" d="' + attr(usedPath) + ' L' + curX + ' ' + yBase + ' L' + x1 + ' ' + yBase + ' Z" fill="' + attr(hexToRgba(accent,.22)) + '"></path>'
       + projectionFill
       + '<path class="overview-widget-line" d="' + attr(usedPath) + '" fill="none" stroke="' + attr(accent) + '" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round"></path>'
       + projectionStroke
-      + '<circle cx="' + curX + '" cy="' + currentY.toFixed(2) + '" r=".95" fill="#fff" opacity=".95"></circle>'
-      + '<circle cx="' + curX + '" cy="' + currentY.toFixed(2) + '" r=".48" fill="' + attr(accent) + '"></circle>'
+      + '<circle class="overview-line-dot" cx="' + curX + '" cy="' + currentY.toFixed(2) + '" r=".95" fill="#fff" opacity=".95"></circle>'
+      + '<circle class="overview-line-dot" cx="' + curX + '" cy="' + currentY.toFixed(2) + '" r=".48" fill="' + attr(accent) + '"></circle>'
       + '</svg>' + linearAxisLabels(widget, stats) + '</div>';
   }
   function makeGauge(widget, stats){
@@ -34915,12 +35262,16 @@ window.addEventListener('pageshow', (event) => {
     var showPct = widget.showGaugePercent !== false;
     var showLine = widget.showGaugeAmount !== false;
     var amountLabel = metric.label;
+    var isSmall = String(widget.size || 'medium').toLowerCase() === 'small';
+    var gaugeViewBox = isSmall ? '0 0 180 112' : '0 0 200 100';
+    var gaugeArc = isSmall ? 'M25 90 A65 65 0 0 1 155 90' : 'M10 88 A90 90 0 0 1 190 88';
+    var gaugeStroke = isSmall ? '18' : '20';
     var isEmptyArc = pct < 1;
     var arcClass = isEmptyArc ? 'overview-widget-arc is-empty-arc' : 'overview-widget-arc';
     var arcDash = isEmptyArc
       ? 'stroke-dasharray="0 100" opacity="0" stroke-linecap="butt"'
       : 'stroke-dasharray="100 100" stroke-dashoffset="' + (100 - pct).toFixed(1) + '" stroke-linecap="round" data-gauge-pct="' + pct.toFixed(1) + '" style="--gauge-pct:' + pct.toFixed(1) + '"';
-    return '<div class="custom-widget-gauge-wrap"><div class="mini-half-gauge custom-widget-half-gauge"><svg viewBox="0 0 180 112" aria-hidden="true"><path d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="rgba(88,166,255,.20)" stroke-width="18" stroke-linecap="round" pathLength="100"></path><path class="' + arcClass + '" d="M25 90 A65 65 0 0 1 155 90" fill="none" stroke="' + attr(arcColor) + '" stroke-width="18" pathLength="100" ' + arcDash + '></path></svg><div class="mini-half-gauge-center"><span class="pct">' + (showPct ? esc(label) : '') + '</span><span class="caption">' + esc(caption) + '</span></div></div>' + (showLine ? '<div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top"><strong class="custom-widget-gauge-metric-label-v262 custom-widget-fit-value">' + esc(amountLabel) + '</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill overview-widget-fill" style="width:' + Math.min(100,pct).toFixed(1) + '%;background:' + attr(lowerColor) + '"></div></div></div>' : '') + '</div>';
+    return '<div class="custom-widget-gauge-wrap"><div class="mini-half-gauge custom-widget-half-gauge"><svg viewBox="' + gaugeViewBox + '" aria-hidden="true"><path d="' + gaugeArc + '" fill="none" stroke="rgba(88,166,255,.20)" stroke-width="' + gaugeStroke + '" stroke-linecap="round" pathLength="100"></path><path class="' + arcClass + '" d="' + gaugeArc + '" fill="none" stroke="' + attr(arcColor) + '" stroke-width="' + gaugeStroke + '" pathLength="100" ' + arcDash + '></path></svg><div class="mini-half-gauge-center"><span class="pct">' + (showPct ? esc(label) : '') + '</span><span class="caption">' + esc(caption) + '</span></div></div>' + (showLine ? '<div class="custom-widget-gauge-value-line"><div class="custom-widget-gauge-value-top"><strong class="custom-widget-gauge-metric-label-v262 custom-widget-fit-value">' + esc(amountLabel) + '</strong></div><div class="custom-widget-gauge-track"><div class="custom-widget-gauge-fill overview-widget-fill" style="width:' + Math.min(100,pct).toFixed(1) + '%;background:' + attr(lowerColor) + '"></div></div></div>' : '') + '</div>';
   }
   function paymentKindLabel(kind){
     if (!hasWidgetMultiFilter(kind)) return '';
@@ -35693,6 +36044,11 @@ window.addEventListener('pageshow', (event) => {
     color: var(--accent) !important;
     -webkit-text-fill-color: var(--accent) !important;
   }
+  #page-overview-details .account-balance-row.account-balance-credit-available-row .account-balance-name,
+  #account-balance-widget .account-balance-row.account-balance-credit-available-row .account-balance-name {
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
   #page-overview-details .account-balance-liability-row .account-balance-name {
     font-size: 14px !important;
   }
@@ -36033,11 +36389,10 @@ window.addEventListener('pageshow', (event) => {
         var available = typeof getCreditAvailableBalanceDisplay === 'function' ? getCreditAvailableBalanceDisplay(item.balance) : Math.max(0, num(item.balance || 0));
         var availableValue = typeof formatCreditAvailableBalanceAmount === 'function' ? formatCreditAvailableBalanceAmount(item.balance, code) : money(available, code);
         var availableEq = signedCzkEquivalent(available, code);
-        var creditLabel = (typeof t === 'function' ? t('csobCzCreditOutstandingShort') : 'available credit');
+        var creditLabel = (typeof t === 'function' ? t('csobCzCreditOutstandingShort') : 'Credit card');
         return '<div class="budget-bank-row account-balance-row account-balance-sub-row account-balance-credit-available-row" data-bank-id="' + attr(item.id || '') + '" onclick="openAccountBalanceBankSheet(\'' + attr(item.id || '') + '\')" style="padding:9px 0 9px 18px;border-bottom:1px solid var(--border);cursor:pointer;">'
           + '<div class="budget-status-main"><div class="account-balance-name-wrap">'
           + '<div class="budget-status-value account-balance-name" style="color:var(--accent);font-size:14px;">└ ' + esc(item.name || creditLabel) + '</div>'
-          + '<div class="budget-status-note">' + esc(creditLabel) + '</div>'
           + '</div><div class="account-balance-value-wrap">'
           + '<div class="budget-status-value account-balance-value amount-income">' + esc(masked(availableValue)) + '</div>'
           + (maskedNote(availableEq) ? '<div class="budget-status-note account-balance-equivalent">' + esc(availableEq) + '</div>' : '')
@@ -36071,11 +36426,10 @@ window.addEventListener('pageshow', (event) => {
         : '';
       var logo = bank.logo || '';
       var label = bank.id === 'moneta' ? '<span class="moneta-gradient">Moneta</span>' : '<span style="color:' + attr(bank.color || 'var(--text)') + ';">' + esc(bank.name || bankLabel(bank.id)) + '</span>';
-      var hint = children.length ? '<div class="budget-status-note credit-balance-hint">' + esc((typeof t === 'function' ? t('csobCzCreditOutstandingShort') : 'available credit') + ' · hidden from total') + '</div>' : '';
       var rowClass = bank.liability ? ' account-balance-liability-row' : '';
       var main = '<div class="budget-bank-row account-balance-row" data-bank-id="' + attr(bank.id) + '" onclick="openAccountBalanceBankSheet(\'' + attr(bank.id) + '\')" style="padding:10px 0;border-bottom:1px solid var(--border);">'
         + '<div class="budget-status-main"><div class="account-balance-name-wrap">'
-        + '<div class="budget-status-value account-balance-name" style="font-size:15px;display:flex;align-items:center;gap:7px;">' + logo + label + toggle + '</div>' + hint
+        + '<div class="budget-status-value account-balance-name" style="font-size:15px;display:flex;align-items:center;gap:7px;">' + logo + label + toggle + '</div>'
         + '</div><div class="account-balance-value-wrap">'
         + '<div class="budget-status-value account-balance-value' + valueClass + '"' + (bank.liability ? ' style="color:#E5005F;"' : '') + '>' + esc(masked(value)) + '</div>'
         + (maskedNote(eq) ? '<div class="budget-status-note account-balance-equivalent">' + esc(eq) + '</div>' : '')
@@ -43116,8 +43470,15 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     var chart = charts[widgetId];
     if (chart && typeof chart.__playRevealV2900 === 'function') {
       loanChartPendingPlay[widgetId] = false;
+      try { chart.resize(); } catch(_) {}
       chart.__playRevealV2900();
     }
+  }
+  function isLoanCardInViewport(card){
+    if (!card || !card.getBoundingClientRect) return false;
+    var rect = card.getBoundingClientRect();
+    var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+    return rect.bottom > 24 && rect.top < (vh - 24) && rect.width > 0 && rect.height > 0;
   }
   function ensureLoanChartObserver(){
     if (loanChartObserver || !('IntersectionObserver' in window)) return loanChartObserver;
@@ -43126,22 +43487,32 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         var card = entry.target;
         var widgetId = card.getAttribute('data-id');
         if (!widgetId) return;
-        var nowVisible = !!(entry.isIntersecting && entry.intersectionRatio >= 0.25);
+        var nowVisible = !!(entry.isIntersecting && entry.intersectionRatio >= 0.12);
         var wasVisible = loanChartVisible[widgetId] === true;
         loanChartVisible[widgetId] = nowVisible;
+        if (!nowVisible) return;
         if (nowVisible && !wasVisible) {
           loanChartPendingPlay[widgetId] = true;   // arm replay for this enter
           tryPlayLoanReveal(widgetId);
         }
       });
-    }, { threshold: [0, 0.25, 0.6] });
+    }, { root: null, rootMargin: '0px 0px -8% 0px', threshold: [0, 0.12, 0.25, 0.5] });
     return loanChartObserver;
   }
   function observeLoanCard(card, widgetId){
     var obs = ensureLoanChartObserver();
-    if (!obs || !card || card.__loanChartObservedV3100) return;
-    card.__loanChartObservedV3100 = true;
-    try { obs.observe(card); } catch(_) {}
+    if (!obs || !card) return;
+    if (!card.__loanChartObservedV3100) {
+      card.__loanChartObservedV3100 = true;
+      try { obs.observe(card); } catch(_) {}
+    }
+    // If the card is already on screen when Chart.js finishes, IO may not
+    // re-fire a leave→enter. Arm play from a real viewport check.
+    if (isLoanCardInViewport(card) && loanChartVisible[widgetId] !== true) {
+      loanChartVisible[widgetId] = true;
+      loanChartPendingPlay[widgetId] = true;
+      tryPlayLoanReveal(widgetId);
+    }
   }
 
   var decorateTimer = null;
@@ -44231,19 +44602,41 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     ensureChartJs().then(function(){
       if (block.__chartRequestV1600 !== chartRequest) return;
       var canvas = block.querySelector('canvas');
-      if (!canvas || !document.body.contains(canvas)) return;
+      if (!canvas || !document.body.contains(canvas)) {
+        block.setAttribute('data-sig', '');
+        window.setTimeout(scheduleDecorate, 120);
+        return;
+      }
       if (charts[widgetId]) { try { charts[widgetId].destroy(); } catch(_) {} charts[widgetId] = null; }
-      charts[widgetId] = new window.Chart(canvas, chartConfig(state, sim, small, accent, animate));
-      block.__chartLoadFailuresV1600 = 0;
-      // v3100: animate the lines the same way as the other linear widgets —
-      // via the IntersectionObserver (on scroll into view + on open if visible).
-      observeLoanCard(card, widgetId);
-      tryPlayLoanReveal(widgetId);
+      // Wait one frame so lazy-hydrated cards have a real layout size before Chart.js measures.
+      requestAnimationFrame(function(){
+        if (block.__chartRequestV1600 !== chartRequest) return;
+        if (!canvas.isConnected) { block.setAttribute('data-sig', ''); window.setTimeout(scheduleDecorate, 120); return; }
+        try {
+          charts[widgetId] = new window.Chart(canvas, chartConfig(state, sim, small, accent, animate));
+          try { charts[widgetId].resize(); } catch(_) {}
+        } catch (err) {
+          block.setAttribute('data-sig', '');
+          window.setTimeout(scheduleDecorate, 200);
+          console.warn('Loan widget chart create failed; retrying.', err);
+          return;
+        }
+        block.__chartLoadFailuresV1600 = 0;
+        // v3100: animate the lines the same way as the other linear widgets —
+        // via the IntersectionObserver (on scroll into view + on open if visible).
+        observeLoanCard(card, widgetId);
+        if (isLoanCardInViewport(card)) {
+          loanChartPendingPlay[widgetId] = true;
+        }
+        tryPlayLoanReveal(widgetId);
+      });
     }).catch(function(error){
       if (block.__chartRequestV1600 !== chartRequest) return;
       block.setAttribute('data-sig', '');
       var failures = Math.min(5, Number(block.__chartLoadFailuresV1600 || 0) + 1);
       block.__chartLoadFailuresV1600 = failures;
+      chartJsPromise = null;
+      try { if (window.Chart) window.Chart.__misAnnotationReady = false; } catch(_) {}
       window.setTimeout(scheduleDecorate, Math.min(8000, 500 * Math.pow(2, failures - 1)));
       if (failures === 1) console.warn('Loan widget chart load failed; retrying automatically.', error);
     });
@@ -44313,6 +44706,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     window.clearTimeout(decorateTimer);
     decorateTimer = window.setTimeout(decorateWidgetsNow, 60);
   }
+  window.scheduleLoanWidgetChartDecorate = scheduleDecorate;
   function scheduleWidgetsRefresh(){
     window.clearTimeout(widgetsRefreshTimer);
     widgetsRefreshTimer = window.setTimeout(function(){
@@ -46549,7 +46943,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   // localStorage bank_product_type_<id>, synced through the existing saveBank
   // path into the Bank_Settings "Type" column (backend already writes bank.type).
   var TYPES=[['account','Bežný účet'],['savings','Sporiaci účet'],['credit','Kreditná karta']];
-  var BADGE={savings:'Sporiaci',credit:'Kredit'};
+  var BADGE={savings:'Sporiaci'};
   function byId(id){return document.getElementById(id);}
   function attr(v){try{return escapeAttr(String(v==null?'':v));}catch(_){return String(v==null?'':v).replace(/"/g,'&quot;');}}
   window.getBankProductType=function(bankId){
@@ -46629,7 +47023,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       if(!bankId||!nameEl)return;
       var type=window.getBankProductType(bankId);
       var badge=nameEl.querySelector('.bt-ptype-badge-v2600');
-      if(type==='savings'||type==='credit'){
+      // Credit rows already say "Credit card" — do not add a "Kredit" badge.
+      if(type==='savings'){
         if(!badge){badge=document.createElement('span');nameEl.appendChild(badge);}
         badge.className='bt-ptype-badge-v2600 '+type;
         badge.textContent=BADGE[type];
@@ -46659,7 +47054,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       try{
         var type=window.getBankProductType(bankId);
         var subtitle=byId('account-balance-bank-sheet-subtitle');
-        if(subtitle&&(type==='savings'||type==='credit')){
+        if(subtitle&&type==='savings'){
           var label=TYPES.filter(function(t){return t[0]===type;}).map(function(t){return t[1];})[0]||'';
           if(label&&subtitle.textContent.indexOf(label)<0)subtitle.textContent=subtitle.textContent+' · '+label;
         }
