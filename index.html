@@ -2303,6 +2303,14 @@
     animation-delay: .06s;
   }
 
+  .quick-add-animating .mini-action-btn:nth-child(3) {
+    animation-delay: .12s;
+  }
+
+  .quick-add-animating .mini-action-btn:nth-child(4) {
+    animation-delay: .18s;
+  }
+
   @keyframes quickAddFadeIn {
     to {
       opacity: 1;
@@ -4189,9 +4197,8 @@
     overflow: visible;
   }
 
-  .page-loading-brand .bt-brand-logo-svg--draw-loop {
-    transform: translateZ(0);
-    backface-visibility: hidden;
+  .page-loading-brand .bt-logo-export-frame {
+    transform: scale(0.29296875);
   }
 
   .bt-brand-logo-svg {
@@ -7491,6 +7498,14 @@
     animation-delay: .045s !important;
   }
 
+  .quick-add-animating .mini-action-btn:nth-child(3) {
+    animation-delay: .09s !important;
+  }
+
+  .quick-add-animating .mini-action-btn:nth-child(4) {
+    animation-delay: .135s !important;
+  }
+
   #transaction-edit-sheet.open .sheet-grid,
   #transaction-edit-sheet.open .sheet-grid-2,
   #transaction-edit-sheet.open .config-save {
@@ -9481,18 +9496,26 @@ html[data-theme="light"] body::before {
       if (shell) shell.classList.add('is-logo-ready');
       else if (frame && frame.classList) frame.classList.add('is-logo-ready');
     }
+    try {
+      if (typeof fitBtLogoExportFrame === 'function') fitBtLogoExportFrame(frame);
+      if (frame && frame.dataset && frame.dataset.pendingRestart === 'true' && typeof restartBtLogoExportFrame === 'function') {
+        restartBtLogoExportFrame(frame, frame.dataset.pendingCycleMs);
+      }
+    } catch (_) {}
   }
 </script>
 
 <div id="page-loading-overlay" class="page-loading-overlay show" aria-live="polite" aria-busy="true">
   <div class="page-loading-brand" aria-hidden="true">
-    <span class="bt-logo-export-shell" style="width:150px;height:150px;" data-logo-size="150"><iframe class="bt-logo-export-frame" title="Bank Tracker loading logo" aria-hidden="true" tabindex="-1" allowtransparency="true" onload="cleanBtLogoExportFrame(this)"></iframe></span>
+    <span class="bt-logo-export-shell" style="width:150px;height:150px;" data-logo-size="150" data-cycle-ms="2000" data-first-paint-loader="true">
+      <iframe class="bt-logo-export-frame" title="Bank Tracker loading logo" aria-hidden="true" tabindex="-1" allowtransparency="true" onload="cleanBtLogoExportFrame(this)"></iframe>
+    </span>
   </div>
 </div>
 <script>
   (function () {
     const frame = document.querySelector('#page-loading-overlay .bt-logo-export-frame');
-    if (frame) frame.src = getBtLogoExportThemeSrc(2000);
+    if (frame && !frame.getAttribute('src')) frame.src = getBtLogoExportThemeSrc(2000);
   })();
 </script>
 
@@ -10169,6 +10192,9 @@ html[data-theme="light"] body::before {
     </button>
     <button class="mini-action-btn" onclick="openAddLoanFromQuick()">
       <span data-i18n="addLoan">Add loan</span><small data-i18n="addLoanHint">Create a new loan/mortgage account.</small>
+    </button>
+    <button class="mini-action-btn" onclick="openAddWidgetFromQuick()">
+      <span data-i18n="addWidget">Add widget</span><small data-i18n="addWidgetHint">Create a dashboard graph from your data or a manual value.</small>
     </button>
   </div>
 </div>
@@ -11892,6 +11918,12 @@ async function syncData(options = {}) {
     if (loadStatus) loadStatus.textContent = 'Načítavam transakcie z Google Sheets...';
     const activeTxnsPromise = fetchSheetTransactions(spreadsheetId, 'Transactions');
     const archivedTxnsPromise = syncArchivedTransactionsFromSheets(spreadsheetId);
+    // Bank_Archive is needed by the archive tab and overview balances. Start
+    // its dependency immediately and load the archive as soon as Bank_Settings
+    // supplies the canonical bank IDs, in parallel with both transaction tabs.
+    const bankSettingsPromise = syncBanksFromSheets(spreadsheetId);
+    const fxRatesPromise = syncFxRatesFromSheets(spreadsheetId);
+    const bankArchivePromise = bankSettingsPromise.then(() => syncBankSettingsFromSheets(spreadsheetId));
     const activeTxns = await activeTxnsPromise;
     const archivedTxns = await archivedTxnsPromise;
     allTransactions = sortTransactionsNewestFirst(dedupeTransactionsForCloud([...activeTxns, ...archivedTxns]));
@@ -11899,10 +11931,10 @@ async function syncData(options = {}) {
 
     if (loadStatus) loadStatus.textContent = 'Načítavam Bank_Archive, FX a zostatky...';
     await Promise.allSettled([
-      syncBanksFromSheets(spreadsheetId),
-      syncFxRatesFromSheets(spreadsheetId)
+      bankArchivePromise,
+      bankSettingsPromise,
+      fxRatesPromise
     ]);
-    await syncBankSettingsFromSheets(spreadsheetId);
     await syncBalanceLogFromSheets(spreadsheetId);
     reapplySheetAccountBalancesFromStorage();
 
@@ -13237,6 +13269,56 @@ function fitBtLogoExportFrame(target) {
 }
 try { window.fitBtLogoExportFrame = fitBtLogoExportFrame; } catch (_) {}
 
+function getBtLogoExportDocumentPath(src) {
+  try { return new URL(src, document.baseURI).pathname.toLowerCase(); }
+  catch (_) { return String(src || '').split('?')[0].toLowerCase(); }
+}
+
+function restartBtLogoExportFrame(frame, cycleMs) {
+  if (!frame) return;
+  const cycle = getBtLogoCycleMs(cycleMs);
+  frame.dataset.pendingCycleMs = String(cycle);
+  frame.dataset.pendingRestart = 'true';
+  let restarted = false;
+  try {
+    const restart = frame.contentWindow && frame.contentWindow.restartBtLogoExportAnimation;
+    if (typeof restart === 'function') {
+      restart(cycle);
+      restarted = true;
+    }
+  } catch (_) {}
+  if (!restarted) {
+    try {
+      frame.contentWindow.postMessage({ type: 'bt-logo-restart', cycleMs: cycle }, '*');
+    } catch (_) {}
+  }
+  if (restarted) {
+    delete frame.dataset.pendingRestart;
+    delete frame.dataset.pendingCycleMs;
+  }
+}
+try { window.restartBtLogoExportFrame = restartBtLogoExportFrame; } catch (_) {}
+
+function syncBtLogoExportFrame(frame, cycleMs, options = {}) {
+  if (!frame) return;
+  const cycle = getBtLogoCycleMs(cycleMs);
+  const nextSrc = getBtLogoExportThemeSrc(cycle);
+  const currentSrc = frame.getAttribute('src') || '';
+  const sameExport = currentSrc && getBtLogoExportDocumentPath(currentSrc) === getBtLogoExportDocumentPath(nextSrc);
+  if (!sameExport) {
+    const shell = frame.closest('.bt-logo-export-shell');
+    if (shell) shell.classList.remove('is-logo-ready');
+    if (options.restart === true) {
+      frame.dataset.pendingRestart = 'true';
+      frame.dataset.pendingCycleMs = String(cycle);
+    }
+    frame.src = nextSrc;
+    return;
+  }
+  if (options.restart === true) restartBtLogoExportFrame(frame, cycle);
+  window.requestAnimationFrame(() => fitBtLogoExportFrame(frame));
+}
+
 function getBtLogoExportHtml(options = {}) {
   const cycle = getBtLogoCycleMs(options.cycleMs);
   const size = Number(options.size || 72);
@@ -13267,25 +13349,19 @@ function getBtBrandLogoHeaderAnimatedHtml(size = 38) {
     size,
     cycleMs: BT_LOGO_HEADER_SYNC_CYCLE_MS,
     crop: 'b',
-    extraClass: ' bt-brand-logo bt-brand-logo--header bt-brand-logo-svg--header bt-logo-export-shell--header is-header-sync-loop'
+    extraClass: 'bt-brand-logo bt-brand-logo--header bt-brand-logo-svg--header bt-logo-export-shell--header is-header-sync-loop'
   });
 }
 
 function refreshBtBrandLogosForTheme() {
   document.querySelectorAll('.bt-logo-animation-host').forEach((logo) => {
+    if (logo.hasAttribute('data-first-paint-loader') && document.body?.classList.contains('app-boot-pending')) return;
     setLogoAnimCycleMs(logo.dataset.cycleMs || BT_LOGO_CYCLE_MS, logo);
   });
   document.querySelectorAll('.bt-logo-export-frame').forEach((frame) => {
-    const cycle = frame.src.match(/[?&]cycle=(\d+)/)?.[1] || BT_LOGO_CYCLE_BOOT_MS;
-    const nextSrc = getBtLogoExportThemeSrc(cycle);
-    if (!frame.src.endsWith(nextSrc)) {
-      const shell = frame.closest('.bt-logo-export-shell');
-      if (shell) shell.classList.remove('is-logo-ready');
-      frame.src = nextSrc;
-    } else {
-      cleanBtLogoExportFrame(frame);
-      fitBtLogoExportFrame(frame);
-    }
+    const shell = frame.closest('.bt-logo-export-shell');
+    const cycle = (shell && shell.dataset.cycleMs) || frame.src.match(/[?&]cycle=(\d+)/)?.[1] || BT_LOGO_CYCLE_BOOT_MS;
+    syncBtLogoExportFrame(frame, cycle, { restart: false });
   });
 }
 try { window.refreshBtBrandLogosForTheme = refreshBtBrandLogosForTheme; } catch (_) {}
@@ -13297,7 +13373,7 @@ function getBtBrandLogoHtml(variant = 'header') {
   if (variant === 'loading') {
     return getBtLoadingExportLogoHtml({
       cycleMs: BT_LOGO_CYCLE_BOOT_MS,
-      size: 112
+      size: 150
     });
   }
   return getBtLogoAnimationHtml(variant, {
@@ -13329,12 +13405,7 @@ function ensureHeaderBrandLogoMarkup(options = {}) {
   if (!host) return existing;
   if (existing && wantAnimated && (existing.classList.contains('bt-logo-animation-host') || existing.classList.contains('bt-logo-export-shell'))) {
     if (existing.classList.contains('bt-logo-export-shell')) {
-      const frame = existing.querySelector('.bt-logo-export-frame');
-      if (frame) {
-        const src = getBtLogoExportThemeSrc(BT_LOGO_HEADER_SYNC_CYCLE_MS);
-        if (!frame.src.endsWith(src)) frame.src = src;
-        window.requestAnimationFrame(() => fitBtLogoExportFrame(frame));
-      }
+      setLogoAnimCycleMs(BT_LOGO_HEADER_SYNC_CYCLE_MS, existing);
     } else {
       setLogoAnimCycleMs(BT_LOGO_HEADER_SYNC_CYCLE_MS, existing);
     }
@@ -13476,10 +13547,8 @@ function getLoadingPresentationMinMs(kind, tabId) {
 }
 
 function restartBtLogoDrawAnimation(overlayEl, options = {}) {
-  const force = !!(options && options.force);
   const overlay = overlayEl || document.getElementById('page-loading-overlay') || ensurePageLoadingOverlay();
   let brand = overlay.querySelector('.page-loading-brand');
-  if (!force && brand && brand.querySelector('.bt-brand-logo-svg--draw-once, .bt-brand-logo-svg--draw-loop')) return;
   if (!brand) {
     brand = document.createElement('div');
     brand.className = 'page-loading-brand';
@@ -13487,36 +13556,37 @@ function restartBtLogoDrawAnimation(overlayEl, options = {}) {
     overlay.appendChild(brand);
   }
   const cycleMs = (__loadingPresentation && __loadingPresentation.cycleMs) || BT_LOGO_CYCLE_MS;
-  brand.innerHTML = getBtLoadingExportLogoHtml({ cycleMs });
-  setLogoAnimCycleMs(cycleMs, brand.querySelector('.bt-brand-logo-svg--draw-once, .bt-brand-logo-svg--draw-loop'));
+  let logo = brand.querySelector('.bt-logo-export-shell, .bt-logo-animation-host, .bt-brand-logo-svg--draw-once, .bt-brand-logo-svg--draw-loop');
+  if (!logo) {
+    brand.innerHTML = getBtLoadingExportLogoHtml({ cycleMs, size: 150 });
+    logo = brand.querySelector('.bt-logo-export-shell, .bt-logo-animation-host, .bt-brand-logo-svg--draw-once, .bt-brand-logo-svg--draw-loop');
+  }
+  setLogoAnimCycleMs(cycleMs, logo);
 }
 
 let __loadingPresentation = null;
 
 function computeLoadingRevealPlan(session) {
-  const dataElapsed = Math.max(0, (session.dataReadyAt || Date.now()) - session.startedAt);
   const minMs = getLoadingPresentationMinMs(session.kind, session.tabId);
   const cycleMs = getLoadingPresentationCycleMs(session.kind, session.tabId);
-  const totalNeeded = Math.max(minMs, dataElapsed);
-  const fullCycles = Math.max(1, Math.ceil(totalNeeded / cycleMs));
   return {
-    revealAt: session.startedAt + (fullCycles * cycleMs),
+    // Keep one intentional minimum presentation, but never wait for an extra
+    // full logo cycle after the data is already ready.
+    revealAt: Math.max(session.startedAt + minMs, session.dataReadyAt || Date.now()),
     cycleMs,
   };
 }
 
 function setLogoAnimCycleMs(ms, svgEl) {
   const cycle = getBtLogoCycleMs(ms);
-  const logo = svgEl || document.querySelector('#page-loading-overlay .bt-logo-animation-host, #page-loading-overlay .bt-brand-logo-svg--draw-once, #page-loading-overlay .bt-brand-logo-svg--draw-loop');
+  const logo = svgEl || document.querySelector('#page-loading-overlay .bt-logo-export-shell, #page-loading-overlay .bt-logo-animation-host, #page-loading-overlay .bt-brand-logo-svg--draw-once, #page-loading-overlay .bt-brand-logo-svg--draw-loop');
   if (!logo) return;
   logo.style.setProperty('--bt-logo-cycle-ms', cycle + 'ms');
   if (logo.classList && logo.classList.contains('bt-logo-export-shell')) {
     logo.dataset.cycleMs = String(cycle);
     const frame = logo.querySelector('.bt-logo-export-frame');
     if (frame) {
-      const nextSrc = getBtLogoExportThemeSrc(cycle);
-      if (!frame.src.endsWith(nextSrc)) frame.src = nextSrc;
-      window.requestAnimationFrame(() => fitBtLogoExportFrame(frame));
+      syncBtLogoExportFrame(frame, cycle, { restart: true });
     }
     return;
   }
@@ -13559,6 +13629,7 @@ function startBtLogoAnimationObserver() {
   window.__btLogoAnimationObserverStarted = true;
   const startLogo = (logo) => {
     if (!logo || !logo.classList || !logo.classList.contains('bt-logo-animation-host')) return;
+    if (logo.hasAttribute('data-first-paint-loader')) return;
     setLogoAnimCycleMs(logo.dataset.cycleMs || BT_LOGO_CYCLE_MS, logo);
   };
   document.querySelectorAll('.bt-logo-animation-host').forEach(startLogo);
@@ -13629,8 +13700,14 @@ function beginLoadingPresentation(options = {}) {
     overlay.classList.add('show');
     overlay.classList.remove('is-hiding');
     overlay.setAttribute('aria-busy', 'true');
-    setLogoAnimCycleMs(cycleMs);
-    restartBtLogoDrawAnimation(overlay, { force: true });
+    const firstPaintLogo = overlay.querySelector('[data-first-paint-loader="true"]');
+    if (firstPaintLogo && firstPaintLogo.dataset.bootAttached !== 'true') {
+      // The exported dark/white animation already started on first paint.
+      // Attach the data lifecycle without reloading or restarting its iframe.
+      firstPaintLogo.dataset.bootAttached = 'true';
+    } else {
+      restartBtLogoDrawAnimation(overlay, { force: true });
+    }
     return session;
   }
 
@@ -13638,7 +13715,6 @@ function beginLoadingPresentation(options = {}) {
     __tabLoadingDepth = 0;
     showTabPageLoadingOverlay();
   } else {
-    setLogoAnimCycleMs(cycleMs);
     restartBtLogoDrawAnimation(null, { force: true });
   }
   return session;
@@ -13672,7 +13748,6 @@ function finishLoadingPresentation(onReveal) {
 
   const { revealAt, cycleMs } = computeLoadingRevealPlan(session);
   session.cycleMs = cycleMs;
-  setLogoAnimCycleMs(cycleMs);
 
   const reveal = () => {
     if (session.done) return;
@@ -13779,7 +13854,6 @@ function startAppBootOverlay() {
     overlay.classList.add('show');
     overlay.classList.remove('is-hiding');
     overlay.setAttribute('aria-busy', 'true');
-    setLogoAnimCycleMs(BT_LOGO_CYCLE_BOOT_MS, overlay.querySelector('.bt-logo-animation-host'));
     restartBtLogoDrawAnimation(overlay, { force: true });
     return;
   }
@@ -13851,7 +13925,6 @@ function showTabPageLoadingOverlay() {
   overlay.classList.add('show');
   overlay.classList.remove('is-hiding');
   overlay.setAttribute('aria-busy', 'true');
-  setLogoAnimCycleMs(BT_LOGO_CYCLE_MS, overlay.querySelector('.bt-brand-logo-svg--draw-once, .bt-brand-logo-svg--draw-loop'));
   restartBtLogoDrawAnimation(overlay, { force: true });
 }
 
@@ -17429,6 +17502,7 @@ function renderDirtyTabSection(pageId) {
 try { window.renderDirtyTabSection = renderDirtyTabSection; } catch (_) {}
 
 let __archiveChartIntroToken = 0;
+let __archiveChartIntroObserver = null;
 
 function primeArchiveTrendLinesForIntro(wrap) {
   if (!wrap) return;
@@ -17450,13 +17524,34 @@ function primeArchiveTrendLinesForIntro(wrap) {
 
 function scheduleArchiveChartIntro(delayMs = 0) {
   const token = ++__archiveChartIntroToken;
+  if (__archiveChartIntroObserver) {
+    try { __archiveChartIntroObserver.disconnect(); } catch (_) {}
+    __archiveChartIntroObserver = null;
+  }
   window.setTimeout(() => {
     if (token !== __archiveChartIntroToken) return;
     requestAnimationFrame(() => {
       if (token !== __archiveChartIntroToken) return;
       requestAnimationFrame(() => {
         if (token !== __archiveChartIntroToken) return;
-        try { playArchiveTrendChartIntro(); } catch (_) {}
+        const page = document.getElementById('page-archive');
+        const wrap = document.getElementById('archive-trend-chart');
+        if (!page || !wrap || !page.classList.contains('active')) return;
+        const rect = wrap.getBoundingClientRect ? wrap.getBoundingClientRect() : null;
+        const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+        const visible = !!(rect && rect.bottom > 24 && rect.top < (vh - 24) && rect.width > 0 && rect.height > 0);
+        if (visible || !('IntersectionObserver' in window)) {
+          try { playArchiveTrendChartIntro(); } catch (_) {}
+          return;
+        }
+        __archiveChartIntroObserver = new IntersectionObserver((entries) => {
+          if (token !== __archiveChartIntroToken) return;
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          try { __archiveChartIntroObserver.disconnect(); } catch (_) {}
+          __archiveChartIntroObserver = null;
+          try { playArchiveTrendChartIntro(); } catch (_) {}
+        }, { root: null, rootMargin: '0px 0px -8% 0px', threshold: [0, 0.08, 0.2] });
+        try { __archiveChartIntroObserver.observe(wrap); } catch (_) {}
       });
     });
   }, Math.max(0, Number(delayMs || 0)));
@@ -17488,7 +17583,7 @@ function playArchiveTrendChartIntro() {
   void wrap.offsetWidth;
 
   wrap.querySelectorAll('.archive-trend-bar-animate').forEach((el, idx) => {
-    el.style.animation = 'archiveBarGrow .62s cubic-bezier(.22,.72,.22,1) both';
+    el.style.animation = 'archiveBarGrow .9s cubic-bezier(.22,.72,.22,1) both';
     el.style.animationDelay = `${idx * 35}ms`;
   });
 
@@ -17501,8 +17596,8 @@ function playArchiveTrendChartIntro() {
     let len = 0;
     try { len = line.getTotalLength(); } catch (_) {}
     if (!len || len < 1) len = 420;
-    const duration = 720;
-    const delay = idx * 110;
+    const duration = 1400;
+    const delay = idx * 140;
     maxLineEndMs = Math.max(maxLineEndMs, delay + duration);
     try {
       const anim = line.animate(
@@ -17564,8 +17659,22 @@ function scheduleArchiveTabRender() {
     requestAnimationFrame(() => {
       window.setTimeout(() => {
         const run = () => {
-          try { renderArchiveSection(); } catch (_) {}
-          finishArchiveTabPresentation();
+          try { renderArchive(); } catch (e) { console.error('Archive list render failed:', e); }
+
+          // Yield after the archive list so the compositor can present another
+          // smooth loader frame before the heavier trend SVG is calculated.
+          requestAnimationFrame(() => {
+            const finishTrend = () => {
+              try { renderArchiveTrendChart(); } catch (e) { console.error('Archive chart render failed:', e); }
+              __btArchiveTabDirty = false;
+              finishArchiveTabPresentation();
+            };
+            if (typeof requestIdleCallback === 'function') {
+              requestIdleCallback(finishTrend, { timeout: 240 });
+            } else {
+              window.setTimeout(finishTrend, 16);
+            }
+          });
         };
         if (typeof requestIdleCallback === 'function') {
           requestIdleCallback(run, { timeout: 320 });
@@ -20430,8 +20539,11 @@ function initGlobalPullDownControl() {
       (document.documentElement.scrollTop || 0) <= 0 &&
       (document.body.scrollTop || 0) <= 0;
 
-    // Block browser pull-to-refresh.
-    if (atTop && pullingDown && event.cancelable) {
+    // Block browser pull-to-refresh only on the page itself. A full-page
+    // widget editor owns its vertical scroll; cancelling here used to block
+    // every downward finger gesture, so the editor could scroll down but not
+    // back up.
+    if (!sheetOpen && atTop && pullingDown && event.cancelable) {
       event.preventDefault();
     }
 
@@ -21378,6 +21490,13 @@ function openAddLoanFromQuick() {
   closeBottomSheets();
   setTimeout(() => {
     openAddLoanSheet();
+  }, 90);
+}
+
+function openAddWidgetFromQuick() {
+  closeBottomSheets();
+  setTimeout(() => {
+    if (typeof openCustomWidgetBuilder === 'function') openCustomWidgetBuilder();
   }, 90);
 }
 
@@ -23216,6 +23335,8 @@ const I18N = {
     addBankHint: 'Add a new bank, currency, budget and card limit.',
     addLoan: 'Add loan',
     addLoanHint: 'Create a new loan/mortgage account.',
+    addWidget: 'Add widget',
+    addWidgetHint: 'Create a dashboard graph from your data or a manual value.',
     completed: 'Completed',
     notCompleted: 'Missed',
     missingCurrent: 'Missing',
@@ -23530,6 +23651,8 @@ const I18N = {
     addBankHint: 'Pridaj novú banku, menu, budget a limit karty.',
     addLoan: 'Pridať úver',
     addLoanHint: 'Vytvor nový úver/hypotéku.',
+    addWidget: 'Pridať widget',
+    addWidgetHint: 'Vytvor graf na nástenku z dát alebo z ručne zadanej hodnoty.',
     completed: 'splnené',
     notCompleted: 'nesplnené',
     missingCurrent: 'chýba',
@@ -23837,6 +23960,8 @@ const I18N = {
     addBankHint: 'Přidej novou banku, měnu, budget a limit karty.',
     addLoan: 'Přidat úvěr',
     addLoanHint: 'Vytvoř nový úvěr/hypotéku.',
+    addWidget: 'Přidat widget',
+    addWidgetHint: 'Vytvoř graf na přehled z dat nebo z ručně zadané hodnoty.',
     completed: 'splněno',
     notCompleted: 'nesplněno',
     missingCurrent: 'chybí',
@@ -43361,6 +43486,53 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     height: 100% !important;
     display: block;
   }
+  .custom-widget-card .cwm-chart-fallback-v3600 {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+    opacity: 1;
+    pointer-events: none;
+    transition: opacity .18s ease;
+  }
+  .custom-widget-card .cwm-chart-fallback-v3600.is-chart-ready {
+    opacity: 0;
+  }
+  .custom-widget-card .cwm-chart-fallback-v3600 svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .custom-widget-card .cwm-chart-fallback-line-v3600 {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: none;
+  }
+  .custom-widget-card .cwm-chart-fallback-v3600.is-visible .cwm-chart-fallback-line-v3600 {
+    animation: cwmFallbackLineRevealV3600 1.8s cubic-bezier(.22,.72,.22,1) forwards;
+  }
+  @keyframes cwmFallbackLineRevealV3600 {
+    to { stroke-dashoffset: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .custom-widget-card .cwm-chart-fallback-line-v3600 {
+      stroke-dashoffset: 0;
+      animation: none !important;
+    }
+  }
+  .custom-widget-card .cwm-data-wait-v3600 {
+    min-height: 128px;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    color: var(--muted);
+    text-align: center;
+    font-size: 12px;
+  }
   html[data-theme="light"] .custom-widget-card .cwm-metric-v1600 {
     background: #eef6ff;
     border-color: rgba(37,99,235,.16);
@@ -43480,6 +43652,11 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     var vh = window.innerHeight || document.documentElement.clientHeight || 0;
     return rect.bottom > 24 && rect.top < (vh - 24) && rect.width > 0 && rect.height > 0;
   }
+  function setLoanFallbackVisible(card, visible){
+    var fallback = card && card.querySelector ? card.querySelector('.cwm-chart-fallback-v3600') : null;
+    if (!fallback) return;
+    fallback.classList.toggle('is-visible', visible === true);
+  }
   function ensureLoanChartObserver(){
     if (loanChartObserver || !('IntersectionObserver' in window)) return loanChartObserver;
     loanChartObserver = new IntersectionObserver(function(entries){
@@ -43490,6 +43667,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         var nowVisible = !!(entry.isIntersecting && entry.intersectionRatio >= 0.12);
         var wasVisible = loanChartVisible[widgetId] === true;
         loanChartVisible[widgetId] = nowVisible;
+        setLoanFallbackVisible(card, nowVisible);
         if (!nowVisible) return;
         if (nowVisible && !wasVisible) {
           loanChartPendingPlay[widgetId] = true;   // arm replay for this enter
@@ -43501,7 +43679,17 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   }
   function observeLoanCard(card, widgetId){
     var obs = ensureLoanChartObserver();
-    if (!obs || !card) return;
+    if (!card) return;
+    if (!obs) {
+      var visibleWithoutObserver = isLoanCardInViewport(card);
+      loanChartVisible[widgetId] = visibleWithoutObserver;
+      setLoanFallbackVisible(card, visibleWithoutObserver);
+      if (visibleWithoutObserver) {
+        loanChartPendingPlay[widgetId] = true;
+        tryPlayLoanReveal(widgetId);
+      }
+      return;
+    }
     if (!card.__loanChartObservedV3100) {
       card.__loanChartObservedV3100 = true;
       try { obs.observe(card); } catch(_) {}
@@ -43510,6 +43698,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     // re-fire a leave→enter. Arm play from a real viewport check.
     if (isLoanCardInViewport(card) && loanChartVisible[widgetId] !== true) {
       loanChartVisible[widgetId] = true;
+      setLoanFallbackVisible(card, true);
       loanChartPendingPlay[widgetId] = true;
       tryPlayLoanReveal(widgetId);
     }
@@ -44018,6 +44207,66 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     }).join('');
   }
   var PROJECTION_BLUE = '#388bfd';
+
+  /* Always-visible, dependency-free mortgage chart. Chart.js progressively
+     enhances this SVG with tooltips and stacked datasets when the CDN is ready;
+     a slow/offline refresh never leaves an empty chart area. */
+  function renderLocalLoanChartFallback(block, state, sim, accent, widgetId){
+    var host = block && block.querySelector('.cwm-chart-fallback-v3600');
+    if (!host || !state || !sim || !Array.isArray(sim.labels) || !sim.labels.length) return;
+
+    var values = sim.labels.map(function(_, index){
+      if (sim.showHistory !== false && index < sim.paidYears) return num(sim.histBalances[index]);
+      return num(sim.balances[index]);
+    });
+    if (!values.some(function(value){ return value > 0; })) return;
+
+    var width = 640, height = 240;
+    var left = 44, right = 14, top = 16, bottom = 28;
+    var plotWidth = width - left - right;
+    var plotHeight = height - top - bottom;
+    var maxValue = Math.max(num(state.principal), Math.max.apply(Math, values), 1);
+    var pointCount = Math.max(1, values.length - 1);
+    var points = values.map(function(value, index){
+      var x = left + (index / pointCount) * plotWidth;
+      var y = top + (1 - Math.max(0, value) / maxValue) * plotHeight;
+      return { x:x, y:y, value:value };
+    });
+    var pathFor = function(rows){
+      return rows.map(function(point, index){
+        return (index ? 'L' : 'M') + point.x.toFixed(2) + ' ' + point.y.toFixed(2);
+      }).join(' ');
+    };
+    var fullPath = pathFor(points);
+    var areaPath = fullPath + ' L' + points[points.length - 1].x.toFixed(2) + ' ' + (top + plotHeight) + ' L' + points[0].x.toFixed(2) + ' ' + (top + plotHeight) + ' Z';
+    var paidEnd = Math.min(points.length - 1, Math.max(0, Number(sim.paidYears || 0) - 1));
+    var paidPoints = paidEnd > 0 ? points.slice(0, paidEnd + 1) : [];
+    var projectedPoints = points.slice(Math.max(0, paidEnd));
+    var paidColor = normalizeAccent(accent);
+    var gradId = 'cwm-fallback-grad-' + String(widgetId || 'loan').replace(/[^a-zA-Z0-9_-]/g, '_');
+    var grid = [0, .5, 1].map(function(ratio){
+      var y = top + ratio * plotHeight;
+      var label = compactVal(maxValue * (1 - ratio));
+      return '<line x1="' + left + '" y1="' + y.toFixed(2) + '" x2="' + (width - right) + '" y2="' + y.toFixed(2) + '" stroke="currentColor" opacity=".11"></line>'
+        + '<text x="' + (left - 6) + '" y="' + (y + 3).toFixed(2) + '" text-anchor="end" fill="currentColor" opacity=".58" font-size="10">' + esc(label) + '</text>';
+    }).join('');
+    var labelIndexes = [0, Math.floor((sim.labels.length - 1) / 2), sim.labels.length - 1].filter(function(value, index, rows){ return rows.indexOf(value) === index; });
+    var xLabels = labelIndexes.map(function(index){
+      var point = points[index];
+      return '<text x="' + point.x.toFixed(2) + '" y="' + (height - 7) + '" text-anchor="middle" fill="currentColor" opacity=".64" font-size="10">' + esc(sim.labels[index] || '') + '</text>';
+    }).join('');
+
+    host.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" role="img" aria-label="Mortgage balance projection">'
+      + '<defs><linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + PROJECTION_BLUE + '" stop-opacity=".22"></stop><stop offset="1" stop-color="' + PROJECTION_BLUE + '" stop-opacity="0"></stop></linearGradient></defs>'
+      + '<g style="color:var(--muted)">' + grid + xLabels + '</g>'
+      + '<path d="' + areaPath + '" fill="url(#' + gradId + ')"></path>'
+      + (paidPoints.length > 1 ? '<path class="cwm-chart-fallback-line-v3600" pathLength="1" d="' + pathFor(paidPoints) + '" stroke="' + paidColor + '" stroke-width="3"></path>' : '')
+      + '<path class="cwm-chart-fallback-line-v3600" pathLength="1" d="' + pathFor(projectedPoints) + '" stroke="' + PROJECTION_BLUE + '" stroke-width="3"></path>'
+      + '<circle cx="' + projectedPoints[0].x.toFixed(2) + '" cy="' + projectedPoints[0].y.toFixed(2) + '" r="4" fill="#fff"></circle>'
+      + '<circle cx="' + projectedPoints[0].x.toFixed(2) + '" cy="' + projectedPoints[0].y.toFixed(2) + '" r="2.3" fill="' + paidColor + '"></circle>'
+      + '</svg>';
+  }
+
   function chartConfig(state, sim, small, accent, animate){
     var colors = themeColors();
     var cur = currencySuffix(state.loan && state.loan.currency);
@@ -44543,6 +44792,22 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     var widgetId = String(widget.id);
     var state = buildState(loan);
     state.selectedMetrics = metricTabsForWidget(widgetId, state.selectedMetrics);
+    var validChartData = Number.isFinite(Number(state.principal)) && state.principal > 0
+      && Number.isFinite(Number(state.totalMonths)) && state.totalMonths > 0;
+    var dataWait = content.querySelector('.cwm-data-wait-v3600');
+    if (!validChartData) {
+      if (charts[widgetId]) { try { charts[widgetId].destroy(); } catch(_) {} charts[widgetId] = null; }
+      var staleBlock = content.querySelector('.cwm-block-v1600');
+      if (staleBlock) staleBlock.remove();
+      if (!dataWait) {
+        dataWait = document.createElement('div');
+        dataWait.className = 'cwm-data-wait-v3600';
+        content.appendChild(dataWait);
+      }
+      dataWait.textContent = 'Mortgage chart will appear when the loan amount and total period are loaded.';
+      return;
+    }
+    if (dataWait) dataWait.remove();
     var theme = document.documentElement.getAttribute('data-theme') || 'dark';
     var accent = normalizeAccent(widget.accent);
     var sig = JSON.stringify([state.principal, state.totalMonths, state.paidYears, state.histRate, state.segments, state.residualRate, state.residualColor, state.selectedMetrics, theme, accent, widget.size || '', Math.abs(num(loan.currentBalance))]);
@@ -44583,13 +44848,15 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     }
     block.__metricTabsWidgetId = widgetId;
     block.setAttribute('data-sig', sig);
-    block.innerHTML = '<div class="cwm-cards-v1600"></div><div class="cwm-picker-v1600"></div><div class="cwm-legend-v1600"></div><div class="cwm-chart-wrap-v1600"><canvas role="img" aria-label="Mortgage amortization chart"></canvas></div>';
+    block.innerHTML = '<div class="cwm-cards-v1600"></div><div class="cwm-picker-v1600"></div><div class="cwm-legend-v1600"></div><div class="cwm-chart-wrap-v1600"><div class="cwm-chart-fallback-v3600" aria-hidden="true"></div><canvas role="img" aria-label="Mortgage amortization chart"></canvas></div>';
     var sim = runSimulation(state);
     block.__state = state;
     block.__sim = sim;
     renderCards(block, state, sim);
     renderPicker(block, state, sim);
     renderLegend(block, sim, accent);
+    renderLocalLoanChartFallback(block, state, sim, accent, widgetId);
+    observeLoanCard(card, widgetId);
     var small = String(card.getAttribute('data-size') || '') === 'small';
     // Animate only the first draw and real data changes; background re-renders
     // redraw instantly so the widget never flickers.
@@ -44615,6 +44882,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         try {
           charts[widgetId] = new window.Chart(canvas, chartConfig(state, sim, small, accent, animate));
           try { charts[widgetId].resize(); } catch(_) {}
+          var fallback = block.querySelector('.cwm-chart-fallback-v3600');
+          if (fallback) fallback.classList.add('is-chart-ready');
         } catch (err) {
           block.setAttribute('data-sig', '');
           window.setTimeout(scheduleDecorate, 200);
