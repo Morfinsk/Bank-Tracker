@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="sk" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=512, height=512">
+  <title>Bank Tracker logo animation export</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html.dark {
+      --bg-splash: #0d1117;
+      --logo-primary: #ffffff;
+      --logo-accent: #00e5ff;
+      --logo-tile: #08111f;
+      --logo-glow-opacity: 0.10;
+    }
+    html.light {
+      --bg-splash: #f8fafc;
+      --logo-primary: #08111f;
+      --logo-accent: #00e5ff;
+      --logo-tile: transparent;
+      --logo-glow-opacity: 0.08;
+    }
+    html, body {
+      width: 512px;
+      height: 512px;
+      overflow: hidden;
+      background: var(--bg-splash, #0d1117);
+    }
+    body {
+      display: grid;
+      place-items: center;
+    }
+    .stage {
+      width: 512px;
+      height: 512px;
+      display: grid;
+      place-items: center;
+    }
+    .theme-switch {
+      position: fixed;
+      z-index: 2;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 6px;
+      padding: 5px;
+      border: 1px solid color-mix(in srgb, var(--logo-primary) 18%, transparent);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--bg-splash) 86%, transparent);
+    }
+    .theme-switch button {
+      border: 0;
+      border-radius: 999px;
+      padding: 7px 11px;
+      background: transparent;
+      color: var(--logo-primary);
+      font: 700 12px/1 system-ui, sans-serif;
+      cursor: pointer;
+    }
+    html.dark .theme-switch [data-theme="dark"],
+    html.light .theme-switch [data-theme="light"] {
+      background: var(--logo-accent);
+      color: #06111f;
+    }
+    .bt-brand-logo-svg {
+      display: block;
+      overflow: visible;
+      user-select: none;
+    }
+    .bt-brand-logo-svg--loading {
+      width: 512px;
+      height: 512px;
+    }
+    .bt-brand-logo-svg .bt-logo-stroke {
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+    }
+    .bt-brand-logo-svg--draw-loop {
+      --bt-logo-cycle-ms: 2000ms;
+    }
+    .bt-brand-logo-svg--draw-loop .bt-logo-dot-wrap {
+      opacity: 1;
+    }
+    .bt-brand-logo-svg--draw-loop .bt-logo-dot {
+      opacity: 1;
+    }
+
+    /* STEM: draws while dot travels bottom -> top (3% - 20%) */
+    .bt-brand-logo-svg--draw-loop .bt-logo-stem {
+      animation: btLogoDrawStem var(--bt-logo-cycle-ms, 2000ms) ease-in-out infinite;
+    }
+    /* ARROW: draws while dot traces the chevron (20% - 38%) */
+    .bt-brand-logo-svg--draw-loop .bt-logo-arrow {
+      animation: btLogoDrawArrow var(--bt-logo-cycle-ms, 2000ms) ease-in-out infinite;
+    }
+    /* TOP ARC (white): draws after the "return" phase (52% - 72%) */
+    .bt-brand-logo-svg--draw-loop .bt-logo-loop-top {
+      animation: btLogoDrawLoopTopByDot var(--bt-logo-cycle-ms, 2000ms) ease-in-out infinite;
+    }
+    /* BOTTOM ARC (blue): final segment, synchronized with pen (76% - 100%) */
+    .bt-brand-logo-svg--draw-loop .bt-logo-loop-bottom {
+      animation: btLogoDrawLoopBottom var(--bt-logo-cycle-ms, 2000ms) ease-in-out infinite;
+    }
+    .bt-brand-logo-svg--draw-loop .bt-logo-dot-mover {
+      transform-box: view-box;
+      transform-origin: 0 0;
+      transform: translate(60px, 300px);
+      will-change: transform, opacity;
+      animation:
+        btLogoDrawPen var(--bt-logo-cycle-ms, 2000ms) linear infinite,
+        btLogoDrawPenOpacity var(--bt-logo-cycle-ms, 2000ms) linear infinite;
+    }
+
+    @keyframes btLogoDrawStem {
+      0%, 3%   { stroke-dashoffset: 100; }
+      20%, 100% { stroke-dashoffset: 0; }
+    }
+    @keyframes btLogoDrawArrow {
+      0%, 20%  { stroke-dashoffset: 100; }
+      38%, 100% { stroke-dashoffset: 0; }
+    }
+    @keyframes btLogoDrawLoopTopByDot {
+      0%, 52%  { stroke-dashoffset: 100; }
+      72%, 100% { stroke-dashoffset: 0; }
+    }
+    @keyframes btLogoDrawLoopBottom {
+      /* The dot enters the bottom path at 76% and finishes it at 100%. */
+      0%, 76% { stroke-dashoffset: 100; }
+      100% { stroke-dashoffset: 0; }
+    }
+    @keyframes btLogoDrawPen {
+      0%, 3% { transform: translate(60px, 300px); }
+      20% { transform: translate(60px, 50px); }
+      26% { transform: translate(20px, 90px); }
+      32% { transform: translate(60px, 50px); }
+      38% { transform: translate(100px, 90px); }
+      44% { transform: translate(60px, 50px); }
+      52% { transform: translate(60px, 120px); }
+      57% { transform: translate(140px, 120px); }
+      62% { transform: translate(200px, 180px); }
+      67% { transform: translate(140px, 240px); }
+      72% { transform: translate(60px, 240px); }
+      76% { transform: translate(60px, 220px); }
+      80% { transform: translate(150px, 220px); }
+      86% { transform: translate(230px, 290px); }
+      92% { transform: translate(150px, 360px); }
+      100% { transform: translate(60px, 360px); }
+    }
+    @keyframes btLogoDrawPenOpacity {
+      0% { opacity: 0; }
+      3%, 100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="theme-switch" aria-label="Logo theme">
+    <button type="button" data-theme="dark">Dark</button>
+    <button type="button" data-theme="light">White</button>
+  </div>
+  <div class="stage" id="stage">
+    <svg id="logo" class="bt-brand-logo-svg bt-brand-logo-svg--loading bt-brand-logo-svg--draw-loop" style="--bt-logo-cycle-ms:2000ms" width="512" height="512" viewBox="0 0 512 512" aria-hidden="true">
+      <rect width="512" height="512" rx="112" fill="var(--logo-tile)"/>
+      <circle cx="256" cy="256" r="140" fill="var(--logo-accent)" opacity="var(--logo-glow-opacity)" filter="blur(20px)"/>
+      <g transform="translate(157, 76) scale(0.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path class="bt-logo-stroke bt-logo-stem" pathLength="100" d="M 60 300 L 60 50" stroke="var(--logo-primary)" stroke-width="36"/>
+        <path class="bt-logo-stroke bt-logo-arrow" pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="var(--logo-accent)" stroke-width="36"/>
+        <path class="bt-logo-stroke bt-logo-loop-top" pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="var(--logo-primary)" stroke-width="36"/>
+        <path class="bt-logo-stroke bt-logo-loop-bottom" pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="var(--logo-accent)" stroke-width="36"/>
+
+        <!--
+          Dot travel path (single continuous line), in order:
+          1) M 60 300 -> L 60 50      : up the stem
+          2) L 20 90 -> L 60 50 -> L 100 90 : trace the arrow chevron
+          3) L 60 50 -> L 60 120      : "return" back down to the loops' start
+          4) h80, c..., c..., h-80    : trace the white top arc
+          5) L 60 220                 : small step down to the bottom arc's start
+          6) h90, c..., c..., h-90    : trace the blue bottom arc
+        -->
+        <g class="bt-logo-dot-wrap">
+          <circle class="bt-logo-dot bt-logo-dot-mover" cx="0" cy="0" r="18" fill="var(--logo-accent)" stroke="none"/>
+        </g>
+      </g>
+    </svg>
+  </div>
+  <script>
+    (function () {
+      const params = new URLSearchParams(location.search);
+      function setTheme(value) {
+        const theme = value === 'light' || value === 'white' ? 'light' : 'dark';
+        document.documentElement.classList.remove('dark', 'light');
+        document.documentElement.classList.add(theme);
+        document.querySelectorAll('.theme-switch button').forEach((button) => {
+          button.setAttribute('aria-pressed', String(button.dataset.theme === theme));
+        });
+      }
+      document.querySelectorAll('.theme-switch button').forEach((button) => {
+        button.addEventListener('click', () => setTheme(button.dataset.theme));
+      });
+      window.setLogoTheme = setTheme;
+      document.body.dataset.cycleMs = '2000';
+      setTheme(params.get('theme') || 'dark');
+    })();
+  </script>
+</body>
+</html>

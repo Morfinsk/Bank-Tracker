@@ -1,0 +1,908 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="5120" height="5120" viewBox="0 0 5120 5120" shape-rendering="geometricPrecision">
+  <defs>
+    <filter id="bt-dot-glow" x="-90%" y="-90%" width="280%" height="280%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+<g transform="translate(0 0)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="300.000" r="18" fill="#00e5ff" stroke="none" opacity="0.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(512 0)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="300.000" r="18" fill="#00e5ff" stroke="none" opacity="0.337" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1024 0)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="300.000" r="18" fill="#00e5ff" stroke="none" opacity="0.673" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1536 0)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="99.9994"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="299.554" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2048 0)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="99.2729"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="284.700" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2560 0)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="97.1076"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="269.846" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3072 0)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="93.4223"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="254.991" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3584 0)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="88.1771"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="240.137" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4096 0)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="81.4034"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="225.282" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4608 0)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="73.237"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="210.428" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(0 512)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="63.9471"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="195.573" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(512 512)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="53.9386"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="180.719" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1024 512)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="43.7208"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="165.865" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1536 512)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="33.8356"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="151.010" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2048 512)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="24.773"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="136.156" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2560 512)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="16.9086"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="121.301" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3072 512)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="10.4787"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="106.447" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3584 512)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="5.5925"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="91.592" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4096 512)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="2.2622"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="76.738" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4608 512)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0.4361"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="61.884" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(0 1024)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="99.9761"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="58.653" cy="51.347" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(512 1024)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="99.1175"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="51.919" cy="58.081" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1024 1024)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="96.9666"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="45.185" cy="64.815" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1536 1024)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="93.457"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="38.451" cy="71.549" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2048 1024)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="88.5552"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="31.717" cy="78.283" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2560 1024)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="82.2851"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="24.983" cy="85.017" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3072 1024)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="74.7519"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="21.751" cy="88.249" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3584 1024)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="66.1644"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="28.485" cy="81.515" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4096 1024)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="56.8419"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="35.219" cy="74.781" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4608 1024)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="47.1961"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="41.953" cy="68.047" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(0 1536)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="37.6835"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="48.687" cy="61.313" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(512 1536)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="28.7426"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="55.421" cy="54.579" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1024 1536)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="20.7345"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="62.155" cy="52.155" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1536 1536)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="13.9155"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="68.889" cy="58.889" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2048 1536)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="8.4322"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="75.623" cy="65.623" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2560 1536)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="4.3389"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="82.357" cy="72.357" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3072 1536)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="1.6241"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="89.091" cy="79.091" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3584 1536)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0.2323"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="95.825" cy="85.825" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4096 1536)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="97.441" cy="87.441" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4608 1536)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="90.707" cy="80.707" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(0 2048)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="83.973" cy="73.973" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(512 2048)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="77.239" cy="67.239" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1024 2048)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="70.505" cy="60.505" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1536 2048)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="63.771" cy="53.771" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2048 2048)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="53.889" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2560 2048)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="62.727" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3072 2048)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="71.566" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3584 2048)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="80.404" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4096 2048)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="89.242" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4608 2048)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="98.081" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(0 2560)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="106.919" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(512 2560)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="115.758" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1024 2560)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="99.8681"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="68.404" cy="120.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1536 2560)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="98.8486"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="84.566" cy="120.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2048 2560)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="96.7717"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="100.727" cy="120.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2560 2560)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="93.5908"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="116.889" cy="120.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3072 2560)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="89.2818"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="133.051" cy="120.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3584 2560)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="83.858"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="146.909" cy="126.909" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4096 2560)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="77.3824"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="159.030" cy="139.030" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4608 2560)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="69.9853"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="171.152" cy="151.152" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(0 3072)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="61.8697"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="183.273" cy="163.273" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(512 3072)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="53.3061"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="195.394" cy="175.394" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1024 3072)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="44.6148"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="192.485" cy="187.515" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1536 3072)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="36.1307"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="180.364" cy="199.636" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2048 3072)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="28.1646"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="168.242" cy="211.758" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2560 3072)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="20.973"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="156.121" cy="223.879" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3072 3072)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="14.7413"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="144.000" cy="236.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3584 3072)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="9.5812"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="129.172" cy="240.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4096 3072)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="5.5434"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="113.010" cy="240.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4608 3072)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="2.6307"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="96.848" cy="240.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(0 3584)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0.8124"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="80.687" cy="240.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(512 3584)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0.038"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="64.525" cy="240.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1024 3584)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="236.364" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1536 3584)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="231.313" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2048 3584)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="226.263" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2560 3584)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <circle cx="60.000" cy="221.212" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3072 3584)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="99.8039"/>
+      <circle cx="77.273" cy="220.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3584 3584)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="98.9291"/>
+      <circle cx="100.000" cy="220.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4096 3584)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="97.3219"/>
+      <circle cx="122.727" cy="220.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4608 3584)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="94.9538"/>
+      <circle cx="145.455" cy="220.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(0 4096)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="91.8058"/>
+      <circle cx="160.774" cy="229.428" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(512 4096)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="87.8741"/>
+      <circle cx="174.242" cy="241.212" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1024 4096)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="83.1748"/>
+      <circle cx="187.710" cy="252.997" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1536 4096)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="77.7527"/>
+      <circle cx="201.178" cy="264.781" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2048 4096)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="71.6827"/>
+      <circle cx="214.646" cy="276.566" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2560 4096)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="65.0772"/>
+      <circle cx="228.114" cy="288.350" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3072 4096)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="58.0814"/>
+      <circle cx="218.418" cy="300.135" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3584 4096)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="50.8706"/>
+      <circle cx="204.949" cy="311.919" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4096 4096)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="43.6367"/>
+      <circle cx="191.481" cy="323.704" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4608 4096)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="36.5724"/>
+      <circle cx="178.013" cy="335.488" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(0 4608)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="29.8586"/>
+      <circle cx="164.545" cy="347.273" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(512 4608)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="23.6489"/>
+      <circle cx="151.077" cy="359.057" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1024 4608)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="18.0629"/>
+      <circle cx="139.545" cy="360.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(1536 4608)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="13.1851"/>
+      <circle cx="128.182" cy="360.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2048 4608)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="9.0668"/>
+      <circle cx="116.818" cy="360.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(2560 4608)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="5.7303"/>
+      <circle cx="105.455" cy="360.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3072 4608)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="3.1762"/>
+      <circle cx="94.091" cy="360.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(3584 4608)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="1.3885"/>
+      <circle cx="82.727" cy="360.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4096 4608)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0.341"/>
+      <circle cx="71.364" cy="360.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+<g transform="translate(4608 4608)">
+    <g transform="translate(157 76) scale(.78)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="100" d="M 60 300 L 60 50" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 20 90 L 60 50 L 100 90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 120 h 80 c 40 0, 60 30, 60 60 c 0 30, -20 60, -60 60 h -80" stroke="#08111f" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <path pathLength="100" d="M 60 220 h 90 c 50 0, 80 35, 80 70 c 0 35, -30 70, -80 70 h -90" stroke="#00e5ff" stroke-width="36" stroke-dasharray="100" stroke-dashoffset="0"/>
+      <circle cx="60.000" cy="360.000" r="18" fill="#00e5ff" stroke="none" opacity="1.000" filter="url(#bt-dot-glow)"/>
+    </g>
+  </g>
+</svg>
