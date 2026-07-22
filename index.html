@@ -9,7 +9,7 @@
 <meta name="msapplication-navbutton-color" content="#08111f">
 <meta name="color-scheme" content="dark">
 <meta name="supported-color-schemes" content="dark light">
-<link rel="preload" href="./app-core-chunks/chunk-01.js?v=4315" as="script" fetchpriority="high">
+<link rel="preload" href="./app-core-chunks/chunk-01.js?v=4319" as="script" fetchpriority="high">
 
 <script>
 (function applyEarlyThemeShell(){
@@ -69,10 +69,18 @@
     opacity: 1;
     transition: opacity .36s ease;
   }
-  body.app-boot-hydrating #page-overview .wealth-dashboard,
-  body.app-boot-hydrating #page-overview .overview-widgets-grid {
-    opacity: 0.78;
-    transition: opacity .32s ease;
+  /* Bank-style boot: numbers stay crisp; charts/widgets fill in softly. */
+  body.app-boot-hydrating #page-overview .overview-widgets-grid,
+  body.app-boot-hydrating #page-overview .wealth-networth-trend-v238,
+  body.app-boot-hydrating #page-overview .overview-chart-card svg {
+    opacity: 0.55;
+    transition: opacity .4s ease;
+  }
+  body.app-boot-hydrating #page-overview .wealth-card-value,
+  body.app-boot-hydrating #page-overview #overview-net-worth,
+  body.app-boot-hydrating #page-overview #overview-available-cash,
+  body.app-boot-hydrating #page-overview .summary-days-progress {
+    opacity: 1;
   }
 
   /* v146 CSOB SK account-currency equivalent + archive readable totals */
@@ -10034,10 +10042,10 @@ html[data-theme="light"] body::before {
     will-change: transform;
   }
   #page-loading-overlay .bt-splash-sprite-viewport.bt-brand-logo-svg--draw-loop .bt-splash-sprite-y {
-    animation: btSplashSpriteRows 2000ms steps(10, end) infinite;
+    animation: btSplashSpriteRows 2200ms steps(10, end) infinite;
   }
   #page-loading-overlay .bt-splash-sprite-viewport.bt-brand-logo-svg--draw-loop .bt-splash-sprite-x {
-    animation: btSplashSpriteColumns 200ms steps(10, end) infinite;
+    animation: btSplashSpriteColumns 220ms steps(10, end) infinite;
   }
   @keyframes btSplashSpriteColumns {
     from { transform: translate3d(0, 0, 0); }
@@ -10132,7 +10140,7 @@ html[data-theme="light"] body::before {
 </style>
 <div id="page-loading-overlay" class="page-loading-overlay show dark" aria-live="polite" aria-busy="true">
   <div class="page-loading-brand" aria-hidden="true">
-    <div class="bt-splash-logo-unified bt-logo-animation-host bt-brand-logo-svg bt-brand-logo-svg--loading bt-brand-logo-svg--draw-loop bt-splash-sprite-viewport" style="--bt-logo-size:150px;width:150px;height:150px;--bt-logo-cycle-ms:2000ms;" data-cycle-ms="2000" data-logo-size="150" data-first-paint-loader="true" aria-hidden="true">
+    <div class="bt-splash-logo-unified bt-logo-animation-host bt-brand-logo-svg bt-brand-logo-svg--loading bt-brand-logo-svg--draw-loop bt-splash-sprite-viewport" style="--bt-logo-size:150px;width:150px;height:150px;--bt-logo-cycle-ms:2200ms;" data-cycle-ms="2200" data-logo-size="150" data-first-paint-loader="true" aria-hidden="true">
       <div class="bt-splash-sprite-y">
         <img id="bt-splash-sprite-image" class="bt-splash-sprite-x" src="./Logos/bt-splash-sprite-dark.svg?v=4309" width="1500" height="1500" alt="" draggable="false" decoding="sync" fetchpriority="high">
       </div>
@@ -10212,20 +10220,75 @@ html[data-theme="light"] body::before {
     logo.querySelector('.bt-logo-stem')
   );
   const coreChunkCount = 6;
-  const coreChunkCacheVersion = '4315';
+  const coreChunkCacheVersion = '4319';
   const coreYieldEveryChunks = 5;
+  // Bank-style: exactly 2 full logo cycles (2200 ms each), then freeze — never a 3rd.
+  const BT_BANK_STYLE_BOOT = true;
+  const BT_BRAND_CYCLES = 2;
+  const BT_LOGO_CYCLE_MS = 2200;
+  const BT_BRAND_MOMENT_MS = BT_BRAND_CYCLES * BT_LOGO_CYCLE_MS;
+  window.__btBankStyleBoot = BT_BANK_STYLE_BOOT;
+  window.__btSplashRequiredCycles = BT_BRAND_CYCLES;
+  window.__btSplashCycleMs = BT_LOGO_CYCLE_MS;
+  window.__btSplashCycleCount = 0;
+  window.__btSplashBrandCyclesComplete = false;
   const getCoreChunkUrl = (index) => `./app-core-chunks/chunk-${String(index).padStart(2, '0')}.js?v=${coreChunkCacheVersion}`;
   let cycleDone = false;
   let coreStarted = false;
+  let brandCyclesDone = false;
 
   const requestAppBootIfReady = () => {
-    if (!window.__btSplashInitialCycleComplete || !window.__btAppCoreReady) return;
+    // Bank-style: start hydration as soon as core is ready (behind the logo).
+    if (!window.__btAppCoreReady) return;
+    if (!BT_BANK_STYLE_BOOT && !window.__btSplashInitialCycleComplete) return;
     window.setTimeout(() => {
       try {
         if (typeof scheduleAppBootAfterDomReady === 'function') scheduleAppBootAfterDomReady();
         else if (typeof startAppBootAfterSplashCycle === 'function') startAppBootAfterSplashCycle();
       } catch (_) {}
     }, 0);
+  };
+
+  const freezeSplashAfterBrandCycles = () => {
+    window.__btSplashDrawComplete = true;
+    window.__btSplashBrandCyclesComplete = true;
+    if (overlay) overlay.classList.add('is-cycle-complete');
+    if (logo) {
+      try {
+        logo.classList.remove('bt-brand-logo-svg--draw-loop');
+        logo.querySelectorAll('.bt-splash-sprite-y, .bt-splash-sprite-x, .bt-logo-stroke, .bt-logo-dot-mover').forEach((el) => {
+          try {
+            (el.getAnimations ? el.getAnimations() : []).forEach((anim) => {
+              try { anim.cancel(); } catch (_) {}
+            });
+          } catch (_) {}
+        });
+      } catch (_) {}
+    }
+  };
+
+  const markBrandCyclesComplete = () => {
+    if (brandCyclesDone) return;
+    brandCyclesDone = true;
+    window.__btSplashRevealOnBoundary = true;
+    // Freeze immediately on the completed B so a 3rd loop never paints.
+    freezeSplashAfterBrandCycles();
+    document.documentElement.setAttribute('data-splash-phase', 'brand-cycles-complete');
+    try { window.dispatchEvent(new CustomEvent('bt:splash-brand-cycles-complete')); } catch (_) {}
+    try {
+      if (typeof window.attemptEarlyShellReveal === 'function') window.attemptEarlyShellReveal();
+    } catch (_) {}
+  };
+
+  const onBrandCycleBoundary = (event) => {
+    if (!cycleTarget) return;
+    if (event && event.target !== cycleTarget) return;
+    if (event && event.animationName !== 'btSplashSpriteRows' && event.animationName !== 'btLogoDrawStem') return;
+    window.__btSplashCycleCount = (Number(window.__btSplashCycleCount) || 0) + 1;
+    document.documentElement.setAttribute('data-splash-cycle', String(window.__btSplashCycleCount));
+    // Unlock boot/lazy after the first complete cycle.
+    if (window.__btSplashCycleCount === 1) finishInitialCycle();
+    if (window.__btSplashCycleCount >= BT_BRAND_CYCLES) markBrandCyclesComplete();
   };
 
   const publishCoreReady = () => {
@@ -10307,6 +10370,8 @@ html[data-theme="light"] body::before {
   };
 
   const resumeColdSplashLoop = () => {
+    // Bank-style freeze after 2 cycles — never restart the loop.
+    if (window.__btBankStyleBoot && window.__btSplashBrandCyclesComplete) return;
     if (!logo || !overlay || !window.__btSplashDrawComplete) return;
     logo.classList.remove('bt-brand-logo-svg--draw-once', 'bt-brand-logo-svg--draw-loop');
     overlay.classList.remove('is-cycle-complete');
@@ -10320,15 +10385,31 @@ html[data-theme="light"] body::before {
   if (cycleTarget) {
     const onInitialCycleEnd = (event) => {
       if (event.target !== cycleTarget) return;
-      if (event.animationName === 'btSplashSpriteRows' || event.animationName === 'btLogoDrawStem') {
-        cycleTarget.removeEventListener('animationiteration', onInitialCycleEnd);
-        finishInitialCycle();
+      if (event.animationName !== 'btSplashSpriteRows' && event.animationName !== 'btLogoDrawStem') return;
+      if (BT_BANK_STYLE_BOOT) {
+        onBrandCycleBoundary(event);
+        if (window.__btSplashBrandCyclesComplete) {
+          cycleTarget.removeEventListener('animationiteration', onInitialCycleEnd);
+        }
+        return;
       }
+      cycleTarget.removeEventListener('animationiteration', onInitialCycleEnd);
+      finishInitialCycle();
     };
     cycleTarget.addEventListener('animationiteration', onInitialCycleEnd);
   }
-  // Reduced-motion / older WebView safety: never leave boot waiting forever.
-  window.setTimeout(finishInitialCycle, 2200);
+  // Fail-safe: never leave boot waiting forever if animationiteration is missing.
+  window.setTimeout(() => {
+    if (BT_BANK_STYLE_BOOT) {
+      if (!cycleDone) finishInitialCycle();
+      while ((Number(window.__btSplashCycleCount) || 0) < BT_BRAND_CYCLES) {
+        window.__btSplashCycleCount = (Number(window.__btSplashCycleCount) || 0) + 1;
+      }
+      markBrandCyclesComplete();
+      return;
+    }
+    finishInitialCycle();
+  }, BT_BANK_STYLE_BOOT ? (BT_BRAND_MOMENT_MS + 400) : 2200);
   // Start chunk install immediately so the first logo cycle is not wasted idle time.
   startCore();
 })();
@@ -11264,7 +11345,8 @@ html[data-theme="light"] body::before {
     try { window.dispatchEvent(new CustomEvent('bt:lazy-startup-ready')); } catch (_) {}
     try {
       const dataReady = typeof __btBootDataReady !== 'undefined' && __btBootDataReady;
-      if (!dataReady && typeof window.__btResumeColdSplashLoop === 'function') {
+      // Bank-style boot never restarts the cold splash loop — shell should already be visible.
+      if (!dataReady && !window.__btBankStyleBoot && typeof window.__btResumeColdSplashLoop === 'function') {
         window.__btResumeColdSplashLoop();
       }
       if (dataReady && typeof finalizeAppBootPresentation === 'function') {
