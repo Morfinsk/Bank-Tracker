@@ -9,7 +9,7 @@
 <meta name="msapplication-navbutton-color" content="#08111f">
 <meta name="color-scheme" content="dark">
 <meta name="supported-color-schemes" content="dark light">
-<link rel="preload" href="./app-core-chunks/chunk-01.js?v=4313" as="script" fetchpriority="high">
+<link rel="preload" href="./app-core-chunks/chunk-01.js?v=4315" as="script" fetchpriority="high">
 
 <script>
 (function applyEarlyThemeShell(){
@@ -68,6 +68,11 @@
   body.app-boot-reveal > :not(#page-loading-overlay) {
     opacity: 1;
     transition: opacity .36s ease;
+  }
+  body.app-boot-hydrating #page-overview .wealth-dashboard,
+  body.app-boot-hydrating #page-overview .overview-widgets-grid {
+    opacity: 0.78;
+    transition: opacity .32s ease;
   }
 
   /* v146 CSOB SK account-currency equivalent + archive readable totals */
@@ -10206,16 +10211,29 @@ html[data-theme="light"] body::before {
     logo.querySelector('.bt-splash-sprite-y') ||
     logo.querySelector('.bt-logo-stem')
   );
-  const coreChunkCount = 34;
-  const getCoreChunkUrl = (index) => `./app-core-chunks/chunk-${String(index).padStart(2, '0')}.js?v=4313`;
+  const coreChunkCount = 6;
+  const coreChunkCacheVersion = '4315';
+  const coreYieldEveryChunks = 5;
+  const getCoreChunkUrl = (index) => `./app-core-chunks/chunk-${String(index).padStart(2, '0')}.js?v=${coreChunkCacheVersion}`;
   let cycleDone = false;
   let coreStarted = false;
+
+  const requestAppBootIfReady = () => {
+    if (!window.__btSplashInitialCycleComplete || !window.__btAppCoreReady) return;
+    window.setTimeout(() => {
+      try {
+        if (typeof scheduleAppBootAfterDomReady === 'function') scheduleAppBootAfterDomReady();
+        else if (typeof startAppBootAfterSplashCycle === 'function') startAppBootAfterSplashCycle();
+      } catch (_) {}
+    }, 0);
+  };
 
   const publishCoreReady = () => {
     if (window.__btAppCoreReady) return;
     window.__btAppCoreReady = true;
     document.documentElement.setAttribute('data-app-core', 'ready');
     try { window.dispatchEvent(new CustomEvent('bt:app-core-ready')); } catch (_) {}
+    requestAppBootIfReady();
   };
 
   const showCoreError = () => {
@@ -10231,10 +10249,21 @@ html[data-theme="light"] body::before {
   };
 
   const nextCoreFrame = (callback) => {
-    window.__btYieldLogoFrames(2).then(callback);
+    window.__btYieldLogoFrames(1).then(callback);
   };
 
   let coreChunkIndex = 0;
+  const scheduleNextCoreChunk = () => {
+    // Yield only every N chunks so the logo keeps frames without
+    // serializing 2 paint waits after every single script install.
+    if (coreChunkIndex > 0 && coreChunkIndex % coreYieldEveryChunks === 0) {
+      nextCoreFrame(installNextCoreChunk);
+      return;
+    }
+    if (typeof queueMicrotask === 'function') queueMicrotask(installNextCoreChunk);
+    else window.setTimeout(installNextCoreChunk, 0);
+  };
+
   const installNextCoreChunk = () => {
     if (coreChunkIndex >= coreChunkCount) {
       publishCoreReady();
@@ -10248,7 +10277,7 @@ html[data-theme="light"] body::before {
     live.addEventListener('load', () => {
       if (live.parentNode) live.parentNode.removeChild(live);
       coreChunkIndex += 1;
-      if (coreChunkIndex < coreChunkCount) nextCoreFrame(installNextCoreChunk);
+      if (coreChunkIndex < coreChunkCount) scheduleNextCoreChunk();
       else publishCoreReady();
     }, { once: true });
     live.addEventListener('error', () => {
@@ -10261,7 +10290,8 @@ html[data-theme="light"] body::before {
   const startCore = () => {
     if (coreStarted) return;
     coreStarted = true;
-    nextCoreFrame(installNextCoreChunk);
+    // Do not wait for the first logo cycle — load in parallel with CSS splash.
+    installNextCoreChunk();
   };
 
   const finishInitialCycle = () => {
@@ -10269,11 +10299,11 @@ html[data-theme="light"] body::before {
     cycleDone = true;
     window.__btSplashInitialCycleComplete = true;
     // The splash is an infinite 2000 ms loop. This boundary only unlocks
-    // app-core; it must not freeze the logo while data is still loading.
+    // lazy feature install; core already loads in parallel with the logo.
     window.__btSplashDrawComplete = false;
     document.documentElement.setAttribute('data-splash-phase', 'waiting-for-data');
     try { window.dispatchEvent(new CustomEvent('bt:splash-first-cycle-complete')); } catch (_) {}
-    startCore();
+    requestAppBootIfReady();
   };
 
   const resumeColdSplashLoop = () => {
@@ -10299,6 +10329,8 @@ html[data-theme="light"] body::before {
   }
   // Reduced-motion / older WebView safety: never leave boot waiting forever.
   window.setTimeout(finishInitialCycle, 2200);
+  // Start chunk install immediately so the first logo cycle is not wasted idle time.
+  startCore();
 })();
 </script>
 
@@ -11237,6 +11269,8 @@ html[data-theme="light"] body::before {
       }
       if (dataReady && typeof finalizeAppBootPresentation === 'function') {
         finalizeAppBootPresentation();
+      } else if (typeof window.attemptEarlyShellReveal === 'function') {
+        window.attemptEarlyShellReveal();
       }
     } catch (_) {}
   };
