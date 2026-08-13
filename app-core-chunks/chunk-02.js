@@ -1,5 +1,4 @@
 // Generated app-core slice 2/6 (merged).
-
 function flushChartsAfterOverlayHide() {
   // Only resume deferred chart reveals that were blocked while the logo overlay
   // was visible. Tab-specific intros (archive / details) are started from their
@@ -383,8 +382,9 @@ function txnsTabNeedsHeavyPresentation() {
 }
 
 function archiveTabNeedsHeavyPresentation() {
-  const list = document.getElementById('archive-months-list');
-  return !!__btArchiveTabDirty || !(list && list.children && list.children.length);
+  // Archive pri každom skutočnom vstupe z iného tabu prehrá celý spoločný
+  // logo cyklus. Opakovaný klik už v Archive nový overlay nespúšťa.
+  return activePageId !== 'archive';
 }
 
 function overviewDetailsNeedsHeavyPresentation() {
@@ -526,7 +526,6 @@ function revealBootPageContent(done) {
     if (typeof done === 'function') done();
   }, APP_BOOT_PAGE_REVEAL_MS);
 }
-
 function schedulePostBootPresentations() {
   window.setTimeout(() => {
     if (activePageId === 'overview') {
@@ -933,11 +932,9 @@ function renderBudgetStatus() {
     return '#72F0C8';                 // green
   }
 
-  const rows = BANK_ORDER
-    .filter(bankKey => bankKey !== 'csob_cz_credit')
-    .map(bankKey => {
-    const bank = BANKS[bankKey];
-    const month = getAktuálneMonth();
+  const month = getAktuálneMonth();
+  const rows = getOverviewBudgetBankKeysForMonth(month).map(bankKey => {
+    const presentation = getOverviewBudgetBankPresentation(bankKey);
     const budget = getOverviewBudgetLimitForBank(bankKey, month);
     const warning = getOverviewBudgetWarningForBank(bankKey, month);
     const budgetCurrency = getBankBudgetCurrency(bankKey);
@@ -948,17 +945,21 @@ function renderBudgetStatus() {
         <div class="budget-bank-row" onclick="openBankBudgetManager('${bankKey}')" title="${t('filteredTransactions')}" style="padding:10px 0;border-bottom:1px solid var(--border);">
           <div class="budget-status-main">
             <div>
-              <div class="budget-status-value" style="color:${bank.color};font-size:15px;">${bankLabelWithLogo(bankKey)}</div>
-              <div class="budget-status-note">${t('budgetNotSet')}</div>
+              <div class="budget-status-value" style="color:${presentation.color};font-size:15px;">${getOverviewBudgetBankLabelHtml(bankKey)}</div>
+              <div class="budget-status-note">${spent > 0 ? `<span data-i18n="spent">${t('spent')}</span> ${formatCurrencyAmount(spent, budgetCurrency)} · ` : ''}<span data-i18n="budgetNotSet">${t('budgetNotSet')}</span></div>
             </div>
           </div>
         </div>`;
     }
 
-    const remaining = Math.max(budget - spent, 0);
+    const remaining = budget - spent;
+    const isOverBudget = remaining < 0;
     const pct = Math.min(spent / budget, 1) * 100;
-    const status = remaining <= 0 ? t('overBudget') : (warning && remaining <= warning ? t('nearLimit') : t('normal'));
+    const status = isOverBudget ? t('overBudget') : (warning && remaining <= warning ? t('nearLimit') : t('normal'));
     const statusColor = getBudgetPercentColor(pct);
+    const deltaHtml = isOverBudget
+      ? `<span style="color:${statusColor};font-weight:700;">${t('budgetOverBy')} ${formatCurrencyAmount(Math.abs(remaining), budgetCurrency)}</span>`
+      : `${t('remaining')} ${formatCurrencyAmount(remaining, budgetCurrency)} · <span style="color:${statusColor};font-weight:700;">${status}</span>`;
 
     maybeSendBudgetLocalNotification(bankKey, plainBankName(bankKey), spent, budget, remaining, warning);
 
@@ -966,8 +967,8 @@ function renderBudgetStatus() {
       <div class="budget-bank-row" onclick="openBankBudgetManager('${bankKey}')" title="${t('filteredTransactions')}" style="padding:10px 0;border-bottom:1px solid var(--border);">
         <div class="budget-status-main">
           <div>
-            <div class="budget-status-value" style="color:${bank.color};font-size:15px;">${bankLabelWithLogo(bankKey)}</div>
-            <div class="budget-status-note">${formatCurrencyAmount(spent, budgetCurrency)} / ${formatCurrencyAmount(budget, budgetCurrency)} · ${t('remaining')} ${formatCurrencyAmount(remaining, budgetCurrency)} · <span style="color:${statusColor};font-weight:700;">${status}</span></div>
+            <div class="budget-status-value" style="color:${presentation.color};font-size:15px;">${getOverviewBudgetBankLabelHtml(bankKey)}</div>
+            <div class="budget-status-note">${formatCurrencyAmount(spent, budgetCurrency)} / ${formatCurrencyAmount(budget, budgetCurrency)} · ${deltaHtml}</div>
           </div>
         </div>
         <div class="budget-progress"><div class="budget-progress-fill" style="width:${pct}%;background:${statusColor};"></div></div>
@@ -1022,7 +1023,6 @@ function setAccountBalance(bankKey, value, monthStr = getAktuálneMonth()) {
 function getAccountBalanceBaseStorageKey(bankKey, monthStr = getAktuálneMonth()) {
   return 'bank_account_balance_base_' + String(bankKey || '').trim() + '_' + normalizeMonthStr(monthStr || getAktuálneMonth());
 }
-
 function getAccountBalanceBase(bankKey, monthStr = getAktuálneMonth()) {
   const raw = localStorage.getItem(getAccountBalanceBaseStorageKey(bankKey, monthStr));
   if (raw === null) return null;
@@ -1261,6 +1261,34 @@ function isCreditLiabilityBankKey(bankKey) {
   return !!(CREDIT_BALANCE_SUBACCOUNTS || []).some((item) => item && item.id === id);
 }
 
+function isOverviewCreditBankKey(bankKey) {
+  const key = String(bankKey || '').trim();
+  if (!key) return false;
+  if (isCreditLiabilityBankKey(key)) return true;
+  const storedType = String(localStorage.getItem('bank_product_type_' + key) || '').trim().toLowerCase();
+  if (storedType === 'credit') return true;
+  const systemType = String(BANKS?.[key]?.primaryType || '').trim().toLowerCase();
+  if (systemType === 'credit') return true;
+  const bank = (getCustomBanks() || []).find(item => item && String(item.id || '') === key);
+  return String(bank?.type || bank?.productType || bank?.accountType || '').trim().toLowerCase() === 'credit';
+}
+
+function isCreditCardTransactionForOverviewStats(tx) {
+  if (!tx) return false;
+  const explicitKeys = [tx.bankId, tx.bankID, tx.bankKey, tx.accountId]
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+  let detectedKey = '';
+  try { detectedKey = String(getBankKey(tx) || '').trim(); } catch (_) {}
+  const bankKeys = Array.from(new Set([...explicitKeys, detectedKey]));
+  if (bankKeys.some(isOverviewCreditBankKey)) return true;
+  if (typeof isCsobCzCreditCardBalanceTx === 'function' && isCsobCzCreditCardBalanceTx(tx)) return true;
+
+  const transactionType = String(tx.productType || tx.accountType || tx.bankType || '').trim().toLowerCase();
+  if (transactionType === 'credit') return true;
+  return false;
+}
+
 function isCsobCzCreditCardRepaymentTx(tx) {
   if (isCsobCzCreditCardLimitAdjustmentTx(tx)) return false;
   const text = [tx?.merchant, tx?.merchantRaw, tx?.category, tx?.card, tx?.type, tx?.paymentKind, tx?.bank].join(' ').toLowerCase();
@@ -1304,7 +1332,18 @@ function hasMirroredOwnBankTransfer(tx, pool) {
 }
 
 function isTransactionManuallyExcludedFromSpent(tx) {
-  return !!(tx && (tx.excludeFromSpent === true || String(tx.excludeFromSpent || '').toLowerCase() === 'yes' || String(tx.excludeFromSpent || '').toLowerCase() === 'true' || String(tx.excludeFromSpent || '') === '1'));
+  return !!(tx && Number(tx.amount || 0) < 0 && isTransactionStatsFlagEnabled(tx.excludeFromSpent));
+}
+
+function isTransactionStatsFlagEnabled(value) {
+  const normalized = String(value == null ? '' : value).trim().toLowerCase();
+  return value === true || normalized === 'yes' || normalized === 'true' || normalized === '1' || normalized === 'on';
+}
+
+function isTransactionManuallyExcludedFromIncome(tx) {
+  if (!tx || Number(tx.amount || 0) <= 0) return false;
+  // Kladný legacy záznam s Exclude stats zachová pôvodné správanie.
+  return isTransactionStatsFlagEnabled(tx.excludeFromIncome) || isTransactionStatsFlagEnabled(tx.excludeFromSpent);
 }
 
 function isInternalTransferTransaction(tx) {
@@ -1380,6 +1419,7 @@ function getDrilldownMonthSet() {
 
 function isExcludedFromSpendingStats(tx) {
   if (isTransactionManuallyExcludedFromSpent(tx)) return true;
+  if (isTransactionManuallyExcludedFromIncome(tx)) return true;
   if (typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)) return true;
   if (typeof isInternalTransferTransaction === 'function' && isInternalTransferTransaction(tx)) return true;
   return false;
@@ -1452,7 +1492,6 @@ function invalidateTransactionStatsAdjustments() {
   transactionStatsAdjustmentsCachePool = null;
   transactionStatsAdjustmentsCacheResult = null;
 }
-
 function buildTransactionStatsAdjustments(pool) {
   const list = Array.isArray(pool) ? pool : (allTransactions || []);
   if (transactionStatsAdjustmentsCachePool === list && transactionStatsAdjustmentsCacheResult) {
@@ -1540,7 +1579,7 @@ function getTransactionMatchedTransferAmount(tx, pool) {
 }
 
 function isInternalTransferForFiltering(tx) {
-  return isExcludedFromSpendingStats(tx);
+  return !!(tx && typeof isInternalTransferTransaction === 'function' && isInternalTransferTransaction(tx));
 }
 
 function convertTransactionStatsAmount(tx, effectiveAmount, targetCurrency) {
@@ -1550,18 +1589,312 @@ function convertTransactionStatsAmount(tx, effectiveAmount, targetCurrency) {
   return Math.abs(Number(convertTransactionAmount(tx, targetCurrency) || 0)) * (adjusted / raw);
 }
 
+function getStoredMonthlyCashflowStat(bankKey, monthStr, field, targetCurrency) {
+  const normalizedMonth = normalizeMonthStr(monthStr);
+  const target = currencyCode(targetCurrency || getArchiveBankCurrency(bankKey));
+  let total = 0;
+  let found = false;
+  const addStored = (key) => {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return;
+    const value = Number(raw || 0);
+    if (!Number.isFinite(value)) return;
+    total += value;
+    found = true;
+  };
+
+  addStored(getArchiveMonthlyStatKey(bankKey, normalizedMonth, field));
+  if (bankKey === 'csob_cz') addStored(getArchiveMonthlyStatKey('csob_cz_credit', normalizedMonth, field));
+  if (!found) {
+    addStored(getOverviewMonthlyStatKey(bankKey, normalizedMonth, field));
+    if (bankKey === 'csob_cz') addStored(getOverviewMonthlyStatKey('csob_cz_credit', normalizedMonth, field));
+  }
+  if (!found) return null;
+  // Historické mesačné súčty zo Sheets boli ukladané v CZK.
+  return target === 'CZK' ? total : convertAmountCurrency(total, 'CZK', target);
+}
+
+function getTransactionCashflowExclusion(tx, pool = allTransactions, options = {}) {
+  const signedAmount = Number(tx?.amount || 0);
+  const rawAmount = Math.abs(signedAmount);
+  const adjustments = options.adjustments || buildTransactionStatsAdjustments(pool || allTransactions);
+  let effectiveAmount = Number(adjustments.effective.get(tx) || 0);
+  let reason = '';
+
+  const creditRepayment = typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx);
+  const creditAdjustment = typeof isCsobCzCreditCardLimitAdjustmentTx === 'function' && isCsobCzCreditCardLimitAdjustmentTx(tx);
+  if (creditRepayment || creditAdjustment) reason = 'creditCards';
+  else if (typeof isInternalTransferTransaction === 'function' && isInternalTransferTransaction(tx)) reason = 'internalTransfers';
+  else if (signedAmount < 0 && isTransactionManuallyExcludedFromSpent(tx)) reason = 'manualSpent';
+  else if (signedAmount > 0 && isTransactionManuallyExcludedFromIncome(tx)) reason = 'manualIncome';
+  else if (options.excludeCreditCards && isCreditCardTransactionForOverviewStats(tx)) reason = 'creditCards';
+
+  if (reason) effectiveAmount = 0;
+  const excludedAmount = Math.max(0, rawAmount - Math.abs(effectiveAmount));
+  if (!reason && excludedAmount > 0.005) reason = 'matchedOffsets';
+
+  return {
+    reason,
+    rawAmount,
+    rawSignedAmount: signedAmount,
+    effectiveAmount,
+    excludedAmount,
+    excludedSignedAmount: signedAmount < 0 ? -excludedAmount : excludedAmount
+  };
+}
+
+function createCashflowReasonTotals() {
+  return {
+    internalTransfers: { spent: 0, income: 0, total: 0 },
+    creditCards: { spent: 0, income: 0, total: 0 },
+    manualSpent: { spent: 0, income: 0, total: 0 },
+    manualIncome: { spent: 0, income: 0, total: 0 },
+    matchedOffsets: { spent: 0, income: 0, total: 0 }
+  };
+}
+
+function getMonthlyCashflowBreakdown(bankKeys, monthStr, targetCurrency, options = {}) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const currency = currencyCode(targetCurrency || getAppCurrency() || 'CZK');
+  const keys = Array.from(new Set((bankKeys || []).map(key => String(key || '').trim()).filter(Boolean)));
+  const included = new Set(keys);
+  const byBank = Object.fromEntries(keys.map(key => [key, {
+    spent: 0,
+    income: 0,
+    rawSpent: 0,
+    rawIncome: 0,
+    excludedSpent: 0,
+    excludedIncome: 0
+  }]));
+  const monthTransactions = (allTransactions || []).filter(tx => tx && normalizeMonthStr(tx.month) === month);
+  const byReason = createCashflowReasonTotals();
+  let spent = 0;
+  let income = 0;
+  let rawSpent = 0;
+  let rawIncome = 0;
+  let excludedSpent = 0;
+  let excludedIncome = 0;
+  let hasStoredFallback = false;
+
+  if (monthTransactions.length) {
+    const adjustments = buildTransactionStatsAdjustments(allTransactions);
+    monthTransactions.forEach(tx => {
+      const bankKey = String(getArchiveBankKeyFromTransaction(tx) || '').trim();
+      if (!included.has(bankKey)) return;
+      const exclusion = getTransactionCashflowExclusion(tx, allTransactions, {
+        adjustments,
+        excludeCreditCards: !!options.excludeCreditCards
+      });
+      const rawConverted = Math.abs(Number(convertTransactionAmount(tx, currency) || 0) || 0);
+      const countedConverted = Math.abs(Number(convertTransactionStatsAmount(tx, exclusion.effectiveAmount, currency) || 0) || 0);
+      const excludedConverted = Math.max(0, rawConverted - countedConverted);
+      const isSpent = Number(tx.amount || 0) < 0;
+
+      if (isSpent) {
+        rawSpent += rawConverted;
+        spent += countedConverted;
+        excludedSpent += excludedConverted;
+        byBank[bankKey].rawSpent += rawConverted;
+        byBank[bankKey].spent += countedConverted;
+        byBank[bankKey].excludedSpent += excludedConverted;
+      } else {
+        rawIncome += rawConverted;
+        income += countedConverted;
+        excludedIncome += excludedConverted;
+        byBank[bankKey].rawIncome += rawConverted;
+        byBank[bankKey].income += countedConverted;
+        byBank[bankKey].excludedIncome += excludedConverted;
+      }
+
+      if (exclusion.reason && excludedConverted > 0.005 && byReason[exclusion.reason]) {
+        const reasonTotals = byReason[exclusion.reason];
+        if (isSpent) reasonTotals.spent += excludedConverted;
+        else reasonTotals.income += excludedConverted;
+        reasonTotals.total += excludedConverted;
+      }
+    });
+  } else {
+    keys.forEach(bankKey => {
+      const sourceCurrency = getArchiveBankCurrency(bankKey) || currency;
+      const storedSpent = getStoredMonthlyCashflowStat(bankKey, month, 'spending', sourceCurrency);
+      const storedIncome = getStoredMonthlyCashflowStat(bankKey, month, 'income', sourceCurrency);
+      const convertedSpent = storedSpent == null ? 0 : Math.max(0, Number(convertAmountCurrency(storedSpent, sourceCurrency, currency) || 0) || 0);
+      const convertedIncome = storedIncome == null ? 0 : Math.max(0, Number(convertAmountCurrency(storedIncome, sourceCurrency, currency) || 0) || 0);
+      if (storedSpent != null || storedIncome != null) hasStoredFallback = true;
+      byBank[bankKey].spent = convertedSpent;
+      byBank[bankKey].income = convertedIncome;
+      byBank[bankKey].rawSpent = convertedSpent;
+      byBank[bankKey].rawIncome = convertedIncome;
+      spent += convertedSpent;
+      income += convertedIncome;
+      rawSpent += convertedSpent;
+      rawIncome += convertedIncome;
+    });
+  }
+
+  const excluded = {
+    internalTransfers: byReason.internalTransfers.total,
+    creditCards: byReason.creditCards.total,
+    manualSpent: byReason.manualSpent.total,
+    manualIncome: byReason.manualIncome.total,
+    manual: byReason.manualSpent.total + byReason.manualIncome.total,
+    inactiveBanks: 0,
+    matchedOffsets: byReason.matchedOffsets.total,
+    spent: excludedSpent,
+    income: excludedIncome,
+    total: excludedSpent + excludedIncome,
+    byReason
+  };
+
+  return {
+    month,
+    currency,
+    byBank,
+    spent,
+    income,
+    rawSpent,
+    rawIncome,
+    turnover: rawSpent + rawIncome,
+    excluded,
+    exclusionTransactionsAvailable: monthTransactions.length > 0,
+    hasLiveTransactions: monthTransactions.length > 0,
+    hasData: monthTransactions.length > 0 || hasStoredFallback,
+    excludesCreditPurchases: !!options.excludeCreditCards
+  };
+}
+
+function getOverviewQualifiedCashflowForBanks(bankKeys, monthStr, targetCurrency) {
+  return getMonthlyCashflowBreakdown(bankKeys, monthStr, targetCurrency, { excludeCreditCards: true });
+}
+
+function getOverviewCashflowBankKeysForMonth(monthStr = getAktuálneMonth()) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  return Array.from(new Set(getArchiveTotalsBankKeys(month)))
+    // ČSOB kreditný podúčet sa mapuje na csob_cz. Ostatné kreditné účty zostávajú
+    // zahrnuté, pretože ich nákupy sú reálny cashflow; vynechávajú sa iba splátky.
+    .filter(bankKey => bankKey && bankKey !== 'csob_cz_credit');
+}
+
+function getOverviewCashflowBreakdown(monthStr = getAktuálneMonth(), targetCurrency = getAppCurrency()) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  return getMonthlyCashflowBreakdown(getOverviewCashflowBankKeysForMonth(month), month, targetCurrency, {
+    excludeCreditCards: false
+  });
+}
+
+function getCashflowReasonLabelKey(reason) {
+  const keys = {
+    internalTransfers: 'overviewBudgetBreakdownInternalTransfers',
+    creditCards: 'overviewCashflowBreakdownCreditAdjustments',
+    manualSpent: 'overviewBudgetBreakdownNonSpent',
+    manualIncome: 'overviewBudgetBreakdownNonIncome',
+    matchedOffsets: 'overviewBudgetBreakdownMatchedOffsets'
+  };
+  return keys[reason] || reason;
+}
+
+function formatCashflowBreakdownAmount(value, currency, sign = '') {
+  const amount = maskAccountBalanceValue(formatCurrencyAmount(Math.abs(Number(value || 0) || 0), currency));
+  return amount === '••••••' ? amount : sign + amount;
+}
+
+function openMonthlyCashflowTransactions(monthStr, mode, reason = '') {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  closeBottomSheets();
+  setExclusiveTransactionFilters({
+    bankKey: 'všetky',
+    monthStr: month,
+    mode,
+    reason
+  });
+  showPage('txns', { preserveFilters: true });
+}
+
+function renderMonthlyCashflowBreakdown(monthStr, focus = 'all') {
+  const content = document.getElementById('monthly-cashflow-breakdown-content');
+  if (!content) return;
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const breakdown = getOverviewCashflowBreakdown(month, getAppCurrency());
+  const currency = breakdown.currency;
+  const amount = (value, sign = '') => escapeHtml(formatCashflowBreakdownAmount(value, currency, sign));
+  const reasonRows = Object.entries(breakdown.excluded?.byReason || {})
+    .filter(([, totals]) => Number(totals?.total || 0) > 0.005)
+    .map(([reason, totals]) => {
+      const labelKey = getCashflowReasonLabelKey(reason);
+      return `<button class="cashflow-reason-row" type="button" onclick="openMonthlyCashflowTransactions('${month}','excluded-reason','${escapeAttr(reason)}')">
+        <span data-i18n="${labelKey}">${escapeHtml(t(labelKey))}</span>
+        <span class="cashflow-reason-values">
+          <span class="amount-income">+${amount(totals.income)}</span>
+          <span class="amount-expense">−${amount(totals.spent)}</span>
+        </span>
+      </button>`;
+    }).join('');
+
+  content.innerHTML = `
+    <div class="cashflow-breakdown-month">${escapeHtml(formatMonthString(month))}</div>
+    <div class="cashflow-breakdown-grid">
+      <button class="cashflow-breakdown-stat ${focus === 'income' ? 'is-focused' : ''}" type="button" onclick="openMonthlyCashflowTransactions('${month}','income')">
+        <span data-i18n="cashflowCountedIncome">${escapeHtml(t('cashflowCountedIncome'))}</span>
+        <strong class="amount-income">${amount(breakdown.income, '+')}</strong>
+      </button>
+      <button class="cashflow-breakdown-stat ${focus === 'spent' ? 'is-focused' : ''}" type="button" onclick="openMonthlyCashflowTransactions('${month}','spent')">
+        <span data-i18n="cashflowCountedSpent">${escapeHtml(t('cashflowCountedSpent'))}</span>
+        <strong class="amount-expense">${amount(breakdown.spent, '−')}</strong>
+      </button>
+      <button class="cashflow-breakdown-stat" type="button" onclick="openMonthlyCashflowTransactions('${month}','excluded')">
+        <span data-i18n="cashflowExcludedIncome">${escapeHtml(t('cashflowExcludedIncome'))}</span>
+        <strong class="amount-income">${amount(breakdown.excluded?.income, '+')}</strong>
+      </button>
+      <button class="cashflow-breakdown-stat" type="button" onclick="openMonthlyCashflowTransactions('${month}','excluded')">
+        <span data-i18n="cashflowExcludedSpent">${escapeHtml(t('cashflowExcludedSpent'))}</span>
+        <strong class="amount-expense">${amount(breakdown.excluded?.spent, '−')}</strong>
+      </button>
+      <button class="cashflow-breakdown-stat cashflow-breakdown-raw" type="button" onclick="openMonthlyCashflowTransactions('${month}','raw-income')">
+        <span data-i18n="cashflowRawIncome">${escapeHtml(t('cashflowRawIncome'))}</span>
+        <strong>${amount(breakdown.rawIncome, '+')}</strong>
+      </button>
+      <button class="cashflow-breakdown-stat cashflow-breakdown-raw" type="button" onclick="openMonthlyCashflowTransactions('${month}','raw-spent')">
+        <span data-i18n="cashflowRawSpent">${escapeHtml(t('cashflowRawSpent'))}</span>
+        <strong>${amount(breakdown.rawSpent, '−')}</strong>
+      </button>
+    </div>
+    <div class="cashflow-turnover-total">
+      <span data-i18n="cashflowGrossTurnover">${escapeHtml(t('cashflowGrossTurnover'))}</span>
+      <strong>${amount(breakdown.turnover)}</strong>
+    </div>
+    <div class="cashflow-breakdown-note" data-i18n="cashflowTurnoverNote">${escapeHtml(t('cashflowTurnoverNote'))}</div>
+    ${breakdown.exclusionTransactionsAvailable ? `
+      <div class="cashflow-reasons-title" data-i18n="cashflowReasonsTitle">${escapeHtml(t('cashflowReasonsTitle'))}</div>
+      <div class="cashflow-reasons-head"><span></span><span data-i18n="cashflowIncomingShort">${escapeHtml(t('cashflowIncomingShort'))}</span><span data-i18n="cashflowOutgoingShort">${escapeHtml(t('cashflowOutgoingShort'))}</span></div>
+      <div class="cashflow-reasons-list">${reasonRows || `<div class="cashflow-breakdown-note" data-i18n="cashflowNoExclusions">${escapeHtml(t('cashflowNoExclusions'))}</div>`}</div>
+    ` : `<div class="cashflow-breakdown-note" data-i18n="cashflowStoredExclusionsUnavailable">${escapeHtml(t('cashflowStoredExclusionsUnavailable'))}</div>`}`;
+}
+
+function openMonthlyCashflowBreakdown(monthStr = getAktuálneMonth(), focus = 'all') {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  renderMonthlyCashflowBreakdown(month, focus);
+  openSheet('monthly-cashflow-breakdown-sheet');
+}
+
 function transactionMatchesArchiveDrilldown(tx, type, bankKey) {
   if (!tx || !tx.month) return false;
   const month = normalizeMonthStr(tx.month);
   if (!getDrilldownMonthSet().has(month)) return false;
-  if (isExcludedFromSpendingStats(tx)) return false;
 
   const bank = String(bankKey || 'všetky');
   if (type !== 'overview-spent' && bank !== 'všetky' && getArchiveBankKeyFromTransaction(tx) !== bank) return false;
 
-  if (type === 'cards') return Number(tx.amount || 0) < 0 && isCardTransaction(tx);
-  if (type === 'spent' || type === 'overview-spent') return Number(tx.amount || 0) < 0;
-  if (type === 'income') return Number(tx.amount || 0) > 0;
+  const exclusion = getTransactionCashflowExclusion(tx, allTransactions, { excludeCreditCards: false });
+  if (type === 'internal') return exclusion.reason === 'internalTransfers';
+  if (type === 'excluded') return exclusion.excludedAmount > 0.005;
+  if (type === 'excluded-reason') return exclusion.reason === String(activeDrilldownFilter?.reason || '');
+  if (type === 'raw-income') return Number(tx.amount || 0) > 0;
+  if (type === 'raw-spent') return Number(tx.amount || 0) < 0;
+  if (isExcludedFromSpendingStats(tx)) return false;
+
+  if (type === 'cards') return Number(exclusion.effectiveAmount || 0) < -0.005 && isCardTransaction(tx);
+  if (type === 'spent' || type === 'overview-spent') return Number(exclusion.effectiveAmount || 0) < -0.005;
+  if (type === 'income') return Number(exclusion.effectiveAmount || 0) > 0.005;
   return true;
 }
 
@@ -1779,7 +2112,22 @@ function renderAccountBalanceWidget() {
   const renderSubaccountRow = (item) => {
     const currency = item.currency || 'CZK';
     const raw = getCreditAvailableBalanceDisplay(item.balance);
-    const value = formatCreditAvailableBalanceAmount(item.balance, currency);
+    /* v7313: disponibilná suma sama nepovie, koľko z rámca ostáva — píšeme ju
+       ako "disponibilné / limit".
+
+       Prvá verzia brala limit len cez getCreditCardLimitForBank(), ktorá pozná
+       iba explicitne uložený limit. Widget kreditnej karty ho pritom hľadá
+       v ďalších troch zdrojoch (mesačný limit, archív mesiaca, vlastné banky),
+       takže tu vychádzala nula a lomítko sa nezobrazilo vôbec.
+       Ideme rovnakým reťazcom ako widget. */
+    let value = formatCreditAvailableBalanceAmount(item.balance, currency);
+    try {
+      const limitV7313 = Number(window.btCreditCardLimitV7313(item.id, item.parentId)) || 0;
+      if (limitV7313 > 0) {
+        // v7317: rovnaká skladačka ako vo vrstve — mena v dvojici raz.
+        value = window.btCreditPairV7316(value, formatCurrencyAmount(limitV7313, currency));
+      }
+    } catch (_) {}
     const czkEquivalent = getCzkEquivalentText(raw, currency);
     const valueClass = raw > 0 ? 'amount-income' : '';
     return `
@@ -1854,7 +2202,6 @@ function openBankBudgetTransactions(bankKey) {
   document.getElementById('filter-dir-outgoing')?.classList.toggle('active', false);
   filterBank(bankKey);
 }
-
 function maybeSendBudgetLocalNotification(bankKey, bankLabel, spent, budget, remaining, warning) {
   if (!budget || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
   const month = getAktuálneMonth();
@@ -1974,29 +2321,36 @@ function getOverviewBudgetWarningForBank(bankKey, monthStr = getAktuálneMonth()
 }
 
 function getOverviewBudgetSpentForBank(bankKey, monthStr = getAktuálneMonth()) {
-  const overviewStored = getStoredOverviewMonthlyStat(bankKey, monthStr, 'spending');
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const bankCurrency = getBankBudgetCurrency(bankKey) || getArchiveBankCurrency(bankKey) || getAppCurrency();
+  const qualified = getOverviewQualifiedCashflowForBanks([bankKey], month, bankCurrency);
+  if (qualified.hasLiveTransactions) return Number(qualified.byBank?.[bankKey]?.spent || 0) || 0;
+  const archive = Number(qualified.byBank?.[bankKey]?.spent || 0) || 0;
+  if (archive || hasAnyArchiveTransactionsForMonth(month)) return archive;
+  const overviewStored = getStoredOverviewMonthlyStat(bankKey, month, 'spending');
   if (overviewStored !== null) return overviewStored;
-  const archive = Number(getMonthlyArchiveSpentForBank(bankKey, monthStr) || 0) || 0;
-  if (archive) return archive;
   return Number(getCurrentMonthSpentInBankCurrency(bankKey) || 0) || 0;
 }
 
 function getOverviewBudgetDailySeries(monthStr = getAktuálneMonth(), currency = getAppCurrency()) {
   const normalizedMonth = normalizeMonthStr(monthStr || getAktuálneMonth());
   const [month, year] = normalizedMonth.split('/').map(Number);
-  const daysInMonth = new Date(year, month, 0).getDate();
+  const daysInMonth = getGregorianMonthLength(year, month);
   const targetCurrency = currencyCode(currency || getAppCurrency() || 'CZK');
   const daily = Array.from({ length: daysInMonth }, (_, idx) => ({ day: idx + 1, value: 0 }));
 
+  const adjustments = buildTransactionStatsAdjustments(allTransactions);
+  const includedBanks = new Set(getOverviewBudgetBankKeysForMonth(normalizedMonth));
   (allTransactions || []).forEach(tx => {
     if (normalizeMonthStr(tx.month) !== normalizedMonth) return;
-    if (Number(tx.amount || 0) >= 0) return;
-    if (typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)) return;
+    const effectiveAmount = Number(adjustments.effective.get(tx) || 0);
+    if (effectiveAmount >= -0.005 || isCreditCardTransactionForOverviewStats(tx)) return;
+    if (!includedBanks.has(getArchiveBankKeyFromTransaction(tx))) return;
     const parsed = parseCustomDateStr(tx.rawDate || tx.date);
     if (!parsed || isNaN(parsed.getTime())) return;
     const day = parsed.getDate();
     if (day < 1 || day > daysInMonth) return;
-    daily[day - 1].value += Math.abs(convertTransactionAmount(tx, targetCurrency));
+    daily[day - 1].value += convertTransactionStatsAmount(tx, effectiveAmount, targetCurrency);
   });
 
   let cumulative = 0;
@@ -2009,12 +2363,8 @@ function getOverviewBudgetDailySeries(monthStr = getAktuálneMonth(), currency =
 function getOverviewMonthSpentInCurrency(targetCurrency = getAppCurrency(), bankKey = null) {
   const month = normalizeMonthStr(getAktuálneMonth());
   const target = currencyCode(targetCurrency || getAppCurrency());
-  return (allTransactions || [])
-    .filter(tx => normalizeMonthStr(tx.month) === month && Number(tx.amount || 0) < 0)
-    .filter(tx => !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)))
-    .filter(tx => !(typeof isInternalTransferTransaction === 'function' && isInternalTransferTransaction(tx)))
-    .filter(tx => !bankKey || getBudgetBankKeyFromTransaction(tx) === bankKey)
-    .reduce((sum, tx) => sum + Math.abs(convertTransactionAmount(tx, target)), 0);
+  const keys = bankKey ? [bankKey] : getOverviewBudgetBankKeysForMonth(month);
+  return getOverviewQualifiedCashflowForBanks(keys, month, target).spent;
 }
 
 function getOverviewBudgetTransactionSeries(monthStr = getAktuálneMonth(), currency = getAppCurrency()) {
@@ -2023,10 +2373,13 @@ function getOverviewBudgetTransactionSeries(monthStr = getAktuálneMonth(), curr
   const monthStart = new Date(normalizedMonth.split('/')[1], Number(normalizedMonth.split('/')[0]) - 1, 1, 0, 0, 0, 0).getTime();
   const monthEnd = new Date(normalizedMonth.split('/')[1], Number(normalizedMonth.split('/')[0]), 0, 23, 59, 59, 999).getTime();
 
+  const adjustments = buildTransactionStatsAdjustments(allTransactions);
+  const includedBanks = new Set(getOverviewBudgetBankKeysForMonth(normalizedMonth));
   const txns = (allTransactions || [])
     .filter(tx => normalizeMonthStr(tx.month) === normalizedMonth)
-    .filter(tx => Number(tx.amount || 0) < 0)
-    .filter(tx => !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)))
+    .filter(tx => Number(adjustments.effective.get(tx) || 0) < -0.005)
+    .filter(tx => !isCreditCardTransactionForOverviewStats(tx))
+    .filter(tx => includedBanks.has(getArchiveBankKeyFromTransaction(tx)))
     .map(tx => ({
       tx,
       date: parseCustomDateStr(tx.rawDate || tx.date)
@@ -2036,7 +2389,7 @@ function getOverviewBudgetTransactionSeries(monthStr = getAktuálneMonth(), curr
 
   let cumulative = 0;
   return txns.map(item => {
-    cumulative += Math.abs(convertTransactionAmount(item.tx, targetCurrency));
+    cumulative += convertTransactionStatsAmount(item.tx, adjustments.effective.get(item.tx), targetCurrency);
     const time = Math.min(Math.max(item.date.getTime(), monthStart), monthEnd);
     return {
       timestamp: time,
@@ -2170,23 +2523,10 @@ function getOverviewDashboardMetrics() {
   const cardLimit = visibleBankKeys.reduce((sum, bankKey) => sum + Math.max(0, getOverviewBankCardLimitForBank(bankKey, month)), 0);
   const cardPct = cardLimit > 0 ? Math.min(cardUsed / cardLimit, 1) : 0;
 
-  let budgetSpent = 0;
-  let budgetLimit = 0;
-  visibleBankKeys.forEach(bankKey => {
-    const bankCurrency = getBankBudgetCurrency(bankKey);
-    const spent = getOverviewBudgetSpentForBank(bankKey, month);
-    const budget = getOverviewBudgetLimitForBank(bankKey, month);
-    budgetSpent += convertAmountCurrency(spent || 0, bankCurrency || appCurrency, appCurrency);
-    budgetLimit += convertAmountCurrency(budget || 0, bankCurrency || appCurrency, appCurrency);
-  });
-  // Keep Bank budget "spent" aligned with the Overview top bar (real monthly spent).
-  try {
-    const topBarSpentCzk = Number(getArchiveMonthSpentTotalCzk(month) || 0);
-    const topBarSpentInAppCurrency = Number(convertAmountCurrency(topBarSpentCzk, 'CZK', appCurrency) || 0);
-    if (isFinite(topBarSpentInAppCurrency) && topBarSpentInAppCurrency >= 0) {
-      budgetSpent = topBarSpentInAppCurrency;
-    }
-  } catch (_) {}
+  // Dashboard, horná metrika aj Overview Details používajú jeden spoločný rozpis.
+  const budgetBreakdown = getOverviewBudgetBreakdown(month, appCurrency);
+  const budgetSpent = budgetBreakdown.spent;
+  const budgetLimit = budgetBreakdown.limit;
   const budgetPct = budgetLimit > 0 ? Math.min(budgetSpent / budgetLimit, 1) : 0;
   const budgetTransactionSeries = getOverviewBudgetTransactionSeries(month, appCurrency);
 
@@ -2237,7 +2577,6 @@ function createOverviewInlineProgress(leftText, rightText, ratio, statusText, st
       <div class="wealth-inline-progress-fill wealth-anim-fill ${escapeAttr(statusClass || '')}" style="width:${Math.max(width, statusClass === 'is-empty' ? 4 : 0)}%;"></div>
     </div>`;
 }
-
 function createCreditCardLimitProgress(used, limit, available, currency) {
   const usedNum = Math.max(0, Number(used || 0) || 0);
   const limitNum = Math.max(0, Number(limit || 0) || 0);

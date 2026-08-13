@@ -1,5 +1,4 @@
 // Generated app-core slice 3/6 (merged).
-
 function renderOverviewDashboard() {
   const netWorthEl = document.getElementById('overview-net-worth');
   if (!netWorthEl) return;
@@ -7,16 +6,23 @@ function renderOverviewDashboard() {
   if (detailsMonth) detailsMonth.textContent = getMonthLabel();
   const metrics = getOverviewDashboardMetrics();
   const appCurrency = metrics.appCurrency;
+  const netWorthUnavailable = metrics.netWorthSource === 'snapshot-missing';
   document.documentElement.setAttribute('data-overview-metrics', JSON.stringify({
-    net: Math.round(Number(metrics.totalNetWorth || 0)),
+    net: netWorthUnavailable ? null : Math.round(Number(metrics.totalNetWorth || 0)),
     cash: Math.round(Number(metrics.availableCash || 0)),
     budgetSpent: Math.round(Number(metrics.budgetSpent || 0)),
     budgetLimit: Math.round(Number(metrics.budgetLimit || 0)),
     txns: (allTransactions || []).length
   }));
 
-  applyOverviewBalanceEl(netWorthEl, metrics.totalNetWorth, appCurrency, { animate: !!window.__overviewBalanceAnimateNext });
-  netWorthEl.style.color = Number(metrics.totalNetWorth || 0) < 0 ? 'var(--danger)' : '#f8fbff';
+  if (netWorthUnavailable) {
+    delete netWorthEl.dataset.balanceValue;
+    netWorthEl.textContent = '—';
+    netWorthEl.style.color = 'var(--muted)';
+  } else {
+    applyOverviewBalanceEl(netWorthEl, metrics.totalNetWorth, appCurrency, { animate: !!window.__overviewBalanceAnimateNext });
+    netWorthEl.style.color = Number(metrics.totalNetWorth || 0) < 0 ? 'var(--danger)' : '#f8fbff';
+  }
 
   const availableEl = document.getElementById('overview-available-cash');
   if (availableEl) {
@@ -183,6 +189,46 @@ function isOverviewChartCardVisible(card) {
   const rect = card.getBoundingClientRect();
   const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
   return rect.bottom > 8 && rect.top < (viewportHeight - 8) && rect.width > 0;
+}
+
+function primeOverviewChartCardForIntro(card) {
+  if (!card || typeof card.querySelectorAll !== 'function') return;
+  if (reduceMotionCheck()) {
+    card.classList.remove('overview-chart-pending');
+    return;
+  }
+
+  card.classList.add('overview-chart-pending');
+  card.querySelectorAll('.overview-widget-arc:not(.is-empty-arc), .wealth-gauge-arc:not(.is-empty-arc)').forEach((arc) => {
+    try { (arc.__btArcAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
+    arc.__btArcAnim = null;
+    arc.style.strokeDasharray = '100 100';
+    arc.style.strokeDashoffset = '100';
+  });
+  card.querySelectorAll('.overview-widget-line, .wealth-spark-line, .wealth-networth-trend-line-v238').forEach((line) => {
+    try {
+      (line.__btLineAnim || []).forEach((anim) => {
+        try { anim.onfinish = null; anim.oncancel = null; anim.cancel(); } catch (_) {}
+      });
+    } catch (_) {}
+    line.__btLineAnim = null;
+    line.style.animation = 'none';
+    let len = 0;
+    try { len = line.getTotalLength(); } catch (_) {}
+    if (!len || len < 1) len = 420;
+    line.style.strokeDasharray = `${len} ${len}`;
+    line.style.strokeDashoffset = `${len}`;
+    if (line.classList.contains('is-projection')) line.style.opacity = '0';
+  });
+  collectOverviewLineAreaGroups(card).forEach((group) => {
+    hideOverviewLineAreas(group.mainAreas.concat(group.projAreas));
+    hideOverviewLineDots(group.dots);
+  });
+}
+
+function releaseOverviewChartCardPrime(card) {
+  if (!card) return;
+  card.classList.remove('overview-chart-pending');
 }
 
 function getGaugeArcTargetPct(arc) {
@@ -460,7 +506,6 @@ function runOverviewLineDrawAnimation(line, duration, delayMs = 0) {
   });
   return anim;
 }
-
 function reduceMotionCheck() {
   try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; }
 }
@@ -754,6 +799,7 @@ function animateOverviewChartCard(card) {
   if (!overviewChartCardHasGraphics(card)) return false;
   if (!canRunOverviewChartIntro()) return false;
   stopOverviewChartCardAnimations(card);
+  primeOverviewChartCardForIntro(card);
   void card.offsetWidth;
   card.classList.add('overview-chart-animating');
   card.dataset.btChartAnimSig = getOverviewChartCardSignature(card);
@@ -770,6 +816,7 @@ function animateOverviewChartCard(card) {
     } else {
       runOverviewLineAnimations(card);
     }
+    releaseOverviewChartCardPrime(card);
   };
   // animationBegin: wait one frame + short delay so GAS data/layout can settle.
   window.setTimeout(() => {
@@ -779,6 +826,7 @@ function animateOverviewChartCard(card) {
   const duration = getOverviewChartCardAnimDuration(card) + OVERVIEW_CHART_ANIM_BEGIN_MS;
   const timerId = window.setTimeout(() => {
     card.classList.remove('overview-chart-animating');
+    releaseOverviewChartCardPrime(card);
     finalizeOverviewGaugeArcs(card);
     finalizeOverviewChartLineStrokes(card);
     stopNetWorthTrendAnimations(card);
@@ -993,7 +1041,6 @@ function animateOverviewChartsAfterSync() {
     });
   });
 }
-
 function finishOverviewChartRenderCycle() {
   try {
     const page = document.getElementById('page-overview');
@@ -1067,12 +1114,25 @@ function setupOverviewScrollChartAnimations(options = {}) {
     window.clearTimeout(__overviewScrollLiveTimer);
     __overviewScrollLiveTimer = null;
   }
-  if (!('IntersectionObserver' in window)) return;
-
   const watch = getOverviewChartCards(page).filter(overviewChartCardHasGraphics);
   const daysBar = page.querySelector('.summary-days-progress');
   if (daysBar) watch.push(daysBar);
   if (!watch.length) return;
+
+  watch.forEach((el) => {
+    if (el.classList.contains('summary-days-progress')) return;
+    if (!isOverviewChartCardVisible(el)) primeOverviewChartCardForIntro(el);
+  });
+
+  if (!('IntersectionObserver' in window)) {
+    watch.forEach((el) => {
+      if (el.classList.contains('summary-days-progress')) return;
+      releaseOverviewChartCardPrime(el);
+      finalizeOverviewGaugeArcs(el);
+      finalizeOverviewChartLineStrokes(el);
+    });
+    return;
+  }
 
   __overviewChartScrollLive = false;
 
@@ -1100,6 +1160,9 @@ function setupOverviewScrollChartAnimations(options = {}) {
       // After a Sheets sync, only freshly-changed cards may auto-play once.
       // Never keep that filter forever or scroll replays stay broken.
       if (syncChangedOnly && cardKey && !syncChangedOnly.has(cardKey)) {
+        releaseOverviewChartCardPrime(target);
+        finalizeOverviewGaugeArcs(target);
+        finalizeOverviewChartLineStrokes(target);
         __overviewChartWasVisible.set(target, true);
         continue;
       }
@@ -1129,6 +1192,14 @@ function setupOverviewScrollChartAnimations(options = {}) {
     window.__overviewSyncChangedChartKeys = null;
     watch.forEach((el) => {
       const visible = isOverviewChartCardVisible(el);
+      if (visible
+          && !el.classList.contains('summary-days-progress')
+          && el.classList.contains('overview-chart-pending')
+          && !el.classList.contains('overview-chart-animating')) {
+        releaseOverviewChartCardPrime(el);
+        finalizeOverviewGaugeArcs(el);
+        finalizeOverviewChartLineStrokes(el);
+      }
       const primed = visible && (
         el.classList.contains('summary-days-progress') || overviewChartIntroIsCurrent(el)
       );
@@ -1477,6 +1548,13 @@ function renderDirtyTabSection(pageId) {
 
 function primeArchiveTrendLinesForIntro(wrap) {
   if (!wrap) return;
+  wrap.querySelectorAll('.archive-trend-bar-animate').forEach((bar) => {
+    try { (bar.__btArchiveBarAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
+    bar.__btArchiveBarAnim = null;
+    bar.style.animation = 'none';
+    bar.style.transform = 'scaleY(.08)';
+    bar.style.opacity = '.24';
+  });
   wrap.querySelectorAll('.archive-bank-line').forEach((line) => {
     try { (line.__btArchiveLineAnim || []).forEach((anim) => anim.cancel()); } catch (_) {}
     line.__btArchiveLineAnim = null;
@@ -1527,7 +1605,6 @@ function scheduleArchiveChartIntro(delayMs = 0) {
     });
   }, Math.max(0, Number(delayMs || 0)));
 }
-
 function playArchiveTrendChartIntro() {
   const page = document.getElementById('page-archive');
   const wrap = document.getElementById('archive-trend-chart');
@@ -1537,7 +1614,16 @@ function playArchiveTrendChartIntro() {
     return;
   }
   const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  /* v7312: animácia beží VŽDY, aj pri prvom otvorení — používateľ chce vidieť
+     rozbeh 0 → 100 % po každom kliknutí na tab. Aby pritom neprebleslo hotové
+     100 %, stĺpce sa zbalia hneď pri vložení grafu do DOM (viď primovanie
+     v renderi), nie až tu. */
   if (reducedMotion) {
+    wrap.querySelectorAll('.archive-trend-bar-animate').forEach((bar) => {
+      bar.style.animation = 'none';
+      bar.style.transform = 'scaleY(1)';
+      bar.style.opacity = '1';
+    });
     wrap.querySelectorAll('.archive-bank-line').forEach((line) => {
       line.style.strokeDashoffset = '0';
       line.style.animation = 'none';
@@ -1549,20 +1635,16 @@ function playArchiveTrendChartIntro() {
     return;
   }
 
-  wrap.querySelectorAll('.archive-trend-bar-animate').forEach((el) => {
-    el.style.removeProperty('transform');
-    el.style.removeProperty('opacity');
-    el.style.removeProperty('animation');
-    el.style.removeProperty('animation-delay');
-  });
+  primeArchiveTrendLinesForIntro(wrap);
   void wrap.offsetWidth;
 
   wrap.querySelectorAll('.archive-trend-bar-animate').forEach((el, idx) => {
+    el.style.removeProperty('transform');
+    el.style.removeProperty('opacity');
     el.style.animation = 'archiveBarGrow .9s cubic-bezier(.22,.72,.22,1) both';
     el.style.animationDelay = `${idx * 35}ms`;
   });
 
-  primeArchiveTrendLinesForIntro(wrap);
   void wrap.offsetWidth;
 
   const lines = Array.from(wrap.querySelectorAll('.archive-bank-line'));
@@ -1623,10 +1705,21 @@ function scheduleArchiveTabRender() {
   const needsRender = !!__btArchiveTabDirty || !(list && list.children && list.children.length);
 
   if (!needsRender) {
-    scheduleArchiveChartIntro(60);
-    window.setTimeout(() => {
-      try { maybeLoadMoreArchiveMonths(); } catch (_) {}
-    }, 20);
+    const archivePresentationActive = !!(
+      __loadingPresentation
+      && !__loadingPresentation.done
+      && __loadingPresentation.kind === 'tab'
+      && __loadingPresentation.tabId === 'archive'
+    );
+    if (archivePresentationActive) {
+      // Aj cache vetva musí ukončiť prezentáciu až na hranici celého logo cyklu.
+      finishArchiveTabPresentation();
+    } else {
+      scheduleArchiveChartIntro(60);
+      window.setTimeout(() => {
+        try { maybeLoadMoreArchiveMonths(); } catch (_) {}
+      }, 20);
+    }
     return;
   }
 
@@ -1763,6 +1856,12 @@ function resolveBtTouchTarget(node) {
   if (!node || typeof node.closest !== 'function') return null;
   if (node.closest('#page-overview .custom-widget-add-btn')) return null;
   if (node.closest('#page-overview-details')) return null;
+  /* v7322: karty v Portfóliu nemajú mať žiadnu odozvu na dotyk. Nestačilo
+     vypnúť CSS efekt (posun a tieň) — pri stlačení sa do karty vkladá aj
+     <span class="bt-touch-ripple">, čiže vlnka, a tú používateľ videl
+     ďalej. Vraciame null už tu, takže sa nepridá ani trieda, ani vlnka.
+     Rovnaký postup ako o riadok vyššie pri Overview details. */
+  if (node.closest('.portfolio-card-v7202')) return null;
   if (node.closest('input, textarea, select, label, .bottom-sheet-backdrop')) return null;
   if (node.closest('.wealth-card, .custom-widget-card')) {
     const menuBtn = node.closest('.custom-widget-menu button, .custom-widget-manual-controls button');
@@ -2055,7 +2154,6 @@ function getBankCardDisplayLabel(bankKey, txns) {
 
   return prefix;
 }
-
 function renderBankCard(bankKey, txns) {
   const bank = getBankInfo(bankKey);
   const limit = getOverviewBankCardLimitForBank(bankKey, getAktuálneMonth()) || bank.defaultLimit || 0;
@@ -2222,7 +2320,7 @@ function getPreferredCurrencyOrder(currencies) {
 
 function buildTransactionTotals(txns) {
   const adjustments = buildTransactionStatsAdjustments(allTransactions);
-  const statTxns = (txns || []).filter(tx => Math.abs(Number(adjustments.effective.get(tx) || 0)) > 0.005);
+  const statTxns = (txns || []).filter(tx => Math.abs(getTransactionCashflowDisplayAmount(tx, allTransactions, adjustments)) > 0.005);
   const totals = {
     count: statTxns.length,
     incoming: {},
@@ -2232,7 +2330,7 @@ function buildTransactionTotals(txns) {
 
   statTxns.forEach(tx => {
     const currency = currencyCode(tx.currency || 'CZK');
-    const amount = Number(adjustments.effective.get(tx) || 0);
+    const amount = getTransactionCashflowDisplayAmount(tx, allTransactions, adjustments);
     if (!totals.incoming[currency]) totals.incoming[currency] = 0;
     if (!totals.outgoing[currency]) totals.outgoing[currency] = 0;
     if (!totals.net[currency]) totals.net[currency] = 0;
@@ -2243,6 +2341,24 @@ function buildTransactionTotals(txns) {
   });
 
   return totals;
+}
+
+function getTransactionCashflowDisplayAmount(tx, pool = allTransactions, adjustments = null) {
+  const list = pool || allTransactions;
+  const resolvedAdjustments = adjustments || buildTransactionStatsAdjustments(list);
+  const drilldownType = String(activeDrilldownFilter?.type || '');
+  const activeKinds = String(activePaymentKind || 'all').split(',').map(value => value.trim());
+  const exclusion = getTransactionCashflowExclusion(tx, list, {
+    adjustments: resolvedAdjustments,
+    excludeCreditCards: false
+  });
+
+  if (drilldownType === 'raw-income' || drilldownType === 'raw-spent') return Number(tx?.amount || 0);
+  if (drilldownType === 'excluded' || drilldownType === 'excluded-reason') return Number(exclusion.excludedSignedAmount || 0);
+  if (drilldownType === 'internal' || (activeKinds.includes('internal') && exclusion.reason === 'internalTransfers')) {
+    return Number(tx?.amount || 0);
+  }
+  return Number(resolvedAdjustments.effective.get(tx) || 0);
 }
 
 function renderTotalsValueLines(map, mode = 'neutral') {
@@ -2292,7 +2408,12 @@ function toggleTxnCashflowChartType() {
 }
 
 function renderTransactionDailyCashflow(txns) {
-  txns = (txns || []).filter(tx => !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)));
+  const cashflowDetailType = String(activeDrilldownFilter?.type || '');
+  const includeExcludedMovements = ['internal', 'excluded', 'excluded-reason', 'raw-income', 'raw-spent'].includes(cashflowDetailType)
+    || String(activePaymentKind || '').split(',').map(value => value.trim()).includes('internal');
+  txns = includeExcludedMovements
+    ? (txns || [])
+    : (txns || []).filter(tx => !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)));
   if (!txns || !txns.length) return '';
 
   // v160: when a single bank is selected, chart values use that bank's account currency
@@ -2316,7 +2437,7 @@ function renderTransactionDailyCashflow(txns) {
     }
     if (!key) return;
     if (!byDay[key]) byDay[key] = { incoming: 0, outgoing: 0 };
-    const rawAmount = Number(adjustments.effective.get(tx) || 0);
+    const rawAmount = getTransactionCashflowDisplayAmount(tx, allTransactions, adjustments);
     if (!rawAmount) return;
     const convertedAbs = convertTransactionStatsAmount(tx, rawAmount, chartCurrency);
     const signedAmount = rawAmount < 0 ? -Math.abs(convertedAbs) : Math.abs(convertedAbs);
@@ -2465,7 +2586,6 @@ function renderTransactionDailyCashflow(txns) {
     </div>
   `;
 }
-
 function renderTransactionTotals(txns) {
   const totals = buildTransactionTotals(txns);
   const direction = activeDirection || 'all';
@@ -2975,4 +3095,529 @@ function getTransactionViewDedupeKey(tx) {
   const rawId = String(tx?.msgId || tx?.id || '').replace(/_credit_card_view$/, '').trim();
   if (rawId) return 'id:' + rawId;
   return 'semantic:' + getTransactionViewSemanticKey(tx);
+}
+function dedupeTransactionsForCurrentView(txns) {
+  const seen = new Set();
+  return (txns || []).filter(tx => {
+    const key = getTransactionViewDedupeKey(tx);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function updateTxnPage(monthTxns) {
+  const listDiv = document.getElementById('txn-list');
+  const cashflowSlot = document.getElementById('txn-cashflow-slot');
+  if (!listDiv) return;
+
+  updateTransactionDateInputs();
+  updatePaymentKindFilterUi();
+  updateCardSourceFiltersUi();
+  updateDirectionFilterUi();
+  updateTransactionFilterPanelUi();
+
+  let base = sortTransactionsNewestFirst(allTransactions);
+  base = filterTransactionsByMonthFilter(base);
+  base = filterTransactionsByDateRange(base);
+
+  if (activeDrilldownFilter) {
+    base = applyDrilldownTransactionFilter(base);
+  } else {
+    if (activeDirection === 'incoming') base = base.filter(t => Number(t.amount) > 0);
+    if (activeDirection === 'outgoing') base = base.filter(t => Number(t.amount) < 0);
+    if (activeBank !== 'všetky') base = base.filter(t => matchesAnyActiveBankFilterV239(t, activeBank));
+    if (activePaymentKind !== 'all') base = base.filter(t => matchesAnyPaymentKindV239(t, activePaymentKind));
+  }
+
+  if (activeRecurringGroupFilter && typeof transactionMatchesRecurringGroupFilter === 'function') {
+    base = base.filter((t) => transactionMatchesRecurringGroupFilter(t));
+  }
+
+  if (activeCardLast4) base = base.filter(t => transactionMatchesCardLast4(t, activeCardLast4));
+  base = prepareTransactionsForCurrentView(base);
+  base = dedupeTransactionsForCurrentView(base);
+
+  if (activeSearch) base = base.filter(t => transactionMatchesSearch(t, activeSearch));
+
+  let scoped = filterTransactionsByHistoryScope(base);
+
+  const categorySource = scoped.filter(tx => !(typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(tx)));
+  const cats = ['všetky', ...new Set(categorySource.map(tx => tx.category).filter(Boolean))];
+  renderCategoryFilters(cats, categorySource);
+
+  if (activeCategory !== 'všetky') {
+    base = base.filter(t => matchesAnyCategoryV239(t, activeCategory));
+    scoped = filterTransactionsByHistoryScope(base);
+  }
+
+  const olderCount = !hasActiveTransactionDateRange() && !hasActiveTransactionMonthFilter() && activeTxnHistoryScope !== 'all'
+    ? base.filter(t => !isCurrentTransactionMonth(t)).length
+    : 0;
+
+  if (scoped.length === 0) {
+    if (cashflowSlot) cashflowSlot.innerHTML = '';
+    listDiv.innerHTML =
+      renderTransactionHistoryNote() +
+      `<div class="empty-state"><div class="empty-icon">📭</div>${t('noTransactionsForFilters')}</div>` +
+      renderLoadOlderTransactionsButton(olderCount) +
+      renderTransactionTotals([]);
+    scheduleFloatingUtilityUpdate();
+    return;
+  }
+
+  const visible = scoped.slice(0, txnVisibleLimit);
+
+  let lastDayLabel = '';
+  const rows = visible.map(t => {
+    const bankKey = getBankKey(t);
+    const isIncome = Number(t.amount) > 0;
+    const sign = isIncome ? '+' : '-';
+    const amountClass = isIncome ? 'amount-income' : 'amount-expense';
+    const txId = typeof getTransactionId === 'function' ? getTransactionId(t) : (t.id || t.msgId || '');
+    const dayLabel = getTxnDayDisplay(t);
+    const timeLabel = getTxnTimeDisplay(t);
+    const paymentLabel = getPaymentKindLabel(t);
+    // v4400: for transfers show the counterparty account (recipient on an
+    // outgoing payment, sender on an incoming one); fall back to the own source.
+    const transferAcct = getTransactionTransferAccountDisplayV4400(t);
+    const source = transferAcct ? transferAcct.source : getPaymentSourceMasked(t);
+    const dayHeader = dayLabel !== lastDayLabel ? `<div class="txn-day-header">${escapeHtml(dayLabel)}</div>` : '';
+    lastDayLabel = dayLabel;
+    const accountEquivalent = renderAccountCurrencyEquivalent(t);
+    const isCreditRepayment = typeof isCsobCzCreditCardRepaymentTx === 'function' && isCsobCzCreditCardRepaymentTx(t);
+    const isInternalTransfer = typeof isInternalTransferTransaction === 'function' && isInternalTransferTransaction(t);
+    const isNeutralTransfer = typeof isExcludedFromSpendingStats === 'function' ? isExcludedFromSpendingStats(t) : (isCreditRepayment || isInternalTransfer);
+    const isManualNonSpent = typeof isTransactionManuallyExcludedFromSpent === 'function' && isTransactionManuallyExcludedFromSpent(t);
+    const isManualNonIncome = typeof isTransactionManuallyExcludedFromIncome === 'function' && isTransactionManuallyExcludedFromIncome(t);
+    const isManualExcluded = isManualNonSpent || isManualNonIncome;
+    const rowClass = (isNeutralTransfer ? ' tx-credit-repayment' : '')
+      + (isManualNonSpent ? ' tx-manual-non-spent' : '')
+      + (isManualNonIncome ? ' tx-manual-non-income' : '');
+    const amountClassFinal = isNeutralTransfer && !isManualExcluded ? 'amount-neutral' : amountClass;
+    return `${dayHeader}<div class="tx-item${rowClass}" data-tx-id="${escapeAttr(txId)}"><div class="tx-left"><div class="tx-icon">${catIcon(t.category)}</div><div><div class="tx-merchant">${escapeHtml(t.merchant)}</div><div class="tx-meta">${escapeHtml(timeLabel)} · <span class="tx-payment-source" data-label="${escapeAttr(paymentLabel)}" data-source="${escapeAttr(source)}" onclick="event.stopPropagation(); togglePaymentSourceDetail(this)">${escapeHtml(paymentLabel)}</span></div></div></div><div class="tx-right-side"><div class="tx-amount-wrap"><div class="tx-amount ${amountClassFinal}">${sign}${formatCurrencyAmount(t.amount, t.currency)}</div>${accountEquivalent}</div>${bankLogoImg(bankKey, 'tx-bank-logo')}</div></div>`;
+  }).join('');
+
+  if (cashflowSlot) cashflowSlot.innerHTML = renderTransactionDailyCashflow(scoped);
+
+  listDiv.innerHTML =
+    renderTransactionHistoryNote() +
+    renderTransactionPagingInfo(visible.length, scoped.length) +
+    rows +
+    renderShowMoreTransactionsButton(visible.length, scoped.length) +
+    renderLoadOlderTransactionsButton(olderCount) +
+    renderTransactionTotals(scoped);
+
+  bindTransactionDeleteGestures();
+  scheduleFloatingUtilityUpdate();
+}
+
+function normalizeCategoryKey(category) {
+  return String(category || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function translateCategory(category) {
+  const lang = getLanguage ? getLanguage() : 'en';
+  const original = String(category || '').trim();
+  const lower = original.toLowerCase();
+  const normalized = normalizeCategoryKey(original);
+  const dict = CATEGORY_I18N[lang] || CATEGORY_I18N.en;
+
+  return dict[lower] || dict[normalized] || original;
+}
+
+function renderCategoryFilters(cats, scopedTxns = []) {
+  const wrap = document.getElementById('cat-filters');
+  const extraWrap = document.getElementById('cat-filters-extra');
+  const extraCard = document.getElementById('cat-filters-extra-card');
+  if (!wrap) return;
+
+  const counts = {};
+  scopedTxns.forEach(tx => {
+    const category = tx?.category || '';
+    if (category) counts[category] = (counts[category] || 0) + 1;
+  });
+
+  const uniqueCats = [...new Set((cats || []).filter(Boolean))];
+  const allToken = uniqueCats.includes('všetky') ? ['všetky'] : [];
+  const categoryCats = uniqueCats
+    .filter(c => c !== 'všetky')
+    .sort((a, b) => (counts[b] || 0) - (counts[a] || 0) || String(a).localeCompare(String(b)));
+
+  const preferredCategoryKeys = ['restauracie', 'potraviny', 'ucet'];
+  const priorityCats = preferredCategoryKeys
+    .map(key => categoryCats.find(c => normalizeCategoryKey(c) === key))
+    .filter(Boolean);
+  const fallbackCats = categoryCats.filter(c => !priorityCats.includes(c));
+  const primaryCategoryCats = [...priorityCats, ...fallbackCats].slice(0, 3);
+  const extraCats = categoryCats.filter(c => !primaryCategoryCats.includes(c));
+  const primaryCats = [...allToken, ...primaryCategoryCats];
+
+  const chipHtml = (c) => {
+    const label = c === 'všetky' ? t('all') : `${catIcon(c)} ${translateCategory(c)}`;
+    return `<div class="cat-chip ${activeCategory === c ? 'active' : ''}" data-category="${escapeAttr(c)}" onclick="filterCategoryFromChip(this)">${label}</div>`;
+  };
+
+  wrap.innerHTML = primaryCats.map(chipHtml).join('') + (extraCats.length
+    ? `<div class="cat-chip cat-more-chip ${txnCategoryFiltersExpanded ? 'active' : ''}" onclick="toggleCategoryFilters()">…</div>`
+    : '');
+
+  if (extraWrap) {
+    extraWrap.innerHTML = extraCats.map(chipHtml).join('');
+    extraWrap.style.display = (!!extraCats.length && txnCategoryFiltersExpanded) ? 'flex' : 'none';
+  }
+  if (extraCard) extraCard.style.display = 'none';
+}
+
+function filterCategoryFromChip(el) {
+  if (!el) return;
+  filterCategory(el.getAttribute('data-category') || 'všetky');
+}
+
+function toggleCategoryFilters() {
+  txnCategoryFiltersExpanded = !txnCategoryFiltersExpanded;
+  updateTxnPage();
+}
+
+
+function openBankTransactions(bankKey) {
+  activeCategory = 'všetky';
+  showPage('txns');
+  filterBank(bankKey);
+}
+
+function openBankCardTransactions(bankKey) {
+  // Card-limit widget drilldown must be strict (bank + month + card + outgoing),
+  // never toggle bank chips, and must survive txns tab wrappers.
+  if (typeof setExclusiveTransactionFilters === 'function') {
+    setExclusiveTransactionFilters({
+      bankKey: bankKey,
+      monthStr: getAktuálneMonth(),
+      mode: 'cards'
+    });
+    showPage('txns', { preserveFilters: true });
+    return;
+  }
+  // Fallback for very old cached markup.
+  showPage('txns', { preserveFilters: true });
+  activeCategory = 'všetky';
+  activePaymentKind = 'card';
+  activeDirection = 'outgoing';
+  activeMonthFilter = normalizeMonthStr(getAktuálneMonth());
+  activeDateFrom = '';
+  activeDateTo = '';
+  activeTxnHistoryScope = 'all';
+  activeBank = bankKey;
+  updatePaymentKindFilterUi();
+  updateDirectionFilterUi();
+  updateTransactionDateInputs();
+  updateTxnPage();
+}
+
+function setTransactionDateRangeFromMonth(monthStr) {
+  const normalized = normalizeMonthStr(monthStr || '');
+  const match = normalized.match(/^(\d{2})\/(\d{4})$/);
+  if (!match) {
+    activeDateFrom = '';
+    activeDateTo = '';
+    return;
+  }
+  const month = Number(match[1]);
+  const year = Number(match[2]);
+  const lastDay = getGregorianMonthLength(year, month);
+  activeDateFrom = `${year}-${String(month).padStart(2, '0')}-01`;
+  activeDateTo = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+}
+
+function setTransactionDateRangeFromBankMonth(bankKey, monthStr, paymentKind = 'card') {
+  const normalized = normalizeMonthStr(monthStr || getAktuálneMonth());
+
+  const matchingDates = allTransactions
+    .map(tx => {
+      const rawDate = tx?.rawDate || tx?.date || '';
+      if (!rawDate) return null;
+      const parsed = parseCustomDateStr(rawDate);
+      if (!parsed || isNaN(parsed.getTime())) return null;
+      const txMonth = getMonthFromDate(parsed);
+      if (txMonth !== normalized) return null;
+      if (getBankKey(tx) !== bankKey) return null;
+      if (Number(tx.amount || 0) >= 0) return null;
+      if (paymentKind && paymentKind !== 'all' && getTransactionPaymentKind(tx) !== paymentKind) return null;
+      return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+    })
+    .filter(Boolean)
+    .sort();
+
+  if (matchingDates.length) {
+    activeDateFrom = matchingDates[0];
+    activeDateTo = matchingDates[matchingDates.length - 1];
+    return;
+  }
+
+  activeDateFrom = '';
+  activeDateTo = '';
+}
+
+function openCreditCardTransactions(cardLast4 = '') {
+  const creditCard = String(cardLast4 || getCsobCzCreditCardLast4() || '').replace(/\D/g, '').slice(-4);
+  if (!creditCard) return;
+  activePageId = 'transactions';
+  activeBank = 'csob_cz';
+  activePaymentKind = 'card';
+  activeCardLast4 = creditCard;
+  activeCategory = 'všetky';
+  activeSearch = '';
+  activeDirection = 'all';
+  if (getAktuálneMonth() !== getCurrentMonth()) {
+    setTransactionDateRangeFromMonth(getAktuálneMonth());
+  } else {
+    activeDateFrom = '';
+    activeDateTo = '';
+    activeTxnMonthFilter = '';
+  }
+  const search = document.getElementById('txn-search');
+  if (search) search.value = '';
+  resetTxnVisibleLimit();
+  switchPage('transactions');
+  updateCardSourceFiltersUi();
+  updateTxnPage();
+  setTimeout(scrollToLatestVisibleTransaction, 120);
+}
+
+function openBankTransactions(bankKey, paymentKind = 'card') {
+  showPage('txns');
+  activeCategory = 'všetky';
+  activeTxnTag = 'all';
+  activeCardLast4 = '';
+  if (activePaymentKind === 'internal') activePaymentKind = 'all';
+  activePaymentKind = paymentKind || 'all';
+  activeDateFrom = '';
+  activeDateTo = '';
+  activeMonthFilter = '';
+  activeTxnHistoryScope = 'all';
+  updatePaymentKindFilterUi();
+  updateTransactionDateInputs();
+  filterBank(bankKey);
+}
+
+function openRecentBankTransactions(bankKey) {
+  // Recent bank click should only select the bank. It must not apply the old 14-day/date filter.
+  showPage('txns', { preserveFilters: true });
+  activeCategory = 'všetky';
+  activePaymentKind = 'all';
+  activeDirection = 'all';
+  activeMonthFilter = '';
+  activeSearch = '';
+  activeTxnHistoryScope = 'all';
+  activeTxnTag = 'all';
+  activeDateFrom = '';
+  activeDateTo = '';
+  activeCardLast4 = '';
+
+  const search = document.getElementById('txn-search');
+  if (search) search.value = '';
+  updatePaymentKindFilterUi();
+  updateDirectionFilterUi();
+  updateCardSourceFiltersUi();
+  updateTransactionDateInputs();
+  filterBank(bankKey);
+}
+
+function openBankMonthTransactions(bankKey, monthStr, paymentKind = 'card') {
+  openArchiveMonthFilter(bankKey, monthStr, paymentKind === 'card' ? 'cards' : 'all');
+}
+
+function syncExclusiveBankFilterUi(bankKey) {
+  const key = String(bankKey || 'všetky');
+  if (typeof window.updateBankFilterUiV239 === 'function') {
+    window.updateBankFilterUiV239();
+    return;
+  }
+  document.getElementById('filter-bank-all')?.classList.toggle('active', key === 'všetky');
+  document.getElementById('filter-bank-rb')?.classList.toggle('active', key === 'rb_cz');
+  document.getElementById('filter-bank-csob-sk')?.classList.toggle('active', key === 'csob_sk');
+  document.getElementById('filter-bank-csob-cz')?.classList.toggle('active', key === 'csob_cz');
+  document.getElementById('filter-bank-moneta')?.classList.toggle('active', key === 'moneta');
+  document.getElementById('filter-bank-air-bank-cz')?.classList.toggle('active', key === 'air_bank_cz');
+  document.getElementById('filter-bank-pluxee')?.classList.toggle('active', key === 'pluxee');
+}
+
+function setExclusiveTransactionFilters(opts = {}) {
+  const bankKey = String(opts.bankKey || 'všetky');
+  const mode = String(opts.mode || 'all');
+  const months = Array.isArray(opts.months) ? opts.months.map(m => normalizeMonthStr(m)).filter(Boolean) : [];
+  const monthStr = opts.monthStr != null ? normalizeMonthStr(opts.monthStr) : '';
+
+  activeCategory = 'všetky';
+  activeTxnTag = 'all';
+  activeCardLast4 = '';
+  activeSearch = '';
+  activeTxnHistoryScope = 'all';
+  activeDateFrom = '';
+  activeDateTo = '';
+  activeMonthFilter = months.length ? months.join('|') : (monthStr || '');
+
+  if (mode === 'cards') {
+    activePaymentKind = 'card';
+    activeDirection = 'outgoing';
+    activeDrilldownFilter = { type: 'cards', bankKey };
+  } else if (mode === 'spent') {
+    activePaymentKind = 'all';
+    activeDirection = 'outgoing';
+    activeDrilldownFilter = { type: 'spent', bankKey };
+  } else if (mode === 'income') {
+    activePaymentKind = 'all';
+    activeDirection = 'incoming';
+    activeDrilldownFilter = { type: 'income', bankKey };
+  } else if (mode === 'overview-spent') {
+    activePaymentKind = 'all';
+    activeDirection = 'outgoing';
+    activeDrilldownFilter = { type: 'overview-spent', bankKey: 'všetky' };
+  } else if (mode === 'internal') {
+    activePaymentKind = 'internal';
+    activeDirection = 'all';
+    activeDrilldownFilter = { type: 'internal', bankKey };
+  } else if (mode === 'excluded') {
+    activePaymentKind = 'all';
+    activeDirection = 'all';
+    activeDrilldownFilter = { type: 'excluded', bankKey };
+  } else if (mode === 'excluded-reason') {
+    activePaymentKind = 'all';
+    activeDirection = 'all';
+    activeDrilldownFilter = { type: 'excluded-reason', bankKey, reason: String(opts.reason || '') };
+  } else if (mode === 'raw-income' || mode === 'raw-spent') {
+    activePaymentKind = 'all';
+    activeDirection = mode === 'raw-income' ? 'incoming' : 'outgoing';
+    activeDrilldownFilter = { type: mode, bankKey };
+  } else {
+    activePaymentKind = 'all';
+    activeDirection = 'all';
+    activeDrilldownFilter = null;
+  }
+
+  activeBank = bankKey;
+  try { window.activeBank = activeBank; } catch (_) {}
+
+  const search = document.getElementById('txn-search');
+  if (search) search.value = '';
+  resetTxnVisibleLimit();
+  updatePaymentKindFilterUi();
+  updateDirectionFilterUi();
+  updateCardSourceFiltersUi();
+  updateTransactionDateInputs();
+  updateTransactionFilterPanelUi();
+  syncExclusiveBankFilterUi(bankKey);
+}
+
+function openOverviewTotalSpentFilter() {
+  const month = normalizeMonthStr(getAktuálneMonth());
+  setExclusiveTransactionFilters({
+    bankKey: 'všetky',
+    monthStr: month,
+    mode: 'overview-spent'
+  });
+  showPage('txns', { preserveFilters: true });
+}
+
+function openArchiveMonthFilter(bankKey, monthStr, mode = 'cards') {
+  setExclusiveTransactionFilters({
+    bankKey,
+    monthStr: monthStr || getAktuálneMonth(),
+    mode
+  });
+  // preserveFilters keeps deferred resetAllTxnFilters() wrappers from wiping archive filters.
+  showPage('txns', { preserveFilters: true });
+}
+
+function setTransactionDateRangeFromMonthRange(startMonthStr, endMonthStr) {
+  const start = normalizeMonthStr(startMonthStr || getAktuálneMonth());
+  const end = normalizeMonthStr(endMonthStr || start);
+  const startMatch = start.match(/^(\d{2})\/(\d{4})$/);
+  const endMatch = end.match(/^(\d{2})\/(\d{4})$/);
+  if (!startMatch || !endMatch) {
+    activeDateFrom = '';
+    activeDateTo = '';
+    return;
+  }
+  const sm = Number(startMatch[1]);
+  const sy = Number(startMatch[2]);
+  const em = Number(endMatch[1]);
+  const ey = Number(endMatch[2]);
+  const lastDay = getGregorianMonthLength(ey, em);
+  activeDateFrom = `${sy}-${String(sm).padStart(2, '0')}-01`;
+  activeDateTo = `${ey}-${String(em).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+}
+
+function openArchiveBankRangeFilter(bankKey, monthsCsv, mode = 'spent') {
+  const months = String(monthsCsv || '')
+    .split('|')
+    .map(m => normalizeMonthStr(m))
+    .filter(Boolean)
+    .sort((a, b) => monthSortValue(a) - monthSortValue(b));
+  if (!months.length) return openBankTransactions(bankKey, 'all');
+
+  setExclusiveTransactionFilters({
+    bankKey,
+    months,
+    mode: mode === 'cards' ? 'cards' : (mode === 'income' ? 'income' : (mode === 'all' ? 'all' : 'spent'))
+  });
+  showPage('txns', { preserveFilters: true });
+}
+
+function filterBank(bank) {
+  if (bank !== 'csob_cz') activeCardLast4 = '';
+  activeBank = bank;
+  clearDrilldownTransactionFilter();
+  resetTxnVisibleLimit();
+  document.getElementById('filter-bank-all').classList.toggle('active', bank === 'všetky');
+  document.getElementById('filter-bank-rb').classList.toggle('active', bank === 'rb_cz');
+  document.getElementById('filter-bank-csob-sk').classList.toggle('active', bank === 'csob_sk');
+  document.getElementById('filter-bank-csob-cz').classList.toggle('active', bank === 'csob_cz');
+  document.getElementById('filter-bank-moneta').classList.toggle('active', bank === 'moneta');
+  document.getElementById('filter-bank-air-bank-cz')?.classList.toggle('active', bank === 'air_bank_cz');
+  document.getElementById('filter-bank-pluxee')?.classList.toggle('active', bank === 'pluxee');
+  updateTxnPage();
+}
+
+function filterCategory(cat) {
+  activeCardLast4 = '';
+  activeCategory = cat;
+  resetTxnVisibleLimit();
+  updateTxnPage();
+}
+
+
+
+
+function resetTransactionFilters() {
+  activeDirection = 'all';
+  activeBank = 'všetky';
+  activePaymentKind = 'all';
+  activeCardLast4 = '';
+  activeTxnTag = 'all';
+  activeCategory = 'všetky';
+  activeSearch = '';
+  activeDateFrom = '';
+  activeDateTo = '';
+  activeMonthFilter = '';
+  activeDrilldownFilter = null;
+  activeRecurringGroupFilter = null;
+  activeTxnHistoryScope = 'current';
+  resetTxnVisibleLimit();
+
+  const search = document.getElementById('txn-search');
+  if (search) search.value = '';
+
+  updateTransactionDateInputs();
+  updatePaymentKindFilterUi();
+
+  document.querySelectorAll('#direction-filters .txn-filter-pill').forEach(el => el.classList.remove('active'));
+  document.getElementById('filter-dir-all')?.classList.add('active');
+
+  document.querySelectorAll('#bank-filters .cat-chip').forEach(el => el.classList.remove('active'));
+  document.getElementById('filter-bank-all')?.classList.add('active');
 }

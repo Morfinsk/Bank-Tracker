@@ -1,875 +1,4 @@
 // Generated app-core slice 5/6 (merged).
-
-function getManagedBankMonthlyValues(bankKey) {
-  const budgetMonth = document.getElementById('edit-budget-month-' + bankKey)?.value || getAktuálneMonth();
-  const month = normalizeMonthStr(budgetMonth);
-  const isCreditCardBank = bankKey === 'csob_cz_credit';
-  const rawCardLimit = parseInt(document.getElementById('edit-card-limit-' + bankKey)?.value || '0', 10) || 0;
-  const rawCreditLimit = parseFloat(document.getElementById('edit-credit-card-limit-' + bankKey)?.value || '0') || 0;
-  return {
-    month,
-    // Credit-card monthly limit is saved into Bank_Archive / Credit card limits.
-    // Keep normal Card limits at 0 for credit-card banks so it never mixes with debit card-payment limits.
-    cardLimit: isCreditCardBank ? 0 : rawCardLimit,
-    creditCardLimit: isCreditCardBank ? rawCreditLimit : rawCreditLimit,
-    budget: parseFloat(document.getElementById('edit-budget-' + bankKey)?.value || '0') || 0,
-    warning: parseFloat(document.getElementById('edit-warning-' + bankKey)?.value || '0') || 0,
-    balance: parseFloat(document.getElementById('edit-balance-' + bankKey)?.value || '0') || 0,
-    incomingAlert: parseFloat(document.getElementById('edit-incoming-alert-' + bankKey)?.value || '0') || 0,
-    outgoingAlert: parseFloat(document.getElementById('edit-outgoing-alert-' + bankKey)?.value || '0') || 0
-  };
-}
-
-function setManagedSaveCheck(bankKey, fieldKey, state) {
-  const el = document.getElementById(`save-check-${fieldKey}-${bankKey}`);
-  if (!el) return;
-  el.classList.remove('show', 'saving', 'error');
-  if (state === 'saving') {
-    el.textContent = '…';
-    el.classList.add('saving');
-    return;
-  }
-  if (state === 'error') {
-    el.textContent = '✓';
-    el.classList.add('show');
-    window.setTimeout(() => el.classList.remove('show'), 1800);
-    return;
-  }
-  if (state === 'saved') {
-    el.textContent = '✓';
-    el.classList.add('show');
-    window.setTimeout(() => el.classList.remove('show'), 1800);
-  }
-}
-
-function scheduleManagedBankAutoSave(bankKey, fieldKey, immediate = false) {
-  const key = `${bankKey}:${fieldKey}`;
-  window.clearTimeout(managedBankAutoSaveTimers[key]);
-  setManagedSaveCheck(bankKey, fieldKey, 'saving');
-  managedBankAutoSaveTimers[key] = window.setTimeout(() => {
-    autoSaveManagedBankMonthlyField(bankKey, fieldKey);
-  }, immediate ? 80 : 700);
-}
-
-function scheduleManagedBankDetailAutoSave(bankKey, fieldKey, immediate = false) {
-  const key = `${bankKey}:detail:${fieldKey}`;
-  window.clearTimeout(managedBankAutoSaveTimers[key]);
-  setManagedSaveCheck(bankKey, fieldKey, 'saving');
-  managedBankAutoSaveTimers[key] = window.setTimeout(() => {
-    autoSaveManagedBankDetails(bankKey, fieldKey);
-  }, immediate ? 80 : 700);
-}
-
-function scheduleManagedBankCardAutoSave(bankKey, slot, cardField, immediate = false) {
-  window.pendingManagedBankCardEdit = {
-    bankKey: String(bankKey || ''),
-    slot: Number(slot || 0) || 0,
-    field: String(cardField || '')
-  };
-  scheduleManagedBankDetailAutoSave(bankKey, 'cards', immediate);
-}
-
-function readManagedBankAccountsFromForm(bankKey) {
-  const id = String(bankKey || '').trim();
-  const rows = Array.from(document.querySelectorAll('[data-bank-account-row-v288]'))
-    .filter(row => row.getAttribute('data-bank-account-row-v288') === id);
-  if (!rows.length) {
-    const visible = document.getElementById('edit-account-v286-' + id);
-    const legacy = document.getElementById('edit-account-' + id);
-    return cleanBankAccountValue(visible?.value || legacy?.value || '');
-  }
-  const values = rows
-    .map(row => cleanBankAccountValue(row.querySelector('input')?.value || ''))
-    .filter(Boolean);
-  return normalizeIdentifierList(values.join(','));
-}
-
-function refreshBankIdentifierDependentViews() {
-  try { __btTxnsTabDirty = true; } catch (_) {}
-  try {
-    if (activePageId === 'txns' && typeof renderTransactionsSection === 'function') renderTransactionsSection();
-  } catch (_) {}
-  try { renderBankCards(getTransactionsByBank(true, true)); } catch (_) {}
-}
-
-async function autoSaveManagedBankDetails(bankKey, fieldKey = 'name') {
-  const base = getBankInfo(bankKey) || {};
-  const newName = document.getElementById('edit-name-' + bankKey)?.value.trim() || plainBankName(bankKey);
-  const newCurrency = normalizeCurrencyForStorage(document.getElementById('edit-currency-' + bankKey)?.value || base.primaryCurrency || 'Kč');
-  const visibleAccount = document.getElementById('edit-account-v286-' + bankKey);
-  const legacyAccount = document.getElementById('edit-account-' + bankKey);
-  const accountFromForm = readManagedBankAccountsFromForm(bankKey);
-  if (legacyAccount) legacyAccount.value = accountFromForm || visibleAccount?.value || legacyAccount.value || '';
-  const hasStoredCardFields = !!document.getElementById(getManagedBankStoredCardInputId(bankKey, 1, 'number'));
-  const storedCards = hasStoredCardFields ? readManagedBankStoredCardsFromForm(bankKey) : getBankStoredCards(bankKey);
-  if (hasStoredCardFields) setBankStoredCards(bankKey, storedCards);
-  const newAccount = cleanBankAccountValue(accountFromForm || document.getElementById('edit-account-' + bankKey)?.value || base.account || '');
-  const newCards = removeAccountPartsFromCards(cleanBankCardsValue(document.getElementById('edit-cards-' + bankKey)?.value || base.cards || ''), newAccount);
-
-  setBankDisplayOverride(bankKey, newName);
-  localStorage.setItem('bank_currency_' + bankKey, newCurrency);
-  localStorage.setItem('bank_account_' + bankKey, newAccount);
-  localStorage.setItem('bank_cards_' + bankKey, newCards);
-
-  const customBanks = getCustomBanks();
-  const custom = customBanks.find(b => b.id === bankKey);
-  if (custom) {
-    custom.name = newName;
-    custom.currency = newCurrency;
-    custom.account = newAccount;
-    custom.cards = newCards;
-    custom.storedCards = storedCards;
-    saveCustomBanks(customBanks);
-  }
-
-  const pendingCardEdit = fieldKey === 'cards' && window.pendingManagedBankCardEdit?.bankKey === String(bankKey)
-    ? window.pendingManagedBankCardEdit
-    : null;
-  const bankSaveAction = fieldKey === 'cards' ? 'saveBankCards' : 'saveBank';
-  const ok = await postToBankTrackerEndpoint(bankSaveAction, {
-    bank: {
-      id: bankKey,
-      name: newName,
-      currency: newCurrency,
-      type: base.primaryType || custom?.type || 'card',
-      account: newAccount,
-      cards: newCards,
-      storedCards,
-      replaceIdentifiers: true,
-      changedField: fieldKey,
-      changedSlot: pendingCardEdit?.slot || 0,
-      changedCardField: pendingCardEdit?.field || '',
-      allowAppend: false,
-      active: true
-    }
-  });
-
-  if (!ok) {
-    setManagedSaveCheck(bankKey, fieldKey, 'error');
-    const status = document.getElementById('limits-sync-status');
-    if (status) status.textContent = 'Zmeny sú uložené lokálne. Google Sheets sync sa nepodaril - skontroluj Web App /exec a Apps Script Executions.';
-  }
-  if (ok) {
-    setManagedSaveCheck(bankKey, fieldKey, 'saved');
-    showSavedToast();
-  }
-  if (fieldKey === 'account' || fieldKey === 'cards') refreshBankIdentifierDependentViews();
-  renderOverview();
-  renderArchive();
-  return ok;
-}
-
-async function autoSaveManagedBankMonthlyField(bankKey, fieldKey = 'settings') {
-  const values = getManagedBankMonthlyValues(bankKey);
-  if (!values.month) return false;
-
-  // Update local state first so the UI reacts immediately.
-  localStorage.setItem(`bank_card_limit_${bankKey}_${values.month}`, String(values.cardLimit));
-  if (bankKey === 'csob_cz_credit') {
-    setCreditCardLimitForBank(bankKey, values.creditCardLimit, values.month);
-    localStorage.setItem('bank_credit_card_limit_' + bankKey, String(values.creditCardLimit));
-  }
-  const banks = getCustomBanks();
-  const custom = banks.find(b => b && b.id === bankKey);
-  if (custom) {
-    custom.cardLimit = values.cardLimit;
-    custom.creditCardLimit = values.creditCardLimit;
-    custom.balance = values.balance;
-    custom.budget = values.budget;
-    custom.warning = values.warning;
-    custom.incomingAlert = values.incomingAlert;
-    custom.outgoingAlert = values.outgoingAlert;
-    custom.budgetMonth = values.month;
-    saveCustomBanks(banks);
-  }
-  const limits = getLimitsForMonth(values.month);
-  const bank = getBankInfo(bankKey);
-  if (bank && bank.limitKey) {
-    limits[bank.limitKey] = values.cardLimit;
-    saveLimitsForMonth(values.month, limits);
-  }
-  setBudgetSettingsForBank(bankKey, values.budget, values.warning, values.month);
-  syncAccountBalanceBaseFromAbsoluteValue(bankKey, values.month, values.balance);
-  setTransactionAlertSettingsForBank(bankKey, values.incomingAlert, values.outgoingAlert, values.month);
-
-  let ok = await saveBankSettingsEndpoint(bankKey, values.month, values.cardLimit, values.budget, values.warning, values.balance, values.incomingAlert, values.outgoingAlert, values.creditCardLimit);
-
-  if (!ok) {
-    setManagedSaveCheck(bankKey, fieldKey, 'error');
-    const status = document.getElementById('limits-sync-status');
-    if (status) status.textContent = 'Zmeny sú uložené lokálne. Google Sheets sync sa nepodaril - skontroluj Web App /exec a Apps Script Executions.';
-  }
-  if (ok) {
-    setManagedSaveCheck(bankKey, fieldKey, 'saved');
-    showSavedToast();
-  }
-  renderOverview();
-  renderArchive();
-  return ok;
-}
-
-async function updateSystemBankSettings(bankKey) {
-  const bank = getBankInfo(bankKey);
-  const budgetMonth = document.getElementById('edit-budget-month-' + bankKey)?.value || '';
-  if (!budgetMonth) {
-    alert(t('chooseMonth', 'Vyber mesiac'));
-    document.getElementById('edit-budget-month-' + bankKey)?.focus();
-    return;
-  }
-  const monthStr = normalizeMonthStr(budgetMonth);
-  const limits = getLimitsForMonth(monthStr);
-
-  const newName = document.getElementById('edit-name-' + bankKey)?.value.trim() || plainBankName(bankKey);
-  const newCurrency = normalizeCurrencyForStorage(document.getElementById('edit-currency-' + bankKey)?.value || bank.primaryCurrency || 'Kč');
-  const newAccount = cleanBankAccountValue(document.getElementById('edit-account-' + bankKey)?.value || bank.account || '');
-  const newCards = removeAccountPartsFromCards(cleanBankCardsValue(document.getElementById('edit-cards-' + bankKey)?.value || bank.cards || ''), newAccount);
-  const newLimit = parseInt(document.getElementById('edit-card-limit-' + bankKey)?.value || '0', 10) || 0;
-  const newCreditCardLimit = parseFloat(document.getElementById('edit-credit-card-limit-' + bankKey)?.value || '0') || 0;
-  const newBudget = parseFloat(document.getElementById('edit-budget-' + bankKey)?.value || '0') || 0;
-  const newWarning = parseFloat(document.getElementById('edit-warning-' + bankKey)?.value || '0') || 0;
-  const newBalance = parseFloat(document.getElementById('edit-balance-' + bankKey)?.value || '0') || 0;
-  const newIncomingAlert = parseFloat(document.getElementById('edit-incoming-alert-' + bankKey)?.value || '0') || 0;
-  const newOutgoingAlert = parseFloat(document.getElementById('edit-outgoing-alert-' + bankKey)?.value || '0') || 0;
-
-  setBankDisplayOverride(bankKey, newName);
-  localStorage.setItem('bank_currency_' + bankKey, newCurrency);
-  localStorage.setItem('bank_account_' + bankKey, newAccount);
-  localStorage.setItem('bank_cards_' + bankKey, newCards);
-
-  if (bank && bank.limitKey) {
-    limits[bank.limitKey] = newLimit;
-    saveLimitsForMonth(monthStr, limits);
-  }
-  if (bankKey === 'csob_cz_credit') {
-    setCreditCardLimitForBank(bankKey, newCreditCardLimit, monthStr);
-    localStorage.setItem('bank_credit_card_limit_' + bankKey, String(newCreditCardLimit));
-  }
-
-  setBudgetSettingsForBank(bankKey, newBudget, newWarning, budgetMonth);
-  syncAccountBalanceBaseFromAbsoluteValue(bankKey, monthStr, newBalance);
-  setTransactionAlertSettingsForBank(bankKey, newIncomingAlert, newOutgoingAlert, monthStr);
-
-  showSavedToast();
-
-  const bankOk = await postToBankTrackerEndpoint('saveBank', {
-    bank: {
-      id: bankKey,
-      name: newName,
-      currency: newCurrency,
-      type: bank?.primaryType || 'card',
-      account: newAccount,
-      cards: newCards,
-      active: true
-    }
-  });
-  const settingsOk = await saveBankSettingsEndpoint(bankKey, budgetMonth, newLimit, newBudget, newWarning, newBalance, newIncomingAlert, newOutgoingAlert, newCreditCardLimit);
-
-  renderBankManager();
-  renderAll();
-  if (!(bankOk || settingsOk)) {
-    const status = document.getElementById('limits-sync-status');
-    if (status) status.textContent = 'Nastavenia banky sú uložené lokálne. Google Sheets zápis neprebehol - skontroluj Web App /exec URL.';
-  }
-}
-
-function fillManualTransactionBanks(){const select=document.getElementById('manual-tx-bank');if(!select)return;select.innerHTML=BANK_ORDER.map(k=>`<option value="${k}">${plainBankName(k)}</option>`).join('')+getCustomBanks().map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}
-
-function getManualPaymentMeta(paymentKind, direction, bankKey, bankName, customBank) {
-  const kind = paymentKind || 'card';
-  const isIncoming = direction === 'incoming';
-
-  if (kind === 'cash') {
-    return {
-      card: 'Cash',
-      type: isIncoming ? t('cashPaymentKind') : t('cashPaymentKind')
-    };
-  }
-
-  if (kind === 'account') {
-    const info = BANKS[bankKey] || null;
-    const account = customBank?.account || localStorage.getItem('bank_account_' + bankKey) || info?.account || '';
-    const firstAccount = cleanBankAccountValue(account).split(',').map(v => v.trim()).filter(Boolean)[0] || '';
-    return {
-      card: firstAccount ? `Účet ${firstAccount}` : `Účet ${bankName}`,
-      type: isIncoming ? 'príjem na účet' : 'odchod z účtu'
-    };
-  }
-
-  const info = BANKS[bankKey] || null;
-  const cards = customBank?.cards || localStorage.getItem('bank_cards_' + bankKey) || info?.cards || '';
-  const firstCard = cleanBankCardsValue(cards).split(',').map(v => v.trim()).filter(Boolean)[0] || '';
-  return {
-    card: firstCard ? `Karta ****${firstCard}` : `Karta ${bankName}`,
-    type: 'platba kartou'
-  };
-}
-
-async function saveManualTransaction(){
-  const bankKey=document.getElementById('manual-tx-bank')?.value||'rb_cz';
-  const paymentKind=document.getElementById('manual-tx-kind')?.value||'card';
-  const merchant=document.getElementById('manual-tx-merchant')?.value.trim()||t('manualTransaction');
-  const amountRaw=parseFloat(document.getElementById('manual-tx-amount')?.value||'0')||0;
-  const direction=document.getElementById('manual-tx-direction')?.value||'outgoing';
-  const currency=normalizeCurrencyForStorage(document.getElementById('manual-tx-currency')?.value||'Kč');
-  const category=document.getElementById('manual-tx-category')?.value||'Ostatné';
-  const variableSymbol = String(document.getElementById('manual-tx-vs')?.value || '').replace(/\D/g, '').trim();
-  const tagLabel = normalizeTransactionTagLabel(document.getElementById('manual-tx-tag')?.value || '');
-  const tagColorInput = document.getElementById('manual-tx-tag-color');
-  const tagShapeRaw = document.getElementById('manual-tx-tag-shape')?.value || '';
-  const tagValidation = validateRequiredTagFields(
-    tagLabel,
-    tagShapeRaw,
-    tagColorInput?.value || '#58A6FF',
-    tagColorInput?.dataset?.userPicked || '0',
-    'manual'
-  );
-  if (!tagValidation.ok) { alert(tagValidation.message); return; }
-  const tagColor = tagLabel ? tagValidation.color : '';
-  const tagShape = tagLabel ? tagValidation.shape : '';
-  const txDate=parseManualDateInput(document.getElementById('manual-tx-date')?.value);
-  const amount=direction==='incoming'?Math.abs(amountRaw):-Math.abs(amountRaw);
-  const customBank=getCustomBanks().find(b=>b.id===bankKey);
-  const bankName=customBank?customBank.name:plainBankName(bankKey);
-  const paymentMeta = getManualPaymentMeta(paymentKind, direction, bankKey, bankName, customBank);
-
-  const newTx = {
-    id:'manual-'+Date.now(),
-    date:formatDate(txDate),
-    rawDate:txDate.toISOString(),
-    amount,
-    currency,
-    merchant,
-    category,
-    card:paymentMeta.card,
-    type:paymentMeta.type,
-    paymentKind,
-    variableSymbol,
-    vs: variableSymbol,
-    tagLabel,
-    tagName: tagLabel,
-    tagColor,
-    tagShape,
-    tagMeta: tagLabel ? { name: tagLabel, color: tagColor, shape: tagShape } : null,
-    tag: tagLabel ? JSON.stringify({ name: tagLabel, color: tagColor, shape: tagShape }) : '',
-    month:getMonthFromDate(txDate),
-    bank:bankName,
-    bankId: bankKey,
-    timestamp:txDate.getTime()
-  };
-
-  allTransactions.unshift(newTx);
-  allTransactions=sortTransactionsNewestFirst(allTransactions);
-  seedAccountBalanceBasesForMonth(newTx.month);
-  recomputeAccountBalancesForMonth(newTx.month);
-  applyLocalArchiveStatsFromTransaction(newTx, 1);
-  saveCachedTransactionsSnapshot();
-  closeBottomSheets();
-  renderAll();
-
-  // v156: manual add feels instant because the transaction is added locally immediately.
-  // Sync to Google Sheets in the background; do not block the UI with a loading spinner.
-  showSavedToast();
-  postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(newTx) }).then(ok => {
-    if (ok) scheduleBackgroundMonthlyArchiveRepair('save_transaction_background_repair');
-    if (!ok) {
-      const status = document.getElementById('limits-sync-status');
-      if (status) status.textContent = t('transactionSyncDelayed') || 'Saved locally. Google Sheets response was delayed.';
-    }
-  });
-
-  document.getElementById('manual-tx-merchant').value='';
-  document.getElementById('manual-tx-amount').value='';
-  document.getElementById('manual-tx-category').value='Ostatné';
-  const vsInput = document.getElementById('manual-tx-vs');
-  if (vsInput) vsInput.value = '';
-  const tagInput = document.getElementById('manual-tx-tag');
-  if (tagInput) tagInput.value = '';
-  if (tagColorInput) {
-    tagColorInput.value = '#58a6ff';
-    tagColorInput.dataset.userPicked = '0';
-  }
-  const tagShapeInput = document.getElementById('manual-tx-tag-shape');
-  if (tagShapeInput) tagShapeInput.value = '';
-  const kindInput = document.getElementById('manual-tx-kind');
-  if (kindInput) kindInput.value = 'card';
-  const dateInput = document.getElementById('manual-tx-date');
-  if (dateInput) dateInput.value = toDateInputValue(new Date());
-}
-function filterDirection(direction){
-  activeDirection=direction;
-  clearDrilldownTransactionFilter();
-  resetTxnVisibleLimit();
-  document.getElementById('filter-dir-all')?.classList.toggle('active',direction==='all');
-  document.getElementById('filter-dir-incoming')?.classList.toggle('active',direction==='incoming');
-  document.getElementById('filter-dir-outgoing')?.classList.toggle('active',direction==='outgoing');
-  updateTxnPage();
-}
-function getArchiveMonthlySeries() {
-  const monthly = {};
-
-  allTransactions.forEach(t => {
-    if (!t.month) return;
-
-    if (!monthly[t.month]) {
-      monthly[t.month] = { month: t.month, incoming: 0, spent: 0 };
-    }
-
-    const currency = currencyCode(t.currency || 'CZK');
-    const amount = Math.abs(Number(t.amount) || 0);
-    const czkValue = currency === 'EUR' ? amount * 25 : amount;
-
-    if (Number(t.amount) > 0) monthly[t.month].incoming += czkValue;
-    if (Number(t.amount) < 0) monthly[t.month].spent += czkValue;
-  });
-
-  return Object.values(monthly)
-    .sort((a, b) => monthSortValue(a.month) - monthSortValue(b.month))
-    .slice(-8);
-}
-
-
-
-
-
-
-function getFxRateToEurBase(currency) {
-  const curr = currencyCode(currency || 'CZK');
-  if (curr === 'EUR') return 1;
-  const rate = Number(fxRates?.[curr] || 0);
-  if (rate > 0) return rate;
-  if (curr === 'CZK') return 25;
-  return 0;
-}
-
-function convertAmountCurrency(amount, fromCurrency, toCurrency) {
-  const value = Math.abs(Number(amount) || 0);
-  const from = currencyCode(fromCurrency || 'CZK');
-  const to = currencyCode(toCurrency || 'CZK');
-
-  if (from === to) return value;
-
-  const fromRate = getFxRateToEurBase(from);
-  const toRate = getFxRateToEurBase(to);
-  if (!fromRate || !toRate) return value;
-
-  const valueInEur = value / fromRate;
-  return valueInEur * toRate;
-}
-
-function convertSignedAmountCurrency(amount, fromCurrency, toCurrency) {
-  const numeric = Number(amount) || 0;
-  if (!Number.isFinite(numeric) || numeric === 0) return 0;
-  const sign = numeric < 0 ? -1 : 1;
-  return sign * convertAmountCurrency(Math.abs(numeric), fromCurrency, toCurrency);
-}
-
-function convertTransactionAmount(tx, targetCurrency = 'CZK') {
-  return convertAmountCurrency(tx.amount, tx.currency, targetCurrency);
-}
-
-function getBankChartCurrency(bankKey) {
-  const bank = getBankInfo(bankKey);
-  return localStorage.getItem('bank_currency_' + bankKey) || bank.primaryCurrency || 'CZK';
-}
-
-function formatCompactAmount(value) {
-  const n = Math.round(Number(value) || 0);
-  if (n >= 1000000) return `${Math.round(n / 100000) / 10}M`;
-  if (n >= 1000) return `${Math.round(n / 100) / 10}k`;
-  return String(n);
-}
-
-
-function shortArchiveMonthLabel(monthStr) {
-  const m = normalizeMonthStr(monthStr);
-  const idx = parseInt(m.slice(0, 2), 10) - 1;
-  const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'];
-  return labels[idx] || m;
-}
-
-function toggleArchiveTrendChartType() {
-  archiveTrendChartType = archiveTrendChartType === 'bars' ? 'line' : 'bars';
-  localStorage.setItem('archive_trend_chart_type', archiveTrendChartType);
-  archiveTrendChartCache = { signature: '', html: '' };
-  renderArchiveTrendChart();
-  scheduleArchiveChartIntro(30);
-}
-
-function getDynamicArchiveBankKeys(monthly) {
-  const seen = new Set();
-  const ordered = [];
-  BANK_ORDER.forEach(key => { seen.add(key); ordered.push(key); });
-  getCustomBanks().forEach(bank => {
-    if (bank && bank.active !== false && bank.id && !seen.has(bank.id)) {
-      seen.add(bank.id);
-      ordered.push(bank.id);
-    }
-  });
-  Object.keys(monthly || {}).forEach(month => {
-    Object.keys(monthly[month] || {}).forEach(key => {
-      if (key && !seen.has(key)) {
-        seen.add(key);
-        ordered.push(key);
-      }
-    });
-  });
-  return ordered;
-}
-
-function getArchiveBankInfo(bankKey) {
-  const custom = getCustomBanks().find(b => b && b.id === bankKey);
-  if (custom) {
-    return {
-      label: escapeHtml(custom.name || 'Banka'),
-      short: escapeHtml(custom.name || 'Banka'),
-      color: getCustomArchiveBankColor(bankKey),
-      primaryCurrency: custom.currency || 'CZK'
-    };
-  }
-  return getBankInfo(bankKey);
-}
-
-function getArchiveBankName(bankKey) {
-  const custom = getCustomBanks().find(b => b && b.id === bankKey);
-  return custom ? (custom.name || 'Banka') : plainBankName(bankKey);
-}
-
-
-function getArchiveMonthlyStatKey(bankKey, monthStr, field) {
-  return `bank_monthly_${field}_${bankKey}_${normalizeMonthStr(monthStr)}`;
-}
-
-function getOverviewMonthlyStatKey(bankKey, monthStr, field) {
-  return `overview_monthly_${field}_${bankKey}_${normalizeMonthStr(monthStr)}`;
-}
-
-function getStoredOverviewMonthlyStat(bankKey, monthStr, field) {
-  const normalizedMonth = normalizeMonthStr(monthStr || getAktuálneMonth());
-  if (localTestOverviewDetails && localTestOverviewDetails.month === normalizedMonth) {
-    let value = null;
-    if (localTestOverviewDetails.totals?.[bankKey] && localTestOverviewDetails.totals[bankKey][field] !== undefined) {
-      value = Number(localTestOverviewDetails.totals[bankKey][field] || 0) || 0;
-    }
-    if (bankKey === 'csob_cz' && localTestOverviewDetails.totals?.csob_cz_credit && localTestOverviewDetails.totals.csob_cz_credit[field] !== undefined) {
-      value = (value || 0) + (Number(localTestOverviewDetails.totals.csob_cz_credit[field] || 0) || 0);
-    }
-    if (value !== null) return value;
-  }
-  let total = 0;
-  let found = false;
-  const stored = localStorage.getItem(getOverviewMonthlyStatKey(bankKey, normalizedMonth, field));
-  if (stored !== null) {
-    const n = Number(stored || 0);
-    if (Number.isFinite(n)) { total += n; found = true; }
-  }
-  if (bankKey === 'csob_cz') {
-    const creditStored = localStorage.getItem(getOverviewMonthlyStatKey('csob_cz_credit', normalizedMonth, field));
-    if (creditStored !== null) {
-      const n = Number(creditStored || 0);
-      if (Number.isFinite(n)) { total += n; found = true; }
-    }
-  }
-  return found ? total : null;
-}
-
-function setOverviewMonthlyStat(bankKey, monthStr, field, value) {
-  const amount = Math.round((Number(value || 0) || 0) * 100) / 100;
-  localStorage.setItem(getOverviewMonthlyStatKey(bankKey, monthStr, field), String(amount));
-  return amount;
-}
-
-
-function setArchiveMonthlyStat(bankKey, monthStr, field, value) {
-  const key = getArchiveMonthlyStatKey(bankKey, monthStr, field);
-  const amount = Math.round((Number(value || 0) || 0) * 100) / 100;
-  localStorage.setItem(key, String(amount));
-  return amount;
-}
-
-function adjustArchiveMonthlyStat(bankKey, monthStr, field, delta) {
-  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
-  const key = getArchiveMonthlyStatKey(bankKey, month, field);
-  const current = Number(localStorage.getItem(key) || '0') || 0;
-  return setArchiveMonthlyStat(bankKey, month, field, current + (Number(delta || 0) || 0));
-}
-
-function applyLocalArchiveStatsFromTransaction(tx, multiplier = 1) {
-  if (!tx) return false;
-  if (typeof isExcludedFromSpendingStats === 'function' && isExcludedFromSpendingStats(tx)) return false;
-  const amount = Number(tx.amount || 0);
-  const mult = Number(multiplier || 1);
-  if (!isFinite(amount) || amount === 0 || !isFinite(mult) || mult === 0) return false;
-  const bankKey = getArchiveBankKeyFromTransaction(tx);
-  if (!bankKey) return false;
-  const month = normalizeMonthStr(tx.month || getAktuálneMonth());
-  const targetCurrency = getArchiveBankCurrency(bankKey);
-  const converted = Math.abs(convertTransactionAmount(tx, targetCurrency));
-  if (!isFinite(converted)) return false;
-  if (amount < 0) adjustArchiveMonthlyStat(bankKey, month, 'spending', mult * converted);
-  if (amount > 0) adjustArchiveMonthlyStat(bankKey, month, 'income', mult * converted);
-  const netDelta = amount < 0 ? -converted : converted;
-  adjustArchiveMonthlyStat(bankKey, month, 'net', mult * netDelta);
-  return true;
-}
-
-function rebuildLocalArchiveStatsFromTransactions(options = {}) {
-  const force = !!(options && options.force);
-  if (!force) {
-    const txnsAt = getLocalCacheTimestamp('cached_txns_updated_at');
-    const statsAt = getLocalCacheTimestamp('cached_archive_stats_updated_at');
-    if (statsAt && (!txnsAt || txnsAt <= statsAt) && isLocalCacheFresh('cached_archive_stats_updated_at')) {
-      return;
-    }
-  }
-  // Rebuild frontend monthly archive cache from the loaded transaction set.
-  // This prevents stale Bank_Archive values from overriding what the user can see
-  // in the filtered Transactions tab after add/delete/edit.
-  const prefixRe = /^bank_monthly_(spending|income|net)_.+_\d{2}\/\d{4}$/;
-  try {
-    Object.keys(localStorage).forEach(key => {
-      if (prefixRe.test(String(key || ''))) localStorage.removeItem(key);
-    });
-  } catch (e) {}
-
-  const totals = {};
-  const adjustments = buildTransactionStatsAdjustments(allTransactions);
-  (allTransactions || []).forEach(tx => {
-    if (!tx || !tx.month) return;
-    const bankKey = getArchiveBankKeyFromTransaction(tx);
-    if (!bankKey) return;
-    const month = normalizeMonthStr(tx.month);
-    const currency = getArchiveBankCurrency(bankKey);
-    const amount = Number(adjustments.effective.get(tx) || 0);
-    if (!Number.isFinite(amount) || amount === 0) return;
-    const converted = convertTransactionStatsAmount(tx, amount, currency);
-    if (!Number.isFinite(converted)) return;
-    const key = bankKey + '|' + month;
-    if (!totals[key]) totals[key] = { bankKey, month, spending: 0, income: 0, net: 0 };
-    if (amount < 0) totals[key].spending += converted;
-    if (amount > 0) totals[key].income += converted;
-    totals[key].net += amount < 0 ? -converted : converted;
-  });
-
-  Object.values(totals).forEach(item => {
-    setArchiveMonthlyStat(item.bankKey, item.month, 'spending', item.spending);
-    setArchiveMonthlyStat(item.bankKey, item.month, 'income', item.income);
-    setArchiveMonthlyStat(item.bankKey, item.month, 'net', item.net);
-  });
-  markLocalCacheTimestamp('cached_archive_stats_updated_at');
-}
-
-function getArchiveMonthlyStatFromTransactions(bankKey, monthStr, field, targetCurrency) {
-  const normalizedMonth = normalizeMonthStr(monthStr);
-  const target = currencyCode(targetCurrency || getArchiveBankCurrency(bankKey));
-  const adjustments = buildTransactionStatsAdjustments(allTransactions);
-  return allTransactions.reduce((sum, tx) => {
-    if (normalizeMonthStr(tx.month) !== normalizedMonth) return sum;
-    if (getArchiveBankKeyFromTransaction(tx) !== bankKey) return sum;
-    const amount = Number(adjustments.effective.get(tx) || 0);
-    const converted = convertTransactionStatsAmount(tx, amount, target);
-    if (field === 'spending' && amount < 0) return sum + Math.abs(converted);
-    if (field === 'income' && amount > 0) return sum + Math.abs(converted);
-    if (field === 'net') return sum + (amount < 0 ? -Math.abs(converted) : Math.abs(converted));
-    return sum;
-  }, 0);
-}
-
-function hasArchiveTransactionsForBank(bankKey, monthStr, field) {
-  const normalizedMonth = normalizeMonthStr(monthStr);
-  const adjustments = buildTransactionStatsAdjustments(allTransactions);
-  return allTransactions.some(tx => {
-    if (normalizeMonthStr(tx.month) !== normalizedMonth) return false;
-    if (getArchiveBankKeyFromTransaction(tx) !== bankKey) return false;
-    const amount = Number(adjustments.effective.get(tx) || 0);
-    if (field === 'spending') return amount < 0;
-    if (field === 'income') return amount > 0;
-    if (field === 'net') return amount !== 0;
-    return false;
-  });
-}
-
-function hasAnyArchiveTransactionsForBankMonth(bankKey, monthStr) {
-  const normalizedMonth = normalizeMonthStr(monthStr);
-  const adjustments = buildTransactionStatsAdjustments(allTransactions);
-  return allTransactions.some(tx => {
-    if (normalizeMonthStr(tx.month) !== normalizedMonth) return false;
-    if (getArchiveBankKeyFromTransaction(tx) !== bankKey) return false;
-    return Math.abs(Number(adjustments.effective.get(tx) || 0)) > 0.005;
-  });
-}
-
-function hasAnyArchiveTransactionsForMonth(monthStr) {
-  const normalizedMonth = normalizeMonthStr(monthStr);
-  const adjustments = buildTransactionStatsAdjustments(allTransactions);
-  return allTransactions.some(tx => {
-    if (normalizeMonthStr(tx.month) !== normalizedMonth) return false;
-    return Math.abs(Number(adjustments.effective.get(tx) || 0)) > 0.005;
-  });
-}
-
-function getArchiveMonthlyStat(bankKey, monthStr, field, targetCurrency) {
-  const normalizedMonth = normalizeMonthStr(monthStr);
-  const target = currencyCode(targetCurrency || getArchiveBankCurrency(bankKey));
-
-  // v162: live Transactions/Archive_Transactions are the UI source of truth.
-  // Bank_Archive is a backend cache/snapshot and can be stale after local add/delete
-  // or if the backend delta had an old bug. If we have loaded transactions for this
-  // bank+month, calculate spent/income/net directly from them in the bank currency.
-  // v285: if the selected month has loaded transactions, always compute live by bank
-  // to avoid stale backend monthly cache (e.g. internal transfer leftovers).
-  if (hasAnyArchiveTransactionsForMonth(normalizedMonth) || hasAnyArchiveTransactionsForBankMonth(bankKey, normalizedMonth)) {
-    return getArchiveMonthlyStatFromTransactions(bankKey, normalizedMonth, field, target);
-  }
-
-  let total = 0;
-  let hasStored = false;
-  const stored = localStorage.getItem(getArchiveMonthlyStatKey(bankKey, normalizedMonth, field));
-  if (stored !== null) {
-    const n = Number(stored || 0);
-    if (Number.isFinite(n)) { total += n; hasStored = true; }
-  }
-  if (bankKey === 'csob_cz') {
-    const creditStored = localStorage.getItem(getArchiveMonthlyStatKey('csob_cz_credit', normalizedMonth, field));
-    if (creditStored !== null) {
-      const n = Number(creditStored || 0);
-      if (Number.isFinite(n)) { total += n; hasStored = true; }
-    }
-  }
-  if (!hasStored) {
-    const overviewStored = localStorage.getItem(getOverviewMonthlyStatKey(bankKey, normalizedMonth, field));
-    if (overviewStored !== null) {
-      const n = Number(overviewStored || 0);
-      if (Number.isFinite(n)) { total += n; hasStored = true; }
-    }
-    if (bankKey === 'csob_cz') {
-      const overviewCreditStored = localStorage.getItem(getOverviewMonthlyStatKey('csob_cz_credit', normalizedMonth, field));
-      if (overviewCreditStored !== null) {
-        const n = Number(overviewCreditStored || 0);
-        if (Number.isFinite(n)) { total += n; hasStored = true; }
-      }
-    }
-  }
-  if (hasStored) {
-    // Bank_Settings monthly archive totals were historically stored in CZK.
-    // Display them in the bank account currency, e.g. ČSOB SK in EUR.
-    return target === 'CZK' ? total : convertAmountCurrency(total, 'CZK', target);
-  }
-  return getArchiveMonthlyStatFromTransactions(bankKey, normalizedMonth, field, target);
-}
-
-function getMonthlyArchiveSpentForBank(bankKey, monthStr) {
-  return getArchiveMonthlyStat(bankKey, monthStr, 'spending', getArchiveBankCurrency(bankKey));
-}
-
-function formatMonthlyArchiveSpentCell(bankKey, monthStr) {
-  const currency = getArchiveBankCurrency(bankKey);
-  const spent = Number(getMonthlyArchiveSpentForBank(bankKey, monthStr) || 0);
-  return spent ? ('-' + formatCurrencyAmount(Math.abs(spent), currency)) : formatCurrencyAmount(0, currency);
-}
-
-function renderArchiveCzkEquivalentHtml(amount, sourceCurrency, direction) {
-  const source = currencyCode(sourceCurrency || 'CZK');
-  if (source === 'CZK') return '';
-  const value = Math.abs(Number(amount) || 0);
-  const czk = convertAmountCurrency(value, source, 'CZK');
-  const formatted = formatCurrencyAmount(czk, 'CZK');
-  const text = (direction === 'spent' && value > 0) ? ('-' + formatted) : formatted;
-  return `<div class="archive-bank-czk-equivalent">${escapeHtml(text)}</div>`;
-}
-
-function renderMonthlyArchiveSpentCellHtml(bankKey, monthStr) {
-  const currency = getArchiveBankCurrency(bankKey);
-  const spent = Number(getMonthlyArchiveSpentForBank(bankKey, monthStr) || 0);
-  const main = spent ? ('-' + formatCurrencyAmount(Math.abs(spent), currency)) : formatCurrencyAmount(0, currency);
-  const equivalent = renderArchiveCzkEquivalentHtml(spent, currency, 'spent');
-  return `<div class="archive-amount-wrap"><div>${escapeHtml(main)}</div>${equivalent}</div>`;
-}
-
-function getMonthlyArchiveIncomeForBank(bankKey, monthStr) {
-  return getArchiveMonthlyStat(bankKey, monthStr, 'income', getArchiveBankCurrency(bankKey));
-}
-
-function formatMonthlyArchiveIncomeCell(bankKey, monthStr) {
-  const currency = getArchiveBankCurrency(bankKey);
-  const income = Number(getMonthlyArchiveIncomeForBank(bankKey, monthStr) || 0);
-  return income ? formatCurrencyAmount(income, currency) : formatCurrencyAmount(0, currency);
-}
-
-function renderMonthlyArchiveIncomeCellHtml(bankKey, monthStr) {
-  const currency = getArchiveBankCurrency(bankKey);
-  const income = Number(getMonthlyArchiveIncomeForBank(bankKey, monthStr) || 0);
-  const main = income ? formatCurrencyAmount(income, currency) : formatCurrencyAmount(0, currency);
-  const equivalent = renderArchiveCzkEquivalentHtml(income, currency, 'income');
-  return `<div class="archive-amount-wrap"><div>${escapeHtml(main)}</div>${equivalent}</div>`;
-}
-
-function getArchiveMonthTotalsForBanks(bankKeys, monthStr, targetCurrency) {
-  const currency = currencyCode(targetCurrency || getAppCurrency() || 'CZK');
-  let spent = 0;
-  let income = 0;
-  (bankKeys || []).forEach(bankKey => {
-    const sourceCurrency = getArchiveBankCurrency(bankKey);
-    const bankSpent = Number(getMonthlyArchiveSpentForBank(bankKey, monthStr) || 0);
-    const bankIncome = Number(getMonthlyArchiveIncomeForBank(bankKey, monthStr) || 0);
-    if (bankSpent > 0) spent += Math.max(0, Number(convertAmountCurrency(bankSpent, sourceCurrency, currency) || 0));
-    if (bankIncome > 0) income += Math.max(0, Number(convertAmountCurrency(bankIncome, sourceCurrency, currency) || 0));
-  });
-  return { spent, income, currency };
-}
-
-function renderArchiveMonthTotalsRowHtml(bankKeys, monthStr) {
-  const totals = getArchiveMonthTotalsForBanks(bankKeys, monthStr, getAppCurrency() || 'CZK');
-  const spentMain = totals.spent ? ('-' + formatCurrencyAmount(Math.abs(totals.spent), totals.currency)) : formatCurrencyAmount(0, totals.currency);
-  const incomeMain = totals.income ? formatCurrencyAmount(totals.income, totals.currency) : formatCurrencyAmount(0, totals.currency);
-  const spentEquivalent = renderArchiveCzkEquivalentHtml(totals.spent, totals.currency, 'spent');
-  const incomeEquivalent = renderArchiveCzkEquivalentHtml(totals.income, totals.currency, 'income');
-  const totalLabel = escapeHtml(t('accountBalanceTotal'));
-  const monthLabel = escapeAttr(formatMonthString(monthStr));
-  return `<div class="archive-bank-spent-row archive-bank-total-row" title="${monthLabel} · ${totalLabel}">
-    <div class="archive-bank-limit-cell archive-bank-total-label" title="${monthLabel} · ${totalLabel}">${totalLabel}<div class="archive-bank-status">${escapeHtml(totals.currency)}</div></div>
-    <div class="archive-bank-spent-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('všetky','${monthStr}','spent')" title="${monthLabel} · ${escapeAttr(t('spent'))} · ${escapeAttr(t('outgoing'))}"><div class="archive-amount-wrap"><div>${escapeHtml(spentMain)}</div>${spentEquivalent}</div></div>
-    <div class="archive-bank-income-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('všetky','${monthStr}','income')" title="${monthLabel} · ${escapeAttr(t('income'))} · ${escapeAttr(t('incoming'))}"><div class="archive-amount-wrap"><div>${escapeHtml(incomeMain)}</div>${incomeEquivalent}</div></div>
-  </div>`;
-}
-
-function getArchiveCardLimitForMonth(bankKey, monthStr) {
-  const bank = getArchiveBankInfo(bankKey);
-  const systemBank = BANKS[bankKey];
-  const hist = getLimitsForMonth(monthStr);
-  if (systemBank && systemBank.limitKey) return hist[systemBank.limitKey] ?? systemBank.defaultLimit ?? 0;
-
-  const custom = getCustomBanks().find(b => b && b.id === bankKey);
-  const monthlyStored = localStorage.getItem(`bank_card_limit_${bankKey}_${normalizeMonthStr(monthStr)}`);
-  const stored = monthlyStored !== null ? monthlyStored : localStorage.getItem(`bank_card_limit_${bankKey}`);
-  const value = parseFloat(stored ?? custom?.cardLimit ?? bank?.defaultLimit ?? 0);
-  return Number.isFinite(value) ? value : 0;
-}
-
-function getCustomArchiveBankColor(bankKey) {
-  const palette = ['#7dd3fc', '#c084fc', '#f9a8d4', '#fde047', '#86efac', '#fdba74', '#a5b4fc', '#67e8f9'];
-  let hash = 0;
-  String(bankKey || '').split('').forEach(ch => { hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0; });
-  return palette[Math.abs(hash) % palette.length];
-}
-
-function getArchiveBankKeyFromTransaction(tx) {
-  const explicit = String(tx.bankId || tx.bankKey || '').trim();
-  if (explicit === 'csob_cz_credit') return 'csob_cz';
-  if (explicit && (BANKS[explicit] || explicit.startsWith('custom_'))) return explicit;
-  const detectedKey = getBankKey(tx);
-  if (detectedKey === 'csob_cz_credit') return 'csob_cz';
-  const bankText = String(tx.bank || tx.banka || '').trim().toLowerCase();
-  const custom = getCustomBanks().find(b => {
-    if (!b || b.active === false) return false;
-    const id = String(b.id || '').toLowerCase();
-    const name = String(b.name || '').toLowerCase();
-    const account = String(b.account || '').toLowerCase();
-    return (id && bankText === id) || (name && bankText.includes(name)) || (account && bankText.includes(account.replace(/\*/g, '')));
-  });
-  const fallbackKey = custom ? custom.id : getBankKey(tx);
-  return fallbackKey === 'csob_cz_credit' ? 'csob_cz' : fallbackKey;
-}
-
 function getArchiveTrendMonths() {
   const months = new Set();
   (allTransactions || []).forEach(tx => {
@@ -947,6 +76,7 @@ function renderArchiveTrendChart() {
   const cacheSignature = getArchiveTrendChartCacheSignature();
   if (archiveTrendChartCache.signature === cacheSignature && archiveTrendChartCache.html) {
     wrap.innerHTML = archiveTrendChartCache.html;
+    primeArchiveTrendLinesForIntro(wrap);
     const chartType = archiveTrendChartType === 'bars' ? 'bars' : 'line';
     const toggle = document.getElementById('archive-trend-toggle');
     const toggleIcon = document.getElementById('archive-trend-toggle-icon');
@@ -1049,6 +179,7 @@ function renderArchiveTrendChart() {
         ${bars}
       </svg>
     `;
+    primeArchiveTrendLinesForIntro(wrap);
     archiveTrendChartCache = { signature: cacheSignature, html: wrap.innerHTML };
     return;
   }
@@ -1139,9 +270,13 @@ function renderArchiveMonthCardHtml(mStr, visibleBankKeys, monthlyCounts) {
       <div class="archive-bank-income-cell" onclick="event.stopPropagation(); openArchiveMonthFilter('${bankKey}','${mStr}','income')" title="${title} · ${t('income')} · ${t('incoming')}">${income}</div>
     </div>`;
   }).join('');
-  const totalsRow = renderArchiveMonthTotalsRowHtml(visibleBankKeys, mStr);
+  // Total používa presne tú istú množinu účtov ako Available cash a Net flow.
+  const totalsRow = renderArchiveMonthTotalsRowHtml(getOverviewCashflowBankKeysForMonth(mStr), mStr);
   const header = `<div class="archive-bank-spent-header"><div>${t('bank')}</div><div>${t('spent')}</div><div>${t('income')}</div></div>`;
-  return `<div class="archive-item archive-item-spent-layout"><div class="archive-month-top">${formatMonthString(mStr)}</div><div class="archive-spent-table">${header}${rows}${totalsRow}</div></div>`;
+  const breakdownButton = `<button class="archive-cashflow-breakdown-btn" type="button" onclick="event.stopPropagation();openMonthlyCashflowBreakdown('${mStr}')">
+    <span data-i18n="cashflowBreakdownCta">${escapeHtml(t('cashflowBreakdownCta'))}</span><span aria-hidden="true">→</span>
+  </button>`;
+  return `<div class="archive-item archive-item-spent-layout"><div class="archive-month-top">${formatMonthString(mStr)}</div><div class="archive-spent-table">${header}${rows}${totalsRow}${breakdownButton}</div></div>`;
 }
 
 function appendArchiveMonthsChunk(count) {
@@ -1257,7 +392,6 @@ function setLanguage(lang) {
 
   translateManualCategoryDropdown();
 }
-
 function applyLanguage() {
   const lang = getLanguage();
   const dict = I18N[lang] || I18N.en;
@@ -1705,7 +839,6 @@ async function syncBanksFromSheets(spreadsheetId) {
     return false;
   }
 }
-
 function parseBankSettingsSheetData(raw) {
   const data = parseGvizJson(raw);
   const rows = data?.table?.rows || [];
@@ -2058,7 +1191,6 @@ function getCurrentWebAppUrl() {
   if (LIMITS_WEBAPP_URL) localStorage.setItem('limits_webapp_url', LIMITS_WEBAPP_URL);
   return LIMITS_WEBAPP_URL;
 }
-
 function flattenEndpointPayload(action, payload = {}) {
   const flat = { action };
   const add = (key, value) => {
@@ -2185,6 +1317,7 @@ function flattenEndpointPayload(action, payload = {}) {
     add('tagColor', payload.transaction.tagColor);
     add('tagShape', payload.transaction.tagShape);
     add('excludeFromSpent', payload.transaction.excludeFromSpent ? 'yes' : '');
+    add('excludeFromIncome', payload.transaction.excludeFromIncome ? 'yes' : '');
     add('returnForTransactionId', payload.transaction.returnForTransactionId || '');
     add('recurringGroupId', payload.transaction.recurring_group_id || '');
     add('recurring_group_id', payload.transaction.recurring_group_id || '');
@@ -2375,8 +1508,18 @@ async function drainEndpointMutationQueue() {
   }
 }
 
-function queueParserRunAfterMutation(reason) {
+/* v7350: ručne pridaná transakcia NESPÚŠŤA prehľadávanie e-mailov.
+
+   Po každom uložení sa 700 ms neskôr posielal `runParser` — celý prechod
+   schránky s limitom 65 s. Pri transakcii, ktorú používateľ zapísal ručne,
+   nie je čo parsovať: žiadny e-mail k nej neexistuje. Beh len zaberal ten
+   istý Apps Script, do ktorého sa práve zapisovalo, a preto sa zápis do
+   hárku aj zmena snímky v Balance logu objavovali s viditeľným oneskorením.
+
+   Pri e-mailových cestách (import, synchronizácia bánk) beh ostáva. */
+function queueParserRunAfterMutation(reason, options) {
   if (!isGoogleSheetsEnabled()) return;
+  if (options && options.skipParserRun) return;
   if (parserRunQueueTimer) clearTimeout(parserRunQueueTimer);
   parserRunQueueTimer = setTimeout(async () => {
     parserRunQueueTimer = null;
@@ -2472,4 +1615,1442 @@ function jsonpEndpointRequest(action, payload = {}, timeoutMs = 15000) {
     (document.body || document.head || document.documentElement).appendChild(script);
     window.setTimeout(() => finish(false, { status: 'timeout', message: 'Google Sheets endpoint timeout or callback blocked', action, urlLength: endpointUrl.length, ios: isLikelyIOSWebKit() }), timeoutMs);
   });
+}
+async function testGoogleSheetsEndpointFromApp() {
+  const status = document.getElementById('limits-sync-status');
+  getCurrentWebAppUrl();
+  if (!LIMITS_WEBAPP_URL || !isValidAppsScriptExecUrl(LIMITS_WEBAPP_URL)) {
+    if (status) status.textContent = 'Najprv ulož platnú Apps Script /exec URL (zelená fajka pri poli).';
+    return false;
+  }
+  const where = isLikelyIOSWebKit() ? 'iPhone WebKit' : 'tento prehliadač';
+  if (status) status.textContent = 'Testujem Apps Script cez ' + where + '...';
+  const result = await endpointMutationRequest('debugEcho', { probe: 'bank-tracker', from: where }, 20000);
+  const data = result && result.data || {};
+  const version = String(data.version || '').trim();
+  const shortVersion = version ? version.split('_')[0] : '';
+  if (result.ok) {
+    if (status) {
+      status.textContent = shortVersion
+        ? ('Server OK (' + shortVersion + ' = verzia parsera, nie chyba). Z appky sa Apps Script dá volať — skús uložiť transakciu.')
+        : ('Test OK z ' + where + '. Skús uložiť transakciu.');
+    }
+    return true;
+  }
+  if (status) status.textContent = getEndpointFailureDetail('debugEcho', result);
+  return false;
+}
+
+/* ============================================================
+   v7353 — životný cyklus zápisu (WORKFLOW §4, FAMILY_E)
+   ============================================================
+   Tento súbor mal doteraz staršiu verziu postToBankTrackerEndpoint bez
+   mutationId a bez stavov. Novšia bola len v app-core.js, ktorý sa
+   NENAČÍTAVA — appka teda bežala bez SyncCoordinatora, hoci ho pravidlá
+   vyžadujú. Prenesené 1:1, aby oba súbory hovorili to isté.
+   ============================================================ */
+const ENDPOINT_WRITE_ACTIONS_V7241 = new Set([
+  'saveLimits','saveBudgets','saveToken','disableToken','saveBank','saveBankCards','saveBankSettings','deleteBank',
+  'saveTransaction','deleteTransaction','saveLoan','deleteLoan','saveProperty','deleteProperty','saveInsurance','deleteInsurance',
+  'saveInvestment','deleteInvestment','saveInvestmentTrades','deleteInvestmentTrades','deleteInvestmentImportBatch',
+  'deleteInvestmentEntity','applyInvestmentMutation','saveNetWorthSnapshot',
+  /* v7351: dávkový zápis transakcií je ZÁPIS ako každý iný. Bez tohto riadku
+     nedostal mutationId ani stavy local/syncing/synced/failed — čiže opakovaný
+     pokus po výpadku siete išiel bez značky a životný cyklus zápisu ho vôbec
+     nevidel. WORKFLOW §4 to vyžaduje pre všetky domény rovnako. */
+  'saveTransactionsBatch'
+]);
+
+function endpointMutationIdV7241(action, payload = {}) {
+  const existing = String(payload.mutationId || payload._mutationId || '').trim();
+  if (existing) return existing;
+  const random = Math.random().toString(36).slice(2, 10);
+  return `mut_${String(action || 'write').replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_${Date.now()}_${random}`;
+}
+
+function endpointMutationSuccessV7241(result) {
+  if (!(result && result.ok)) return false;
+  const data = result.data || {};
+  const status = String(data.status || '').trim().toLowerCase();
+  return status !== 'error' && status !== 'failed' && status !== 'failure' && status !== 'rejected';
+}
+
+function emitEndpointMutationV7241(stage, detail = {}) {
+  try {
+    window.dispatchEvent(new CustomEvent('bt:endpoint-mutation', {
+      detail: Object.assign({ stage, at: new Date().toISOString() }, detail)
+    }));
+  } catch (_) {}
+}
+
+async function postToBankTrackerEndpoint(action, payload = {}) {
+  payload = payload && typeof payload === 'object' ? payload : {};
+  const returnResponse = !!payload._returnResponse;
+  const requestPayload = Object.assign({}, payload);
+  delete requestPayload._returnResponse;
+  const isWrite = ENDPOINT_WRITE_ACTIONS_V7241.has(String(action || ''));
+  const mutationId = isWrite ? endpointMutationIdV7241(action, requestPayload) : String(requestPayload.mutationId || '').trim();
+  if (isWrite && mutationId) {
+    requestPayload.mutationId = mutationId;
+    requestPayload._mutationId = mutationId;
+  }
+
+  const url = getCurrentWebAppUrl();
+  const status = document.getElementById('limits-sync-status');
+  const confirmWrite = !!requestPayload._confirmWrite;
+  const fireAndForgetSave = !confirmWrite && (action === 'saveTransaction' || action === 'saveBank' || action === 'saveLoan');
+  /* v7350: transakcia zapísaná rukou nemá e-mail, ktorý by sa dal parsovať. */
+  const manualTxV7350 = action === 'saveTransaction'
+    && /^manual-/i.test(String(requestPayload && requestPayload.transaction && (requestPayload.transaction.id || requestPayload.transaction.msgId) || ''));
+  const useSerializedQueue = ENDPOINT_SERIALIZED_ACTIONS.has(action);
+  const mutationDetail = { action: String(action || ''), mutationId, payload: requestPayload };
+  const runMutation = async (mutationTimeoutMs) => {
+    if (useSerializedQueue) {
+      const ok = await enqueueEndpointMutation(action, requestPayload, mutationTimeoutMs);
+      return { ok, result: { ok, data: ok ? { status: 'success', ok: true, mutationId } : { status: 'error', ok: false, mutationId } } };
+    }
+    const result = await endpointMutationRequest(action, requestPayload, mutationTimeoutMs);
+    return { ok: endpointMutationSuccessV7241(result), result };
+  };
+  const finish = (ok, result, extra = {}) => {
+    const data = result && result.data || {};
+    if (isWrite) emitEndpointMutationV7241(ok ? 'synced' : 'failed', Object.assign({}, mutationDetail, extra, { ok, data }));
+    const detailed = { ok, action: String(action || ''), mutationId, data, result, pending: !!extra.pending, unconfirmed: !ok };
+    return returnResponse ? detailed : ok;
+  };
+
+  if (isWrite) emitEndpointMutationV7241('syncing', mutationDetail);
+
+  if (!url) {
+    console.warn('Apps Script Web App URL is not configured.');
+    if (status && !fireAndForgetSave) status.textContent = 'Web App URL nie je nastavená. Dáta sú uložené iba lokálne.';
+    const result = { ok: false, data: { status: 'error', message: 'Web App URL nie je nastavená.', mutationId } };
+    return finish(false, result);
+  }
+  if (!isValidAppsScriptExecUrl(url)) {
+    console.warn('Invalid Apps Script Web App URL. Use /exec deployment URL, not editor URL.');
+    if (status && !fireAndForgetSave) status.textContent = 'Používaš nesprávnu Apps Script URL. Potrebuješ Web App /exec URL.';
+    const result = { ok: false, data: { status: 'error', message: 'Neplatná Apps Script /exec URL.', mutationId } };
+    return finish(false, result);
+  }
+
+  if (status && !fireAndForgetSave) status.textContent = getEndpointStatusMessage(action, 'pending');
+
+  // Dlhšie investičné a účtovné zápisy musia dostať čas na zápis aj odpoveď.
+  const longMutationActions = ['saveTransaction','deleteTransaction','saveBankSettings','saveInvestment','saveInvestmentTrades','deleteInvestmentTrades','applyInvestmentMutation','deleteInvestmentImportBatch','deleteInvestmentEntity'];
+  const mutationTimeoutMs = isLikelyIOSWebKit() || confirmWrite || longMutationActions.includes(action) ? 60000 : 15000;
+  if (fireAndForgetSave) {
+    runMutation(mutationTimeoutMs).then(({ ok, result }) => {
+      finish(ok, result);
+      if (ok) {
+        console.log('Google Sheets async mutation OK:', action, result && result.data);
+        queueParserRunAfterMutation(action, { skipParserRun: manualTxV7350 });
+      } else {
+        console.warn('Google Sheets async mutation unconfirmed:', action, result && result.data ? result.data : {});
+      }
+    }).catch(err => {
+      const result = { ok: false, data: { status: 'error', message: String(err && err.message || err), mutationId } };
+      finish(false, result);
+      console.warn('Google Sheets async mutation error:', action, err);
+    });
+    const pendingData = { status: 'pending', ok: true, mutationId };
+    return returnResponse
+      ? { ok: true, action: String(action || ''), mutationId, data: pendingData, pending: true, unconfirmed: false }
+      : true;
+  }
+
+  try {
+    const { ok, result } = await runMutation(mutationTimeoutMs);
+    if (ok) {
+      if (status) status.textContent = getEndpointStatusMessage(action, 'success');
+      console.log('Google Sheets mutation OK:', action, result && result.data);
+      if (action === 'saveTransaction' || action === 'saveBank' || action === 'saveLoan') queueParserRunAfterMutation(action, { skipParserRun: manualTxV7350 });
+      return finish(true, result);
+    }
+
+    console.error('Google Sheets mutation unconfirmed:', action, JSON.stringify(result && result.data || {}));
+    if (status) status.textContent = getEndpointFailureDetail(action, result);
+    return finish(false, result);
+  } catch (err) {
+    const result = { ok: false, data: { status: 'error', message: String(err && err.message || err), mutationId } };
+    if (status) status.textContent = getEndpointFailureDetail(action, result);
+    return finish(false, result);
+  }
+}
+/* v7353: táto verzia rieši _returnResponse sama a popri tom emituje stavy
+   zápisu. Značka hovorí starším obalom, že ju nemajú obchádzať. */
+try { postToBankTrackerEndpoint.__handlesReturnResponseV7353 = true; } catch (_) {}
+
+/* ============================================================
+   v7330 — nemenná značka vzniku transakcie
+   ============================================================
+   Poradie zápisov medzi PC a mobilom sa nedá odvodiť z dátumu transakcie
+   (ten hovorí, kedy prebehla platba, nie kedy ju používateľ zapísal) ani
+   z poradia doručenia (to určuje sieť). Potrebujeme okamih VZNIKU záznamu.
+
+   Preto každá lokálne vytvorená transakcia dostane created_at v ISO UTC.
+   Značka je NEMENNÁ: raz nastavená sa už neprepisuje, inak by úprava
+   staršieho záznamu preskočila v poradí pred novší a backend by prepočítal
+   zostatky v zlom slede.
+
+   Pre záznamy, ktoré vznikli pred touto verziou, odvodíme čas z dátumu
+   transakcie — je to najlepší dostupný odhad a je stabilný, takže sa
+   poradie medzi behmi nemení. */
+function btTransactionCreatedAtV7330(tx) {
+  if (!tx || typeof tx !== 'object') return new Date().toISOString();
+  const existing = String(tx.created_at || tx.createdAt || '').trim();
+  if (existing) {
+    const parsed = Date.parse(existing);
+    if (Number.isFinite(parsed)) return new Date(parsed).toISOString();
+  }
+  // Staršie záznamy: stabilný odhad z dátumu transakcie, nie z aktuálneho času.
+  const fallback = Date.parse(tx.rawDate || '') || Number(tx.timestamp) || 0;
+  return new Date(fallback > 0 ? fallback : Date.now()).toISOString();
+}
+
+function btStampTransactionCreatedAtV7330(tx) {
+  if (!tx || typeof tx !== 'object') return tx;
+  if (!tx.created_at) tx.created_at = btTransactionCreatedAtV7330(tx);
+  return tx;
+}
+
+function extractTxnPayload(tx) {
+  const variableSymbol = String(tx.variableSymbol || tx.vs || tx.specificSymbol || '').replace(/\D/g, '').trim();
+  const tagMeta = parseTransactionTagMeta(tx);
+  return {
+    id: tx.id || '',
+    date: tx.date || '',
+    amount: Number(tx.amount || 0),
+    currency: tx.currency || 'CZK',
+    merchant: tx.merchant || '',
+    category: tx.category || '',
+    card: tx.card || '',
+    type: tx.type || '',
+    month: tx.month || '',
+    bank: tx.bank || '',
+    bankId: tx.bankId || getBankKey(tx) || '',
+    rawDate: tx.rawDate || '',
+    paymentKind: tx.paymentKind || getTransactionPaymentKind(tx),
+    msgId: tx.msgId || tx.id || '',
+    variableSymbol: variableSymbol,
+    vs: variableSymbol,
+    tag: tagMeta ? JSON.stringify(tagMeta) : '',
+    tagLabel: tagMeta ? tagMeta.name : '',
+    tagName: tagMeta ? tagMeta.name : '',
+    tagColor: tagMeta ? tagMeta.color : '',
+    tagShape: tagMeta ? tagMeta.shape : '',
+    excludeFromSpent: !!tx.excludeFromSpent,
+    excludeFromIncome: !!tx.excludeFromIncome,
+    returnForTransactionId: String(tx.returnForTransactionId || tx.returnForId || '').trim(),
+    recurring_group_id: String(tx.recurring_group_id || '').trim() || null,
+    counterpartyAccount: String(tx.counterpartyAccount || '').trim(),
+    // v7330: backend podľa tejto značky zoraďuje dávku pred prepočtom.
+    created_at: btTransactionCreatedAtV7330(tx)
+  };
+}
+
+function askDeleteTransaction(txId) {
+  if (!txId) return;
+
+  const lang = getLanguage ? getLanguage() : 'en';
+  const message = lang === 'sk'
+    ? 'Vymazať túto transakciu?'
+    : (lang === 'cs' ? 'Smazat tuto transakci?' : 'Delete this transaction?');
+
+  if (confirm(message)) {
+    deleteSingleTransaction(txId).then(ok => {
+      if (ok) showDeletedToast();
+    });
+  }
+}
+
+
+function txEditEscapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function toDateInputValue(dateObj = new Date()) {
+  const d = new Date(dateObj);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+
+function parseManualDateInput(value) {
+  if (!value) return new Date();
+  const raw = String(value).trim();
+  const dtMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (dtMatch) {
+    return new Date(Number(dtMatch[1]), Number(dtMatch[2]) - 1, Number(dtMatch[3]), Number(dtMatch[4]), Number(dtMatch[5]), 0);
+  }
+  const parts = raw.split('-').map(Number);
+  if (parts.length === 3 && parts.every(Boolean)) {
+    const now = new Date();
+    return new Date(parts[0], parts[1] - 1, parts[2], now.getHours(), now.getMinutes(), 0);
+  }
+  return parseCustomDateStr(raw);
+}
+
+function getTxEditCategoryOptions(selectedCategory = '') {
+  if (typeof getCategoryOptionsHtml === 'function') {
+    return getCategoryOptionsHtml(selectedCategory);
+  }
+
+  const categories = ['Domácnosť','Potraviny','Pohonné hmoty','Reštaurácie','Káva','Doprava','Zdravie','Drogéria','Dom','Šport','Zábava','Predplatné','Oblečenie','Obuv','Jedlo','Bývanie','Lekáreň','Účet','Bankomat','Ostatné'];
+  return categories.map(category => {
+    const label = typeof translateCategory === 'function' ? translateCategory(category) : category;
+    return `<option value="${txEditEscapeHtml(category)}" ${selectedCategory === category ? 'selected' : ''}>${txEditEscapeHtml(label)}</option>`;
+  }).join('');
+}
+
+function getTxEditBankOptions(selectedValue = '') {
+  if (typeof getAllBankOptions === 'function') {
+    return getAllBankOptions(selectedValue);
+  }
+
+  return BANK_ORDER.map(key => {
+    const name = plainBankName(key);
+    return `<option value="${key}" ${selectedValue === key ? 'selected' : ''}>${txEditEscapeHtml(name)}</option>`;
+  }).join('');
+}
+
+function getTxEditBankName(bankKey) {
+  if (typeof getBankNameFromOption === 'function') return getBankNameFromOption(bankKey);
+  return plainBankName(bankKey);
+}
+
+function getTxEditBankAccount(bankKey) {
+  if (typeof getBankAccountFromOption === 'function') return getBankAccountFromOption(bankKey);
+  return plainBankName(bankKey);
+}
+
+
+// ── SAFE TRANSACTION EDIT FROM TRANSACTIONS + RECENT LISTS ──
+function getTransactionId(tx) {
+  return String(tx?.id || tx?.msgId || '');
+}
+
+function findTransactionById(txId) {
+  return allTransactions.find(tx => String(tx.id || tx.msgId || '') === String(txId));
+}
+
+
+function getEditedPaymentMeta(tx, paymentKind, direction, bankKey, bankName) {
+  const kind = paymentKind || 'card';
+  const isIncoming = direction === 'incoming';
+  const previousKind = getTransactionPaymentKind(tx);
+  const existingCard = String(tx?.card || '').trim();
+
+  if (kind === 'cash') {
+    if (isAtmCashWithdrawalTransaction(tx)) {
+      const existingType = String(tx?.type || '').trim();
+      const safeType = normalizePaymentKindValue(existingType) === 'internal'
+        ? 'ATM cash withdrawal'
+        : (existingType || 'ATM cash withdrawal');
+      return {
+        card: existingCard || 'Cash',
+        type: safeType
+      };
+    }
+    return {
+      card: 'Cash',
+      type: t('cashPaymentKind')
+    };
+  }
+
+  if (kind === 'internal') {
+    return {
+      card: existingCard || getTxEditBankAccount(bankKey) || `Account ${bankName}`,
+      type: 'Internal transfer'
+    };
+  }
+
+  if (kind === 'account') {
+    const customBank = getCustomBanks().find(b => b.id === bankKey);
+    const account = customBank?.account || '';
+
+    return {
+      card: previousKind === 'account' && existingCard ? existingCard : (account || `Účet ${bankName}`),
+      type: isIncoming ? 'príjem na účet' : 'odchod z účtu'
+    };
+  }
+
+  return {
+    card: previousKind === 'card' && existingCard ? existingCard : `Karta ${bankName}`,
+    type: 'platba kartou'
+  };
+}
+
+function hasScrolledPastNthItem(containerSelector, itemSelector, index = 19, rootElement = null) {
+  const container = document.querySelector(containerSelector);
+  if (!container) return false;
+
+  const items = container.querySelectorAll(itemSelector);
+  if (items.length <= index) return false;
+
+  const target = items[index];
+  const targetRect = target.getBoundingClientRect();
+
+  if (rootElement) {
+    const rootRect = rootElement.getBoundingClientRect();
+    return targetRect.top < rootRect.top + 72;
+  }
+
+  return targetRect.top < 110;
+}
+
+function shouldShowScrollToLatestButton() {
+  const archiveSheet = document.querySelector('#archive-bank-detail-sheet.open');
+  if (archiveSheet) {
+    return hasScrolledPastNthItem('#archive-bank-detail-sheet', '[data-archive-tx-id]', 19, archiveSheet);
+  }
+
+  const pageId = getActivePageId ? getActivePageId() : activePageId;
+
+  if (pageId === 'txns') {
+    return hasScrolledPastNthItem('#txn-list', '.tx-item', 19);
+  }
+
+  if (pageId === 'archive') {
+    return hasScrolledPastNthItem('#archive-months-list', '.archive-item', 9);
+  }
+
+  return false;
+}
+
+function isActivePageBottomContentVisible() {
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return false;
+  const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+  const doc = document.documentElement;
+  const body = document.body;
+  const scrollTop = window.scrollY || doc.scrollTop || body.scrollTop || 0;
+  const fullHeight = Math.max(body.scrollHeight || 0, doc.scrollHeight || 0, body.offsetHeight || 0, doc.offsetHeight || 0);
+  if (!fullHeight || fullHeight <= vh + 80) return false;
+  return (scrollTop + vh) >= (fullHeight - 220);
+}
+
+function isTransactionBottomContentVisible() {
+  // Kept for compatibility with older calls; now dims the utility buttons near the bottom of any tab.
+  return isActivePageBottomContentVisible();
+}
+
+function updateFloatingUtilityButtons() {
+  const btn = document.getElementById('scroll-top-fab');
+  const fab = document.getElementById('global-fab');
+  const activeSheet = document.body?.dataset?.activeSheet || '';
+  const hasSheetOpen = document.body.classList.contains('sheet-open') || !!document.querySelector('.bottom-sheet.open');
+  const hideUtilities = hasSheetOpen || activeSheet === 'bank-manager-sheet' || !!massTagSelectMode;
+  const showScroll = !hideUtilities && shouldShowScrollToLatestButton();
+  const dimUtilities = !hideUtilities && isActivePageBottomContentVisible();
+
+  if (btn) {
+    btn.classList.toggle('visible', showScroll);
+    btn.classList.toggle('utility-hidden', hideUtilities);
+  }
+  if (fab) {
+    fab.classList.toggle('utility-dim', dimUtilities);
+    fab.classList.toggle('utility-hidden', hideUtilities);
+  }
+}
+
+function scheduleFloatingUtilityUpdate() {
+  if (window.__floatingUtilityUpdateRaf) return;
+
+  window.__floatingUtilityUpdateRaf = requestAnimationFrame(() => {
+    window.__floatingUtilityUpdateRaf = null;
+    updateFloatingUtilityButtons();
+  });
+}
+
+function bindFloatingUtilityScrollWatchers() {
+  if (window.__floatingUtilityScrollWatchersReady) return;
+  window.__floatingUtilityScrollWatchersReady = true;
+
+  window.addEventListener('scroll', scheduleFloatingUtilityUpdate, { passive: true });
+  document.addEventListener('scroll', scheduleFloatingUtilityUpdate, { passive: true, capture: true });
+  window.addEventListener('resize', scheduleFloatingUtilityUpdate, { passive: true });
+
+  if (window.visualViewport) {
+    visualViewport.addEventListener('resize', scheduleFloatingUtilityUpdate, { passive: true });
+    visualViewport.addEventListener('scroll', scheduleFloatingUtilityUpdate, { passive: true });
+  }
+}
+
+
+function easeOutCubicScroll(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function getWindowScrollTopValue() {
+  return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+}
+
+function setWindowScrollTopValue(value) {
+  window.scrollTo(0, value);
+  document.documentElement.scrollTop = value;
+  document.body.scrollTop = value;
+}
+
+function smoothScrollContainerToTop(target, duration = 360) {
+  const isWindow = target === window || target === document || target === document.documentElement || target === document.body;
+  const start = isWindow ? getWindowScrollTopValue() : Number(target?.scrollTop || 0);
+
+  if (start <= 1) {
+    if (isWindow) setWindowScrollTopValue(0);
+    else if (target) target.scrollTop = 0;
+    scheduleFloatingUtilityUpdate();
+    return;
+  }
+
+  const startTime = performance.now();
+
+  const step = (now) => {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const next = Math.round(start * (1 - easeOutCubicScroll(progress)));
+
+    if (isWindow) setWindowScrollTopValue(next);
+    else target.scrollTop = next;
+
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      if (isWindow) setWindowScrollTopValue(0);
+      else target.scrollTop = 0;
+      scheduleFloatingUtilityUpdate();
+    }
+  };
+
+  requestAnimationFrame(step);
+}
+
+function scrollToLatestVisibleTransaction() {
+  const archiveSheet = document.querySelector('#archive-bank-detail-sheet.open');
+  const anyOpenSheet = document.querySelector('.bottom-sheet.open');
+
+  if (archiveSheet) {
+    smoothScrollContainerToTop(archiveSheet, 360);
+    return;
+  }
+
+  if (anyOpenSheet) {
+    smoothScrollContainerToTop(anyOpenSheet, 360);
+    return;
+  }
+
+  const pageId = getActivePageId ? getActivePageId() : activePageId;
+  const activePage = document.getElementById('page-' + pageId);
+
+  if (activePage && activePage.scrollTop > 2) {
+    smoothScrollContainerToTop(activePage, 360);
+  }
+
+  smoothScrollContainerToTop(window, 380);
+}
+
+function fillEditTransactionSheet(txId) {
+  const tx = findTransactionById(txId);
+  if (!tx) return false;
+
+  const amount = Number(tx.amount || 0);
+  const parsed = parseCustomDateStr(tx.rawDate || tx.date);
+  const bankKey = getBankKey(tx);
+
+  document.getElementById('edit-tx-id').value = getTransactionId(tx);
+  document.getElementById('edit-tx-date').value = toDateInputValue(parsed);
+  document.getElementById('edit-tx-merchant').value = tx.merchant || '';
+  const txVs = String(tx.variableSymbol || tx.vs || '').replace(/\D/g, '').trim();
+  const editVsInput = document.getElementById('edit-tx-vs');
+  if (editVsInput) editVsInput.value = txVs;
+  const txTag = parseTransactionTagMeta(tx);
+  const editTagInput = document.getElementById('edit-tx-tag');
+  if (editTagInput) editTagInput.value = txTag?.name || '';
+  const editTagColor = document.getElementById('edit-tx-tag-color');
+  if (editTagColor) {
+    editTagColor.value = (txTag?.color || '#58A6FF').toLowerCase();
+    editTagColor.dataset.userPicked = txTag?.name ? '1' : '0';
+  }
+  const editTagShape = document.getElementById('edit-tx-tag-shape');
+  if (editTagShape) editTagShape.value = txTag?.shape || '';
+  const sourceBadge = document.getElementById('edit-tx-detect-source');
+  if (sourceBadge) {
+    const source = getInternalTransferDetectionSource(tx);
+    sourceBadge.style.display = source ? 'inline-flex' : 'none';
+    sourceBadge.textContent = source || '';
+    sourceBadge.classList.toggle('source-parser', source === 'P');
+    sourceBadge.classList.toggle('source-fallback', source === 'F');
+    sourceBadge.title = source === 'P' ? 'Parser-detected internal transfer' : (source === 'F' ? 'Fallback-detected internal transfer' : '');
+  }
+  document.getElementById('edit-tx-amount').value = Math.abs(amount);
+  document.getElementById('edit-tx-direction').value = amount >= 0 ? 'incoming' : 'outgoing';
+  fillCurrencySelect(document.getElementById('edit-tx-currency'), tx.currency || 'CZK');
+
+  const catSelect = document.getElementById('edit-tx-category');
+  if (catSelect) {
+    catSelect.innerHTML = getTxEditCategoryOptions(tx.category || 'Ostatné');
+    if ([...catSelect.options].some(option => option.value === tx.category)) catSelect.value = tx.category;
+  }
+
+  const bankSelect = document.getElementById('edit-tx-bank');
+  if (bankSelect) {
+    bankSelect.innerHTML = getTxEditBankOptions(bankKey);
+    bankSelect.value = bankKey;
+  }
+
+  const kindSelect = document.getElementById('edit-tx-kind');
+  if (kindSelect) {
+    kindSelect.value = isInternalTransferTransaction(tx) ? 'internal' : getTransactionPaymentKind(tx);
+  }
+
+  updateEditTransactionExcludeSpentUi(isTransactionManuallyExcludedFromSpent(tx));
+  updateEditTransactionExcludeIncomeUi(isTransactionManuallyExcludedFromIncome(tx));
+  updateEditTransactionStatsToggleVisibility(amount >= 0 ? 'incoming' : 'outgoing');
+  updateEditReturnOffsetUi(tx);
+
+  return true;
+}
+
+function getReturnOffsetCandidates(tx) {
+  if (!tx || Number(tx.amount || 0) <= 0) return [];
+  const incomingAmount = Math.abs(Number(tx.amount || 0));
+  const currency = currencyCode(tx.currency || 'CZK');
+  const txTime = parseCustomDateStr(tx.rawDate || tx.date)?.getTime() || Date.now();
+  return (allTransactions || []).filter(other => {
+    if (!other || other === tx || Number(other.amount || 0) >= 0) return false;
+    if (getTransactionPaymentKind(other) !== 'account') return false;
+    if (isExcludedFromSpendingStats(other)) return false;
+    if (currencyCode(other.currency || 'CZK') !== currency) return false;
+    if (Math.abs(Number(other.amount || 0)) + 0.01 < incomingAmount) return false;
+    const otherTime = parseCustomDateStr(other.rawDate || other.date)?.getTime() || txTime;
+    return Math.abs(txTime - otherTime) <= 120 * 24 * 60 * 60 * 1000;
+  }).sort((a, b) => {
+    const at = parseCustomDateStr(a.rawDate || a.date)?.getTime() || 0;
+    const bt = parseCustomDateStr(b.rawDate || b.date)?.getTime() || 0;
+    return Math.abs(txTime - at) - Math.abs(txTime - bt);
+  });
+}
+function updateEditReturnOffsetUi(tx) {
+  const wrap = document.getElementById('edit-tx-return-offset-wrap');
+  const select = document.getElementById('edit-tx-return-for');
+  if (!wrap || !select) return;
+  const isIncomingAccount = Number(tx?.amount || 0) > 0 && getTransactionPaymentKind(tx) === 'account';
+  wrap.style.display = isIncomingAccount ? '' : 'none';
+  if (!isIncomingAccount) {
+    select.innerHTML = `<option value="">${escapeHtml(t('notLinkedToPayment') || 'Not linked to an outgoing payment')}</option>`;
+    return;
+  }
+  const selected = String(tx.returnForTransactionId || tx.returnForId || '').trim();
+  const options = getReturnOffsetCandidates(tx);
+  select.innerHTML = `<option value="">${escapeHtml(t('notLinkedToPayment') || 'Not linked to an outgoing payment')}</option>` + options.map(other => {
+    const id = getTransactionId(other);
+    const label = `${other.date || ''} · ${other.merchant || t('transaction')} · -${formatCurrencyAmount(Math.abs(Number(other.amount || 0)), other.currency || 'CZK')}`;
+    return `<option value="${escapeAttr(id)}" ${id === selected ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+  }).join('');
+  if (selected && [...select.options].some(option => option.value === selected)) select.value = selected;
+}
+
+function refreshEditReturnOffsetCandidates() {
+  const txId = document.getElementById('edit-tx-id')?.value || '';
+  const tx = findTransactionById(txId);
+  if (!tx) return;
+  const direction = document.getElementById('edit-tx-direction')?.value || (Number(tx.amount || 0) >= 0 ? 'incoming' : 'outgoing');
+  const amount = Math.abs(Number(document.getElementById('edit-tx-amount')?.value || tx.amount || 0));
+  const kind = document.getElementById('edit-tx-kind')?.value || getTransactionPaymentKind(tx);
+  const currency = document.getElementById('edit-tx-currency')?.value || tx.currency || 'CZK';
+  updateEditTransactionStatsToggleVisibility(direction);
+  updateEditReturnOffsetUi({ ...tx, amount: direction === 'incoming' ? amount : -amount, paymentKind: kind, currency });
+}
+
+function updateEditTransactionStatsToggleVisibility(direction) {
+  const incoming = String(direction || '') === 'incoming';
+  const spentCard = document.querySelector('#transaction-edit-sheet .tx-non-spent-toggle-card');
+  const incomeCard = document.querySelector('#transaction-edit-sheet .tx-non-income-toggle-card');
+  if (spentCard) spentCard.hidden = incoming;
+  if (incomeCard) incomeCard.hidden = !incoming;
+}
+
+function updateEditTransactionExcludeSpentUi(excluded) {
+  const toggle = document.getElementById('edit-tx-exclude-spent-switch');
+  const card = document.querySelector('#transaction-edit-sheet .tx-non-spent-toggle-card');
+  if (!toggle) return;
+  const active = !!excluded;
+  toggle.classList.toggle('on', active);
+  toggle.dataset.excluded = active ? '1' : '0';
+  toggle.setAttribute('aria-checked', active ? 'true' : 'false');
+  if (card) card.classList.toggle('on', active);
+}
+
+function updateEditTransactionExcludeIncomeUi(excluded) {
+  const toggle = document.getElementById('edit-tx-exclude-income-switch');
+  const card = document.querySelector('#transaction-edit-sheet .tx-non-income-toggle-card');
+  if (!toggle) return;
+  const active = !!excluded;
+  toggle.classList.toggle('on', active);
+  toggle.dataset.excluded = active ? '1' : '0';
+  toggle.setAttribute('aria-checked', active ? 'true' : 'false');
+  if (card) card.classList.toggle('on', active);
+}
+
+function applyTransactionExcludedVisualState(tx) {
+  if (!tx) return;
+  const txId = String(tx.id || tx.msgId || '').trim();
+  if (!txId) return;
+  const excluded = isExcludedFromSpendingStats(tx);
+  const manualNonSpent = isTransactionManuallyExcludedFromSpent(tx);
+  const manualNonIncome = isTransactionManuallyExcludedFromIncome(tx);
+  const manualExcluded = manualNonSpent || manualNonIncome;
+  document.querySelectorAll('.tx-item[data-tx-id]').forEach(row => {
+    if (String(row.dataset.txId || '').trim() !== txId) return;
+    row.classList.toggle('tx-credit-repayment', excluded);
+    row.classList.toggle('tx-manual-non-spent', manualNonSpent);
+    row.classList.toggle('tx-manual-non-income', manualNonIncome);
+    const amount = row.querySelector('.tx-amount');
+    if (amount) {
+      amount.classList.toggle('amount-neutral', excluded && !manualExcluded);
+      amount.classList.toggle('amount-income', (!excluded || manualExcluded) && Number(tx.amount || 0) > 0);
+      amount.classList.toggle('amount-expense', (!excluded || manualExcluded) && Number(tx.amount || 0) < 0);
+    }
+  });
+}
+
+function syncEditTransactionStatsExclusionsToBackend(tx) {
+  if (!tx) return;
+  postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
+}
+
+function syncEditTransactionExcludeSpentToBackend(tx) {
+  syncEditTransactionStatsExclusionsToBackend(tx);
+}
+
+function applyEditTransactionExcludeSpent(excluded) {
+  const txId = document.getElementById('edit-tx-id')?.value || '';
+  const tx = findTransactionById(txId);
+  if (!tx) return;
+
+  const next = !!excluded;
+  const prev = isTransactionManuallyExcludedFromSpent(tx);
+  updateEditTransactionExcludeSpentUi(next);
+  if (prev === next) return;
+
+  const oldSnapshot = { ...tx, excludeFromSpent: prev };
+  tx.excludeFromSpent = next;
+  const kindSelect = document.getElementById('edit-tx-kind');
+  if (kindSelect) kindSelect.value = getTransactionPaymentKind(tx);
+
+  invalidateTransactionStatsAdjustments();
+  applyLocalArchiveStatsFromTransaction(oldSnapshot, -1);
+  applyLocalArchiveStatsFromTransaction(tx, 1);
+  rebuildLocalArchiveStatsFromTransactions({ force: true });
+  saveCachedTransactionsSnapshot();
+  renderAll();
+  applyTransactionExcludedVisualState(tx);
+
+  syncEditTransactionExcludeSpentToBackend(tx);
+}
+
+function toggleEditTransactionExcludeSpent() {
+  const toggle = document.getElementById('edit-tx-exclude-spent-switch');
+  if (!toggle) return;
+  const next = toggle.dataset.excluded !== '1';
+  applyEditTransactionExcludeSpent(next);
+}
+
+function applyEditTransactionExcludeIncome(excluded) {
+  const txId = document.getElementById('edit-tx-id')?.value || '';
+  const tx = findTransactionById(txId);
+  if (!tx) return;
+
+  const next = !!excluded;
+  const prev = isTransactionStatsFlagEnabled(tx.excludeFromIncome)
+    || (Number(tx.amount || 0) > 0 && isTransactionStatsFlagEnabled(tx.excludeFromSpent));
+  updateEditTransactionExcludeIncomeUi(next);
+  if (prev === next) return;
+
+  const oldSnapshot = { ...tx, excludeFromIncome: prev };
+  tx.excludeFromIncome = next;
+  if (Number(tx.amount || 0) > 0) tx.excludeFromSpent = false;
+
+  invalidateTransactionStatsAdjustments();
+  applyLocalArchiveStatsFromTransaction(oldSnapshot, -1);
+  applyLocalArchiveStatsFromTransaction(tx, 1);
+  rebuildLocalArchiveStatsFromTransactions({ force: true });
+  saveCachedTransactionsSnapshot();
+  renderAll();
+  applyTransactionExcludedVisualState(tx);
+
+  syncEditTransactionStatsExclusionsToBackend(tx);
+}
+
+function toggleEditTransactionExcludeIncome() {
+  const toggle = document.getElementById('edit-tx-exclude-income-switch');
+  if (!toggle) return;
+  const next = toggle.dataset.excluded !== '1';
+  applyEditTransactionExcludeIncome(next);
+}
+
+function openTransactionEditSheet(txId) {
+  if (!fillEditTransactionSheet(txId)) return;
+  openSheet('transaction-edit-sheet');
+}
+
+async function saveEditedTransaction() {
+  const txId = document.getElementById('edit-tx-id')?.value || '';
+  const tx = findTransactionById(txId);
+  if (!tx) return;
+
+  const parsedDate = parseManualDateInput(document.getElementById('edit-tx-date')?.value || '');
+  const amountRaw = parseFloat(document.getElementById('edit-tx-amount')?.value || '0') || 0;
+  const direction = document.getElementById('edit-tx-direction')?.value || 'outgoing';
+  const currency = normalizeCurrencyForStorage(document.getElementById('edit-tx-currency')?.value || tx.currency || 'Kč');
+  const category = document.getElementById('edit-tx-category')?.value || tx.category || 'Ostatné';
+  const merchant = document.getElementById('edit-tx-merchant')?.value.trim() || tx.merchant || '';
+  const bankKey = document.getElementById('edit-tx-bank')?.value || getBankKey(tx);
+  const returnForTransactionId = direction === 'incoming' ? String(document.getElementById('edit-tx-return-for')?.value || '').trim() : '';
+  const excludeFromSpent = direction === 'outgoing' && document.getElementById('edit-tx-exclude-spent-switch')?.dataset?.excluded === '1';
+  const excludeFromIncome = direction === 'incoming' && !returnForTransactionId && document.getElementById('edit-tx-exclude-income-switch')?.dataset?.excluded === '1';
+  const paymentKind = returnForTransactionId ? 'account' : (document.getElementById('edit-tx-kind')?.value || getTransactionPaymentKind(tx));
+  const variableSymbol = String(document.getElementById('edit-tx-vs')?.value || tx.variableSymbol || tx.vs || '').replace(/\D/g, '').trim();
+  const tagLabel = normalizeTransactionTagLabel(document.getElementById('edit-tx-tag')?.value || tx.tagLabel || tx.tagName || '');
+  const editTagColorInput = document.getElementById('edit-tx-tag-color');
+  const tagShapeRaw = document.getElementById('edit-tx-tag-shape')?.value || '';
+  const tagValidation = validateRequiredTagFields(
+    tagLabel,
+    tagShapeRaw,
+    editTagColorInput?.value || tx.tagColor || '#58A6FF',
+    editTagColorInput?.dataset?.userPicked || (tx.tagLabel ? '1' : '0'),
+    'edit'
+  );
+  if (!tagValidation.ok) { alert(tagValidation.message); return; }
+  const tagColor = tagLabel ? tagValidation.color : '';
+  const tagShape = tagLabel ? tagValidation.shape : '';
+  const finalAmount = direction === 'incoming' ? Math.abs(amountRaw) : -Math.abs(amountRaw);
+  const oldTxSnapshot = { ...tx };
+  const bankName = getTxEditBankName(bankKey);
+  const paymentMeta = getEditedPaymentMeta({ ...tx, category }, paymentKind, direction, bankKey, bankName);
+
+  tx.date = formatDate(parsedDate);
+  tx.rawDate = parsedDate.toISOString();
+  tx.timestamp = parsedDate.getTime();
+  tx.month = getMonthFromDate(parsedDate); // v115 auto archive month after edit
+  tx.amount = finalAmount;
+  tx.currency = currency;
+  tx.category = category;
+  tx.merchant = merchant;
+  tx.merchantRaw = merchant;
+  tx.bank = bankName;
+  tx.bankId = bankKey;
+  tx.card = paymentMeta.card;
+  tx.type = paymentMeta.type;
+  tx.paymentKind = paymentKind;
+  tx.variableSymbol = variableSymbol;
+  tx.vs = variableSymbol;
+  tx.tagLabel = tagLabel;
+  tx.tagName = tagLabel;
+  tx.tagColor = tagColor;
+  tx.tagShape = tagShape;
+  tx.tagMeta = tagLabel ? { name: tagLabel, color: tagColor, shape: tagShape } : null;
+  tx.tag = tagLabel ? JSON.stringify({ name: tagLabel, color: tagColor, shape: tagShape }) : '';
+  tx.excludeFromSpent = excludeFromSpent;
+  tx.excludeFromIncome = excludeFromIncome;
+  tx.returnForTransactionId = returnForTransactionId;
+  tx.msgId = tx.msgId || tx.id;
+
+  invalidateTransactionStatsAdjustments();
+  allTransactions = sortTransactionsNewestFirst(allTransactions);
+  applyLocalArchiveStatsFromTransaction(oldTxSnapshot, -1);
+  applyLocalArchiveStatsFromTransaction(tx, 1);
+  const oldMonth = normalizeMonthStr(oldTxSnapshot.month || getAktuálneMonth());
+  const newMonth = normalizeMonthStr(tx.month || getAktuálneMonth());
+  recomputeAccountBalancesForMonth(oldMonth);
+  if (newMonth !== oldMonth) recomputeAccountBalancesForMonth(newMonth);
+  rebuildLocalArchiveStatsFromTransactions({ force: true });
+  saveCachedTransactionsSnapshot();
+
+  closeBottomSheets();
+  renderAll();
+  applyTransactionExcludedVisualState(tx);
+  const ok = await postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
+  if (ok) {
+    showSavedToast();
+  } else {
+    showLargeStatusToast(t('transactionSyncDelayed') || 'Saved locally. Google Sheets response was delayed.', 'warning');
+  }
+}
+
+async function deleteEditedTransaction() {
+  const txId = document.getElementById('edit-tx-id')?.value || '';
+  if (!txId) return;
+  if (!confirm(t('deleteTransactionConfirm'))) return;
+
+  closeBottomSheets();
+  const ok = await deleteSingleTransaction(txId);
+  if (ok) {
+    showDeletedToast();
+  } else {
+    showLargeStatusToast(t('transactionDeleteFailed') || 'Transaction was not deleted.', 'error');
+  }
+}
+function isTouchLikeDevice() {
+  return !!(window.matchMedia && window.matchMedia('(hover: none), (pointer: coarse)').matches) || ('ontouchstart' in window);
+}
+
+function bindTransactionDeleteGestures() {
+  document.querySelectorAll('[data-tx-id]').forEach(el => {
+    if (el.dataset.deleteBound === 'true') return;
+    el.dataset.deleteBound = 'true';
+    el.classList.add('long-press-ready');
+
+    el.addEventListener('touchstart', (event) => {
+      if (massTagSelectMode) return;
+      if (event.target.closest && event.target.closest('button')) return;
+      txLongPressTargetId = el.dataset.txId;
+      txLongPressTimer = setTimeout(() => {
+        el.classList.add('tx-open-hint');
+        navigator.vibrate?.(35);
+        openTransactionEditSheet(txLongPressTargetId);
+        setTimeout(() => el.classList.remove('tx-open-hint'), 500);
+      }, 650);
+    }, { passive: true });
+
+    el.addEventListener('touchend', () => {
+      clearTimeout(txLongPressTimer);
+      txLongPressTimer = null;
+    }, { passive: true });
+
+    el.addEventListener('touchcancel', () => {
+      clearTimeout(txLongPressTimer);
+      txLongPressTimer = null;
+    }, { passive: true });
+
+    el.addEventListener('touchmove', () => {
+      clearTimeout(txLongPressTimer);
+      txLongPressTimer = null;
+    }, { passive: true });
+
+    el.addEventListener('dblclick', (e) => {
+      if (massTagSelectMode) return;
+      if (isTouchLikeDevice()) return;
+      if (e.target.closest && e.target.closest('button')) return;
+      e.preventDefault();
+      el.classList.add('tx-open-hint');
+      setTimeout(() => el.classList.remove('tx-open-hint'), 220);
+      openTransactionEditSheet(el.dataset.txId);
+    });
+  });
+}
+
+function getActivePageId() {
+  const active = document.querySelector('.page.active');
+  return active ? active.id.replace('page-', '') : 'overview';
+}
+
+function navigateBySwipe(deltaX) {
+  // v78: swipe navigation disabled.
+}
+
+function shouldIgnorePageSwipeTarget(target) {
+  if (!target) return false;
+  return !!target.closest(
+    'button, input, select, textarea, a, .bottom-sheet, .bottom-nav, .cat-chip, .txn-filter-pill, .sync-btn, .fab, .top-upgrade-btn, .sheet-close, .tx-item, .tx-item-compact'
+  );
+}
+
+function initPageSwipeNavigation() {
+  // v89: swipe navigation remains disabled for smooth mobile performance.
+}
+
+function getAppTheme() {
+  const saved = localStorage.getItem('app_theme');
+  return saved === 'light' ? 'light' : 'dark';
+}
+
+function updateThemeMeta(theme) {
+  const config = APP_THEMES[theme] || APP_THEMES.dark;
+
+  let metas = Array.from(document.querySelectorAll('meta[name="theme-color"]'));
+  if (!metas.length) {
+    const meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    document.head.appendChild(meta);
+    metas = [meta];
+  }
+
+  metas.forEach(meta => {
+    meta.setAttribute('content', config.themeColor);
+  });
+
+  let navMeta = document.querySelector('meta[name="msapplication-navbutton-color"]');
+  if (!navMeta) {
+    navMeta = document.createElement('meta');
+    navMeta.setAttribute('name', 'msapplication-navbutton-color');
+    document.head.appendChild(navMeta);
+  }
+  navMeta.setAttribute('content', config.themeColor);
+
+  let colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
+  if (!colorSchemeMeta) {
+    colorSchemeMeta = document.createElement('meta');
+    colorSchemeMeta.setAttribute('name', 'color-scheme');
+    document.head.appendChild(colorSchemeMeta);
+  }
+  colorSchemeMeta.setAttribute('content', config.colorScheme);
+
+  document.documentElement.style.colorScheme = config.colorScheme;
+  document.body.style.colorScheme = config.colorScheme;
+  document.documentElement.style.backgroundColor = config.backgroundColor;
+  document.body.style.backgroundColor = config.backgroundColor;
+  document.documentElement.style.setProperty('--system-bar-color', config.backgroundColor);
+  document.documentElement.style.setProperty('--status-bar-color', config.backgroundColor);
+
+  const statusOverlay = document.getElementById('bt-status-bar-overlay');
+  if (statusOverlay) statusOverlay.style.background = config.backgroundColor;
+
+  const androidBarBg = document.querySelector('.android-system-bar-bg');
+  if (androidBarBg) androidBarBg.style.background = config.backgroundColor;
+}
+
+function applyAppTheme(theme = getAppTheme()) {
+  const normalized = theme === 'light' ? 'light' : 'dark';
+  localStorage.setItem('app_theme', normalized);
+  document.documentElement.setAttribute('data-theme', normalized);
+  document.documentElement.classList.remove('dark', 'light');
+  document.documentElement.classList.add(normalized);
+  const overlay = document.getElementById('page-loading-overlay');
+  if (overlay) {
+    overlay.classList.remove('dark', 'light');
+    overlay.classList.add(normalized);
+  }
+  updateThemeMeta(normalized);
+
+  const darkBtn = document.getElementById('theme-dark-btn');
+  const lightBtn = document.getElementById('theme-light-btn');
+  if (darkBtn) darkBtn.classList.toggle('active', normalized === 'dark');
+  if (lightBtn) lightBtn.classList.toggle('active', normalized === 'light');
+  try { refreshBtBrandLogosForTheme(); } catch (_) {}
+}
+
+function setAppTheme(theme) {
+  localStorage.setItem('app_theme_user_selected', 'true');
+  applyAppTheme(theme);
+  // Avoid full renderAll() on every theme click (heavy on mobile).
+  requestAnimationFrame(() => {
+    try {
+      if (activePageId === 'txns') {
+        updateTxnPage();
+      } else if (activePageId === 'archive') {
+        renderArchive();
+        renderArchiveTrendChart();
+      } else if (activePageId === 'overview' || activePageId === 'overview-details') {
+        renderOverviewDashboard();
+        renderBudgetStatus();
+        renderAccountBalanceWidget();
+      }
+      scheduleFloatingUtilityUpdate();
+    } catch (_) {}
+  });
+}
+
+function warmHeavyTabCachesSync(options = {}) {
+  startupWarmCachesDone = true;
+  // B (perf): only force a full archive-stats rebuild when explicitly requested.
+  // On a normal refresh the cached stats are reused (rebuild self-skips when fresh),
+  // which removes a large synchronous localStorage scan + per-transaction conversion pass.
+  try { rebuildLocalArchiveStatsFromTransactions({ force: !!(options && options.force) }); } catch (e) {
+    console.warn('Archive stats warm-up failed:', e);
+  }
+  try {
+    markLocalCacheTimestamp('cached_archive_stats_updated_at');
+    markLocalCacheTimestamp('cached_archive_chart_updated_at');
+  } catch (_) {}
+}
+
+function warmStartupCachesDeferred(options = {}) {
+  warmHeavyTabCachesSync(options);
+}
+
+function yieldStartupLogoFrames(frameCount = 2) {
+  if (typeof window.__btYieldLogoFrames === 'function') {
+    return window.__btYieldLogoFrames(frameCount);
+  }
+  return new Promise((resolve) => {
+    const count = Math.max(1, Number(frameCount) || 1);
+    let remaining = count;
+    const next = () => requestAnimationFrame(() => window.setTimeout(() => {
+      remaining -= 1;
+      if (remaining <= 0) resolve();
+      else next();
+    }, 0));
+    next();
+  });
+}
+
+function scheduleStartupCacheWarmup() {
+  const run = () => {
+    try { warmHeavyTabCachesSync({ force: false }); } catch (_) {}
+  };
+  // Never let cache warm-up steal the final visible logo cycle. Start looking
+  // for idle time only after the overlay fade and page reveal have completed.
+  window.setTimeout(() => {
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(run, { timeout: 4000 });
+    } else {
+      window.setTimeout(run, 600);
+    }
+  }, 1200);
+}
+const BT_EARLY_SHELL_REVEAL = true;
+let __btBootDataHydrating = false;
+let __btEarlyShellRevealed = false;
+let __btBootNumbersReady = false;
+
+function isBankStyleBootEnabled() {
+  return window.__btBankStyleBoot === true;
+}
+
+function isEarlyShellRevealEnabled() {
+  return BT_EARLY_SHELL_REVEAL === true || window.__btBankStyleBoot === true;
+}
+
+function areBootOverviewNumbersReady() {
+  if (__btBootNumbersReady) return true;
+  try {
+    const header = document.getElementById('header-month');
+    const net = document.getElementById('overview-net-worth');
+    const cash = document.getElementById('overview-available-cash');
+    if (!header || !net || !cash) return false;
+    if (!String(header.textContent || '').trim()) return false;
+    // Painted once applyOverviewBalanceEl wrote dataset.balanceValue.
+    if (net.dataset.balanceValue == null || cash.dataset.balanceValue == null) return false;
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function paintBootOverviewNumbers() {
+  try {
+    const headerMonth = document.getElementById('header-month');
+    if (headerMonth) headerMonth.textContent = getMonthLabel();
+    updateOverviewMonthNavState();
+  } catch (_) {}
+  try {
+    window.__overviewBalanceAnimateNext = false;
+    renderOverviewDashboard();
+  } catch (e) {
+    document.documentElement.setAttribute('data-render-overview-error', String(e && e.message ? e.message : e));
+    console.error('Boot overview numbers render failed:', e);
+  }
+  __btBootNumbersReady = areBootOverviewNumbersReady();
+  if (__btBootNumbersReady) {
+    document.documentElement.setAttribute('data-boot-numbers', 'ready');
+  }
+  return __btBootNumbersReady;
+}
+
+function isEarlyShellRevealReady() {
+  if (!isEarlyShellRevealEnabled()) return false;
+  if (__btEarlyShellRevealed || !__appBootActive || __appBootSequenceRunning) return false;
+  // Bank-style: do not block shell on lazy feature modules.
+  if (!isBankStyleBootEnabled() && window.__btLazyStartupReady === false) return false;
+  if (!document.getElementById('header-month') || !document.getElementById('page-overview')) return false;
+  // Bank-style: wait for 2 complete logo cycles AND stable overview numbers.
+  if (isBankStyleBootEnabled()) {
+    if (!window.__btSplashBrandCyclesComplete) return false;
+    if (!areBootOverviewNumbersReady()) return false;
+  }
+  return true;
+}
+
+function attemptEarlyShellReveal() {
+  if (!isEarlyShellRevealReady()) {
+    // Stale boundary hint must not force a mid-cycle cut later.
+    if (window.__btSplashRevealOnBoundary) window.__btSplashRevealOnBoundary = false;
+    if (isBankStyleBootEnabled() && !window.__btSplashBrandCyclesComplete) {
+      window.addEventListener('bt:splash-brand-cycles-complete', () => {
+        try { attemptEarlyShellReveal(); } catch (_) {}
+      }, { once: true });
+    }
+    return false;
+  }
+  __btEarlyShellRevealed = true;
+  document.documentElement.setAttribute('data-boot-mode', isBankStyleBootEnabled() ? 'bank-style' : 'early-shell');
+  try { finalizeAppBootPresentation(); } catch (_) {}
+  return true;
+}
+
+async function runBootDataHydration(ctx = {}) {
+  const { loaderFailSafe } = ctx;
+  try {
+    document.body.classList.add('app-boot-hydrating');
+    if (SHEETS_URL && isGoogleSheetsEnabled()) {
+      await new Promise((resolve) => {
+        window.setTimeout(() => {
+          runStartupCloudSync().finally(resolve);
+        }, 180);
+      });
+    } else {
+      if (!SHEETS_URL) {
+        const loadStatus = document.getElementById('limits-sync-status');
+        if (loadStatus) {
+          loadStatus.textContent = isLocalOfflineDemoMode()
+            ? 'Local demo mode — widget test data loaded from localhost seed.'
+            : (isMobileOrStandaloneClient()
+              ? 'Na mobile treba v Settings zadať Google Sheets URL (ukladá sa zvlášť pre každé zariadenie).'
+              : 'Google Sheets URL is empty. Paste/save the Sheets URL in Settings to load Overview details.');
+        }
+      }
+      try {
+        if (isLocalOfflineDemoMode()) {
+          const seeded = seedBankTrackerLocalTestData(shouldAutoSeedLocalWidgetDemo() || !allTransactions.length);
+          if (!seeded) {
+            applyLocalWidgetDemoAlertLimits(getAktuálneMonth());
+            window.setTimeout(() => {
+              try {
+                if (typeof runSubscriptionDetectionPipeline === 'function') runSubscriptionDetectionPipeline({ reason: 'local-boot' });
+              } catch (_) {}
+            }, 1400);
+          }
+        }
+      } catch (e) {
+        document.documentElement.setAttribute('data-local-test-seed', 'error');
+        document.documentElement.setAttribute('data-local-test-seed-error', String(e && e.message ? e.message : e));
+        console.error('Local test data seed failed:', e);
+      }
+    }
+    try { prepareUiAfterDataLoad({ render: false }); } catch (_) {}
+    // Paint header + net worth + cash behind the splash so reveal has no number jumps.
+    try {
+      paintBootOverviewNumbers();
+      renderAll({
+        visibleOnly: true,
+        deferHeavy: true,
+        overviewMode: 'numbers-first',
+      });
+      paintBootOverviewNumbers();
+    } catch (_) {}
+    try { applyLanguage(); } catch (_) {}
+    try { attemptEarlyShellReveal(); } catch (_) {}
+
+    // Charts/widgets only after the shell is visible (or after a short wait if reveal is gated on cycles).
+    const runCharts = () => {
+      try {
+        renderAll({
+          visibleOnly: true,
+          deferHeavy: false,
+          overviewMode: 'charts',
+        });
+      } catch (_) {}
+    };
+    if (__btEarlyShellRevealed) {
+      await yieldStartupLogoFrames(1);
+      runCharts();
+    } else {
+      window.addEventListener('bt:splash-brand-cycles-complete', () => {
+        window.setTimeout(runCharts, 80);
+      }, { once: true });
+      window.setTimeout(() => {
+        if (!__btEarlyShellRevealed) runCharts();
+      }, 5200);
+    }
+  } catch (e) {
+    console.error('Boot data hydration failed:', e);
+    try {
+      if (!allTransactions.length) loadCachedTransactionsSnapshot();
+    } catch (_) {}
+    try {
+      paintBootOverviewNumbers();
+      renderAll({ visibleOnly: true, deferHeavy: false });
+    } catch (_) {}
+  } finally {
+    if (loaderFailSafe) clearTimeout(loaderFailSafe);
+    document.body.classList.remove('app-boot-hydrating');
+    try { __overviewChartsDataSettled = true; } catch (_) {}
+    try { finishOverviewChartRenderCycle(); } catch (_) {}
+    __btBootDataHydrating = false;
+    document.documentElement.setAttribute('data-boot-hydration', 'done');
+    scheduleStartupCacheWarmup();
+    if (!__btEarlyShellRevealed) {
+      try { attemptEarlyShellReveal(); } catch (_) {}
+      try { finalizeAppBootPresentation(); } catch (_) {}
+    }
+    if (!SHEETS_URL) {
+      const loadStatus = document.getElementById('limits-sync-status');
+      if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
+      console.warn('Google Sheets sync skipped on startup: missing sheets_url for this origin.');
+    }
+  }
+}
+
+function startAppBootAfterSplashCycle() {
+  if (__btColdBootStarted) return;
+  __btColdBootStarted = true;
+  __appBootActive = true;
+  __bootPresentationPhase = true;
+  beginLoadingPresentation({ kind: 'boot' });
+
+  const loaderFailSafe = setTimeout(() => {
+    try { finalizeAppBootPresentation(); } catch (_) {}
+    scheduleStartupCacheWarmup();
+  }, APP_BOOT_MAX_MS);
+
+  const yieldStartupFrame = () => yieldStartupLogoFrames(isBankStyleBootEnabled() ? 1 : 2);
+
+  const runStartupBootstrap = async () => {
+  try {
+    // Bank-style: hydrate numbers behind the 2 logo cycles, then reveal on cycle boundary.
+    if (isBankStyleBootEnabled()) {
+      try { ensureHeaderBrandLogoMarkup(); } catch (_) {}
+      try { initBottomSheetDragToClose(); } catch (_) {}
+      try { initGlobalPullDownControl(); } catch (_) {}
+      try { initPullToRefresh(); } catch (_) {}
+      try { initTabHistory(); } catch (_) {}
+      try { initNavTouchFeedback(); } catch (_) {}
+      try { initMassTagSelectDelegation(); } catch (_) {}
+      try { updateFloatingUtilityButtons(); } catch (_) {}
+      try { bindFloatingUtilityScrollWatchers(); } catch (_) {}
+      applyAppTheme(getAppTheme());
+      clearDemoTransactionsCacheIfNeeded();
+      migrateCurrencyStorageToSymbols();
+      updateGoogleSheetsToggleUi();
+      ensureDefaultConfig();
+      clearCloudFirstLocalData();
+      try { markOverviewChartsAwaitingFreshData(); } catch (_) {}
+      bootstrapUiFromCache({ deferHeavy: true, skipHideBoot: true, render: false });
+      try { paintBootOverviewNumbers(); } catch (_) {}
+      __btBootDataHydrating = true;
+      document.documentElement.setAttribute('data-boot-hydration', 'pending');
+      window.addEventListener('bt:splash-brand-cycles-complete', () => {
+        try { attemptEarlyShellReveal(); } catch (_) {}
+      }, { once: true });
+      runBootDataHydration({ loaderFailSafe });
+      return;
+    }
+
+    // Every startup group enters through the shared logo-frame queue. Core,
+    // feature modules and data bootstrap can no longer bunch into one frame.
+    await yieldStartupFrame();
+    try { ensureHeaderBrandLogoMarkup(); } catch (_) {}
+    try { initBottomSheetDragToClose(); } catch (_) {}
+    try { initGlobalPullDownControl(); } catch (_) {}
+    await yieldStartupFrame();
+    try { initPullToRefresh(); } catch (_) {}
+    try { initTabHistory(); } catch (_) {}
+    await yieldStartupFrame();
+    try { initNavTouchFeedback(); } catch (_) {}
+    try { initMassTagSelectDelegation(); } catch (_) {}
+    await yieldStartupFrame();
+    try { updateFloatingUtilityButtons(); } catch (_) {}
+    try { bindFloatingUtilityScrollWatchers(); } catch (_) {}
+    await yieldStartupFrame();
+    applyAppTheme(getAppTheme());
+    clearDemoTransactionsCacheIfNeeded();
+    await yieldStartupFrame();
+    migrateCurrencyStorageToSymbols();
+    updateGoogleSheetsToggleUi();
+    ensureDefaultConfig();
+    clearCloudFirstLocalData();
+    try { markOverviewChartsAwaitingFreshData(); } catch (_) {}
+    await yieldStartupFrame();
+    // Load the cached model only. Rendering it behind the splash and then
+    // rendering fresh data again caused the visible second-cycle hitch.
+    bootstrapUiFromCache({ deferHeavy: true, skipHideBoot: true, render: false });
+    await yieldStartupFrame();
+
+    if (isEarlyShellRevealEnabled()) {
+      __btBootDataHydrating = true;
+      document.documentElement.setAttribute('data-boot-hydration', 'pending');
+      if (!attemptEarlyShellReveal()) {
+        window.addEventListener('bt:lazy-startup-ready', () => {
+          try { attemptEarlyShellReveal(); } catch (_) {}
+        }, { once: true });
+      }
+      runBootDataHydration({ loaderFailSafe });
+      return;
+    }
+
+    if (SHEETS_URL && isGoogleSheetsEnabled()) {
+      window.setTimeout(() => {
+        runStartupCloudSync()
+          .finally(() => {
+            if (!__appBootActive) clearTimeout(loaderFailSafe);
+            else finalizeAppBootPresentation();
+            scheduleStartupCacheWarmup();
+          });
+      }, 180);
+      return;
+    }
+
+    clearTimeout(loaderFailSafe);
+
+    if (!SHEETS_URL) {
+      const loadStatus = document.getElementById('limits-sync-status');
+      if (loadStatus) {
+        loadStatus.textContent = isLocalOfflineDemoMode()
+          ? 'Local demo mode — widget test data loaded from localhost seed.'
+          : (isMobileOrStandaloneClient()
+            ? 'Na mobile treba v Settings zadať Google Sheets URL (ukladá sa zvlášť pre každé zariadenie).'
+            : 'Google Sheets URL is empty. Paste/save the Sheets URL in Settings to load Overview details.');
+      }
+    }
+
+    try {
+      if (isLocalOfflineDemoMode()) {
+        const seeded = seedBankTrackerLocalTestData(shouldAutoSeedLocalWidgetDemo() || !allTransactions.length);
+        if (!seeded) {
+          applyLocalWidgetDemoAlertLimits(getAktuálneMonth());
+          window.setTimeout(() => {
+            try {
+              if (typeof runSubscriptionDetectionPipeline === 'function') runSubscriptionDetectionPipeline({ reason: 'local-boot' });
+            } catch (_) {}
+          }, 1400);
+        }
+      }
+    } catch (e) {
+      document.documentElement.setAttribute('data-local-test-seed', 'error');
+      document.documentElement.setAttribute('data-local-test-seed-error', String(e && e.message ? e.message : e));
+      console.error('Local test data seed failed:', e);
+    }
+    await yieldStartupFrame();
+    try { prepareUiAfterDataLoad({ render: false }); } catch (_) {}
+    await yieldStartupFrame();
+    try { renderAll({ visibleOnly: true, deferHeavy: true }); } catch (_) {}
+    await yieldStartupFrame();
+    try { applyLanguage(); } catch (_) {}
+    try { __overviewChartsDataSettled = true; } catch (_) {}
+    finalizeAppBootPresentation();
+    scheduleStartupCacheWarmup();
+    if (!SHEETS_URL) {
+      const loadStatus = document.getElementById('limits-sync-status');
+      if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
+      console.warn('Google Sheets sync skipped on startup: missing sheets_url for this origin.');
+    }
+  } catch (e) {
+    console.error('Startup bootstrap failed:', e);
+    try {
+      if (!allTransactions.length) loadCachedTransactionsSnapshot();
+    } catch (_) {}
+    try { __overviewChartsDataSettled = true; } catch (_) {}
+    finalizeAppBootPresentation();
+    scheduleStartupCacheWarmup();
+  }
+  };
+
+  runStartupBootstrap();
+}
+
+function scheduleAppBootAfterDomReady() {
+  // Bank-style: hydrate behind the logo as soon as core is ready.
+  if (window.__btBankStyleBoot || window.__btSplashInitialCycleComplete) {
+    startAppBootAfterSplashCycle();
+    return;
+  }
+  window.addEventListener('bt:splash-first-cycle-complete', startAppBootAfterSplashCycle, { once: true });
 }

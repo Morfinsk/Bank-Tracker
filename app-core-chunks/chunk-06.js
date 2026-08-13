@@ -1,1276 +1,4 @@
 // Generated app-core slice 6/6 (merged).
-
-async function testGoogleSheetsEndpointFromApp() {
-  const status = document.getElementById('limits-sync-status');
-  getCurrentWebAppUrl();
-  if (!LIMITS_WEBAPP_URL || !isValidAppsScriptExecUrl(LIMITS_WEBAPP_URL)) {
-    if (status) status.textContent = 'Najprv ulož platnú Apps Script /exec URL (zelená fajka pri poli).';
-    return false;
-  }
-  const where = isLikelyIOSWebKit() ? 'iPhone WebKit' : 'tento prehliadač';
-  if (status) status.textContent = 'Testujem Apps Script cez ' + where + '...';
-  const result = await endpointMutationRequest('debugEcho', { probe: 'bank-tracker', from: where }, 20000);
-  const data = result && result.data || {};
-  const version = String(data.version || '').trim();
-  const shortVersion = version ? version.split('_')[0] : '';
-  if (result.ok) {
-    if (status) {
-      status.textContent = shortVersion
-        ? ('Server OK (' + shortVersion + ' = verzia parsera, nie chyba). Z appky sa Apps Script dá volať — skús uložiť transakciu.')
-        : ('Test OK z ' + where + '. Skús uložiť transakciu.');
-    }
-    return true;
-  }
-  if (status) status.textContent = getEndpointFailureDetail('debugEcho', result);
-  return false;
-}
-
-async function postToBankTrackerEndpoint(action, payload = {}) {
-  const url = getCurrentWebAppUrl();
-  const status = document.getElementById('limits-sync-status');
-  const confirmWrite = !!(payload && payload._confirmWrite);
-  const fireAndForgetSave = !confirmWrite && (action === 'saveTransaction' || action === 'saveBank' || action === 'saveLoan');
-  const useSerializedQueue = ENDPOINT_SERIALIZED_ACTIONS.has(action);
-  const runMutation = async (mutationTimeoutMs) => {
-    if (useSerializedQueue) {
-      const ok = await enqueueEndpointMutation(action, payload, mutationTimeoutMs);
-      return { ok, result: { ok, data: ok ? { status: 'success' } : { status: 'error' } } };
-    }
-    const result = await endpointMutationRequest(action, payload, mutationTimeoutMs);
-    return { ok: !!(result && result.ok), result };
-  };
-
-  if (!url) {
-    console.warn('Apps Script Web App URL is not configured.');
-    if (status && !fireAndForgetSave) status.textContent = 'Web App URL nie je nastavená. Dáta sú uložené iba lokálne.';
-    return false;
-  }
-  if (!isValidAppsScriptExecUrl(url)) {
-    console.warn('Invalid Apps Script Web App URL. Use /exec deployment URL, not editor URL.');
-    if (status && !fireAndForgetSave) status.textContent = 'Používaš nesprávnu Apps Script URL. Potrebuješ Web App /exec URL.';
-    return false;
-  }
-
-  if (status && !fireAndForgetSave) status.textContent = getEndpointStatusMessage(action, 'pending');
-
-  // v155: save/delete transaction can take longer because the backend now also
-  // updates balance, monthly stats, notification logs and FCM token cleanup.
-  // A short timeout made the app show "transaction failed" even when Apps Script
-  // had already written the row to Google Sheets successfully.
-  const mutationTimeoutMs = isLikelyIOSWebKit() || confirmWrite || ['saveTransaction', 'deleteTransaction', 'saveBankSettings'].includes(action) ? 60000 : 15000;
-  if (fireAndForgetSave) {
-    runMutation(mutationTimeoutMs).then(({ ok, result }) => {
-      if (ok) {
-        console.log('Google Sheets async mutation OK:', action, result && result.data);
-        queueParserRunAfterMutation(action);
-      } else {
-        console.warn('Google Sheets async mutation failed:', action, result && result.data ? result.data : {});
-      }
-    }).catch(err => {
-      console.warn('Google Sheets async mutation error:', action, err);
-    });
-    return true;
-  }
-
-  const { ok, result } = await runMutation(mutationTimeoutMs);
-  if (ok) {
-    if (status) status.textContent = getEndpointStatusMessage(action, 'success');
-    console.log('Google Sheets mutation OK:', action, result && result.data);
-    if (action === 'saveTransaction' || action === 'saveBank' || action === 'saveLoan') {
-      queueParserRunAfterMutation(action);
-    }
-    return true;
-  }
-
-  console.error('Google Sheets mutation failed:', action, JSON.stringify(result && result.data || {}));
-  if (status) status.textContent = getEndpointFailureDetail(action, result);
-  return false;
-}
-
-function extractTxnPayload(tx) {
-  const variableSymbol = String(tx.variableSymbol || tx.vs || tx.specificSymbol || '').replace(/\D/g, '').trim();
-  const tagMeta = parseTransactionTagMeta(tx);
-  return {
-    id: tx.id || '',
-    date: tx.date || '',
-    amount: Number(tx.amount || 0),
-    currency: tx.currency || 'CZK',
-    merchant: tx.merchant || '',
-    category: tx.category || '',
-    card: tx.card || '',
-    type: tx.type || '',
-    month: tx.month || '',
-    bank: tx.bank || '',
-    bankId: tx.bankId || getBankKey(tx) || '',
-    rawDate: tx.rawDate || '',
-    paymentKind: tx.paymentKind || getTransactionPaymentKind(tx),
-    msgId: tx.msgId || tx.id || '',
-    variableSymbol: variableSymbol,
-    vs: variableSymbol,
-    tag: tagMeta ? JSON.stringify(tagMeta) : '',
-    tagLabel: tagMeta ? tagMeta.name : '',
-    tagName: tagMeta ? tagMeta.name : '',
-    tagColor: tagMeta ? tagMeta.color : '',
-    tagShape: tagMeta ? tagMeta.shape : '',
-    excludeFromSpent: !!tx.excludeFromSpent,
-    returnForTransactionId: String(tx.returnForTransactionId || tx.returnForId || '').trim(),
-    recurring_group_id: String(tx.recurring_group_id || '').trim() || null,
-    counterpartyAccount: String(tx.counterpartyAccount || '').trim()
-  };
-}
-
-function askDeleteTransaction(txId) {
-  if (!txId) return;
-
-  const lang = getLanguage ? getLanguage() : 'en';
-  const message = lang === 'sk'
-    ? 'Vymazať túto transakciu?'
-    : (lang === 'cs' ? 'Smazat tuto transakci?' : 'Delete this transaction?');
-
-  if (confirm(message)) {
-    deleteSingleTransaction(txId).then(ok => {
-      if (ok) showDeletedToast();
-    });
-  }
-}
-
-
-function txEditEscapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-function toDateInputValue(dateObj = new Date()) {
-  const d = new Date(dateObj);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-}
-
-function parseManualDateInput(value) {
-  if (!value) return new Date();
-  const raw = String(value).trim();
-  const dtMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-  if (dtMatch) {
-    return new Date(Number(dtMatch[1]), Number(dtMatch[2]) - 1, Number(dtMatch[3]), Number(dtMatch[4]), Number(dtMatch[5]), 0);
-  }
-  const parts = raw.split('-').map(Number);
-  if (parts.length === 3 && parts.every(Boolean)) {
-    const now = new Date();
-    return new Date(parts[0], parts[1] - 1, parts[2], now.getHours(), now.getMinutes(), 0);
-  }
-  return parseCustomDateStr(raw);
-}
-
-function getTxEditCategoryOptions(selectedCategory = '') {
-  if (typeof getCategoryOptionsHtml === 'function') {
-    return getCategoryOptionsHtml(selectedCategory);
-  }
-
-  const categories = ['Domácnosť','Potraviny','Pohonné hmoty','Reštaurácie','Káva','Doprava','Zdravie','Drogéria','Dom','Šport','Zábava','Predplatné','Oblečenie','Obuv','Jedlo','Bývanie','Lekáreň','Účet','Bankomat','Ostatné'];
-  return categories.map(category => {
-    const label = typeof translateCategory === 'function' ? translateCategory(category) : category;
-    return `<option value="${txEditEscapeHtml(category)}" ${selectedCategory === category ? 'selected' : ''}>${txEditEscapeHtml(label)}</option>`;
-  }).join('');
-}
-
-function getTxEditBankOptions(selectedValue = '') {
-  if (typeof getAllBankOptions === 'function') {
-    return getAllBankOptions(selectedValue);
-  }
-
-  return BANK_ORDER.map(key => {
-    const name = plainBankName(key);
-    return `<option value="${key}" ${selectedValue === key ? 'selected' : ''}>${txEditEscapeHtml(name)}</option>`;
-  }).join('');
-}
-
-function getTxEditBankName(bankKey) {
-  if (typeof getBankNameFromOption === 'function') return getBankNameFromOption(bankKey);
-  return plainBankName(bankKey);
-}
-
-function getTxEditBankAccount(bankKey) {
-  if (typeof getBankAccountFromOption === 'function') return getBankAccountFromOption(bankKey);
-  return plainBankName(bankKey);
-}
-
-
-// ── SAFE TRANSACTION EDIT FROM TRANSACTIONS + RECENT LISTS ──
-function getTransactionId(tx) {
-  return String(tx?.id || tx?.msgId || '');
-}
-
-function findTransactionById(txId) {
-  return allTransactions.find(tx => String(tx.id || tx.msgId || '') === String(txId));
-}
-
-
-function getEditedPaymentMeta(tx, paymentKind, direction, bankKey, bankName) {
-  const kind = paymentKind || 'card';
-  const isIncoming = direction === 'incoming';
-  const previousKind = getTransactionPaymentKind(tx);
-  const existingCard = String(tx?.card || '').trim();
-
-  if (kind === 'cash') {
-    if (isAtmCashWithdrawalTransaction(tx)) {
-      const existingType = String(tx?.type || '').trim();
-      const safeType = normalizePaymentKindValue(existingType) === 'internal'
-        ? 'ATM cash withdrawal'
-        : (existingType || 'ATM cash withdrawal');
-      return {
-        card: existingCard || 'Cash',
-        type: safeType
-      };
-    }
-    return {
-      card: 'Cash',
-      type: t('cashPaymentKind')
-    };
-  }
-
-  if (kind === 'internal') {
-    return {
-      card: existingCard || getTxEditBankAccount(bankKey) || `Account ${bankName}`,
-      type: 'Internal transfer'
-    };
-  }
-
-  if (kind === 'account') {
-    const customBank = getCustomBanks().find(b => b.id === bankKey);
-    const account = customBank?.account || '';
-
-    return {
-      card: previousKind === 'account' && existingCard ? existingCard : (account || `Účet ${bankName}`),
-      type: isIncoming ? 'príjem na účet' : 'odchod z účtu'
-    };
-  }
-
-  return {
-    card: previousKind === 'card' && existingCard ? existingCard : `Karta ${bankName}`,
-    type: 'platba kartou'
-  };
-}
-
-function hasScrolledPastNthItem(containerSelector, itemSelector, index = 19, rootElement = null) {
-  const container = document.querySelector(containerSelector);
-  if (!container) return false;
-
-  const items = container.querySelectorAll(itemSelector);
-  if (items.length <= index) return false;
-
-  const target = items[index];
-  const targetRect = target.getBoundingClientRect();
-
-  if (rootElement) {
-    const rootRect = rootElement.getBoundingClientRect();
-    return targetRect.top < rootRect.top + 72;
-  }
-
-  return targetRect.top < 110;
-}
-
-function shouldShowScrollToLatestButton() {
-  const archiveSheet = document.querySelector('#archive-bank-detail-sheet.open');
-  if (archiveSheet) {
-    return hasScrolledPastNthItem('#archive-bank-detail-sheet', '[data-archive-tx-id]', 19, archiveSheet);
-  }
-
-  const pageId = getActivePageId ? getActivePageId() : activePageId;
-
-  if (pageId === 'txns') {
-    return hasScrolledPastNthItem('#txn-list', '.tx-item', 19);
-  }
-
-  if (pageId === 'archive') {
-    return hasScrolledPastNthItem('#archive-months-list', '.archive-item', 9);
-  }
-
-  return false;
-}
-
-function isActivePageBottomContentVisible() {
-  const activePage = document.querySelector('.page.active');
-  if (!activePage) return false;
-  const vh = window.innerHeight || document.documentElement.clientHeight || 0;
-  const doc = document.documentElement;
-  const body = document.body;
-  const scrollTop = window.scrollY || doc.scrollTop || body.scrollTop || 0;
-  const fullHeight = Math.max(body.scrollHeight || 0, doc.scrollHeight || 0, body.offsetHeight || 0, doc.offsetHeight || 0);
-  if (!fullHeight || fullHeight <= vh + 80) return false;
-  return (scrollTop + vh) >= (fullHeight - 220);
-}
-
-function isTransactionBottomContentVisible() {
-  // Kept for compatibility with older calls; now dims the utility buttons near the bottom of any tab.
-  return isActivePageBottomContentVisible();
-}
-
-function updateFloatingUtilityButtons() {
-  const btn = document.getElementById('scroll-top-fab');
-  const fab = document.getElementById('global-fab');
-  const activeSheet = document.body?.dataset?.activeSheet || '';
-  const hasSheetOpen = document.body.classList.contains('sheet-open') || !!document.querySelector('.bottom-sheet.open');
-  const hideUtilities = hasSheetOpen || activeSheet === 'bank-manager-sheet' || !!massTagSelectMode;
-  const showScroll = !hideUtilities && shouldShowScrollToLatestButton();
-  const dimUtilities = !hideUtilities && isActivePageBottomContentVisible();
-
-  if (btn) {
-    btn.classList.toggle('visible', showScroll);
-    btn.classList.toggle('utility-hidden', hideUtilities);
-  }
-  if (fab) {
-    fab.classList.toggle('utility-dim', dimUtilities);
-    fab.classList.toggle('utility-hidden', hideUtilities);
-  }
-}
-
-function scheduleFloatingUtilityUpdate() {
-  if (window.__floatingUtilityUpdateRaf) return;
-
-  window.__floatingUtilityUpdateRaf = requestAnimationFrame(() => {
-    window.__floatingUtilityUpdateRaf = null;
-    updateFloatingUtilityButtons();
-  });
-}
-
-function bindFloatingUtilityScrollWatchers() {
-  if (window.__floatingUtilityScrollWatchersReady) return;
-  window.__floatingUtilityScrollWatchersReady = true;
-
-  window.addEventListener('scroll', scheduleFloatingUtilityUpdate, { passive: true });
-  document.addEventListener('scroll', scheduleFloatingUtilityUpdate, { passive: true, capture: true });
-  window.addEventListener('resize', scheduleFloatingUtilityUpdate, { passive: true });
-
-  if (window.visualViewport) {
-    visualViewport.addEventListener('resize', scheduleFloatingUtilityUpdate, { passive: true });
-    visualViewport.addEventListener('scroll', scheduleFloatingUtilityUpdate, { passive: true });
-  }
-}
-
-
-function easeOutCubicScroll(t) {
-  return 1 - Math.pow(1 - t, 3);
-}
-
-function getWindowScrollTopValue() {
-  return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-}
-
-function setWindowScrollTopValue(value) {
-  window.scrollTo(0, value);
-  document.documentElement.scrollTop = value;
-  document.body.scrollTop = value;
-}
-
-function smoothScrollContainerToTop(target, duration = 360) {
-  const isWindow = target === window || target === document || target === document.documentElement || target === document.body;
-  const start = isWindow ? getWindowScrollTopValue() : Number(target?.scrollTop || 0);
-
-  if (start <= 1) {
-    if (isWindow) setWindowScrollTopValue(0);
-    else if (target) target.scrollTop = 0;
-    scheduleFloatingUtilityUpdate();
-    return;
-  }
-
-  const startTime = performance.now();
-
-  const step = (now) => {
-    const progress = Math.min((now - startTime) / duration, 1);
-    const next = Math.round(start * (1 - easeOutCubicScroll(progress)));
-
-    if (isWindow) setWindowScrollTopValue(next);
-    else target.scrollTop = next;
-
-    if (progress < 1) {
-      requestAnimationFrame(step);
-    } else {
-      if (isWindow) setWindowScrollTopValue(0);
-      else target.scrollTop = 0;
-      scheduleFloatingUtilityUpdate();
-    }
-  };
-
-  requestAnimationFrame(step);
-}
-
-function scrollToLatestVisibleTransaction() {
-  const archiveSheet = document.querySelector('#archive-bank-detail-sheet.open');
-  const anyOpenSheet = document.querySelector('.bottom-sheet.open');
-
-  if (archiveSheet) {
-    smoothScrollContainerToTop(archiveSheet, 360);
-    return;
-  }
-
-  if (anyOpenSheet) {
-    smoothScrollContainerToTop(anyOpenSheet, 360);
-    return;
-  }
-
-  const pageId = getActivePageId ? getActivePageId() : activePageId;
-  const activePage = document.getElementById('page-' + pageId);
-
-  if (activePage && activePage.scrollTop > 2) {
-    smoothScrollContainerToTop(activePage, 360);
-  }
-
-  smoothScrollContainerToTop(window, 380);
-}
-
-function fillEditTransactionSheet(txId) {
-  const tx = findTransactionById(txId);
-  if (!tx) return false;
-
-  const amount = Number(tx.amount || 0);
-  const parsed = parseCustomDateStr(tx.rawDate || tx.date);
-  const bankKey = getBankKey(tx);
-
-  document.getElementById('edit-tx-id').value = getTransactionId(tx);
-  document.getElementById('edit-tx-date').value = toDateInputValue(parsed);
-  document.getElementById('edit-tx-merchant').value = tx.merchant || '';
-  const txVs = String(tx.variableSymbol || tx.vs || '').replace(/\D/g, '').trim();
-  const editVsInput = document.getElementById('edit-tx-vs');
-  if (editVsInput) editVsInput.value = txVs;
-  const txTag = parseTransactionTagMeta(tx);
-  const editTagInput = document.getElementById('edit-tx-tag');
-  if (editTagInput) editTagInput.value = txTag?.name || '';
-  const editTagColor = document.getElementById('edit-tx-tag-color');
-  if (editTagColor) {
-    editTagColor.value = (txTag?.color || '#58A6FF').toLowerCase();
-    editTagColor.dataset.userPicked = txTag?.name ? '1' : '0';
-  }
-  const editTagShape = document.getElementById('edit-tx-tag-shape');
-  if (editTagShape) editTagShape.value = txTag?.shape || '';
-  const sourceBadge = document.getElementById('edit-tx-detect-source');
-  if (sourceBadge) {
-    const source = getInternalTransferDetectionSource(tx);
-    sourceBadge.style.display = source ? 'inline-flex' : 'none';
-    sourceBadge.textContent = source || '';
-    sourceBadge.classList.toggle('source-parser', source === 'P');
-    sourceBadge.classList.toggle('source-fallback', source === 'F');
-    sourceBadge.title = source === 'P' ? 'Parser-detected internal transfer' : (source === 'F' ? 'Fallback-detected internal transfer' : '');
-  }
-  document.getElementById('edit-tx-amount').value = Math.abs(amount);
-  document.getElementById('edit-tx-direction').value = amount >= 0 ? 'incoming' : 'outgoing';
-  fillCurrencySelect(document.getElementById('edit-tx-currency'), tx.currency || 'CZK');
-
-  const catSelect = document.getElementById('edit-tx-category');
-  if (catSelect) {
-    catSelect.innerHTML = getTxEditCategoryOptions(tx.category || 'Ostatné');
-    if ([...catSelect.options].some(option => option.value === tx.category)) catSelect.value = tx.category;
-  }
-
-  const bankSelect = document.getElementById('edit-tx-bank');
-  if (bankSelect) {
-    bankSelect.innerHTML = getTxEditBankOptions(bankKey);
-    bankSelect.value = bankKey;
-  }
-
-  const kindSelect = document.getElementById('edit-tx-kind');
-  if (kindSelect) {
-    kindSelect.value = isInternalTransferTransaction(tx) ? 'internal' : getTransactionPaymentKind(tx);
-  }
-
-  updateEditTransactionExcludeSpentUi(isTransactionManuallyExcludedFromSpent(tx));
-  updateEditReturnOffsetUi(tx);
-
-  return true;
-}
-
-function getReturnOffsetCandidates(tx) {
-  if (!tx || Number(tx.amount || 0) <= 0) return [];
-  const incomingAmount = Math.abs(Number(tx.amount || 0));
-  const currency = currencyCode(tx.currency || 'CZK');
-  const txTime = parseCustomDateStr(tx.rawDate || tx.date)?.getTime() || Date.now();
-  return (allTransactions || []).filter(other => {
-    if (!other || other === tx || Number(other.amount || 0) >= 0) return false;
-    if (getTransactionPaymentKind(other) !== 'account') return false;
-    if (isExcludedFromSpendingStats(other)) return false;
-    if (currencyCode(other.currency || 'CZK') !== currency) return false;
-    if (Math.abs(Number(other.amount || 0)) + 0.01 < incomingAmount) return false;
-    const otherTime = parseCustomDateStr(other.rawDate || other.date)?.getTime() || txTime;
-    return Math.abs(txTime - otherTime) <= 120 * 24 * 60 * 60 * 1000;
-  }).sort((a, b) => {
-    const at = parseCustomDateStr(a.rawDate || a.date)?.getTime() || 0;
-    const bt = parseCustomDateStr(b.rawDate || b.date)?.getTime() || 0;
-    return Math.abs(txTime - at) - Math.abs(txTime - bt);
-  });
-}
-
-function updateEditReturnOffsetUi(tx) {
-  const wrap = document.getElementById('edit-tx-return-offset-wrap');
-  const select = document.getElementById('edit-tx-return-for');
-  if (!wrap || !select) return;
-  const isIncomingAccount = Number(tx?.amount || 0) > 0 && getTransactionPaymentKind(tx) === 'account';
-  wrap.style.display = isIncomingAccount ? '' : 'none';
-  if (!isIncomingAccount) {
-    select.innerHTML = `<option value="">${escapeHtml(t('notLinkedToPayment') || 'Not linked to an outgoing payment')}</option>`;
-    return;
-  }
-  const selected = String(tx.returnForTransactionId || tx.returnForId || '').trim();
-  const options = getReturnOffsetCandidates(tx);
-  select.innerHTML = `<option value="">${escapeHtml(t('notLinkedToPayment') || 'Not linked to an outgoing payment')}</option>` + options.map(other => {
-    const id = getTransactionId(other);
-    const label = `${other.date || ''} · ${other.merchant || t('transaction')} · -${formatCurrencyAmount(Math.abs(Number(other.amount || 0)), other.currency || 'CZK')}`;
-    return `<option value="${escapeAttr(id)}" ${id === selected ? 'selected' : ''}>${escapeHtml(label)}</option>`;
-  }).join('');
-  if (selected && [...select.options].some(option => option.value === selected)) select.value = selected;
-}
-
-function refreshEditReturnOffsetCandidates() {
-  const txId = document.getElementById('edit-tx-id')?.value || '';
-  const tx = findTransactionById(txId);
-  if (!tx) return;
-  const direction = document.getElementById('edit-tx-direction')?.value || (Number(tx.amount || 0) >= 0 ? 'incoming' : 'outgoing');
-  const amount = Math.abs(Number(document.getElementById('edit-tx-amount')?.value || tx.amount || 0));
-  const kind = document.getElementById('edit-tx-kind')?.value || getTransactionPaymentKind(tx);
-  const currency = document.getElementById('edit-tx-currency')?.value || tx.currency || 'CZK';
-  updateEditReturnOffsetUi({ ...tx, amount: direction === 'incoming' ? amount : -amount, paymentKind: kind, currency });
-}
-
-function updateEditTransactionExcludeSpentUi(excluded) {
-  const toggle = document.getElementById('edit-tx-exclude-spent-switch');
-  const card = document.querySelector('#transaction-edit-sheet .tx-non-spent-toggle-card');
-  if (!toggle) return;
-  const active = !!excluded;
-  toggle.classList.toggle('on', active);
-  toggle.dataset.excluded = active ? '1' : '0';
-  toggle.setAttribute('aria-checked', active ? 'true' : 'false');
-  if (card) card.classList.toggle('on', active);
-}
-
-function applyTransactionExcludedVisualState(tx) {
-  if (!tx) return;
-  const txId = String(tx.id || tx.msgId || '').trim();
-  if (!txId) return;
-  const excluded = isExcludedFromSpendingStats(tx);
-  const manualNonSpent = isTransactionManuallyExcludedFromSpent(tx);
-  document.querySelectorAll('.tx-item[data-tx-id]').forEach(row => {
-    if (String(row.dataset.txId || '').trim() !== txId) return;
-    row.classList.toggle('tx-credit-repayment', excluded);
-    row.classList.toggle('tx-manual-non-spent', manualNonSpent);
-    const amount = row.querySelector('.tx-amount');
-    if (amount) {
-      amount.classList.toggle('amount-neutral', excluded && !manualNonSpent);
-      amount.classList.toggle('amount-income', (!excluded || manualNonSpent) && Number(tx.amount || 0) > 0);
-      amount.classList.toggle('amount-expense', (!excluded || manualNonSpent) && Number(tx.amount || 0) < 0);
-    }
-  });
-}
-
-function syncEditTransactionExcludeSpentToBackend(tx) {
-  if (!tx) return;
-  postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
-}
-
-function applyEditTransactionExcludeSpent(excluded) {
-  const txId = document.getElementById('edit-tx-id')?.value || '';
-  const tx = findTransactionById(txId);
-  if (!tx) return;
-
-  const next = !!excluded;
-  const prev = isTransactionManuallyExcludedFromSpent(tx);
-  updateEditTransactionExcludeSpentUi(next);
-  if (prev === next) return;
-
-  const oldSnapshot = { ...tx, excludeFromSpent: prev };
-  tx.excludeFromSpent = next;
-  const kindSelect = document.getElementById('edit-tx-kind');
-  if (kindSelect) kindSelect.value = getTransactionPaymentKind(tx);
-
-  invalidateTransactionStatsAdjustments();
-  applyLocalArchiveStatsFromTransaction(oldSnapshot, -1);
-  applyLocalArchiveStatsFromTransaction(tx, 1);
-  rebuildLocalArchiveStatsFromTransactions({ force: true });
-  saveCachedTransactionsSnapshot();
-  renderAll();
-  applyTransactionExcludedVisualState(tx);
-
-  syncEditTransactionExcludeSpentToBackend(tx);
-}
-
-function toggleEditTransactionExcludeSpent() {
-  const toggle = document.getElementById('edit-tx-exclude-spent-switch');
-  if (!toggle) return;
-  const next = toggle.dataset.excluded !== '1';
-  applyEditTransactionExcludeSpent(next);
-}
-
-function openTransactionEditSheet(txId) {
-  if (!fillEditTransactionSheet(txId)) return;
-  openSheet('transaction-edit-sheet');
-}
-
-async function saveEditedTransaction() {
-  const txId = document.getElementById('edit-tx-id')?.value || '';
-  const tx = findTransactionById(txId);
-  if (!tx) return;
-
-  const parsedDate = parseManualDateInput(document.getElementById('edit-tx-date')?.value || '');
-  const amountRaw = parseFloat(document.getElementById('edit-tx-amount')?.value || '0') || 0;
-  const direction = document.getElementById('edit-tx-direction')?.value || 'outgoing';
-  const currency = normalizeCurrencyForStorage(document.getElementById('edit-tx-currency')?.value || tx.currency || 'Kč');
-  const category = document.getElementById('edit-tx-category')?.value || tx.category || 'Ostatné';
-  const merchant = document.getElementById('edit-tx-merchant')?.value.trim() || tx.merchant || '';
-  const bankKey = document.getElementById('edit-tx-bank')?.value || getBankKey(tx);
-  const returnForTransactionId = direction === 'incoming' ? String(document.getElementById('edit-tx-return-for')?.value || '').trim() : '';
-  const excludeFromSpent = !returnForTransactionId && document.getElementById('edit-tx-exclude-spent-switch')?.dataset?.excluded === '1';
-  const paymentKind = returnForTransactionId ? 'account' : (document.getElementById('edit-tx-kind')?.value || getTransactionPaymentKind(tx));
-  const variableSymbol = String(document.getElementById('edit-tx-vs')?.value || tx.variableSymbol || tx.vs || '').replace(/\D/g, '').trim();
-  const tagLabel = normalizeTransactionTagLabel(document.getElementById('edit-tx-tag')?.value || tx.tagLabel || tx.tagName || '');
-  const editTagColorInput = document.getElementById('edit-tx-tag-color');
-  const tagShapeRaw = document.getElementById('edit-tx-tag-shape')?.value || '';
-  const tagValidation = validateRequiredTagFields(
-    tagLabel,
-    tagShapeRaw,
-    editTagColorInput?.value || tx.tagColor || '#58A6FF',
-    editTagColorInput?.dataset?.userPicked || (tx.tagLabel ? '1' : '0'),
-    'edit'
-  );
-  if (!tagValidation.ok) { alert(tagValidation.message); return; }
-  const tagColor = tagLabel ? tagValidation.color : '';
-  const tagShape = tagLabel ? tagValidation.shape : '';
-  const finalAmount = direction === 'incoming' ? Math.abs(amountRaw) : -Math.abs(amountRaw);
-  const oldTxSnapshot = { ...tx };
-  const bankName = getTxEditBankName(bankKey);
-  const paymentMeta = getEditedPaymentMeta({ ...tx, category }, paymentKind, direction, bankKey, bankName);
-
-  tx.date = formatDate(parsedDate);
-  tx.rawDate = parsedDate.toISOString();
-  tx.timestamp = parsedDate.getTime();
-  tx.month = getMonthFromDate(parsedDate); // v115 auto archive month after edit
-  tx.amount = finalAmount;
-  tx.currency = currency;
-  tx.category = category;
-  tx.merchant = merchant;
-  tx.merchantRaw = merchant;
-  tx.bank = bankName;
-  tx.bankId = bankKey;
-  tx.card = paymentMeta.card;
-  tx.type = paymentMeta.type;
-  tx.paymentKind = paymentKind;
-  tx.variableSymbol = variableSymbol;
-  tx.vs = variableSymbol;
-  tx.tagLabel = tagLabel;
-  tx.tagName = tagLabel;
-  tx.tagColor = tagColor;
-  tx.tagShape = tagShape;
-  tx.tagMeta = tagLabel ? { name: tagLabel, color: tagColor, shape: tagShape } : null;
-  tx.tag = tagLabel ? JSON.stringify({ name: tagLabel, color: tagColor, shape: tagShape }) : '';
-  tx.excludeFromSpent = excludeFromSpent;
-  tx.returnForTransactionId = returnForTransactionId;
-  tx.msgId = tx.msgId || tx.id;
-
-  invalidateTransactionStatsAdjustments();
-  allTransactions = sortTransactionsNewestFirst(allTransactions);
-  applyLocalArchiveStatsFromTransaction(oldTxSnapshot, -1);
-  applyLocalArchiveStatsFromTransaction(tx, 1);
-  const oldMonth = normalizeMonthStr(oldTxSnapshot.month || getAktuálneMonth());
-  const newMonth = normalizeMonthStr(tx.month || getAktuálneMonth());
-  recomputeAccountBalancesForMonth(oldMonth);
-  if (newMonth !== oldMonth) recomputeAccountBalancesForMonth(newMonth);
-  rebuildLocalArchiveStatsFromTransactions({ force: true });
-  saveCachedTransactionsSnapshot();
-
-  closeBottomSheets();
-  renderAll();
-  applyTransactionExcludedVisualState(tx);
-  const ok = await postToBankTrackerEndpoint('saveTransaction', { transaction: extractTxnPayload(tx) });
-  if (ok) {
-    showSavedToast();
-  } else {
-    showLargeStatusToast(t('transactionSyncDelayed') || 'Saved locally. Google Sheets response was delayed.', 'warning');
-  }
-}
-
-async function deleteEditedTransaction() {
-  const txId = document.getElementById('edit-tx-id')?.value || '';
-  if (!txId) return;
-  if (!confirm(t('deleteTransactionConfirm'))) return;
-
-  closeBottomSheets();
-  const ok = await deleteSingleTransaction(txId);
-  if (ok) {
-    showDeletedToast();
-  } else {
-    showLargeStatusToast(t('transactionDeleteFailed') || 'Transaction was not deleted.', 'error');
-  }
-}
-function isTouchLikeDevice() {
-  return !!(window.matchMedia && window.matchMedia('(hover: none), (pointer: coarse)').matches) || ('ontouchstart' in window);
-}
-
-function bindTransactionDeleteGestures() {
-  document.querySelectorAll('[data-tx-id]').forEach(el => {
-    if (el.dataset.deleteBound === 'true') return;
-    el.dataset.deleteBound = 'true';
-    el.classList.add('long-press-ready');
-
-    el.addEventListener('touchstart', (event) => {
-      if (massTagSelectMode) return;
-      if (event.target.closest && event.target.closest('button')) return;
-      txLongPressTargetId = el.dataset.txId;
-      txLongPressTimer = setTimeout(() => {
-        el.classList.add('tx-open-hint');
-        navigator.vibrate?.(35);
-        openTransactionEditSheet(txLongPressTargetId);
-        setTimeout(() => el.classList.remove('tx-open-hint'), 500);
-      }, 650);
-    }, { passive: true });
-
-    el.addEventListener('touchend', () => {
-      clearTimeout(txLongPressTimer);
-      txLongPressTimer = null;
-    }, { passive: true });
-
-    el.addEventListener('touchcancel', () => {
-      clearTimeout(txLongPressTimer);
-      txLongPressTimer = null;
-    }, { passive: true });
-
-    el.addEventListener('touchmove', () => {
-      clearTimeout(txLongPressTimer);
-      txLongPressTimer = null;
-    }, { passive: true });
-
-    el.addEventListener('dblclick', (e) => {
-      if (massTagSelectMode) return;
-      if (isTouchLikeDevice()) return;
-      if (e.target.closest && e.target.closest('button')) return;
-      e.preventDefault();
-      el.classList.add('tx-open-hint');
-      setTimeout(() => el.classList.remove('tx-open-hint'), 220);
-      openTransactionEditSheet(el.dataset.txId);
-    });
-  });
-}
-
-function getActivePageId() {
-  const active = document.querySelector('.page.active');
-  return active ? active.id.replace('page-', '') : 'overview';
-}
-
-function navigateBySwipe(deltaX) {
-  // v78: swipe navigation disabled.
-}
-
-function shouldIgnorePageSwipeTarget(target) {
-  if (!target) return false;
-  return !!target.closest(
-    'button, input, select, textarea, a, .bottom-sheet, .bottom-nav, .cat-chip, .txn-filter-pill, .sync-btn, .fab, .top-upgrade-btn, .sheet-close, .tx-item, .tx-item-compact'
-  );
-}
-
-function initPageSwipeNavigation() {
-  // v89: swipe navigation remains disabled for smooth mobile performance.
-}
-
-function getAppTheme() {
-  const saved = localStorage.getItem('app_theme');
-  return saved === 'light' ? 'light' : 'dark';
-}
-
-function updateThemeMeta(theme) {
-  const config = APP_THEMES[theme] || APP_THEMES.dark;
-
-  let metas = Array.from(document.querySelectorAll('meta[name="theme-color"]'));
-  if (!metas.length) {
-    const meta = document.createElement('meta');
-    meta.setAttribute('name', 'theme-color');
-    document.head.appendChild(meta);
-    metas = [meta];
-  }
-
-  metas.forEach(meta => {
-    meta.setAttribute('content', config.themeColor);
-  });
-
-  let navMeta = document.querySelector('meta[name="msapplication-navbutton-color"]');
-  if (!navMeta) {
-    navMeta = document.createElement('meta');
-    navMeta.setAttribute('name', 'msapplication-navbutton-color');
-    document.head.appendChild(navMeta);
-  }
-  navMeta.setAttribute('content', config.themeColor);
-
-  let colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
-  if (!colorSchemeMeta) {
-    colorSchemeMeta = document.createElement('meta');
-    colorSchemeMeta.setAttribute('name', 'color-scheme');
-    document.head.appendChild(colorSchemeMeta);
-  }
-  colorSchemeMeta.setAttribute('content', config.colorScheme);
-
-  document.documentElement.style.colorScheme = config.colorScheme;
-  document.body.style.colorScheme = config.colorScheme;
-  document.documentElement.style.backgroundColor = config.backgroundColor;
-  document.body.style.backgroundColor = config.backgroundColor;
-  document.documentElement.style.setProperty('--system-bar-color', config.backgroundColor);
-  document.documentElement.style.setProperty('--status-bar-color', config.backgroundColor);
-
-  const statusOverlay = document.getElementById('bt-status-bar-overlay');
-  if (statusOverlay) statusOverlay.style.background = config.backgroundColor;
-
-  const androidBarBg = document.querySelector('.android-system-bar-bg');
-  if (androidBarBg) androidBarBg.style.background = config.backgroundColor;
-}
-
-function applyAppTheme(theme = getAppTheme()) {
-  const normalized = theme === 'light' ? 'light' : 'dark';
-  localStorage.setItem('app_theme', normalized);
-  document.documentElement.setAttribute('data-theme', normalized);
-  document.documentElement.classList.remove('dark', 'light');
-  document.documentElement.classList.add(normalized);
-  const overlay = document.getElementById('page-loading-overlay');
-  if (overlay) {
-    overlay.classList.remove('dark', 'light');
-    overlay.classList.add(normalized);
-  }
-  updateThemeMeta(normalized);
-
-  const darkBtn = document.getElementById('theme-dark-btn');
-  const lightBtn = document.getElementById('theme-light-btn');
-  if (darkBtn) darkBtn.classList.toggle('active', normalized === 'dark');
-  if (lightBtn) lightBtn.classList.toggle('active', normalized === 'light');
-  try { refreshBtBrandLogosForTheme(); } catch (_) {}
-}
-
-function setAppTheme(theme) {
-  localStorage.setItem('app_theme_user_selected', 'true');
-  applyAppTheme(theme);
-  // Avoid full renderAll() on every theme click (heavy on mobile).
-  requestAnimationFrame(() => {
-    try {
-      if (activePageId === 'txns') {
-        updateTxnPage();
-      } else if (activePageId === 'archive') {
-        renderArchive();
-        renderArchiveTrendChart();
-      } else if (activePageId === 'overview' || activePageId === 'overview-details') {
-        renderOverviewDashboard();
-        renderBudgetStatus();
-        renderAccountBalanceWidget();
-      }
-      scheduleFloatingUtilityUpdate();
-    } catch (_) {}
-  });
-}
-
-function warmHeavyTabCachesSync(options = {}) {
-  startupWarmCachesDone = true;
-  // B (perf): only force a full archive-stats rebuild when explicitly requested.
-  // On a normal refresh the cached stats are reused (rebuild self-skips when fresh),
-  // which removes a large synchronous localStorage scan + per-transaction conversion pass.
-  try { rebuildLocalArchiveStatsFromTransactions({ force: !!(options && options.force) }); } catch (e) {
-    console.warn('Archive stats warm-up failed:', e);
-  }
-  try {
-    markLocalCacheTimestamp('cached_archive_stats_updated_at');
-    markLocalCacheTimestamp('cached_archive_chart_updated_at');
-  } catch (_) {}
-}
-
-function warmStartupCachesDeferred(options = {}) {
-  warmHeavyTabCachesSync(options);
-}
-
-function yieldStartupLogoFrames(frameCount = 2) {
-  if (typeof window.__btYieldLogoFrames === 'function') {
-    return window.__btYieldLogoFrames(frameCount);
-  }
-  return new Promise((resolve) => {
-    const count = Math.max(1, Number(frameCount) || 1);
-    let remaining = count;
-    const next = () => requestAnimationFrame(() => window.setTimeout(() => {
-      remaining -= 1;
-      if (remaining <= 0) resolve();
-      else next();
-    }, 0));
-    next();
-  });
-}
-
-function scheduleStartupCacheWarmup() {
-  const run = () => {
-    try { warmHeavyTabCachesSync({ force: false }); } catch (_) {}
-  };
-  // Never let cache warm-up steal the final visible logo cycle. Start looking
-  // for idle time only after the overlay fade and page reveal have completed.
-  window.setTimeout(() => {
-    if (typeof window.requestIdleCallback === 'function') {
-      window.requestIdleCallback(run, { timeout: 4000 });
-    } else {
-      window.setTimeout(run, 600);
-    }
-  }, 1200);
-}
-
-const BT_EARLY_SHELL_REVEAL = true;
-let __btBootDataHydrating = false;
-let __btEarlyShellRevealed = false;
-let __btBootNumbersReady = false;
-
-function isBankStyleBootEnabled() {
-  return window.__btBankStyleBoot === true;
-}
-
-function isEarlyShellRevealEnabled() {
-  return BT_EARLY_SHELL_REVEAL === true || window.__btBankStyleBoot === true;
-}
-
-function areBootOverviewNumbersReady() {
-  if (__btBootNumbersReady) return true;
-  try {
-    const header = document.getElementById('header-month');
-    const net = document.getElementById('overview-net-worth');
-    const cash = document.getElementById('overview-available-cash');
-    if (!header || !net || !cash) return false;
-    if (!String(header.textContent || '').trim()) return false;
-    // Painted once applyOverviewBalanceEl wrote dataset.balanceValue.
-    if (net.dataset.balanceValue == null || cash.dataset.balanceValue == null) return false;
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
-function paintBootOverviewNumbers() {
-  try {
-    const headerMonth = document.getElementById('header-month');
-    if (headerMonth) headerMonth.textContent = getMonthLabel();
-    updateOverviewMonthNavState();
-  } catch (_) {}
-  try {
-    window.__overviewBalanceAnimateNext = false;
-    renderOverviewDashboard();
-  } catch (e) {
-    document.documentElement.setAttribute('data-render-overview-error', String(e && e.message ? e.message : e));
-    console.error('Boot overview numbers render failed:', e);
-  }
-  __btBootNumbersReady = areBootOverviewNumbersReady();
-  if (__btBootNumbersReady) {
-    document.documentElement.setAttribute('data-boot-numbers', 'ready');
-  }
-  return __btBootNumbersReady;
-}
-
-function isEarlyShellRevealReady() {
-  if (!isEarlyShellRevealEnabled()) return false;
-  if (__btEarlyShellRevealed || !__appBootActive || __appBootSequenceRunning) return false;
-  // Bank-style: do not block shell on lazy feature modules.
-  if (!isBankStyleBootEnabled() && window.__btLazyStartupReady === false) return false;
-  if (!document.getElementById('header-month') || !document.getElementById('page-overview')) return false;
-  // Bank-style: wait for 2 complete logo cycles AND stable overview numbers.
-  if (isBankStyleBootEnabled()) {
-    if (!window.__btSplashBrandCyclesComplete) return false;
-    if (!areBootOverviewNumbersReady()) return false;
-  }
-  return true;
-}
-
-function attemptEarlyShellReveal() {
-  if (!isEarlyShellRevealReady()) {
-    // Stale boundary hint must not force a mid-cycle cut later.
-    if (window.__btSplashRevealOnBoundary) window.__btSplashRevealOnBoundary = false;
-    if (isBankStyleBootEnabled() && !window.__btSplashBrandCyclesComplete) {
-      window.addEventListener('bt:splash-brand-cycles-complete', () => {
-        try { attemptEarlyShellReveal(); } catch (_) {}
-      }, { once: true });
-    }
-    return false;
-  }
-  __btEarlyShellRevealed = true;
-  document.documentElement.setAttribute('data-boot-mode', isBankStyleBootEnabled() ? 'bank-style' : 'early-shell');
-  try { finalizeAppBootPresentation(); } catch (_) {}
-  return true;
-}
-
-async function runBootDataHydration(ctx = {}) {
-  const { loaderFailSafe } = ctx;
-  try {
-    document.body.classList.add('app-boot-hydrating');
-    if (SHEETS_URL && isGoogleSheetsEnabled()) {
-      startAutoSync();
-      await new Promise((resolve) => {
-        window.setTimeout(() => {
-          syncData({ backgroundMode: true })
-            .catch((e) => {
-              console.warn('Startup cloud sync failed:', e);
-            })
-            .finally(resolve);
-        }, 180);
-      });
-    } else {
-      if (!SHEETS_URL) {
-        const loadStatus = document.getElementById('limits-sync-status');
-        if (loadStatus) {
-          loadStatus.textContent = isLocalOfflineDemoMode()
-            ? 'Local demo mode — widget test data loaded from localhost seed.'
-            : (isMobileOrStandaloneClient()
-              ? 'Na mobile treba v Settings zadať Google Sheets URL (ukladá sa zvlášť pre každé zariadenie).'
-              : 'Google Sheets URL is empty. Paste/save the Sheets URL in Settings to load Overview details.');
-        }
-      }
-      try {
-        if (isLocalOfflineDemoMode()) {
-          const seeded = seedBankTrackerLocalTestData(shouldAutoSeedLocalWidgetDemo() || !allTransactions.length);
-          if (!seeded) {
-            applyLocalWidgetDemoAlertLimits(getAktuálneMonth());
-            window.setTimeout(() => {
-              try {
-                if (typeof runSubscriptionDetectionPipeline === 'function') runSubscriptionDetectionPipeline({ reason: 'local-boot' });
-              } catch (_) {}
-            }, 1400);
-          }
-        }
-      } catch (e) {
-        document.documentElement.setAttribute('data-local-test-seed', 'error');
-        document.documentElement.setAttribute('data-local-test-seed-error', String(e && e.message ? e.message : e));
-        console.error('Local test data seed failed:', e);
-      }
-    }
-    try { prepareUiAfterDataLoad({ render: false }); } catch (_) {}
-    // Paint header + net worth + cash behind the splash so reveal has no number jumps.
-    try {
-      paintBootOverviewNumbers();
-      renderAll({
-        visibleOnly: true,
-        deferHeavy: true,
-        overviewMode: 'numbers-first',
-      });
-      paintBootOverviewNumbers();
-    } catch (_) {}
-    try { applyLanguage(); } catch (_) {}
-    try { attemptEarlyShellReveal(); } catch (_) {}
-
-    // Charts/widgets only after the shell is visible (or after a short wait if reveal is gated on cycles).
-    const runCharts = () => {
-      try {
-        renderAll({
-          visibleOnly: true,
-          deferHeavy: false,
-          overviewMode: 'charts',
-        });
-      } catch (_) {}
-    };
-    if (__btEarlyShellRevealed) {
-      await yieldStartupLogoFrames(1);
-      runCharts();
-    } else {
-      window.addEventListener('bt:splash-brand-cycles-complete', () => {
-        window.setTimeout(runCharts, 80);
-      }, { once: true });
-      window.setTimeout(() => {
-        if (!__btEarlyShellRevealed) runCharts();
-      }, 5200);
-    }
-  } catch (e) {
-    console.error('Boot data hydration failed:', e);
-    try {
-      if (!allTransactions.length) loadCachedTransactionsSnapshot();
-    } catch (_) {}
-    try {
-      paintBootOverviewNumbers();
-      renderAll({ visibleOnly: true, deferHeavy: false });
-    } catch (_) {}
-  } finally {
-    if (loaderFailSafe) clearTimeout(loaderFailSafe);
-    document.body.classList.remove('app-boot-hydrating');
-    try { __overviewChartsDataSettled = true; } catch (_) {}
-    try { finishOverviewChartRenderCycle(); } catch (_) {}
-    __btBootDataHydrating = false;
-    document.documentElement.setAttribute('data-boot-hydration', 'done');
-    scheduleStartupCacheWarmup();
-    if (!__btEarlyShellRevealed) {
-      try { attemptEarlyShellReveal(); } catch (_) {}
-      try { finalizeAppBootPresentation(); } catch (_) {}
-    }
-    if (!SHEETS_URL) {
-      const loadStatus = document.getElementById('limits-sync-status');
-      if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
-      console.warn('Google Sheets sync skipped on startup: missing sheets_url for this origin.');
-    }
-  }
-}
-
-function startAppBootAfterSplashCycle() {
-  if (__btColdBootStarted) return;
-  __btColdBootStarted = true;
-  __appBootActive = true;
-  __bootPresentationPhase = true;
-  beginLoadingPresentation({ kind: 'boot' });
-
-  const loaderFailSafe = setTimeout(() => {
-    try { finalizeAppBootPresentation(); } catch (_) {}
-    scheduleStartupCacheWarmup();
-  }, APP_BOOT_MAX_MS);
-
-  const yieldStartupFrame = () => yieldStartupLogoFrames(isBankStyleBootEnabled() ? 1 : 2);
-
-  const runStartupBootstrap = async () => {
-  try {
-    // Bank-style: hydrate numbers behind the 2 logo cycles, then reveal on cycle boundary.
-    if (isBankStyleBootEnabled()) {
-      try { ensureHeaderBrandLogoMarkup(); } catch (_) {}
-      try { initBottomSheetDragToClose(); } catch (_) {}
-      try { initGlobalPullDownControl(); } catch (_) {}
-      try { initPullToRefresh(); } catch (_) {}
-      try { initTabHistory(); } catch (_) {}
-      try { initNavTouchFeedback(); } catch (_) {}
-      try { initMassTagSelectDelegation(); } catch (_) {}
-      try { updateFloatingUtilityButtons(); } catch (_) {}
-      try { bindFloatingUtilityScrollWatchers(); } catch (_) {}
-      applyAppTheme(getAppTheme());
-      clearDemoTransactionsCacheIfNeeded();
-      migrateCurrencyStorageToSymbols();
-      updateGoogleSheetsToggleUi();
-      ensureDefaultConfig();
-      clearCloudFirstLocalData();
-      try { markOverviewChartsAwaitingFreshData(); } catch (_) {}
-      bootstrapUiFromCache({ deferHeavy: true, skipHideBoot: true, render: false });
-      try { paintBootOverviewNumbers(); } catch (_) {}
-      __btBootDataHydrating = true;
-      document.documentElement.setAttribute('data-boot-hydration', 'pending');
-      window.addEventListener('bt:splash-brand-cycles-complete', () => {
-        try { attemptEarlyShellReveal(); } catch (_) {}
-      }, { once: true });
-      runBootDataHydration({ loaderFailSafe });
-      return;
-    }
-
-    // Every startup group enters through the shared logo-frame queue. Core,
-    // feature modules and data bootstrap can no longer bunch into one frame.
-    await yieldStartupFrame();
-    try { ensureHeaderBrandLogoMarkup(); } catch (_) {}
-    try { initBottomSheetDragToClose(); } catch (_) {}
-    try { initGlobalPullDownControl(); } catch (_) {}
-    await yieldStartupFrame();
-    try { initPullToRefresh(); } catch (_) {}
-    try { initTabHistory(); } catch (_) {}
-    await yieldStartupFrame();
-    try { initNavTouchFeedback(); } catch (_) {}
-    try { initMassTagSelectDelegation(); } catch (_) {}
-    await yieldStartupFrame();
-    try { updateFloatingUtilityButtons(); } catch (_) {}
-    try { bindFloatingUtilityScrollWatchers(); } catch (_) {}
-    await yieldStartupFrame();
-    applyAppTheme(getAppTheme());
-    clearDemoTransactionsCacheIfNeeded();
-    await yieldStartupFrame();
-    migrateCurrencyStorageToSymbols();
-    updateGoogleSheetsToggleUi();
-    ensureDefaultConfig();
-    clearCloudFirstLocalData();
-    try { markOverviewChartsAwaitingFreshData(); } catch (_) {}
-    await yieldStartupFrame();
-    // Load the cached model only. Rendering it behind the splash and then
-    // rendering fresh data again caused the visible second-cycle hitch.
-    bootstrapUiFromCache({ deferHeavy: true, skipHideBoot: true, render: false });
-    await yieldStartupFrame();
-
-    if (isEarlyShellRevealEnabled()) {
-      __btBootDataHydrating = true;
-      document.documentElement.setAttribute('data-boot-hydration', 'pending');
-      if (!attemptEarlyShellReveal()) {
-        window.addEventListener('bt:lazy-startup-ready', () => {
-          try { attemptEarlyShellReveal(); } catch (_) {}
-        }, { once: true });
-      }
-      runBootDataHydration({ loaderFailSafe });
-      return;
-    }
-
-    if (SHEETS_URL && isGoogleSheetsEnabled()) {
-      startAutoSync();
-      window.setTimeout(() => {
-        syncData({ backgroundMode: true })
-          .catch((e) => {
-            console.warn('Startup cloud sync failed:', e);
-          })
-          .finally(() => {
-            if (!__appBootActive) clearTimeout(loaderFailSafe);
-            else finalizeAppBootPresentation();
-            scheduleStartupCacheWarmup();
-          });
-      }, 180);
-      return;
-    }
-
-    clearTimeout(loaderFailSafe);
-
-    if (!SHEETS_URL) {
-      const loadStatus = document.getElementById('limits-sync-status');
-      if (loadStatus) {
-        loadStatus.textContent = isLocalOfflineDemoMode()
-          ? 'Local demo mode — widget test data loaded from localhost seed.'
-          : (isMobileOrStandaloneClient()
-            ? 'Na mobile treba v Settings zadať Google Sheets URL (ukladá sa zvlášť pre každé zariadenie).'
-            : 'Google Sheets URL is empty. Paste/save the Sheets URL in Settings to load Overview details.');
-      }
-    }
-
-    try {
-      if (isLocalOfflineDemoMode()) {
-        const seeded = seedBankTrackerLocalTestData(shouldAutoSeedLocalWidgetDemo() || !allTransactions.length);
-        if (!seeded) {
-          applyLocalWidgetDemoAlertLimits(getAktuálneMonth());
-          window.setTimeout(() => {
-            try {
-              if (typeof runSubscriptionDetectionPipeline === 'function') runSubscriptionDetectionPipeline({ reason: 'local-boot' });
-            } catch (_) {}
-          }, 1400);
-        }
-      }
-    } catch (e) {
-      document.documentElement.setAttribute('data-local-test-seed', 'error');
-      document.documentElement.setAttribute('data-local-test-seed-error', String(e && e.message ? e.message : e));
-      console.error('Local test data seed failed:', e);
-    }
-    await yieldStartupFrame();
-    try { prepareUiAfterDataLoad({ render: false }); } catch (_) {}
-    await yieldStartupFrame();
-    try { renderAll({ visibleOnly: true, deferHeavy: true }); } catch (_) {}
-    await yieldStartupFrame();
-    try { applyLanguage(); } catch (_) {}
-    try { __overviewChartsDataSettled = true; } catch (_) {}
-    finalizeAppBootPresentation();
-    scheduleStartupCacheWarmup();
-    if (!SHEETS_URL) {
-      const loadStatus = document.getElementById('limits-sync-status');
-      if (loadStatus) loadStatus.textContent = 'Google Sheets URL is empty for this localhost origin. Paste/save the Sheets URL in Settings to load Overview details.';
-      console.warn('Google Sheets sync skipped on startup: missing sheets_url for this origin.');
-    }
-  } catch (e) {
-    console.error('Startup bootstrap failed:', e);
-    try {
-      if (!allTransactions.length) loadCachedTransactionsSnapshot();
-    } catch (_) {}
-    try { __overviewChartsDataSettled = true; } catch (_) {}
-    finalizeAppBootPresentation();
-    scheduleStartupCacheWarmup();
-  }
-  };
-
-  runStartupBootstrap();
-}
-
-function scheduleAppBootAfterDomReady() {
-  // Bank-style: hydrate behind the logo as soon as core is ready.
-  if (window.__btBankStyleBoot || window.__btSplashInitialCycleComplete) {
-    startAppBootAfterSplashCycle();
-    return;
-  }
-  window.addEventListener('bt:splash-first-cycle-complete', startAppBootAfterSplashCycle, { once: true });
-}
 // ── CONFIG & HISTÓRIA LIMITOV ──────────────────────────────
 const DEFAULT_SHEETS_URL = '';
 const DEFAULT_LIMITS_WEBAPP_URL = '';
@@ -1300,7 +28,7 @@ let activeCardLast4 = '';
 let activeDateFrom = '';
 let activeDateTo = '';
 let activeMonthFilter = '';
-let activeDrilldownFilter = null; // { type: 'cards'|'spent'|'income'|'overview-spent', bankKey: 'rb_cz'|'všetky' }
+let activeDrilldownFilter = null; // { type: cards|spent|income|overview-spent|internal|excluded|excluded-reason|raw-income|raw-spent, bankKey, reason? }
 let activeRecurringGroupFilter = null; // { label, transaction_ids[], strict_ids_only?, recurring_group_id?, ... }
 let activeAlertsHistoryFilter = 'new';
 let activeTxnHistoryScope = 'current';
@@ -1311,6 +39,7 @@ const TXN_PAGE_SIZE = 20;
 let txnVisibleLimit = TXN_PAGE_SIZE;
 let autoSyncTimer = null;
 let isSyncing = false;
+let startupCloudSyncPromise = null;
 let activePageId = 'overview';
 const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minút
 const LOCAL_PRECOMPUTE_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -1350,6 +79,7 @@ const MONTH_NAMES_SK = {
 
 let activeOverviewMonthOffset = 0;
 let overviewMonthShiftInFlight = false;
+let overviewSummaryMetricIndex = 0;
 
 const BANKS = {
   rb_cz: { label: 'RB CZ', short: 'RB', color: 'var(--rb-color)', limitKey: 'rbCz', defaultLimit: 10, primaryCurrency: 'CZK', primaryType: 'card', account: '', cards: '', aliases: ['rb cz','raiffeisen','raiffeisen cz'] },
@@ -2026,7 +756,7 @@ let archiveScrollQueued = false;
 
 const I18N = {
   en: {
-    appTitle: 'Bank Tracker',
+    appTitle: 'Bliss - Finance Tracker',
     overview: 'Overview',
     transactions: 'Transactions',
     archiveTitle: 'Archive',
@@ -2037,7 +767,94 @@ const I18N = {
     daysLeft: 'days left',
     totalTransactions: 'transactions',
     overviewSummaryTransactions: 'Transactions',
-    overviewSummaryTotalCzk: 'Total (CZK)',
+    overviewSummaryDailyAverage: 'Daily avg',
+    overviewSummaryNetFlow: 'Net flow',
+    overviewSummaryRemainingBudget: 'Budget',
+    overviewSummaryBudgetRemaining: 'remaining',
+    overviewSummaryOverBudget: 'over budget',
+    overviewSummaryCycleTitle: 'Click for the next metric',
+    overviewDailyAverageBreakdownHint: 'Hover or tap the info icon for the Daily average calculation.',
+    overviewNetFlowBreakdownHint: 'Hover or tap the info icon for the Net flow calculation.',
+    overviewBudgetBreakdownHint: 'Hover the info icon or hold Budget for the calculation.',
+    overviewDailyAverageBreakdownTitle: 'Daily average calculation',
+    overviewDailyAverageBreakdownFormula: 'Daily average = counted spending ÷ calendar days counted',
+    overviewDailyAverageDaysCounted: 'Calendar days counted',
+    overviewDailyAverageCurrentMonthNote: 'The current month counts calendar days from day 1 through today.',
+    overviewDailyAverageFullMonthNote: 'A selected past month counts every calendar day in that month.',
+    overviewNetFlowBreakdownTitle: 'Net flow calculation',
+    overviewNetFlowBreakdownFormula: 'Net flow = counted income − counted spending',
+    overviewNetFlowBreakdownIncome: 'Counted income',
+    overviewNetFlowBreakdownFilters: 'Not counted in income or spending',
+    overviewNetFlowBreakdownExcludedIncome: 'Excluded income',
+    overviewNetFlowBreakdownExcludedSpent: 'Excluded spending',
+    overviewNetFlowBreakdownExcludedDetails: 'Breakdown by reason',
+    overviewNetFlowBreakdownFilterNote: 'Counted Income and Spent match Available cash. Excluded amounts are shown only for transparency.',
+    offlineShowingCache: 'Offline — showing the last saved data.',
+    overviewBudgetBreakdownTitle: 'Budget calculation',
+    overviewBudgetBreakdownFormula: 'Remaining = limits − counted spending',
+    overviewBudgetBreakdownLimits: 'Budget limits',
+    overviewBudgetBreakdownSpent: 'Counted spending',
+    overviewBudgetBreakdownRemaining: 'Remaining',
+    overviewBudgetBreakdownViewBankBudgets: 'Show bank budgets in details',
+    overviewBudgetBreakdownExcluded: 'Cashflow exclusions',
+    overviewBudgetBreakdownInternalTransfers: 'Internal transfers',
+    overviewBudgetBreakdownCreditCards: 'Credit card transactions excluded from bank budgets',
+    overviewCashflowBreakdownCreditAdjustments: 'Credit-card repayments and limit adjustments',
+    overviewBudgetBreakdownManualExclusions: 'Manually excluded',
+    overviewBudgetBreakdownNonSpent: 'Non-spent expenses',
+    overviewBudgetBreakdownNonIncome: 'Non-income receipts',
+    overviewBudgetBreakdownInactiveBanks: 'Inactive banks',
+    overviewBudgetBreakdownMatchedOffsets: 'Matched refunds and reversals',
+    overviewBudgetBreakdownExclusionsUnavailable: 'Excluded amounts will appear after transactions finish loading.',
+    overviewBudgetBreakdownIncomeNote: 'Income does not increase the budget; it is included in Net flow.',
+    cashflowBreakdownTitle: 'Monthly cashflow breakdown',
+    cashflowBreakdownCta: 'Show cashflow breakdown',
+    cashflowCountedIncome: 'Real income',
+    cashflowCountedSpent: 'Real spending',
+    cashflowExcludedIncome: 'Excluded incoming',
+    cashflowExcludedSpent: 'Excluded outgoing',
+    cashflowRawIncome: 'All incoming movement',
+    cashflowRawSpent: 'All outgoing movement',
+    cashflowGrossTurnover: 'Gross account turnover',
+    cashflowTurnoverNote: 'Real cashflow excludes internal transfers, card repayments and adjustments, non-spent/non-income entries, and matched refunds. All movement shows how much money actually passed through your accounts.',
+    cashflowReasonsTitle: 'What was excluded',
+    cashflowIncomingShort: 'Incoming',
+    cashflowOutgoingShort: 'Outgoing',
+    cashflowNoExclusions: 'No excluded movements in this month.',
+    cashflowStoredExclusionsUnavailable: 'Only saved monthly totals are available offline. The excluded-movement detail will appear after transactions sync.',
+    cashflowOpenIncomeBreakdown: 'Show income breakdown',
+    cashflowOpenSpentBreakdown: 'Show spending breakdown',
+    wealthManagementTitle: 'Wealth management',
+    wealthManagementHint: 'Manage every financial source and add new records from one place.',
+    wealthAssets: 'Assets',
+    wealthLiabilitiesProtection: 'Liabilities & protection',
+    wealthBanks: 'Banks',
+    wealthInvestments: 'Investments',
+    wealthProperties: 'Properties',
+    wealthLoans: 'Loans',
+    wealthInsurance: 'Insurance',
+    manageAction: 'Manage',
+    manageLoans: 'Manage loans',
+    manageInvestments: 'Manage investments',
+    manageProperties: 'Manage properties',
+    manageInsurance: 'Manage insurance',
+    totalNetWorth: 'Total net worth',
+    availableCash: 'Available cash - Banks',
+    tapForNetWorthBreakdown: 'Click or tap to see the breakdown',
+    showBankDetails: 'Show bank details',
+    showOverviewDetails: 'Show overview details',
+    netWorthBreakdownTitle: 'Net worth breakdown',
+    netWorthAssets: 'Assets',
+    netWorthCash: 'Cash',
+    netWorthInvestments: 'Investments',
+    netWorthProperties: 'Properties',
+    netWorthLiabilities: 'Liabilities',
+    netWorthCreditCards: 'Credit cards',
+    netWorthLoans: 'Loans',
+    netWorthTotal: 'Net worth',
+    netWorthMeasuredAt: 'Measured',
+    netWorthFormula: 'Cash + investments + properties − liabilities',
+    netWorthUnavailable: 'The breakdown will appear after the next successful sync.',
     overviewSummaryThisMonth: 'this month',
     recentTransactions: 'recent transactions',
     spentByCurrency: 'spent by currency',
@@ -2089,6 +906,12 @@ const I18N = {
     addBankHint: 'Add a new bank, currency, budget and card limit.',
     addLoan: 'Add loan',
     addLoanHint: 'Create a new loan/mortgage account.',
+    addInvestment: 'Add investment',
+    addInvestmentHint: 'Create a new investment in the same Investments settings.',
+    addInsurance: 'Add insurance',
+    addInsuranceHint: 'Create a new policy in the same Insurance settings.',
+    addProperty: 'Add property',
+    addPropertyHint: 'Create a new property in the same Properties settings.',
     addWidget: 'Add widget',
     addWidgetHint: 'Create a dashboard graph from your data or a manual value.',
     completed: 'Completed',
@@ -2104,7 +927,9 @@ const I18N = {
     saveBank: 'Save bank',
     saveTransaction: 'Save transaction',
     countAsNonSpent: 'Count as non-spent',
-    nonSpentHint: 'Excluded from spent, income and net totals. Applies instantly and syncs to Google Sheets in the background.',
+    nonSpentHint: 'Excluded from spending totals. Applies instantly and syncs to Google Sheets in the background.',
+    countAsNonIncome: 'Count as non-income',
+    nonIncomeHint: 'Excluded from income and Net flow totals. Applies instantly and syncs to Google Sheets in the background.',
     returnedAmountFor: 'Returned amount for',
     notLinkedToPayment: 'Not linked to an outgoing payment',
     returnedAmountHint: 'Select the original outgoing bank transfer. This incoming amount reduces its spent value instead of counting as income.',
@@ -2181,6 +1006,7 @@ const I18N = {
     switchToBarChart: 'Switch to bar chart',
     pieChart: 'Pie chart',
     remaining: 'remaining',
+    budgetOverBy: 'over by',
     overBudget: 'over budget',
     nearLimit: 'near limit',
     normal: 'normal',
@@ -2341,7 +1167,7 @@ const I18N = {
     mobilePerfMode: 'Mobile performance mode',
     archiveLoadMore: 'Load more'},
   sk: {
-    appTitle: 'Bank Tracker',
+    appTitle: 'Bliss - Finance Tracker',
     overview: 'Prehľad',
     transactions: 'Transakcie',
     archiveTitle: 'Archív',
@@ -2353,7 +1179,94 @@ const I18N = {
     daysLeft: 'dní zostáva',
     totalTransactions: 'transakcie',
     overviewSummaryTransactions: 'Transakcie',
-    overviewSummaryTotalCzk: 'Spolu (CZK)',
+    overviewSummaryDailyAverage: 'Denný priemer',
+    overviewSummaryNetFlow: 'Čistý tok',
+    overviewSummaryRemainingBudget: 'Budget',
+    overviewSummaryBudgetRemaining: 'zostáva',
+    overviewSummaryOverBudget: 'nad budgetom',
+    overviewSummaryCycleTitle: 'Klikni pre ďalšiu metriku',
+    overviewDailyAverageBreakdownHint: 'Pre výpočet Denného priemeru prejdi myšou na ikonu „i“ alebo na ňu ťukni.',
+    overviewNetFlowBreakdownHint: 'Pre výpočet Čistého toku prejdi myšou na ikonu „i“ alebo na ňu ťukni.',
+    overviewBudgetBreakdownHint: 'Pre výpočet prejdi myšou na informačnú ikonu alebo podrž Budget.',
+    overviewDailyAverageBreakdownTitle: 'Výpočet denného priemeru',
+    overviewDailyAverageBreakdownFormula: 'Denný priemer = započítané výdavky ÷ započítané kalendárne dni',
+    overviewDailyAverageDaysCounted: 'Započítané kalendárne dni',
+    overviewDailyAverageCurrentMonthNote: 'V aktuálnom mesiaci sa počítajú kalendárne dni od prvého dňa po dnešok.',
+    overviewDailyAverageFullMonthNote: 'Vo vybranom minulom mesiaci sa počítajú všetky jeho kalendárne dni.',
+    overviewNetFlowBreakdownTitle: 'Výpočet čistého toku',
+    overviewNetFlowBreakdownFormula: 'Čistý tok = započítané príjmy − započítané výdavky',
+    overviewNetFlowBreakdownIncome: 'Započítané príjmy',
+    overviewNetFlowBreakdownFilters: 'Nezapočítané do príjmov ani výdavkov',
+    overviewNetFlowBreakdownExcludedIncome: 'Vylúčené príjmy',
+    overviewNetFlowBreakdownExcludedSpent: 'Vylúčené výdavky',
+    overviewNetFlowBreakdownExcludedDetails: 'Rozpis podľa dôvodu',
+    overviewNetFlowBreakdownFilterNote: 'Započítané Príjmy a Výdavky sa zhodujú s kartou Dostupná hotovosť. Vylúčené sumy sú zobrazené iba pre prehľad.',
+    offlineShowingCache: 'Offline — zobrazujú sa posledné uložené dáta.',
+    overviewBudgetBreakdownTitle: 'Výpočet budgetu',
+    overviewBudgetBreakdownFormula: 'Zostatok = limity − započítané výdavky',
+    overviewBudgetBreakdownLimits: 'Súčet limitov',
+    overviewBudgetBreakdownSpent: 'Započítané výdavky',
+    overviewBudgetBreakdownRemaining: 'Zostatok',
+    overviewBudgetBreakdownViewBankBudgets: 'Zobraziť bankové budgety v detailnom prehľade',
+    overviewBudgetBreakdownExcluded: 'Vylúčené z cashflow',
+    overviewBudgetBreakdownInternalTransfers: 'Interné prevody',
+    overviewBudgetBreakdownCreditCards: 'Transakcie kreditných kariet vylúčené z bankových budgetov',
+    overviewCashflowBreakdownCreditAdjustments: 'Splátky kreditnej karty a úpravy limitu',
+    overviewBudgetBreakdownManualExclusions: 'Ručne vylúčené',
+    overviewBudgetBreakdownNonSpent: 'Non-spent výdavky',
+    overviewBudgetBreakdownNonIncome: 'Non-income príjmy',
+    overviewBudgetBreakdownInactiveBanks: 'Neaktívne banky',
+    overviewBudgetBreakdownMatchedOffsets: 'Spárované vratky a storna',
+    overviewBudgetBreakdownExclusionsUnavailable: 'Vylúčené sumy sa zobrazia po úplnom načítaní transakcií.',
+    overviewBudgetBreakdownIncomeNote: 'Príjmy budget nezvyšujú; sú zahrnuté v Čistom toku.',
+    cashflowBreakdownTitle: 'Rozpis mesačného cashflow',
+    cashflowBreakdownCta: 'Zobraziť rozpis cashflow',
+    cashflowCountedIncome: 'Reálny príjem',
+    cashflowCountedSpent: 'Reálne výdavky',
+    cashflowExcludedIncome: 'Vylúčené príjmy',
+    cashflowExcludedSpent: 'Vylúčené výdavky',
+    cashflowRawIncome: 'Všetky prichádzajúce pohyby',
+    cashflowRawSpent: 'Všetky odchádzajúce pohyby',
+    cashflowGrossTurnover: 'Celkový obrat na účtoch',
+    cashflowTurnoverNote: 'Reálny cashflow vynecháva interné prevody, splátky a úpravy kreditnej karty, non-spent/non-income položky a spárované vratky. Všetky pohyby ukazujú, koľko peňazí sa skutočne pretočilo cez účty.',
+    cashflowReasonsTitle: 'Čo sa nezapočítalo',
+    cashflowIncomingShort: 'Príjem',
+    cashflowOutgoingShort: 'Výdavok',
+    cashflowNoExclusions: 'V tomto mesiaci nie sú žiadne vylúčené pohyby.',
+    cashflowStoredExclusionsUnavailable: 'Offline sú dostupné iba uložené mesačné súčty. Detail vylúčených pohybov sa zobrazí po synchronizácii transakcií.',
+    cashflowOpenIncomeBreakdown: 'Zobraziť rozpis príjmov',
+    cashflowOpenSpentBreakdown: 'Zobraziť rozpis výdavkov',
+    wealthManagementTitle: 'Správa majetku',
+    wealthManagementHint: 'Spravuj všetky finančné zdroje a pridávaj nové záznamy na jednom mieste.',
+    wealthAssets: 'Aktíva',
+    wealthLiabilitiesProtection: 'Záväzky a ochrana',
+    wealthBanks: 'Banky',
+    wealthInvestments: 'Investície',
+    wealthProperties: 'Nehnuteľnosti',
+    wealthLoans: 'Úvery',
+    wealthInsurance: 'Poistenie',
+    manageAction: 'Spravovať',
+    manageLoans: 'Správa úverov',
+    manageInvestments: 'Spravovať investície',
+    manageProperties: 'Spravovať nehnuteľnosti',
+    manageInsurance: 'Spravovať poistenie',
+    totalNetWorth: 'Celková čistá hodnota',
+    availableCash: 'Dostupná hotovosť - Banky',
+    tapForNetWorthBreakdown: 'Klikni alebo ťukni pre zobrazenie rozpisu',
+    showBankDetails: 'Zobraziť detaily bánk',
+    showOverviewDetails: 'Zobraziť detailný prehľad',
+    netWorthBreakdownTitle: 'Zloženie čistej hodnoty',
+    netWorthAssets: 'Majetok',
+    netWorthCash: 'Hotovosť',
+    netWorthInvestments: 'Investície',
+    netWorthProperties: 'Nehnuteľnosti',
+    netWorthLiabilities: 'Záväzky',
+    netWorthCreditCards: 'Kreditné karty',
+    netWorthLoans: 'Úvery',
+    netWorthTotal: 'Čistá hodnota',
+    netWorthMeasuredAt: 'Zmerané',
+    netWorthFormula: 'Hotovosť + investície + nehnuteľnosti − záväzky',
+    netWorthUnavailable: 'Zloženie sa zobrazí po najbližšej úspešnej synchronizácii.',
     overviewSummaryThisMonth: 'tento mesiac',
     recentTransactions: 'posledné transakcie',
     spentByCurrency: 'minuté podľa meny',
@@ -2405,6 +1318,12 @@ const I18N = {
     addBankHint: 'Pridaj novú banku, menu, budget a limit karty.',
     addLoan: 'Pridať úver',
     addLoanHint: 'Vytvor nový úver/hypotéku.',
+    addInvestment: 'Pridať investíciu',
+    addInvestmentHint: 'Vytvor novú investíciu v rovnakých nastaveniach Investícií.',
+    addInsurance: 'Pridať poistenie',
+    addInsuranceHint: 'Vytvor nové poistenie v rovnakých nastaveniach Poistenia.',
+    addProperty: 'Pridať nehnuteľnosť',
+    addPropertyHint: 'Vytvor novú nehnuteľnosť v rovnakých nastaveniach Nehnuteľností.',
     addWidget: 'Pridať widget',
     addWidgetHint: 'Vytvor graf na nástenku z dát alebo z ručne zadanej hodnoty.',
     completed: 'splnené',
@@ -2420,7 +1339,9 @@ const I18N = {
     saveBank: 'Uložiť banku',
     saveTransaction: 'Uložiť transakciu',
     countAsNonSpent: 'Počítať ako non-spent',
-    nonSpentHint: 'Nezapočítava sa do spent, income ani net. Platí hneď a na pozadí sa uloží do Google Sheets.',
+    nonSpentHint: 'Nezapočítava sa do výdavkových metrík. Platí hneď a na pozadí sa uloží do Google Sheets.',
+    countAsNonIncome: 'Počítať ako non-income',
+    nonIncomeHint: 'Nezapočítava sa do príjmov ani čistého toku. Platí hneď a na pozadí sa uloží do Google Sheets.',
     returnedAmountFor: 'Vrátená suma k platbe',
     notLinkedToPayment: 'Nie je prepojená s odchádzajúcou platbou',
     returnedAmountHint: 'Vyber pôvodný odchádzajúci bankový prevod. Táto prijatá suma zníži spent namiesto započítania do income.',
@@ -2494,6 +1415,7 @@ const I18N = {
     switchToBarChart: 'Prepnúť na stĺpcový graf',
     pieChart: 'Koláčový graf',
     remaining: 'zostáva',
+    budgetOverBy: 'prekročené o',
     overBudget: 'prekročený',
     nearLimit: 'blízko limitu',
     normal: 'v norme',
@@ -2652,7 +1574,7 @@ const I18N = {
     mobilePerfMode: 'Mobilný rýchly režim',
     archiveLoadMore: 'Načítať ďalšie'},
   cs: {
-    appTitle: 'Bank Tracker',
+    appTitle: 'Bliss - Finance Tracker',
     overview: 'Přehled',
     transactions: 'Transakce',
     archiveTitle: 'Archiv',
@@ -2662,7 +1584,94 @@ const I18N = {
     daysLeft: 'dní zbývá',
     totalTransactions: 'transakce',
     overviewSummaryTransactions: 'Transakce',
-    overviewSummaryTotalCzk: 'Celkem (CZK)',
+    overviewSummaryDailyAverage: 'Denní průměr',
+    overviewSummaryNetFlow: 'Čistý tok',
+    overviewSummaryRemainingBudget: 'Rozpočet',
+    overviewSummaryBudgetRemaining: 'zbývá',
+    overviewSummaryOverBudget: 'nad rozpočtem',
+    overviewSummaryCycleTitle: 'Klikni pro další metriku',
+    overviewDailyAverageBreakdownHint: 'Pro výpočet Denního průměru najeď myší na ikonu „i“ nebo na ni klepni.',
+    overviewNetFlowBreakdownHint: 'Pro výpočet Čistého toku najeď myší na ikonu „i“ nebo na ni klepni.',
+    overviewBudgetBreakdownHint: 'Pro výpočet najeď myší na informační ikonu nebo podrž Rozpočet.',
+    overviewDailyAverageBreakdownTitle: 'Výpočet denního průměru',
+    overviewDailyAverageBreakdownFormula: 'Denní průměr = započtené výdaje ÷ započtené kalendářní dny',
+    overviewDailyAverageDaysCounted: 'Započtené kalendářní dny',
+    overviewDailyAverageCurrentMonthNote: 'V aktuálním měsíci se počítají kalendářní dny od prvního dne do dneška.',
+    overviewDailyAverageFullMonthNote: 'Ve vybraném minulém měsíci se počítají všechny jeho kalendářní dny.',
+    overviewNetFlowBreakdownTitle: 'Výpočet čistého toku',
+    overviewNetFlowBreakdownFormula: 'Čistý tok = započtené příjmy − započtené výdaje',
+    overviewNetFlowBreakdownIncome: 'Započtené příjmy',
+    overviewNetFlowBreakdownFilters: 'Nezapočtené do příjmů ani výdajů',
+    overviewNetFlowBreakdownExcludedIncome: 'Vyloučené příjmy',
+    overviewNetFlowBreakdownExcludedSpent: 'Vyloučené výdaje',
+    overviewNetFlowBreakdownExcludedDetails: 'Rozpis podle důvodu',
+    overviewNetFlowBreakdownFilterNote: 'Započtené Příjmy a Výdaje se shodují s kartou Dostupná hotovost. Vyloučené částky jsou zobrazené pouze pro přehled.',
+    offlineShowingCache: 'Offline — zobrazují se poslední uložená data.',
+    overviewBudgetBreakdownTitle: 'Výpočet rozpočtu',
+    overviewBudgetBreakdownFormula: 'Zůstatek = limity − započtené výdaje',
+    overviewBudgetBreakdownLimits: 'Součet limitů',
+    overviewBudgetBreakdownSpent: 'Započtené výdaje',
+    overviewBudgetBreakdownRemaining: 'Zůstatek',
+    overviewBudgetBreakdownViewBankBudgets: 'Zobrazit bankovní rozpočty v detailním přehledu',
+    overviewBudgetBreakdownExcluded: 'Vyloučené z cashflow',
+    overviewBudgetBreakdownInternalTransfers: 'Interní převody',
+    overviewBudgetBreakdownCreditCards: 'Transakce kreditních karet vyloučené z bankovních rozpočtů',
+    overviewCashflowBreakdownCreditAdjustments: 'Splátky kreditní karty a úpravy limitu',
+    overviewBudgetBreakdownManualExclusions: 'Ručně vyloučené',
+    overviewBudgetBreakdownNonSpent: 'Non-spent výdaje',
+    overviewBudgetBreakdownNonIncome: 'Non-income příjmy',
+    overviewBudgetBreakdownInactiveBanks: 'Neaktivní banky',
+    overviewBudgetBreakdownMatchedOffsets: 'Spárované vratky a storna',
+    overviewBudgetBreakdownExclusionsUnavailable: 'Vyloučené částky se zobrazí po úplném načtení transakcí.',
+    overviewBudgetBreakdownIncomeNote: 'Příjmy rozpočet nezvyšují; jsou zahrnuté v Čistém toku.',
+    cashflowBreakdownTitle: 'Rozpis měsíčního cashflow',
+    cashflowBreakdownCta: 'Zobrazit rozpis cashflow',
+    cashflowCountedIncome: 'Reálný příjem',
+    cashflowCountedSpent: 'Reálné výdaje',
+    cashflowExcludedIncome: 'Vyloučené příjmy',
+    cashflowExcludedSpent: 'Vyloučené výdaje',
+    cashflowRawIncome: 'Všechny příchozí pohyby',
+    cashflowRawSpent: 'Všechny odchozí pohyby',
+    cashflowGrossTurnover: 'Celkový obrat na účtech',
+    cashflowTurnoverNote: 'Reálný cashflow vynechává interní převody, splátky a úpravy kreditní karty, non-spent/non-income položky a spárované vratky. Všechny pohyby ukazují, kolik peněz skutečně proteklo přes účty.',
+    cashflowReasonsTitle: 'Co se nezapočítalo',
+    cashflowIncomingShort: 'Příjem',
+    cashflowOutgoingShort: 'Výdaj',
+    cashflowNoExclusions: 'V tomto měsíci nejsou žádné vyloučené pohyby.',
+    cashflowStoredExclusionsUnavailable: 'Offline jsou dostupné jen uložené měsíční součty. Detail vyloučených pohybů se zobrazí po synchronizaci transakcí.',
+    cashflowOpenIncomeBreakdown: 'Zobrazit rozpis příjmů',
+    cashflowOpenSpentBreakdown: 'Zobrazit rozpis výdajů',
+    wealthManagementTitle: 'Správa majetku',
+    wealthManagementHint: 'Spravuj všechny finanční zdroje a přidávej nové záznamy na jednom místě.',
+    wealthAssets: 'Aktiva',
+    wealthLiabilitiesProtection: 'Závazky a ochrana',
+    wealthBanks: 'Banky',
+    wealthInvestments: 'Investice',
+    wealthProperties: 'Nemovitosti',
+    wealthLoans: 'Úvěry',
+    wealthInsurance: 'Pojištění',
+    manageAction: 'Spravovat',
+    manageLoans: 'Správa úvěrů',
+    manageInvestments: 'Spravovat investice',
+    manageProperties: 'Spravovat nemovitosti',
+    manageInsurance: 'Spravovat pojištění',
+    totalNetWorth: 'Celková čistá hodnota',
+    availableCash: 'Dostupná hotovost - Banky',
+    tapForNetWorthBreakdown: 'Klikni nebo klepni pro zobrazení rozpisu',
+    showBankDetails: 'Zobrazit detaily bank',
+    showOverviewDetails: 'Zobrazit podrobný přehled',
+    netWorthBreakdownTitle: 'Složení čisté hodnoty',
+    netWorthAssets: 'Majetek',
+    netWorthCash: 'Hotovost',
+    netWorthInvestments: 'Investice',
+    netWorthProperties: 'Nemovitosti',
+    netWorthLiabilities: 'Závazky',
+    netWorthCreditCards: 'Kreditní karty',
+    netWorthLoans: 'Úvěry',
+    netWorthTotal: 'Čistá hodnota',
+    netWorthMeasuredAt: 'Změřeno',
+    netWorthFormula: 'Hotovost + investice + nemovitosti − závazky',
+    netWorthUnavailable: 'Složení se zobrazí po nejbližší úspěšné synchronizaci.',
     overviewSummaryThisMonth: 'tento měsíc',
     recentTransactions: 'poslední transakce',
     spentByCurrency: 'utraceno podle měny',
@@ -2714,6 +1723,12 @@ const I18N = {
     addBankHint: 'Přidej novou banku, měnu, budget a limit karty.',
     addLoan: 'Přidat úvěr',
     addLoanHint: 'Vytvoř nový úvěr/hypotéku.',
+    addInvestment: 'Přidat investici',
+    addInvestmentHint: 'Vytvoř novou investici ve stejném nastavení Investic.',
+    addInsurance: 'Přidat pojištění',
+    addInsuranceHint: 'Vytvoř nové pojištění ve stejném nastavení Pojištění.',
+    addProperty: 'Přidat nemovitost',
+    addPropertyHint: 'Vytvoř novou nemovitost ve stejném nastavení Nemovitostí.',
     addWidget: 'Přidat widget',
     addWidgetHint: 'Vytvoř graf na přehled z dat nebo z ručně zadané hodnoty.',
     completed: 'splněno',
@@ -2729,7 +1744,9 @@ const I18N = {
     saveBank: 'Uložit banku',
     saveTransaction: 'Uložit transakci',
     countAsNonSpent: 'Počítat jako non-spent',
-    nonSpentHint: 'Nezapočítává se do spent, income ani net. Platí hned a na pozadí se uloží do Google Sheets.',
+    nonSpentHint: 'Nezapočítává se do výdajových metrik. Platí hned a na pozadí se uloží do Google Sheets.',
+    countAsNonIncome: 'Počítat jako non-income',
+    nonIncomeHint: 'Nezapočítává se do příjmů ani čistého toku. Platí hned a na pozadí se uloží do Google Sheets.',
     returnedAmountFor: 'Vrácená částka k platbě',
     notLinkedToPayment: 'Není propojena s odchozí platbou',
     returnedAmountHint: 'Vyber původní odchozí bankovní převod. Přijatá částka sníží spent místo započítání do income.',
@@ -2806,6 +1823,7 @@ const I18N = {
     switchToBarChart: 'Přepnout na sloupcový graf',
     pieChart: 'Koláčový graf',
     remaining: 'zbývá',
+    budgetOverBy: 'překročeno o',
     overBudget: 'překročený',
     nearLimit: 'blízko limitu',
     normal: 'v normě',

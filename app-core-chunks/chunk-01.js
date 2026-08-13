@@ -92,10 +92,17 @@ function formatOverviewTopAmount(value) {
   return sign + Math.round(abs).toLocaleString('cs');
 }
 
-function formatOverviewTopAmountFull(value) {
+function formatOverviewTopAmountFull(value, currency = getAppCurrency()) {
   const n = Math.round(Number(value || 0));
-  if (!Number.isFinite(n)) return '0 CZK';
-  return n.toLocaleString('cs-CZ') + ' CZK';
+  if (!Number.isFinite(n)) return formatCurrencyAmount(0, currency || getAppCurrency());
+  return formatCurrencyAmount(n, currency || getAppCurrency());
+}
+
+function getGregorianMonthLength(year, monthNumber) {
+  const safeYear = Math.trunc(Number(year));
+  const safeMonth = Math.trunc(Number(monthNumber));
+  if (!Number.isFinite(safeYear) || safeMonth < 1 || safeMonth > 12) return 0;
+  return new Date(safeYear, safeMonth, 0).getDate();
 }
 
 function getOverviewMonthElapsedRatio() {
@@ -103,18 +110,481 @@ function getOverviewMonthElapsedRatio() {
   if (offset < 0) return 1;
   if (offset > 0) return 0;
   const now = new Date();
-  const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const totalDays = getGregorianMonthLength(now.getFullYear(), now.getMonth() + 1);
   if (!totalDays) return 0;
   return Math.min(1, Math.max(0, now.getDate() / totalDays));
+}
+
+function getOverviewSummaryDayCount(monthStr = getAktuálneMonth()) {
+  const normalized = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const match = normalized.match(/^(\d{2})\/(\d{4})$/);
+  if (!match) return 1;
+  const monthIndex = Math.max(0, Math.min(11, Number(match[1]) - 1));
+  const year = Number(match[2]);
+  const totalDays = getGregorianMonthLength(year, monthIndex + 1);
+  const now = new Date();
+  const isCurrentMonth = year === now.getFullYear() && monthIndex === now.getMonth();
+  return Math.max(1, isCurrentMonth ? Math.min(now.getDate(), totalDays) : totalDays);
+}
+
+function getOverviewBudgetBankKeysForMonth(monthStr = getAktuálneMonth()) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const inactiveKeys = new Set((getCustomBanks() || [])
+    .filter(bank => bank && bank.active === false)
+    .map(bank => String(bank.id || '').trim())
+    .filter(Boolean));
+  return Array.from(new Set(getArchiveTotalsBankKeys(month)))
+    .filter(bankKey => bankKey && !isOverviewCreditBankKey(bankKey) && !inactiveKeys.has(bankKey));
+}
+
+function getOverviewBudgetBankPresentation(bankKey) {
+  const info = getArchiveBankInfo(bankKey) || {};
+  return {
+    name: getArchiveBankName(bankKey) || info.label || plainBankName(bankKey),
+    color: info.color || getCustomArchiveBankColor(bankKey) || 'var(--accent)'
+  };
+}
+
+function getOverviewBudgetBankLabelHtml(bankKey) {
+  const presentation = getOverviewBudgetBankPresentation(bankKey);
+  return `<span class="bank-name-with-logo">${bankLogoImg(bankKey)}<span>${escapeHtml(presentation.name)}</span></span>`;
+}
+
+function getOverviewBudgetBreakdown(monthStr = getAktuálneMonth(), targetCurrency = getAppCurrency(), includeExcluded = false) {
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const currency = currencyCode(targetCurrency || getAppCurrency() || 'CZK');
+  const bankKeys = getOverviewBudgetBankKeysForMonth(month);
+  const cashflow = getOverviewQualifiedCashflowForBanks(bankKeys, month, currency);
+  const banks = bankKeys.map(bankKey => {
+    const budgetCurrency = getBankBudgetCurrency(bankKey) || currency;
+    const limitRaw = Math.max(0, Number(getOverviewBudgetLimitForBank(bankKey, month) || 0) || 0);
+    const limit = Math.max(0, Number(convertAmountCurrency(limitRaw, budgetCurrency, currency) || 0) || 0);
+    const spent = Math.max(0, Number(cashflow.byBank?.[bankKey]?.spent || 0) || 0);
+    return {
+      key: bankKey,
+      name: getOverviewBudgetBankPresentation(bankKey).name,
+      limit,
+      spent,
+      remaining: limit - spent,
+      hasBudget: limitRaw > 0
+    };
+  });
+
+  const emptyExcluded = {
+    internalTransfers: 0,
+    creditCards: 0,
+    manualSpent: 0,
+    manualIncome: 0,
+    manual: 0,
+    inactiveBanks: 0,
+    matchedOffsets: 0,
+    spent: 0,
+    income: 0,
+    total: 0,
+    byReason: createCashflowReasonTotals()
+  };
+  const excluded = includeExcluded ? cashflow.excluded : emptyExcluded;
+  const exclusionTransactionsAvailable = includeExcluded && cashflow.exclusionTransactionsAvailable;
+
+  const limit = banks.reduce((sum, bank) => sum + bank.limit, 0);
+  const spent = banks.reduce((sum, bank) => sum + bank.spent, 0);
+  return {
+    month,
+    currency,
+    banks,
+    limit,
+    spent,
+    income: Math.max(0, Number(cashflow.income || 0) || 0),
+    rawSpent: Math.max(0, Number(cashflow.rawSpent || 0) || 0),
+    rawIncome: Math.max(0, Number(cashflow.rawIncome || 0) || 0),
+    turnover: Math.max(0, Number(cashflow.turnover || 0) || 0),
+    remaining: limit - spent,
+    excluded,
+    exclusionTransactionsAvailable,
+    excludesCreditPurchases: true
+  };
+}
+
+function formatOverviewBudgetBreakdownAmount(value, currency, signed = false) {
+  const numeric = Number(value || 0) || 0;
+  const formatted = formatOverviewTopAmountFull(signed ? numeric : Math.abs(numeric), currency);
+  return maskAccountBalanceValue(formatted);
+}
+
+function getOverviewMetricBreakdownHintKey(metricKey) {
+  if (metricKey === 'daily-average') return 'overviewDailyAverageBreakdownHint';
+  if (metricKey === 'net-flow') return 'overviewNetFlowBreakdownHint';
+  return 'overviewBudgetBreakdownHint';
+}
+
+function getOverviewSpendingExclusionRows(breakdown, amount) {
+  if (!breakdown.exclusionTransactionsAvailable) {
+    return `<div class="overview-budget-breakdown-income" data-i18n="overviewBudgetBreakdownExclusionsUnavailable">${escapeHtml(t('overviewBudgetBreakdownExclusionsUnavailable'))}</div>`;
+  }
+  return [
+    ['overviewBudgetBreakdownInternalTransfers', breakdown.excluded.internalTransfers],
+    [breakdown.excludesCreditPurchases ? 'overviewBudgetBreakdownCreditCards' : 'overviewCashflowBreakdownCreditAdjustments', breakdown.excluded.creditCards],
+    ['overviewBudgetBreakdownNonSpent', breakdown.excluded.manualSpent],
+    ['overviewBudgetBreakdownNonIncome', breakdown.excluded.manualIncome],
+    ['overviewBudgetBreakdownInactiveBanks', breakdown.excluded.inactiveBanks],
+    ['overviewBudgetBreakdownMatchedOffsets', breakdown.excluded.matchedOffsets]
+  ].map(([key, value]) => `
+    <div class="overview-budget-breakdown-rule">
+      <span data-i18n="${key}">${escapeHtml(t(key))}</span>
+      <strong>${amount(value)}</strong>
+    </div>`).join('');
+}
+
+function renderOverviewDailyAverageBreakdown(popover, breakdown) {
+  const amount = value => escapeHtml(formatOverviewBudgetBreakdownAmount(value, breakdown.currency));
+  const dayCount = getOverviewSummaryDayCount(breakdown.month);
+  const dailyAverage = breakdown.spent / Math.max(1, dayCount);
+  const monthParts = String(breakdown.month || '').match(/^(\d{2})\/(\d{4})$/);
+  const now = new Date();
+  const isCurrentMonth = !!monthParts
+    && Number(monthParts[1]) === now.getMonth() + 1
+    && Number(monthParts[2]) === now.getFullYear();
+  const dayRuleKey = isCurrentMonth
+    ? 'overviewDailyAverageCurrentMonthNote'
+    : 'overviewDailyAverageFullMonthNote';
+  const excludedRows = getOverviewSpendingExclusionRows(breakdown, amount);
+
+  popover.innerHTML = `
+    <div class="overview-budget-breakdown-title" data-i18n="overviewDailyAverageBreakdownTitle">${escapeHtml(t('overviewDailyAverageBreakdownTitle'))}</div>
+    <div class="overview-budget-breakdown-formula" data-i18n="overviewDailyAverageBreakdownFormula">${escapeHtml(t('overviewDailyAverageBreakdownFormula'))}</div>
+    <div class="overview-budget-breakdown-totals">
+      <div><span data-i18n="overviewBudgetBreakdownSpent">${escapeHtml(t('overviewBudgetBreakdownSpent'))}</span><strong>${amount(breakdown.spent)}</strong></div>
+      <div><span data-i18n="overviewDailyAverageDaysCounted">${escapeHtml(t('overviewDailyAverageDaysCounted'))}</span><strong>${dayCount}</strong></div>
+      <div class="overview-budget-breakdown-result"><span data-i18n="overviewSummaryDailyAverage">${escapeHtml(t('overviewSummaryDailyAverage'))}</span><strong class="is-positive">${amount(dailyAverage)}</strong></div>
+    </div>
+    <div class="overview-budget-breakdown-income" data-i18n="${dayRuleKey}">${escapeHtml(t(dayRuleKey))}</div>
+    <div class="overview-budget-breakdown-section" data-i18n="overviewBudgetBreakdownExcluded">${escapeHtml(t('overviewBudgetBreakdownExcluded'))}</div>
+    <div class="overview-budget-breakdown-rules">${excludedRows}</div>`;
+}
+
+function renderOverviewNetFlowBreakdown(popover, breakdown) {
+  const amount = value => escapeHtml(formatOverviewBudgetBreakdownAmount(value, breakdown.currency));
+  const signedAmount = value => escapeHtml(formatOverviewBudgetBreakdownAmount(value, breakdown.currency, true));
+  const netFlow = breakdown.income - breakdown.spent;
+  const filterRows = getOverviewSpendingExclusionRows(breakdown, amount);
+  const excludedIncome = Math.max(0, Number(breakdown.excluded?.income || 0) || 0);
+  const excludedSpent = Math.max(0, Number(breakdown.excluded?.spent || 0) || 0);
+
+  popover.innerHTML = `
+    <div class="overview-budget-breakdown-title" data-i18n="overviewNetFlowBreakdownTitle">${escapeHtml(t('overviewNetFlowBreakdownTitle'))}</div>
+    <div class="overview-budget-breakdown-formula" data-i18n="overviewNetFlowBreakdownFormula">${escapeHtml(t('overviewNetFlowBreakdownFormula'))}</div>
+    <div class="overview-budget-breakdown-totals">
+      <div><span data-i18n="overviewNetFlowBreakdownIncome">${escapeHtml(t('overviewNetFlowBreakdownIncome'))}</span><strong>+${amount(breakdown.income)}</strong></div>
+      <div><span data-i18n="overviewBudgetBreakdownSpent">${escapeHtml(t('overviewBudgetBreakdownSpent'))}</span><strong>−${amount(breakdown.spent)}</strong></div>
+      <div class="overview-budget-breakdown-result"><span data-i18n="overviewSummaryNetFlow">${escapeHtml(t('overviewSummaryNetFlow'))}</span><strong class="${netFlow < 0 ? 'is-negative' : 'is-positive'}">${signedAmount(netFlow)}</strong></div>
+    </div>
+    <div class="overview-budget-breakdown-section" data-i18n="overviewNetFlowBreakdownFilters">${escapeHtml(t('overviewNetFlowBreakdownFilters'))}</div>
+    <div class="overview-budget-breakdown-totals overview-net-flow-excluded-totals">
+      <div><span data-i18n="overviewNetFlowBreakdownExcludedIncome">${escapeHtml(t('overviewNetFlowBreakdownExcludedIncome'))}</span><strong>+${amount(excludedIncome)}</strong></div>
+      <div><span data-i18n="overviewNetFlowBreakdownExcludedSpent">${escapeHtml(t('overviewNetFlowBreakdownExcludedSpent'))}</span><strong>−${amount(excludedSpent)}</strong></div>
+    </div>
+    <div class="overview-budget-breakdown-section" data-i18n="overviewNetFlowBreakdownExcludedDetails">${escapeHtml(t('overviewNetFlowBreakdownExcludedDetails'))}</div>
+    <div class="overview-budget-breakdown-rules">${filterRows}</div>
+    <div class="overview-budget-breakdown-income" data-i18n="overviewNetFlowBreakdownFilterNote">${escapeHtml(t('overviewNetFlowBreakdownFilterNote'))}</div>`;
+}
+
+function renderOverviewBudgetBreakdown() {
+  const popover = document.getElementById('overview-budget-breakdown');
+  if (!popover) return;
+  const metricKey = document.getElementById('overview-summary-metric')?.dataset.summaryMetric || 'remaining-budget';
+  const breakdown = metricKey === 'remaining-budget'
+    ? getOverviewBudgetBreakdown(getAktuálneMonth(), getAppCurrency(), true)
+    : getOverviewCashflowBreakdown(getAktuálneMonth(), getAppCurrency());
+  if (metricKey === 'daily-average') {
+    renderOverviewDailyAverageBreakdown(popover, breakdown);
+    return;
+  }
+  if (metricKey === 'net-flow') {
+    renderOverviewNetFlowBreakdown(popover, breakdown);
+    return;
+  }
+  const amount = value => escapeHtml(formatOverviewBudgetBreakdownAmount(value, breakdown.currency));
+  const signedAmount = value => escapeHtml(formatOverviewBudgetBreakdownAmount(value, breakdown.currency, true));
+
+  const excludedRows = getOverviewSpendingExclusionRows(breakdown, amount);
+
+  popover.innerHTML = `
+    <div class="overview-budget-breakdown-title" data-i18n="overviewBudgetBreakdownTitle">${escapeHtml(t('overviewBudgetBreakdownTitle'))}</div>
+    <div class="overview-budget-breakdown-formula" data-i18n="overviewBudgetBreakdownFormula">${escapeHtml(t('overviewBudgetBreakdownFormula'))}</div>
+    <div class="overview-budget-breakdown-totals">
+      <div><span data-i18n="overviewBudgetBreakdownLimits">${escapeHtml(t('overviewBudgetBreakdownLimits'))}</span><strong>${amount(breakdown.limit)}</strong></div>
+      <div><span data-i18n="overviewBudgetBreakdownSpent">${escapeHtml(t('overviewBudgetBreakdownSpent'))}</span><strong>−${amount(breakdown.spent)}</strong></div>
+      <div class="overview-budget-breakdown-result"><span data-i18n="overviewBudgetBreakdownRemaining">${escapeHtml(t('overviewBudgetBreakdownRemaining'))}</span><strong class="${breakdown.remaining < 0 ? 'is-negative' : 'is-positive'}">${signedAmount(breakdown.remaining)}</strong></div>
+    </div>
+    <button class="overview-budget-breakdown-cta" type="button" onclick="openOverviewBudgetDetailsFromBreakdown(event)">
+      <span data-i18n="overviewBudgetBreakdownViewBankBudgets">${escapeHtml(t('overviewBudgetBreakdownViewBankBudgets'))}</span>
+      <span aria-hidden="true">→</span>
+    </button>
+    <div class="overview-budget-breakdown-section" data-i18n="overviewBudgetBreakdownExcluded">${escapeHtml(t('overviewBudgetBreakdownExcluded'))}</div>
+    <div class="overview-budget-breakdown-rules">${excludedRows}</div>
+    <div class="overview-budget-breakdown-income" data-i18n="overviewBudgetBreakdownIncomeNote">${escapeHtml(t('overviewBudgetBreakdownIncomeNote'))}</div>`;
+}
+
+function ensureOverviewBudgetBreakdownPortal() {
+  const popover = document.getElementById('overview-budget-breakdown');
+  if (popover && popover.parentElement !== document.body) {
+    document.body.appendChild(popover);
+  }
+  return popover;
+}
+
+function openOverviewBudgetBreakdown(pinned = false) {
+  const item = document.getElementById('overview-summary-metric');
+  const popover = ensureOverviewBudgetBreakdownPortal();
+  const supportedMetrics = ['daily-average', 'net-flow', 'remaining-budget'];
+  if (!item || !popover || !supportedMetrics.includes(item.dataset.summaryMetric)) return;
+  renderOverviewBudgetBreakdown();
+  if (pinned) item.__overviewBudgetBreakdownPinned = true;
+  item.classList.add('budget-breakdown-open');
+  popover.classList.add('is-open');
+  item.setAttribute('aria-expanded', 'true');
+  popover.setAttribute('aria-hidden', 'false');
+  window.requestAnimationFrame(positionOverviewBudgetBreakdown);
+}
+
+function closeOverviewBudgetBreakdown(force = false) {
+  const item = document.getElementById('overview-summary-metric');
+  const popover = document.getElementById('overview-budget-breakdown');
+  if (!item || !popover) return;
+  if (!force && item.__overviewBudgetBreakdownPinned) return;
+  item.__overviewBudgetBreakdownPinned = false;
+  item.classList.remove('budget-breakdown-open');
+  popover.classList.remove('is-open');
+  item.setAttribute('aria-expanded', 'false');
+  popover.setAttribute('aria-hidden', 'true');
+}
+
+function positionOverviewBudgetBreakdown() {
+  const item = document.getElementById('overview-summary-metric');
+  const info = document.getElementById('overview-budget-info-dot');
+  const popover = document.getElementById('overview-budget-breakdown');
+  if (!item || !popover || !popover.classList.contains('is-open')) return;
+  const anchorElement = info && !info.hidden ? info : item;
+  const anchor = anchorElement.getBoundingClientRect();
+  const viewportWidth = Math.max(0, window.innerWidth || document.documentElement.clientWidth || 0);
+  const viewportHeight = Math.max(0, window.innerHeight || document.documentElement.clientHeight || 0);
+  const popoverWidth = Math.max(1, popover.offsetWidth || 0);
+  const popoverHeight = Math.max(1, popover.offsetHeight || 0);
+  const edge = 12;
+  const gap = 10;
+  const anchorCenter = anchor.left + anchor.width / 2;
+  const maxLeft = Math.max(edge, viewportWidth - popoverWidth - edge);
+  const left = Math.min(maxLeft, Math.max(edge, anchorCenter - popoverWidth / 2));
+  const belowTop = anchor.bottom + gap;
+  const aboveTop = anchor.top - popoverHeight - gap;
+  const opensAbove = belowTop + popoverHeight > viewportHeight - edge && aboveTop >= edge;
+  const maxTop = Math.max(edge, viewportHeight - popoverHeight - edge);
+  const top = Math.min(maxTop, Math.max(edge, opensAbove ? aboveTop : belowTop));
+  const arrowX = Math.min(popoverWidth - 16, Math.max(16, anchorCenter - left));
+  popover.dataset.placement = opensAbove ? 'top' : 'bottom';
+  popover.style.setProperty('--overview-budget-arrow-x', `${Math.round(arrowX)}px`);
+  popover.style.left = `${Math.round(left)}px`;
+  popover.style.top = `${Math.round(top)}px`;
+}
+
+function cancelOverviewBudgetBreakdownClose() {
+  const item = document.getElementById('overview-summary-metric');
+  if (!item?.__overviewBudgetCloseTimer) return;
+  window.clearTimeout(item.__overviewBudgetCloseTimer);
+  item.__overviewBudgetCloseTimer = null;
+}
+
+function scheduleOverviewBudgetBreakdownClose() {
+  const item = document.getElementById('overview-summary-metric');
+  if (!item || item.__overviewBudgetBreakdownPinned) return;
+  cancelOverviewBudgetBreakdownClose();
+  item.__overviewBudgetCloseTimer = window.setTimeout(() => {
+    item.__overviewBudgetCloseTimer = null;
+    closeOverviewBudgetBreakdown(false);
+  }, 140);
+}
+
+function startOverviewBudgetBreakdownHold(event) {
+  const item = document.getElementById('overview-summary-metric');
+  if (!item || item.dataset.summaryMetric !== 'remaining-budget' || event?.pointerType === 'mouse') return;
+  if (event?.button != null && event.button !== 0) return;
+  if (item.__overviewBudgetHoldTimer) window.clearTimeout(item.__overviewBudgetHoldTimer);
+  item.__overviewBudgetHoldTimer = window.setTimeout(() => {
+    item.__overviewBudgetHoldTimer = null;
+    item.dataset.suppressSummaryClickUntil = String(Date.now() + 700);
+    openOverviewBudgetBreakdown(true);
+    try { if (navigator.vibrate) navigator.vibrate(18); } catch (_) {}
+  }, 420);
+}
+
+function cancelOverviewBudgetBreakdownHold() {
+  const item = document.getElementById('overview-summary-metric');
+  if (!item?.__overviewBudgetHoldTimer) return;
+  window.clearTimeout(item.__overviewBudgetHoldTimer);
+  item.__overviewBudgetHoldTimer = null;
+}
+
+function handleOverviewSummaryMetricClick(event) {
+  const item = document.getElementById('overview-summary-metric');
+  const suppressUntil = Number(item?.dataset.suppressSummaryClickUntil || 0);
+  if (suppressUntil > Date.now()) {
+    event?.preventDefault();
+    event?.stopPropagation();
+    return;
+  }
+  closeOverviewBudgetBreakdown(true);
+  cycleOverviewSummaryMetric();
+}
+
+function handleOverviewBudgetInfoClick(event) {
+  event?.preventDefault();
+  event?.stopPropagation();
+  openOverviewBudgetBreakdown(true);
+}
+
+function openOverviewBudgetDetailsFromBreakdown(event) {
+  event?.preventDefault();
+  event?.stopPropagation();
+  closeOverviewBudgetBreakdown(true);
+  openOverviewDetailsSection('bank-budget-anchor');
+}
+
+function ensureOverviewBudgetBreakdownInteractions() {
+  const item = document.getElementById('overview-summary-metric');
+  if (!item || item.__overviewBudgetInteractionsReady) return;
+  const info = document.getElementById('overview-budget-info-dot');
+  const popover = ensureOverviewBudgetBreakdownPortal();
+  item.__overviewBudgetInteractionsReady = true;
+  if (info && !info.__overviewBudgetInteractionsReady) {
+    info.__overviewBudgetInteractionsReady = true;
+    info.addEventListener('mouseenter', () => { cancelOverviewBudgetBreakdownClose(); openOverviewBudgetBreakdown(false); });
+    info.addEventListener('mouseleave', scheduleOverviewBudgetBreakdownClose);
+    info.addEventListener('focus', () => openOverviewBudgetBreakdown(false));
+    info.addEventListener('blur', scheduleOverviewBudgetBreakdownClose);
+  }
+  if (popover && !popover.__overviewBudgetInteractionsReady) {
+    popover.__overviewBudgetInteractionsReady = true;
+    popover.addEventListener('mouseenter', cancelOverviewBudgetBreakdownClose);
+    popover.addEventListener('mouseleave', scheduleOverviewBudgetBreakdownClose);
+  }
+  if (!document.__overviewBudgetOutsideListenerReady) {
+    document.__overviewBudgetOutsideListenerReady = true;
+    document.addEventListener('pointerdown', event => {
+      const current = document.getElementById('overview-summary-metric');
+      const currentPopover = document.getElementById('overview-budget-breakdown');
+      if (current && !current.contains(event.target) && !currentPopover?.contains(event.target)) closeOverviewBudgetBreakdown(true);
+    }, true);
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeOverviewBudgetBreakdown(true);
+    });
+    window.addEventListener('resize', positionOverviewBudgetBreakdown, { passive: true });
+    window.addEventListener('scroll', positionOverviewBudgetBreakdown, { passive: true, capture: true });
+  }
+}
+
+function getOverviewSummaryMetrics() {
+  const month = normalizeMonthStr(getAktuálneMonth());
+  const currency = getAppCurrency() || 'CZK';
+  const budgetBreakdown = getOverviewBudgetBreakdown(month, currency);
+  const cashflowBreakdown = getOverviewCashflowBreakdown(month, currency);
+  const spent = Math.max(0, Number(cashflowBreakdown.spent || 0) || 0);
+  const income = Math.max(0, Number(cashflowBreakdown.income || 0) || 0);
+  const budgetSpent = Math.max(0, Number(budgetBreakdown.spent || 0) || 0);
+  const budgetLimit = Math.max(0, Number(budgetBreakdown.limit || 0) || 0);
+
+  return [
+    {
+      key: 'daily-average',
+      labelKey: 'overviewSummaryDailyAverage',
+      value: spent / getOverviewSummaryDayCount(month),
+      currency,
+      available: true
+    },
+    {
+      key: 'net-flow',
+      labelKey: 'overviewSummaryNetFlow',
+      value: income - spent,
+      currency,
+      available: true
+    },
+    {
+      key: 'remaining-budget',
+      labelKey: 'overviewSummaryRemainingBudget',
+      value: budgetLimit - budgetSpent,
+      currency,
+      available: budgetLimit > 0
+    }
+  ];
+}
+
+function renderOverviewSummaryMetric() {
+  const metrics = getOverviewSummaryMetrics();
+  const safeIndex = ((Number(overviewSummaryMetricIndex || 0) % metrics.length) + metrics.length) % metrics.length;
+  const metric = metrics[safeIndex];
+  const label = document.getElementById('overview-summary-metric-label');
+  const value = document.getElementById('sum-amount');
+  const full = document.getElementById('sum-amount-full');
+  const item = document.getElementById('overview-summary-metric');
+  const infoDot = document.getElementById('overview-budget-info-dot');
+  const fullValueText = metric.available
+    ? formatOverviewTopAmountFull(metric.value, metric.currency)
+    : t('budgetNotSet');
+  const remainingBudgetSubKey = metric.value < 0
+    ? 'overviewSummaryOverBudget'
+    : 'overviewSummaryBudgetRemaining';
+  if (label) {
+    label.setAttribute('data-i18n', metric.labelKey);
+    label.textContent = t(metric.labelKey);
+  }
+  if (value) value.textContent = metric.available ? formatOverviewTopAmount(metric.value) : '—';
+  if (full) {
+    if (metric.key === 'remaining-budget' && metric.available) {
+      full.setAttribute('data-i18n', remainingBudgetSubKey);
+      full.textContent = t(remainingBudgetSubKey);
+    } else {
+      full.removeAttribute('data-i18n');
+      full.textContent = fullValueText;
+    }
+  }
+  if (infoDot) {
+    const breakdownHintKey = getOverviewMetricBreakdownHintKey(metric.key);
+    infoDot.hidden = false;
+    infoDot.classList.add('is-visible');
+    infoDot.parentElement?.classList.add('has-metric-info');
+    infoDot.setAttribute('data-i18n-title', breakdownHintKey);
+    infoDot.setAttribute('data-i18n-aria-label', breakdownHintKey);
+    infoDot.setAttribute('title', t(breakdownHintKey));
+    infoDot.setAttribute('aria-label', t(breakdownHintKey));
+  }
+  if (item) {
+    item.dataset.summaryMetric = metric.key;
+    item.dataset.summaryState = !metric.available
+      ? 'unavailable'
+      : (metric.value < 0 ? 'negative' : 'positive');
+    const breakdownHint = ` ${t(getOverviewMetricBreakdownHintKey(metric.key))}`;
+    item.setAttribute('aria-label', `${t(metric.labelKey)}: ${fullValueText}. ${t('overviewSummaryCycleTitle')}.${breakdownHint}`);
+    item.setAttribute('aria-haspopup', 'true');
+    item.setAttribute('aria-describedby', 'overview-budget-breakdown');
+    if (item.classList.contains('budget-breakdown-open')) renderOverviewBudgetBreakdown();
+  }
+  ensureOverviewBudgetBreakdownInteractions();
+}
+
+function cycleOverviewSummaryMetric() {
+  overviewSummaryMetricIndex = (Number(overviewSummaryMetricIndex || 0) + 1) % 3;
+  renderOverviewSummaryMetric();
+  const item = document.getElementById('overview-summary-metric');
+  if (!item || reduceMotionCheck()) return;
+  item.classList.remove('summary-metric-changing');
+  void item.offsetWidth;
+  item.classList.add('summary-metric-changing');
+  window.setTimeout(() => item.classList.remove('summary-metric-changing'), 220);
 }
 
 function updateOverviewSummaryStrip(totalMonthSpent, monthAllTxnsCount) {
   const sumTxns = document.getElementById('sum-txns');
   if (sumTxns) sumTxns.textContent = monthAllTxnsCount;
-  const sumAmount = document.getElementById('sum-amount');
-  if (sumAmount) sumAmount.textContent = formatOverviewTopAmount(totalMonthSpent);
-  const sumAmountFull = document.getElementById('sum-amount-full');
-  if (sumAmountFull) sumAmountFull.textContent = formatOverviewTopAmountFull(totalMonthSpent);
+  renderOverviewSummaryMetric();
   const sumDays = document.getElementById('sum-days');
   if (sumDays) sumDays.textContent = getDaysRemaining();
   const progressFill = document.getElementById('sum-days-progress-fill');
@@ -516,7 +986,6 @@ function readLimitInputs() {
     moneta: parseInt(document.getElementById('sim-limit-moneta')?.value, 10)
   };
 }
-
 async function saveSimulatorMesačneLimits() {
   const monthStr = getSimulatorLimitMonth();
   const limits = readLimitInputs();
@@ -607,17 +1076,20 @@ function getBankStatusText(count, limit, monthStr) {
   return `<span class="archive-bank-status" style="color:var(--danger);">${label}</span>`;
 }
 
-function getDaysRemaining() {
-  const offset = Number(activeOverviewMonthOffset || 0);
-  if (offset < 0) return 0;
-  if (offset > 0) {
-    const viewDate = new Date();
-    viewDate.setMonth(viewDate.getMonth() + offset);
-    return new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
-  }
-  const now = new Date();
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return Math.max(0, lastDay.getDate() - now.getDate());
+function getDaysRemaining(referenceDate = new Date(), monthStr = getAktuálneMonth()) {
+  const currentDate = referenceDate instanceof Date ? referenceDate : new Date();
+  const month = normalizeMonthStr(monthStr || getAktuálneMonth());
+  const match = String(month || '').match(/^(\d{2})\/(\d{4})$/);
+  if (!match) return 0;
+  const selectedMonth = Number(match[1]);
+  const selectedYear = Number(match[2]);
+  const totalDays = getGregorianMonthLength(selectedYear, selectedMonth);
+  const selectedIndex = selectedYear * 12 + selectedMonth;
+  const currentIndex = currentDate.getFullYear() * 12 + currentDate.getMonth() + 1;
+  if (selectedIndex < currentIndex) return 0;
+  if (selectedIndex > currentIndex) return totalDays;
+  // Dnešný deň sa počíta: 1. augusta zostáva 31, posledný deň zostáva 1.
+  return Math.max(1, totalDays - currentDate.getDate() + 1);
 }
 
 function parseGSheetDate(val) {
@@ -788,7 +1260,10 @@ function shouldSkipStartupCloudSync() {
 }
 
 function markCloudSyncCompleted() {
-  markLocalCacheTimestamp('cached_cloud_sync_at');
+  const completedAt = Date.now();
+  try { localStorage.setItem('cached_cloud_sync_at', String(completedAt)); } catch (_) {}
+  try { localStorage.setItem('bank_tracker_last_sync_v1', String(completedAt)); } catch (_) {}
+  try { if (typeof window.btRenderLastSyncV5200 === 'function') window.btRenderLastSyncV5200(); } catch (_) {}
 }
 
 function saveCachedTransactionsSnapshot() {
@@ -940,7 +1415,6 @@ function renderCurrencyTotalLines(txns, primaryCurrency = 'CZK') {
     <div style="${idx > 0 ? 'font-size:12px;color:var(--text);margin-top:3px;font-weight:600;' : ''}">${formatCurrencyAmount(totals[c], c)}</div>
   `).join('');
 }
-
 function parseSheetData(raw) {
   const data = parseGvizJson(raw);
   const rows = data.table.rows;
@@ -961,6 +1435,7 @@ function parseSheetData(raw) {
   const excludeStatsColumn = columnIndex('Exclude stats', 12);
   const returnForColumn = columnIndex('Return for transaction ID', 13);
   const recurringGroupColumn = columnIndex('Recurring group ID', 14);
+  const excludeIncomeColumn = columnIndex('Exclude income', 16);
   const txns = [];
   
   let index = 0;
@@ -985,6 +1460,7 @@ function parseSheetData(raw) {
     const variableSymbol = String(variableSymbolValue).replace(/\D/g, '').trim();
     const tagRaw = String(row.c[tagColumn]?.v || row.c[tagColumn]?.f || '').trim();
     const excludeRaw = String(row.c[excludeStatsColumn]?.v || row.c[excludeStatsColumn]?.f || '').trim();
+    const excludeIncomeRaw = String(row.c[excludeIncomeColumn]?.v || row.c[excludeIncomeColumn]?.f || '').trim();
     const returnForTransactionId = String(row.c[returnForColumn]?.v || row.c[returnForColumn]?.f || '').trim();
     const recurringGroupId = String(row.c[recurringGroupColumn]?.v || row.c[recurringGroupColumn]?.f || '').trim();
     let parsedTag = null;
@@ -1026,7 +1502,9 @@ function parseSheetData(raw) {
       tagShape: tagShape,
       tagMeta: tagName ? { name: tagName, color: tagColor, shape: tagShape } : null,
       tag: tagName ? JSON.stringify({ name: tagName, color: tagColor, shape: tagShape }) : '',
-      excludeFromSpent: /^(yes|true|1|on)$/i.test(excludeRaw),
+      // Starý Exclude stats sa pri kladnej sume migruje na non-income.
+      excludeFromSpent: amount < 0 && /^(yes|true|1|on)$/i.test(excludeRaw),
+      excludeFromIncome: /^(yes|true|1|on)$/i.test(excludeIncomeRaw) || (amount > 0 && /^(yes|true|1|on)$/i.test(excludeRaw)),
       returnForTransactionId: returnForTransactionId,
       recurring_group_id: recurringGroupId || null,
       timestamp: txDate ? txDate.getTime() : parseCustomDateStr(dateStr).getTime()
@@ -1289,6 +1767,8 @@ async function syncData(options = {}) {
   const startupMode = !!(options && options.startupMode);
   const backgroundMode = !!(options && options.backgroundMode);
   const showFullScreenLoader = !!(options && options.showFullScreenLoader);
+  let syncSucceeded = false;
+  try { window.__btLastCloudSyncSucceeded = false; } catch (_) {}
   let fullScreenLoaderClosed = false;
   const closeFullScreenLoader = () => {
     if (!showFullScreenLoader || fullScreenLoaderClosed) return;
@@ -1309,7 +1789,17 @@ async function syncData(options = {}) {
     applyLanguage();
     updateGoogleSheetsToggleUi();
     closeFullScreenLoader(false);
-    return;
+    return false;
+  }
+
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    const loadStatus = document.getElementById('limits-sync-status');
+    if (loadStatus) loadStatus.textContent = t('offlineShowingCache');
+    if (!allTransactions.length) loadCachedTransactionsSnapshot();
+    renderAll();
+    applyLanguage();
+    closeFullScreenLoader(false);
+    return false;
   }
 
   if (!SHEETS_URL || isSyncing) {
@@ -1322,7 +1812,7 @@ async function syncData(options = {}) {
     renderAll();
     applyLanguage();
     closeFullScreenLoader(false);
-    return;
+    return false;
   }
   isSyncing = true;
   try { setSyncBtnSpinning(true); } catch (_) {}
@@ -1356,6 +1846,8 @@ async function syncData(options = {}) {
     ]);
     await syncBalanceLogFromSheets(spreadsheetId);
     reapplySheetAccountBalancesFromStorage();
+    syncSucceeded = true;
+    try { window.__btLastCloudSyncSucceeded = true; } catch (_) {}
 
     if (!startupMode && !backgroundMode) {
       if (loadStatus) loadStatus.textContent = 'Dáta z Google Sheets sa načítali správne.';
@@ -1394,7 +1886,7 @@ async function syncData(options = {}) {
       }
     }
     try { setOverviewBalanceSyncState(false); setHeaderBrandSyncState(false); } catch (_) {}
-    markCloudSyncCompleted();
+    if (syncSucceeded) markCloudSyncCompleted();
     closeFullScreenLoader();
     const runSubscriptionDetection = () => {
       try { runSubscriptionDetectionPipeline({ reason: 'sync' }); } catch (e) { console.warn('Subscription detection failed:', e); }
@@ -1410,6 +1902,7 @@ async function syncData(options = {}) {
       showFullScreenLoader ? 'overlay' : 'no-overlay'
     ].join(','));
   }
+  return syncSucceeded;
 }
 
 function loadDemoData() {
@@ -1420,7 +1913,6 @@ function loadDemoData() {
 function transactionToCzkEquivalent(tx) {
   return convertTransactionAmount(tx, 'CZK');
 }
-
 function getArchiveMonths() {
   return [...new Set(allTransactions.map(t => t.month).filter(Boolean))]
     .sort((a,b) => monthSortValue(b) - monthSortValue(a));
@@ -1547,7 +2039,7 @@ function renderArchiveBankDetail() {
   }
 
   const [mm, yyyy] = normalizeMonthStr(monthStr).split('/').map(Number);
-  const daysInMonth = new Date(yyyy, mm, 0).getDate();
+  const daysInMonth = getGregorianMonthLength(yyyy, mm);
 
   const daily = Array.from({ length: daysInMonth }, (_, idx) => ({
     day: idx + 1,
@@ -1849,7 +2341,6 @@ function isAtmCashWithdrawalTransaction(tx) {
     /\batm\s+(?:cash\s+)?withdrawal\b/.test(text) ||
     /\bbankomat\b/.test(text);
 }
-
 function getTransactionPaymentKind(tx) {
   if (isAtmCashWithdrawalTransaction(tx)) return 'cash';
   const explicitKind = normalizePaymentKindValue(tx?.paymentKind || '');
@@ -2358,7 +2849,6 @@ function updatePaymentKindFilterUi() {
   document.getElementById('filter-kind-cash')?.classList.toggle('active', activePaymentKind === 'cash');
   document.getElementById('filter-kind-internal')?.classList.toggle('active', activePaymentKind === 'internal');
 }
-
 function getKnownCardFilters() {
   const items = [];
   const addBankCards = (bankKey, label) => {
@@ -2725,7 +3215,7 @@ function ensureHeaderBrandLogoMarkup(options = {}) {
   if (existing && !wantAnimated && existing.classList.contains('bt-brand-logo--static')) {
     return existing;
   }
-  const titleHtml = '<span class="header-brand-title" id="header-brand-title">ank Tracker</span>';
+  const titleHtml = '<span class="header-brand-title" id="header-brand-title">liss - Finance Tracker</span>';
   const logoHtml = wantAnimated ? getBtBrandLogoHeaderAnimatedHtml(38) : getBtBrandLogoHeaderStaticHtml(38);
   if (existing) {
     existing.outerHTML = logoHtml;
